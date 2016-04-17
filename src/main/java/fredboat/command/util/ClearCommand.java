@@ -26,7 +26,7 @@ public class ClearCommand extends Command {
         JDA jda = guild.getJDA();
         
         if(PermissionUtil.checkPermission(invoker, Permission.MESSAGE_MANAGE, channel) == false && invoker.getId().equals(FredBoat.OWNER_ID) == false){
-            TextUtils.replyWithMention(channel, invoker, " You must have Manage Messages to do that!s");
+            TextUtils.replyWithMention(channel, invoker, " You must have Manage Messages to do that!");
             return;
         }
         
@@ -34,7 +34,7 @@ public class ClearCommand extends Command {
         List<Message> msgs = history.retrieve(50);
 
         for (Message msg : msgs) {
-            if(msg.getAuthor().equals(FredBoat.myUser)){
+            if(msg.getAuthor().getId().equals(guild.getJDA().getSelfInfo().getId())){
                 msg.deleteMessage();
             }
         }
