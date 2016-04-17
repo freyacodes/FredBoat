@@ -12,7 +12,7 @@ public class EndTrollCommand extends Command implements ICommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel c, User invoker, Message message, String[] args) {
-        guild.getJDA().getAudioManager().closeAudioConnection();
+        guild.getAudioManager().closeAudioConnection();
         TextUtils.replyWithMention(c, invoker, " Closed connection!");
     }
 }

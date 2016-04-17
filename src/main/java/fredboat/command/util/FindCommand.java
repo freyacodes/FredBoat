@@ -39,7 +39,7 @@ public class FindCommand extends Command {
                 .appendString(".")
                 .build();
 
-        MessageHistory history = new MessageHistory(jda, selected);
+        MessageHistory history = new MessageHistory(selected);
         ArrayList<Message> msgs = new ArrayList<>();
 
         try {

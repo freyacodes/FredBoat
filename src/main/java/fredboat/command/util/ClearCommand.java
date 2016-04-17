@@ -30,7 +30,7 @@ public class ClearCommand extends Command {
             return;
         }
         
-        MessageHistory history = new MessageHistory(jda, channel);
+        MessageHistory history = new MessageHistory(channel);
         List<Message> msgs = history.retrieve(50);
 
         for (Message msg : msgs) {
