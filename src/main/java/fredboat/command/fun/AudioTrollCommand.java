@@ -48,7 +48,7 @@ public class AudioTrollCommand extends Command implements ICommandOwnerRestricte
             TextUtils.replyWithMention(c, invoker, " Couldn't find channel \"" + arg + "\"");
         } else {
             EventListenerBoat.toRunOnConnectingToVoice.put(foundChannel, onConnected);
-            guild.getJDA().getAudioManager().openAudioConnection(foundChannel);
+            guild.getAudioManager().openAudioConnection(foundChannel);
         }
     }
 

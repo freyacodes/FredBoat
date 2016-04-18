@@ -33,6 +33,7 @@ import javax.security.auth.login.LoginException;
 import net.dv8tion.jda.JDA;
 import net.dv8tion.jda.JDABuilder;
 import net.dv8tion.jda.JDAInfo;
+import net.dv8tion.jda.client.JDAClientBuilder;
 import net.dv8tion.jda.entities.Guild;
 import net.dv8tion.jda.entities.TextChannel;
 import net.dv8tion.jda.entities.User;
@@ -109,7 +110,7 @@ public class FredBoat {
 
         fredboat.util.HttpUtils.init();
         jdaBot = new JDABuilder().addListener(listenerBot).setBotToken(accountToken).buildAsync();
-        jdaSelf = new JDABuilder().addListener(listenerSelf).setEmail(accountEmail).setPassword(accountPassword).buildAsync();
+        jdaSelf = new JDAClientBuilder().addListener(listenerSelf).setEmail(accountEmail).setPassword(accountPassword).buildAsync();
         System.out.println("JDA version:\t" + JDAInfo.VERSION);
 
         //Initialise JCA
