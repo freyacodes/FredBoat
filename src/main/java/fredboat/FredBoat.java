@@ -10,6 +10,7 @@ import fredboat.command.util.HelpCommand;
 import fredboat.command.fun.JokeCommand;
 import fredboat.command.fun.LeetCommand;
 import fredboat.command.fun.RemoteFileCommand;
+import fredboat.command.fun.RiotCommand;
 import fredboat.command.fun.TalkCommand;
 import fredboat.command.fun.TextCommand;
 import fredboat.command.mafia.MafiaStartCommand;
@@ -164,6 +165,7 @@ public class FredBoat {
         CommandRegistry.registerCommand(0x11, "leet", new LeetCommand());
         CommandRegistry.registerAlias("leet", "1337");
         CommandRegistry.registerAlias("leet", "l33t");
+        CommandRegistry.registerCommand(0x11, "riot", new RiotCommand());
         //CommandRegistry.registerCommand(0x11, "troll", new AudioTrollCommand());
         //CommandRegistry.registerCommand(0x11, "endtroll", new EndTrollCommand());
         CommandRegistry.registerCommand(0x11, "restart", new RestartCommand());
