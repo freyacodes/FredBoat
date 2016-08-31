@@ -248,7 +248,7 @@ public class FredBoat {
         CommandRegistry.registerCommand(0x11, "hug", new RemoteFileCommand("http://i.imgur.com/U2l7mnr.gif"));
         
         //Other Anime Discord memes//
-        CommandRegistry.registerCommand(0x11, "ram", new RemoteFileCommand("https://cdn.discordapp.com/attachments/132490115137142784/220508412662775810/ram.jpg"));
+        CommandRegistry.registerCommand(0x11, "ram", new RemoteFileCommand("http://imgur.com/jeGVLk3"));
 
         CommandRegistry.registerCommand(0x11, "github", new TextCommand("https://github.com/Frederikam"));
         CommandRegistry.registerCommand(0x11, "repo", new TextCommand("https://github.com/Frederikam/FredBoat"));
