@@ -46,7 +46,7 @@ The music bot has it's own [invite link](https://discordapp.com/oauth2/authorize
 | ;;volume                   | Changes the volume. Values are 0-150 and 100 is the default.          | ;;voume 75                                  |
 
 ## Music Commands
-The music bot supports media from many sites and even supports playlists from sites like YouTube and Soundcloud. If using a playlist, please bear in mind that you cannot use a playlist with more than 20 entries. The bot will not be able to play songs blocked in the US (usually from copyright infringements on YouTube).
+The music bot supports media from many sites and even supports playlists from sites like YouTube and Soundcloud. The bot will not be able to play songs blocked in the France (usually from copyright infringements on YouTube).
 
 ## Adding music to the playlist
 Adding music to the playlist is pretty simple. To start playing a song, simply use the ;;play command. Here are two examples:
@@ -83,8 +83,6 @@ Simply link a playlist with the following syntax:
 
 ```;;play <url-to-playlist>```
 
-The bot will only load the first 20 songs to reduce delays.
-
 ### How do I restrict music commands to a specific channel or role?
 The bot will only listen to music commands invoked in channels it can actually **write** to. Simply override it such that the music bot can only talk in the channels you want the bot to be usable from.
 
@@ -94,7 +92,7 @@ If you want to restrict the bot to a specific role, you can always just restrict
 It's difficult. I do not advise it.
 
 ### Why is the music bot slow to respond to commands?
-Lots of people are using the music bot 24/7 on a relatively cheap server. I'm currently working on setting up a Patreon campaign to allow me to receive funding for additional hardware for the music bot. The music quality shuld be fine for the most part though. 
+Lots of people are using the music bot 24/7 on a relatively cheap server. I do have a [Patreon campaign](https://www.patreon.com/fredboat) to allow me to receive funding for additional hardware for the music bot and improve the bot response time. The music quality shuld be fine for the most part though. 
 
 ### The music bot is telling me it doesn't have permission to connect/play music. How do I give it permission?
 You are trying to play music in a voice channel, but your __Discord server permissions__ prevents it from connecting or speaking. You would need to change the permissions of the channel to allow the bot to connect and speak, as you would do with a user. For official help on this topic, see [Discord's support center](https://support.discordapp.com/hc/en-us/articles/206029707).
