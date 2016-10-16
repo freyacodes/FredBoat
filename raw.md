@@ -46,7 +46,7 @@ The music bot has it's own [invite link](https://discordapp.com/oauth2/authorize
 | ;;volume                   | Changes the volume. Values are 0-150 and 100 is the default.          | ;;voume 75                                  |
 
 ## Music Commands
-The music bot supports media from many sites and even supports playlists from sites like YouTube and Soundcloud. The bot will not be able to play songs blocked in the France (usually from copyright infringements on YouTube).
+The music bot supports media from many sites and even supports playlists from sites like YouTube and Soundcloud. The bot will not be able to play songs blocked in France (usually from copyright infringements on YouTube).
 
 ## Adding music to the playlist
 Adding music to the playlist is pretty simple. To start playing a song, simply use the ;;play command. Here are two examples:
