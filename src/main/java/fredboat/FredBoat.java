@@ -270,6 +270,7 @@ public class FredBoat {
         CommandRegistry.registerCommand(0x101, "leet", new LeetCommand());
         CommandRegistry.registerAlias("leet", "1337");
         CommandRegistry.registerAlias("leet", "l33t");
+        CommandRegistry.registerAlias("leet", "1ee7");
         CommandRegistry.registerCommand(0x101, "riot", new RiotCommand());
         CommandRegistry.registerCommand(0x101, "update", new UpdateCommand());
         CommandRegistry.registerCommand(0x101, "compile", new CompileCommand());
@@ -316,7 +317,7 @@ public class FredBoat {
         CommandRegistry.registerCommand(0x010, "export", new ExportCommand());
         CommandRegistry.registerCommand(0x010, "playerdebug", new PlayerDebugCommand());
 
-        /* Other Anime Discord or Sergi memes */
+        /* Other Anime Discord, Sergi memes or any other memes */
         CommandRegistry.registerCommand(0x101, "ram", new RemoteFileCommand("http://i.imgur.com/jeGVLk3.jpg"));
         CommandRegistry.registerCommand(0x101, "welcome", new RemoteFileCommand("http://i.imgur.com/yjpmmBk.gif"));
         CommandRegistry.registerCommand(0x101, "rude", new RemoteFileCommand("http://i.imgur.com/pUn7ijx.png"));
@@ -338,6 +339,17 @@ public class FredBoat {
         CommandRegistry.registerCommand(0x101, "internetspeed", new RemoteFileCommand("http://www.speedtest.net/result/5529046933.png"));
         CommandRegistry.registerCommand(0x101, "hug", new RemoteFileCommand("http://i.imgur.com/U2l7mnr.gif"));
         CommandRegistry.registerCommand(0x101, "powerpoint", new RemoteFileCommand("http://puu.sh/rISIl/1cc927ece3.PNG"));
+        CommandRegistry.registerCommand(0x101, "cooldog", new TextCommand("┈┈╱▏┈┈┈┈┈╱▔▔▔▔╲┈ \n"
++ "┈┈▏▏┈┈┈┈┈▏╲▕▋▕▋▏ \n"
++ "┈┈╲╲┈┈┈┈┈▏┈▏┈▔▔▔▆    -------    BORF!\n"
++ "┈┈┈╲▔▔▔▔▔╲╱┈╰┳┳┳╯ \n"
++ "╱╲╱╲▏┈┈┈┈┈┈▕▔╰━╯ \n"
++ "▔╲╲╱╱▔╱▔▔╲╲╲╲┈┈┈ \n"
++ "┈┈╲╱╲╱┈┈┈┈╲╲▂╲▂┈ \n"
++ "┈┈┈┈┈┈┈┈┈┈┈╲╱╲╱┈\n"
++ "Spread him to take over Discord!(Don't spam him though!)"));//dog created by @Ace8925, also hi mastah Freddy, don't forget to pat me once this is merged
+        CommandRegistry.registerAlias("cooldog", "dog");
+        CommandRegistry.registerAlias("cooldog", "dogmeme");
 
         CommandRegistry.registerCommand(0x101, "github", new TextCommand("https://github.com/Frederikam"));
         CommandRegistry.registerCommand(0x101, "repo", new TextCommand("https://github.com/Frederikam/FredBoat"));
