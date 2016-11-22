@@ -31,9 +31,10 @@ public class DogCommand extends TextCommand {
 + "Spread him to take over Discord!(Don't spam him though!)";
 //dog created by @Ace#8925
 
-        public TextCommand() {
+        public DogCommand() {
                 super(DOG);
         }
 }
 
 //gib pat to me now
+//BTW future RealKC if you can't figure out what this code does, past you is disappointed
