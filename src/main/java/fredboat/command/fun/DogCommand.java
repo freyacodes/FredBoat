@@ -19,21 +19,21 @@ import fredboat.command.fun.TextCommand;
 
 public class DogCommand extends TextCommand {
 
-        public static String DOG
-= "┈┈╱▏┈┈┈┈┈╱▔▔▔▔╲┈ \n"
-+ "┈┈▏▏┈┈┈┈┈▏╲▕▋▕▋▏ \n"
-+ "┈┈╲╲┈┈┈┈┈▏┈▏┈▔▔▔▆ ------- BORF!\n"
-+ "┈┈┈╲▔▔▔▔▔╲╱┈╰┳┳┳╯ \n"
-+ "╱╲╱╲▏┈┈┈┈┈┈▕▔╰━╯ \n"
-+ "▔╲╲╱╱▔╱▔▔╲╲╲╲┈┈┈ \n"
-+ "┈┈╲╱╲╱┈┈┈┈╲╲▂╲▂┈ \n"
-+ "┈┈┈┈┈┈┈┈┈┈┈╲╱╲╱┈\n"
-+ "Spread him to take over Discord!(Don't spam him though!)";
-//dog created by @Ace#8925
+    public static final String DOG
+    = "┈┈╱▏┈┈┈┈┈╱▔▔▔▔╲┈ \n"
+    + "┈┈▏▏┈┈┈┈┈▏╲▕▋▕▋▏ \n"
+    + "┈┈╲╲┈┈┈┈┈▏┈▏┈▔▔▔▆ ------- BORF!\n"
+    + "┈┈┈╲▔▔▔▔▔╲╱┈╰┳┳┳╯ \n"
+    + "╱╲╱╲▏┈┈┈┈┈┈▕▔╰━╯ \n"
+    + "▔╲╲╱╱▔╱▔▔╲╲╲╲┈┈┈ \n"
+    + "┈┈╲╱╲╱┈┈┈┈╲╲▂╲▂┈ \n"
+    + "┈┈┈┈┈┈┈┈┈┈┈╲╱╲╱┈\n"
+    + "Spread him to take over Discord!(Don't spam him though!)";
+    //dog created by @Ace#8925
 
-        public DogCommand() {
-                super(DOG);
-        }
+    public DogCommand() {
+        super(DOG);
+    }
 }
 
 //gib pat to me now
