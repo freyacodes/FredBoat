@@ -339,15 +339,7 @@ public class FredBoat {
         CommandRegistry.registerCommand(0x101, "internetspeed", new RemoteFileCommand("http://www.speedtest.net/result/5529046933.png"));
         CommandRegistry.registerCommand(0x101, "hug", new RemoteFileCommand("http://i.imgur.com/U2l7mnr.gif"));
         CommandRegistry.registerCommand(0x101, "powerpoint", new RemoteFileCommand("http://puu.sh/rISIl/1cc927ece3.PNG"));
-        CommandRegistry.registerCommand(0x101, "cooldog", new TextCommand("┈┈╱▏┈┈┈┈┈╱▔▔▔▔╲┈ \n"
-+ "┈┈▏▏┈┈┈┈┈▏╲▕▋▕▋▏ \n"
-+ "┈┈╲╲┈┈┈┈┈▏┈▏┈▔▔▔▆    -------    BORF!\n"
-+ "┈┈┈╲▔▔▔▔▔╲╱┈╰┳┳┳╯ \n"
-+ "╱╲╱╲▏┈┈┈┈┈┈▕▔╰━╯ \n"
-+ "▔╲╲╱╱▔╱▔▔╲╲╲╲┈┈┈ \n"
-+ "┈┈╲╱╲╱┈┈┈┈╲╲▂╲▂┈ \n"
-+ "┈┈┈┈┈┈┈┈┈┈┈╲╱╲╱┈\n"
-+ "Spread him to take over Discord!(Don't spam him though!)"));//dog created by @Ace8925, also hi mastah Freddy, don't forget to pat me once this is merged
+        CommandRegistry.registerCommand(0x101, "cooldog", new DogCommand());
         CommandRegistry.registerAlias("cooldog", "dog");
         CommandRegistry.registerAlias("cooldog", "dogmeme");
 
