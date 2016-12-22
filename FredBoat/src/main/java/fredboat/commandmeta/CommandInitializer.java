@@ -73,7 +73,9 @@ public class CommandInitializer {
         CommandRegistry.registerCommand(0x101, "fuzzy", new FuzzyUserSearchCommand());
         CommandRegistry.registerCommand(0x101, "softban", new SoftbanCommand());
         CommandRegistry.registerCommand(0x101, "catgirl", new CatgirlCommand());
-
+        CommandRegistry.registerCommand(0x101, "lood", new TextCommand("T-that's l-lewd, baka!!!"));
+        CommandRegistry.registerAlias("lood", "lewd");
+        
         /* Music commands */
         CommandRegistry.registerCommand(0x010, "mexit", new ExitCommand());
         CommandRegistry.registerCommand(0x010, "mbotrestart", new BotRestartCommand());
