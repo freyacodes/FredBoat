@@ -60,9 +60,7 @@ public class MusicHelpCommand extends TextCommand {
             ";;export\n" +
             "#Export the current queue to a hastebin link, can be later used as a playlist for ;;play.\n" +
             ";;gr\n" +
-            "#Posts a special embed for gensokyoradio.net\n" +
-            "@FredBoat♪♪#7284\n" +
-            "#Allows interaction with the bot's cleverbot module.```";
+            "#Posts a special embed for gensokyoradio.net.```";
 
     public MusicHelpCommand() {
         super(MUSIC);
