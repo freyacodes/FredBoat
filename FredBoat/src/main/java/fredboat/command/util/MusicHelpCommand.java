@@ -59,8 +59,10 @@ public class MusicHelpCommand extends TextCommand {
             "#Changes the volume. Values are 0-150 and 100 is the default.\n" +
             ";;export\n" +
             "#Export the current queue to a hastebin link, can be later used as a playlist for ;;play.\n" +
+            ";;gr\n" +
+            "#Posts a special embed for gensokyoradio.net\n" +
             "@FredBoat♪♪#7284\n" +
-            "Allows interaction with the bot's cleverbot module.```";
+            "#Allows interaction with the bot's cleverbot module.```";
 
     public MusicHelpCommand() {
         super(MUSIC);
