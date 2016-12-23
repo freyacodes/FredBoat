@@ -60,7 +60,21 @@ public class MusicHelpCommand extends TextCommand {
             ";;export\n" +
             "#Export the current queue to a hastebin link, can be later used as a playlist for ;;play.\n" +
             ";;gr\n" +
-            "#Posts a special embed for gensokyoradio.net.```";
+            ";;gensokyo\n" +
+            ";;gensokyoradio" +
+            "#Posts a special embed for gensokyoradio.net.\n" +
+            ";;forward\n" +
+            ";;fwd\n" +
+            "#Forwards to a future point in the current song using a specified amount of time.\n" +
+            ";;rewind\n" +
+            ";;rew\n" +
+            "#Rewinds to a previous point in  the current song using a specified amount of time.\n" +
+            ";;seek\n" +
+            "#Mves the song to a specific moment.\n" +
+            ";;howtomusic\n" +
+            ";;how2music\n" +
+            ";;h2m\n"
+            "#Posts a tutorial explaining some basic things about the bot.";
 
     public MusicHelpCommand() {
         super(MUSIC);
