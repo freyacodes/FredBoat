@@ -73,7 +73,7 @@ public class MusicHelpCommand extends TextCommand {
             "#Mves the song to a specific moment.\n" +
             ";;howtomusic\n" +
             ";;how2music\n" +
-            ";;h2m\n"
+            ";;h2m\n" +
             "#Posts a tutorial explaining some basic things about the bot.";
 
     public MusicHelpCommand() {
