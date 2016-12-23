@@ -46,6 +46,6 @@ public class HowToMusicCommand extends TextCommand {
                 .setDescription(description)
                 .setFooter(channel.getJDA().getSelfUser().getName(), channel.getJDA().getSelfUser().getAvatarUrl())
                 .build();
-        channel.sendMessags(embed).queue();
+        channel.sendMessage(embed).queue();
     }
 }
