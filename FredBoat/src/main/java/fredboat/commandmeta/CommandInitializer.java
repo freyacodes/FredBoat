@@ -118,6 +118,9 @@ public class CommandInitializer {
         CommandRegistry.registerCommand(0x010, "gr", new GensokyoRadioCommand());
         CommandRegistry.registerAlias("gr", "gensokyo");
         CommandRegistry.registerAlias("gr", "gensokyoradio");
+        CommandRegistry.registerCommand(0x010, "howtomusic", new HowToMusicCommand());
+        CommandRegistry.registerAlias("howtomusic", "how2music");
+        CommandRegistry.registerAlias("howtomusic", "h2m");
 
         CommandRegistry.registerCommand(0x010, "seek", new SeekCommand());
         CommandRegistry.registerCommand(0x010, "forward", new ForwardCommand());
