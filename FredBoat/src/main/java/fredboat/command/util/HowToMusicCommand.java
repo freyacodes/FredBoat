@@ -28,7 +28,7 @@ package fredboat.command.util;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.*;
 
-public class HowToMusicCommand extends TextCommad {
+public class HowToMusicCommand extends TextCommand {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
 
