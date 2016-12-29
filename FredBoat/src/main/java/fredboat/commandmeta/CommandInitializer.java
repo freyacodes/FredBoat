@@ -153,6 +153,7 @@ public class CommandInitializer {
         CommandRegistry.registerCommand(0x101, "cooldog", new DogCommand());
         CommandRegistry.registerAlias("cooldog", "dog");
         CommandRegistry.registerAlias("cooldog", "dogmeme");
+        CommandRegistry.registerCommand(0x101, "milanor", new RemoteFileCommand("https://fred.moe/tQL.png"));
 
         CommandRegistry.registerCommand(0x101, "github", new TextCommand("https://github.com/Frederikam"));
         CommandRegistry.registerCommand(0x101, "repo", new TextCommand("https://github.com/Frederikam/FredBoat"));
