@@ -25,8 +25,11 @@
 
 package fredboat.command.util;
 
+import fredboat.command.fun.TextCommand;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.*;
+
+import java.awt.*;
 
 public class HowToMusicCommand extends TextCommand {
     @Override
