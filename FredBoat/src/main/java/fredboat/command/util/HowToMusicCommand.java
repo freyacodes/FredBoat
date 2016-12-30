@@ -36,11 +36,11 @@ public class HowToMusicCommand extends Command {
 
         String description
                 = "**__How to invite FredBoat♪♪__**\n"
-                + "In order to use the bot's command you have to invite it first, to do so, you'll use [this](https://discordapp.com/oauth2/authorize?&client_id=184405253028970496&scope=bot) keep in my mind that you must have the Manage Server permission for this to work, if you do not have it, ask a mod about this.\n"
+                + "In order to use the bot's commands you have to invite it first, to do so, you'll use [this](https://discordapp.com/oauth2/authorize?&client_id=184405253028970496&scope=bot) keep in mind that you must have the Manage Server permission for this to work, if you do not have it, ask a mod to invite the bot.\n"
                 + "**__How to play music with FredBoat♪♪__**\n"
-                + "To play music with the bot, you use the ;;play command, which can be used with an URL, allowing you to immediately play the requested song, or with the name of the song, searching it on youtube; you'll select the song with the ;;select n command where n is a number\n"
+                + "To play music with the bot, you use the ;;play command, which can be used with an URL, allowing you to immediately play the requested song, or with the name of the song, searching it on youtube; you'll select the song with the ;;select n or ;;play n commands where n is a number\n"
                 + "**__The ;;music command__**\n"
-                + "The ;;music command will post a list of all the music commands you can use. For quick reference, you can pin that message to a channel, if you have the Manage Messages permission, if you do not have this permission, ask a mod about this.";
+                + "The ;;music command will post a list of all the music commands you can use. For quick reference, you can pin that message to a channel, if you have the Manage Messages permission, if you do not have this permission, ask a mod to do it.";
 
         MessageEmbed embed = new EmbedBuilder()
                 .setTitle("Helpful Tutorial for the music bot")
