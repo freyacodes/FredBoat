@@ -25,13 +25,12 @@
 
 package fredboat.command.util;
 
-import fredboat.command.fun.TextCommand;
+import fredboat.command.abs.Command;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.*;
+import fredboat.util.BotConstants;
 
-import java.awt.*;
-
-public class HowToMusicCommand extends TextCommand {
+public class HowToMusicCommand extends Command {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
 
@@ -45,7 +44,7 @@ public class HowToMusicCommand extends TextCommand {
 
         MessageEmbed embed = new EmbedBuilder()
                 .setTitle("Helpful Tutorial for the music bot")
-                .setColor(new Color(54, 169, 225))
+                .setColor(BotConstants.FREDBOAT_COLOR)
                 .setDescription(description)
                 .setFooter(channel.getJDA().getSelfUser().getName(), channel.getJDA().getSelfUser().getAvatarUrl())
                 .build();
