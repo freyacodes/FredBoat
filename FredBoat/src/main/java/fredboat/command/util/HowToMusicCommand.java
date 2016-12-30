@@ -43,7 +43,7 @@ public class HowToMusicCommand extends Command {
                 + "The ;;music command will post a list of all the music commands you can use. For quick reference, you can pin that message to a channel, if you have the Manage Messages permission, if you do not have this permission, ask a mod to do it.";
 
         MessageEmbed embed = new EmbedBuilder()
-                .setTitle("Helpful Tutorial for the music bot")
+                .setTitle("Music Tutorial")
                 .setColor(BotConstants.FREDBOAT_COLOR)
                 .setDescription(description)
                 .setFooter(channel.getJDA().getSelfUser().getName(), channel.getJDA().getSelfUser().getAvatarUrl())
