@@ -25,7 +25,7 @@
 
 package fredboat.command.util;
 
-import fredboat.command.abs.Command;
+import fredboat.commandmeta.abs.Command;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.*;
 import fredboat.util.BotConstants;
