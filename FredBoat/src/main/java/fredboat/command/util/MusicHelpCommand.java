@@ -70,7 +70,7 @@ public class MusicHelpCommand extends TextCommand {
             ";;rew\n" +
             "#Rewinds to a previous point in  the current song using a specified amount of time.\n" +
             ";;seek\n" +
-            "#Mves the song to a specific moment.\n" +
+            "#Moves the song to a specific moment.\n" +
             ";;howtomusic\n" +
             ";;how2music\n" +
             ";;h2m\n" +
