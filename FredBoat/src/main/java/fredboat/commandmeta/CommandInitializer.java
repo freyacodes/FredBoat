@@ -118,6 +118,9 @@ public class CommandInitializer {
         CommandRegistry.registerCommand(0x010, "gr", new GensokyoRadioCommand());
         CommandRegistry.registerAlias("gr", "gensokyo");
         CommandRegistry.registerAlias("gr", "gensokyoradio");
+        CommandRegistry.registerCommand(0x010, "howtomusic", new HowToMusicCommand());
+        CommandRegistry.registerAlias("howtomusic", "how2music");
+        CommandRegistry.registerAlias("howtomusic", "h2m");
 
         CommandRegistry.registerCommand(0x010, "seek", new SeekCommand());
         CommandRegistry.registerCommand(0x010, "forward", new ForwardCommand());
@@ -150,6 +153,7 @@ public class CommandInitializer {
         CommandRegistry.registerCommand(0x101, "cooldog", new DogCommand());
         CommandRegistry.registerAlias("cooldog", "dog");
         CommandRegistry.registerAlias("cooldog", "dogmeme");
+        CommandRegistry.registerCommand(0x101, "milanor", new RemoteFileCommand("https://fred.moe/tQL.png"));
 
         CommandRegistry.registerCommand(0x101, "github", new TextCommand("https://github.com/Frederikam"));
         CommandRegistry.registerCommand(0x101, "repo", new TextCommand("https://github.com/Frederikam/FredBoat"));
