@@ -96,7 +96,7 @@ public abstract class FredBoat {
     JDA jda;
     private static FredBoatClient fbClient;
 
-    public void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException, IOException {
+    public static void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException, IOException {
         Runtime.getRuntime().addShutdownHook(new Thread(ON_SHUTDOWN));
 
         //Attach log adapter
