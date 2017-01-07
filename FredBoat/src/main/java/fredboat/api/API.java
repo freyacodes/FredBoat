@@ -37,7 +37,7 @@ public class API {
 
     private static final Logger log = LoggerFactory.getLogger(API.class);
 
-    private final int PORT = process.env.PORT;
+    private static final int PORT = process.env.PORT;
 
     private API() {}
 
