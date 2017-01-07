@@ -37,11 +37,11 @@ public class API {
 
     private static final Logger log = LoggerFactory.getLogger(API.class);
 
-    private final int PORT = process.env.PORT;
+    private static final int PORT = 80;
 
     private API() {}
 
-    public void start() {
+    public static void start() {
         log.info("Igniting Spark API on port: " + PORT);
 
         Spark.port(PORT);
