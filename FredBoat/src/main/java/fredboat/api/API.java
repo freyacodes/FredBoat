@@ -41,7 +41,7 @@ public class API {
 
     private API() {}
 
-    public void start() {
+    public static void start() {
         log.info("Igniting Spark API on port: " + PORT);
 
         Spark.port(PORT);
