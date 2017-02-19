@@ -1,6 +1,35 @@
 Documentation can be found at the bot's GitHub pages:
 http://docs.frederikam.com
 
+Commands
+```
+Main
+    ;;help = Sends a PM with instructions
+    ;;say <text> =  Make the bot echo something
+    ;;avatar = Displays the avatar of a user
+    ;;brainfuck <code> [input] = Executes Brainfuck code
+    ;;lua <code> = Executes Lua code
+    ;;riot <text> = Transform text, example
+    ;;lenny = Sends a lenny face
+    ;;leet <text> = Makes you sound like a script kiddie
+    ;;mal <search term> = Searched MyAnimeList for animes and users
+    ;;dump <1-2000> = Dumps between 1 and 2000 messages to Hastebin
+    ;;facedesk = Uploads an image
+    ;;roll = Uploads an image ```
+```
+Music
+    ;;play <url> = Plays music from the given URLs. See supported sources below
+    ;;list = Displays a list of the current songs in the playlist
+    ;;nowplaying = Displays the currently playing song
+    ;;skip = Skip the current song. Please use in moderation
+    ;;stop = Stop the player and clear the playlist. Reserved for moderators.
+    ;;pause = Pause the player.
+    ;;unpause = Unpause the player.
+    ;;repeat = Toggles repeat mode for the current song.
+    ;;leave = Makes the bot leave the current voice channel
+    ;;shuffle = Toggles shuffle mode for the current queue.
+    ;;volume = Changes the volume. Values are 0-150 and 100 is the default.```
+
 Want to add FredBoat to your server? If you have Manage Server permissions for your guild, you can invite it here:
 *This one doesn't play music*
 https://discordapp.com/oauth2/authorize?&client_id=168686772216135681&scope=bot
