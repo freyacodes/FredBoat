@@ -67,24 +67,23 @@ public class ListCommand extends Command implements IMusicCommand {
             }
 
             for (AudioTrackContext atc : player.getRemainingTracksOrdered()) {
+                String status = " ";
                 if (i == 0) {
-                    String status = player.isPlaying() ? " \\▶" : " \\\u23F8"; //Escaped play and pause emojis
-                    mb.append("[" +
-                            forceNDigits(i + 1, numberLength)
-                            + "]", MessageBuilder.Formatting.BLOCK)
-                            .append(status)
-                            .append(atc.getEffectiveTitle())
-                            .append("\n");
-                } else {
-                    mb.append("[" +
-                            forceNDigits(i + 1, numberLength)
-                            + "]", MessageBuilder.Formatting.BLOCK)
-                            .append(" " + atc.getEffectiveTitle())
-                            .append("\n");
-                    if (i == 10) {
-                        break;
-                    }
+                    status = player.isPlaying() ? " \\▶" : " \\\u23F8"; //Escaped play and pause emojis
                 }
+                mb.append("[" +
+                        forceNDigits(i + 1, numberLength)
+                        + "]", MessageBuilder.Formatting.BLOCK)
+                        .append(status)
+                        .append("**" + atc.getEffectiveTitle() + "**")
+                        .append(" " + I18n.get(guild).getString("listAddedBy"))
+                        .append(" **" + atc.getMember().getEffectiveName() + "**")
+                        .append("\n");
+
+                if (i == 10) {
+                    break;
+                }
+
                 i++;
             }
 
