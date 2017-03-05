@@ -53,7 +53,7 @@ Temporary Items
 *.iws
 
 # Linux Dolphin filemanager
-.directory
+*.directory
 
 # Custom
 lib/
