@@ -52,6 +52,9 @@ Temporary Items
 *.ipr
 *.iws
 
+# Linux Dolphin filemanager
+.directory
+
 # Custom
 lib/
 dist/*
