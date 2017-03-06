@@ -98,7 +98,7 @@ public class I18n {
         try {
             config = EntityReader.getGuildConfig(guild.getId());
         } catch (Exception e) {
-            log.error("Errpr when reading entity", e);
+            log.error("Error when reading entity", e);
             return DEFAULT;
         }
         return LANGS.getOrDefault(config.getLang(), DEFAULT);
