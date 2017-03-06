@@ -29,16 +29,15 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.util.DiscordUtil;
 import fredboat.util.DistributionEnum;
 import org.apache.commons.io.FileUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class Config {
 
@@ -67,16 +66,24 @@ public class Config {
     private String prefix = DEFAULT_PREFIX;
     private boolean restServerEnabled = true;
 
+    @SuppressWarnings("unchecked")
     public Config(File credentialsFile, File configFile, int scope) {
         try {
             this.scope = scope;
-            JSONObject creds = new JSONObject(FileUtils.readFileToString(credentialsFile, "UTF-8"));
-            JSONObject config = new JSONObject(FileUtils.readFileToString(configFile, "UTF-8"));
+            Yaml yaml = new Yaml();
+            String credsFileStr = FileUtils.readFileToString(credentialsFile, "UTF-8");
+            String configFileStr = FileUtils.readFileToString(configFile, "UTF-8");
+            //remove those pesky tab characters so a potential json file is YAML conform
+            credsFileStr = credsFileStr.replaceAll("\t", "");
+            configFileStr = configFileStr.replaceAll("\t", "");
+            Map<String, Object> creds = (Map<String, Object>) yaml.load(credsFileStr);
+            Map<String, Object> config = (Map<String, Object>) yaml.load(configFileStr);
+
 
             // Determine distribution
-            if (config.optBoolean("patron")) {
+            if ((boolean) config.get("patron")) {
                 distribution = DistributionEnum.PATRON;
-            } else if (config.optBoolean("development")) {//Determine distribution
+            } else if ((boolean) config.get("development")) {//Determine distribution
                 distribution = DistributionEnum.DEVELOPMENT;
             } else {
                 distribution = DiscordUtil.isMainBot(this) ? DistributionEnum.MAIN : DistributionEnum.MUSIC;
@@ -84,43 +91,35 @@ public class Config {
 
             log.info("Determined distribution: " + distribution);
 
-            prefix = config.optString("prefix", prefix);
-            restServerEnabled = config.optBoolean("restServerEnabled", restServerEnabled);
+            prefix = config.get("prefix") != null ? (String) config.get("prefix") : prefix;
+            restServerEnabled = config.get("restServerEnabled") != null ? (boolean) config.get("restServerEnabled") : restServerEnabled;
 
             log.info("Using prefix: " + prefix);
 
-            mashapeKey = creds.optString("mashapeKey");
-            malPassword = creds.optString("malPassword");
-            carbonKey = creds.optString("carbonKey");
-            cbUser = creds.optString("cbUser");
-            cbKey = creds.optString("cbKey");
-            botToken = creds.getJSONObject("token").getString(distribution.getId());
-            cbKey = creds.optString("cbKey");
-            if(creds.has("oauthSecret")){
-                oauthSecret = creds.getJSONObject("oauthSecret").optString(distribution.getId());
-            }
-            if(creds.has("jdbcUrl")){
-                jdbcUrl = creds.getString("jdbcUrl");
-            } else {
-                jdbcUrl = "";
-            }
+            mashapeKey = creds.get("mashapeKey") != null ? (String) creds.get("mashapeKey") : "";
+            malPassword = creds.get("malPassword") != null ? (String) creds.get("malPassword") : "";
+            carbonKey = creds.get("carbonKey") != null ? (String) creds.get("carbonKey") : "";
+            cbUser = creds.get("cbUser") != null ? (String) creds.get("cbUser") : "";
+            cbKey = creds.get("cbKey") != null ? (String) creds.get("cbKey") : "";
+            Map<String, String> token = (Map) creds.get("token");
+            botToken = token != null ? (token.get(distribution.getId()) != null ? token.get(distribution.getId()) : "") : "";
 
-            JSONArray gkeys = creds.optJSONArray("googleServerKeys");
+            if (creds.containsKey("oauthSecret")) {
+                Map<String, Object> oas = (Map) creds.get("oauthSecret");
+                oauthSecret = oas.get(distribution.getId()) != null ? (String) oas.get(distribution.getId()) : "";
+            }
+            jdbcUrl = creds.get("jdbcUrl") != null ? (String) creds.get("jdbcUrl") : "";
+
+            List<String> gkeys = (List) creds.get("googleServerKeys");
             if (gkeys != null) {
                 gkeys.forEach((Object str) -> googleKeys.add((String) str));
             }
 
-            JSONArray nodesArray = creds.optJSONArray("lavaplayerNodes");
+            List<String> nodesArray = (List) creds.get("lavaplayerNodes");
             if(nodesArray != null) {
                 lavaplayerNodesEnabled = true;
-                lavaplayerNodes = new String[nodesArray.length()];
                 log.info("Using lavaplayer nodes");
-                Iterator<Object> itr = nodesArray.iterator();
-                int i = 0;
-                while(itr.hasNext()) {
-                    lavaplayerNodes[i] = (String) itr.next();
-                    i++;
-                }
+                lavaplayerNodes = (String[]) nodesArray.toArray();
             } else {
                 lavaplayerNodesEnabled = false;
                 lavaplayerNodes = new String[0];
