@@ -70,6 +70,7 @@ target/
 .nb-gradle/
 /dependency-reduced-pom.xml
 *credentials.json
+*credentials.yaml
 *tokens.json
 /ffmpeg.exe
 /ffplay.exe

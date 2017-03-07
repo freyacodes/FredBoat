@@ -1,0 +1,5 @@
+---
+patron: false            # change this to true for self hosting
+development: true
+prefix: '!'
+restServerEnabled: true
