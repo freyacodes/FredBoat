@@ -91,24 +91,27 @@ public class Config {
 
             log.info("Determined distribution: " + distribution);
 
-            prefix = config.get("prefix") != null ? (String) config.get("prefix") : prefix;
-            restServerEnabled = config.get("restServerEnabled") != null ? (boolean) config.get("restServerEnabled") : restServerEnabled;
+            prefix = (String) config.getOrDefault("prefix", prefix);
+            restServerEnabled = (boolean) config.getOrDefault("restServerEnabled", restServerEnabled);
 
             log.info("Using prefix: " + prefix);
 
-            mashapeKey = creds.get("mashapeKey") != null ? (String) creds.get("mashapeKey") : "";
-            malPassword = creds.get("malPassword") != null ? (String) creds.get("malPassword") : "";
-            carbonKey = creds.get("carbonKey") != null ? (String) creds.get("carbonKey") : "";
-            cbUser = creds.get("cbUser") != null ? (String) creds.get("cbUser") : "";
-            cbKey = creds.get("cbKey") != null ? (String) creds.get("cbKey") : "";
+            mashapeKey = (String) creds.getOrDefault("mashapeKey", "");
+            malPassword = (String) creds.getOrDefault("malPassword", "");
+            carbonKey = (String) creds.getOrDefault("carbonKey", "");
+            cbUser = (String) creds.getOrDefault("cbUser", "");
+            cbKey = (String) creds.getOrDefault("cbKey", "");
             Map<String, String> token = (Map) creds.get("token");
-            botToken = token != null ? (token.get(distribution.getId()) != null ? token.get(distribution.getId()) : "") : "";
+            if (token != null) {
+                botToken = token.getOrDefault(distribution.getId(), "");
+            } else botToken = "";
+
 
             if (creds.containsKey("oauthSecret")) {
                 Map<String, Object> oas = (Map) creds.get("oauthSecret");
-                oauthSecret = oas.get(distribution.getId()) != null ? (String) oas.get(distribution.getId()) : "";
+                oauthSecret = (String) oas.getOrDefault(distribution.getId(), "");
             }
-            jdbcUrl = creds.get("jdbcUrl") != null ? (String) creds.get("jdbcUrl") : "";
+            jdbcUrl = (String) creds.getOrDefault("jdbcUrl", "");
 
             List<String> gkeys = (List) creds.get("googleServerKeys");
             if (gkeys != null) {
