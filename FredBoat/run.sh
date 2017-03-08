@@ -1,15 +1,10 @@
 #!/bin/bash
 
 #README
-# your system needs to be using systemd, for example Ubuntu 15.04 and later; tested on 16.04
-#
 # put this file (run.sh) into the same folder where your FredBoat-X.Y.jar and the config files are located
 #
 # put the path to your fredboat folder in below
 FREDBOATPATH=/home/username/Fredboat/
-
-# IMPORTANT: edit the same path into the fredboat.service file too
-
 
 # chose one of these for the scope:
 # 1    only self    (this isn't used at the moment)
@@ -23,9 +18,20 @@ FREDBOATPATH=/home/username/Fredboat/
 # most likely you are looking for 16 (= just the music bot) or 272 (= main FredBoat + Music)
 SCOPE=16
 
-
 # make this file executable:
 #     chmod +x run.sh
+#
+# you can now run it with ./run.sh and it will start FredBoat
+
+
+
+
+# For running this as a systemd service:
+#
+# your system needs to be using systemd, for example Ubuntu 15.04 and later; tested on 16.04
+#
+# IMPORTANT: edit the path to this run.sh file into the fredboat.service file
+#
 #
 # copy fredboat.service to /etc/systemd/system/
 #     cp fredboat.service /etc/systemd/system/
