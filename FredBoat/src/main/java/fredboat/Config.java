@@ -71,6 +71,8 @@ public class Config {
     private String carbonKey;
     private String cbUser;
     private String cbKey;
+    private String spotifyId;
+    private String spotifySecret;
     private String prefix = DEFAULT_PREFIX;
     private boolean restServerEnabled = true;
     private List<String> adminIds = new ArrayList<>();
@@ -136,7 +138,8 @@ public class Config {
             if (token != null) {
                 botToken = token.getOrDefault(distribution.getId(), "");
             } else botToken = "";
-
+            spotifyId = (String) creds.getOrDefault("spotifyId", "");
+            spotifySecret = (String) creds.getOrDefault("spotifySecret", "");
 
             if (creds.containsKey("oauthSecret")) {
                 Map<String, Object> oas = (Map) creds.get("oauthSecret");
@@ -310,6 +313,14 @@ public class Config {
 
     public String getCbKey() {
         return cbKey;
+    }
+
+    public String getSpotifyId() {
+        return spotifyId;
+    }
+
+    public String getSpotifySecret() {
+        return spotifySecret;
     }
 
     public String getPrefix() {

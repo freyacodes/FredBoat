@@ -48,6 +48,7 @@ import fredboat.audio.queue.ITrackProvider;
 import fredboat.audio.queue.SplitAudioTrackContext;
 import fredboat.audio.queue.TrackEndMarkerHandler;
 import fredboat.audio.source.PlaylistImportSourceManager;
+import fredboat.audio.source.SpotifyPlaylistSourceManager;
 import fredboat.util.DistributionEnum;
 import net.dv8tion.jda.core.audio.AudioSendHandler;
 import org.slf4j.LoggerFactory;
@@ -102,6 +103,9 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
         mng.registerSourceManager(new TwitchStreamAudioSourceManager());
         mng.registerSourceManager(new VimeoAudioSourceManager());
         mng.registerSourceManager(new BeamAudioSourceManager());
+        mng.registerSourceManager(new SpotifyPlaylistSourceManager());
+        //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
+        //so you will never reach a source manager below it
         mng.registerSourceManager(new HttpAudioSourceManager());
         
         return mng;
