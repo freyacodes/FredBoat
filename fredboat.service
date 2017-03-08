@@ -1,0 +1,8 @@
+[Unit]
+Description=FredBoat
+After=syslog.target
+
+[Service]
+Type=simple
+ExecStart=/home/username/FredBoat/run.sh
+Restart=always
