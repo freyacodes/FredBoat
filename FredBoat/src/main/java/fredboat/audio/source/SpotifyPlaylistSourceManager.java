@@ -7,8 +7,8 @@ import com.wrapper.spotify.models.Playlist;
 import com.wrapper.spotify.models.PlaylistTrack;
 import com.wrapper.spotify.models.SimpleArtist;
 import com.wrapper.spotify.models.Track;
+import fredboat.util.SearchUtil;
 import fredboat.util.SpotifyAPIWrapper;
-import fredboat.util.YoutubeAPI;
 import org.json.JSONException;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +22,8 @@ import java.util.regex.Pattern;
 
 /**
  * Created by napster on 08.03.17.
+ *
+ * Loads playlists from Spotify playlist links.
  *
  * @author napster
  */
@@ -49,7 +51,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
         final String spotifyUser = m.group(1);
         final String spotifyListId = m.group(2);
 
-        log.info("matched spotify playlist link! user: " + spotifyUser + ", listId: " + spotifyListId);
+        log.debug("matched spotify playlist link. user: " + spotifyUser + ", listId: " + spotifyListId);
 
         final SpotifyAPIWrapper saw = SpotifyAPIWrapper.getApi();
         final Playlist playlist;
@@ -59,10 +61,15 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
             log.error("Could not get playlist " + spotifyListId + " of user " + spotifyUser, e);
             return null;
         }
-        log.info("Retrieved playlist " + playlist.getName() + " from spotify with " + playlist.getTracks().getTotal() + " tracks");
+        log.debug("Retrieved playlist " + playlist.getName() + " from spotify with " + playlist.getTracks().getTotal() + " tracks");
+
+        //TODO: say something as soon as the search starts, because it usually takes some time
+        //TODO: and play the first track as soon as possible while continuing to search?
 
         final List<AudioTrack> trackList = new ArrayList<>();
-        for (final PlaylistTrack t : playlist.getTracks().getItems()) {
+
+        final List<PlaylistTrack> fullSpotifyTrackList = saw.getFullTrackList(playlist);
+        for (final PlaylistTrack t : fullSpotifyTrackList) {
             final Track track = t.getTrack();
             final StringBuilder sb = new StringBuilder();
             sb.append(track.getName());
@@ -72,31 +79,67 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
             //remove all punctuation
             query = query.replaceAll("[.,/#!$%\\^&*;:{}=\\-_`~()]", "");
 
-            final AudioPlaylist list;
-            try {
-                list = YoutubeAPI.searchForVideos(query);
-            } catch (final JSONException e) {
-                log.debug("YouTube search exception", e);
-                continue; //look for the next track
+            final AudioTrack audioItem = searchSingleTrack(query);
+            if (audioItem == null) {
+                continue; //skip the track if we couldn't find it TODO notify the user we skipped it?
             }
-            if (list == null || list.getTracks().size() == 0) {
-                continue; //look for the next track TODO: inform about not being able to find a track?
-            }
-            //pick top most result and hope it's what the user wants to listen to
-            trackList.add(list.getTracks().get(0));
+
+            trackList.add(audioItem);
         }
 
-        //TODO does it only load 100 tracks at a time? maybe related to that com.wrapper.spotify.models.Page thing
-        //TODO holding them?
+        return new BasicAudioPlaylist(playlist.getName(), trackList, null, true);
+    }
 
-        //TODO: say something as soon as the search starts
+    /**
+     * Searches all available searching sources for a single track.
+     * <p>
+     * Will go Youtube > SoundCloud > return null
+     * This could probably be moved to SearchUtil
+     *
+     * @param query Term that shall be searched
+     * @return An AudioTrack likely corresponding to the query term or null.
+     */
+    private AudioTrack searchSingleTrack(final String query) {
+        boolean gotYoutubeResult = true;
+        AudioPlaylist list = null;
+        try {
 
-        //TODO: play the first track as soon as possible while continuing to search
+            list = SearchUtil.searchForTracks(SearchUtil.SearchProvider.YOUTUBE, query);
+            if (list == null || list.getTracks().size() == 0) {
+                gotYoutubeResult = false;
+            }
+        } catch (final JSONException e) {
+            log.debug("YouTube search exception", e);
+            gotYoutubeResult = false;
+        }
 
-        //TODO: are ppl being informed properly for all exceptions?
+        //got a result from youtube? return it
+        if (gotYoutubeResult)
+            return list.getTracks().get(0);
 
-        //TODO: java documentation
-        return new BasicAudioPlaylist(playlist.getName(), trackList, null, false);
+
+        //continue looking for the track on SoundCloud
+        try {
+            list = SearchUtil.searchForTracks(SearchUtil.SearchProvider.SOUNDCLOUD, query);
+        } catch (final JSONException e) {
+            log.debug("SoundCloud search exception", e);
+        }
+
+        //didn't find anything, or youtube & soundcloud not available
+        if (list == null || list.getTracks().size() == 0) {
+            return null;
+        }
+
+        //pick topmost result, and hope it's what the user wants to listen to
+        //having users pick tracks like they can do for individual searches would be ridiculous for playlists with
+        //dozens of tracks. youtube search is probably good enough for this
+        //
+        //testcase:   Rammstein playlists; high quality Rammstein vids are really rare on Youtube.
+        //            https://open.spotify.com/user/11174036433/playlist/0ePRMvD3Dn3zG31A8y64xX
+        //result:     lots of low quality (covers, pitched up/down, etc) tracks loaded.
+        //conclusion: there's room for improvement to this whole method
+        return list.getTracks().get(0);
+
     }
 
     @Override
