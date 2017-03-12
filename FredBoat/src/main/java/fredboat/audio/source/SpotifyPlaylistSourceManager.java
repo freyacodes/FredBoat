@@ -2,6 +2,7 @@ package fredboat.audio.source;
 
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.*;
 import fredboat.util.SearchUtil;
 import fredboat.util.SpotifyAPIWrapper;
@@ -50,7 +51,14 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
         log.debug("matched spotify playlist link. user: " + spotifyUser + ", listId: " + spotifyListId);
 
         final SpotifyAPIWrapper saw = SpotifyAPIWrapper.getApi();
-        String[] plData = saw.getPlaylistData(spotifyUser, spotifyListId);
+
+        String[] plData = new String[0];
+        try {
+            plData = saw.getPlaylistData(spotifyUser, spotifyListId);
+        } catch (Exception e) {
+            log.warn("Could not retrieve playlist " + spotifyListId + " of user " + spotifyUser);
+            throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);
+        }
 
         String playlistName = plData[0];
         if (playlistName == null || "".equals(playlistName)) playlistName = "Spotify Playlist";
@@ -58,7 +66,15 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
         log.debug("Retrieved playlist data for " + playlistName + " from Spotify with " + tracksTotal + " tracks");
 
         final List<AudioTrack> trackList = new ArrayList<>();
-        final List<String> trackListSearchTerms = saw.getPlaylistTracksSearchTerms(spotifyUser, spotifyListId);
+        final List<String> trackListSearchTerms;
+
+        try {
+            trackListSearchTerms = saw.getPlaylistTracksSearchTerms(spotifyUser, spotifyListId);
+        } catch (Exception e) {
+            log.warn("Could not retrieve tracks for playlist " + spotifyListId + " of user " + spotifyUser);
+            throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);
+        }
+
         for (final String s : trackListSearchTerms) {
 
             String query = s;

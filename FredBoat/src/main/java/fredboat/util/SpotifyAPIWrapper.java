@@ -106,26 +106,23 @@ public class SpotifyAPIWrapper {
      * @param playlistId Spotify playlist identifier
      * @return an array containing information about the requested spotify playlist
      */
-    public String[] getPlaylistData(String userId, String playlistId) {
+    public String[] getPlaylistData(String userId, String playlistId) throws UnirestException, JSONException {
         refreshTokenIfNecessary();
 
         String[] result = new String[2];
         result[0] = "";
         result[1] = "0";
 
-        try {
-            JSONObject jsonPlaylist = Unirest.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId)
+        JSONObject jsonPlaylist = Unirest.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId)
                     .header("Authorization", "Bearer " + accessToken)
                     .asJson()
                     .getBody()
                     .getObject();
 
-            //        //https://developer.spotify.com/web-api/object-model/#playlist-object-full
-            result[0] = jsonPlaylist.getString("name");
-            result[1] = jsonPlaylist.getJSONObject("tracks").getInt("total") + "";
-        } catch (Exception e) {
-            log.error("Could not retrieve playlist " + playlistId + " of user " + userId);
-        }
+        // https://developer.spotify.com/web-api/object-model/#playlist-object-full
+        result[0] = jsonPlaylist.getString("name");
+        result[1] = jsonPlaylist.getJSONObject("tracks").getInt("total") + "";
+
         return result;
     }
 
@@ -135,7 +132,7 @@ public class SpotifyAPIWrapper {
      * @param playlistId Spotify playlist identifier
      * @return a string for each track on the requested playlist, containing track and artist names
      */
-    public List<String> getPlaylistTracksSearchTerms(String userId, String playlistId) {
+    public List<String> getPlaylistTracksSearchTerms(String userId, String playlistId) throws UnirestException, JSONException {
         refreshTokenIfNecessary();
 
         //strings on this list will contain name of the track + names of the artists
@@ -150,12 +147,9 @@ public class SpotifyAPIWrapper {
             //this determines offset and limit on the 2nd+ pass of the do loop
             if (jsonPage != null) {
                 String nextPageUrl;
-                try {
-                    nextPageUrl = jsonPage.getString("next");
-                    if (nextPageUrl == null) break;
-                } catch (JSONException e) {
-                    break;
-                }
+                if (!jsonPage.has("next") || jsonPage.getString("next") == null) break;
+                nextPageUrl = jsonPage.getString("next");
+
                 final Matcher m = PARAMETER_PATTERN.matcher(nextPageUrl);
 
                 if (!m.find()) {
@@ -168,22 +162,18 @@ public class SpotifyAPIWrapper {
             }
 
             //request a page of tracks
-            try {
-                jsonPage = Unirest.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId + "/tracks")
-                        .queryString("offset", offset)
-                        .queryString("limit", limit)
-                        .header("Authorization", "Bearer " + accessToken)
-                        .asJson()
-                        .getBody()
-                        .getObject();
-            } catch (UnirestException e) {
-                log.error("Could not retrieve a page of playlist " + playlistId + " of user " + userId);
-                break;
-            }
+            jsonPage = Unirest.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId + "/tracks")
+                    .queryString("offset", offset)
+                    .queryString("limit", limit)
+                    .header("Authorization", "Bearer " + accessToken)
+                    .asJson()
+                    .getBody()
+                    .getObject();
 
             //add tracks to our result list
             // https://developer.spotify.com/web-api/object-model/#paging-object
             JSONArray jsonTracks = jsonPage.getJSONArray("items");
+
             jsonTracks.forEach((jsonPlaylistTrack) -> {
                 try {
                     JSONObject track = ((JSONObject) jsonPlaylistTrack).getJSONObject("track");
@@ -195,7 +185,7 @@ public class SpotifyAPIWrapper {
 
                     list.add(trackNameAndArtists.toString());
                 } catch (Exception e) {
-                    log.error("Could not create track from json, skipping", e);
+                    log.warn("Could not create track from json, skipping", e);
                 }
             });
 
