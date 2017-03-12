@@ -3,10 +3,6 @@ package fredboat.audio.source;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.track.*;
-import com.wrapper.spotify.models.Playlist;
-import com.wrapper.spotify.models.PlaylistTrack;
-import com.wrapper.spotify.models.SimpleArtist;
-import com.wrapper.spotify.models.Track;
 import fredboat.util.SearchUtil;
 import fredboat.util.SpotifyAPIWrapper;
 import org.json.JSONException;
@@ -31,8 +27,8 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(SpotifyPlaylistSourceManager.class);
 
-    //https://regex101.com/r/AEWyxi/1
-    private static final Pattern PLAYLIST_PATTERN = Pattern.compile("^https?://.*\\.spotify\\.com/user/(.*)/playlist/(.*)$");
+    //https://regex101.com/r/AEWyxi/3
+    private static final Pattern PLAYLIST_PATTERN = Pattern.compile("https?://.*\\.spotify\\.com/user/(.*)/playlist/([^?/\\s]*)");
 
 
     @Override
@@ -54,40 +50,28 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
         log.debug("matched spotify playlist link. user: " + spotifyUser + ", listId: " + spotifyListId);
 
         final SpotifyAPIWrapper saw = SpotifyAPIWrapper.getApi();
-        final Playlist playlist;
-        try {
-            playlist = saw.getPlaylist(spotifyUser, spotifyListId).get();
-        } catch (final Exception e) {
-            log.error("Could not get playlist " + spotifyListId + " of user " + spotifyUser, e);
-            return null;
-        }
-        log.debug("Retrieved playlist " + playlist.getName() + " from spotify with " + playlist.getTracks().getTotal() + " tracks");
+        String[] plData = saw.getPlaylistData(spotifyUser, spotifyListId);
 
-        //TODO: say something as soon as the search starts, because it usually takes some time
-        //TODO: and play the first track as soon as possible while continuing to search?
+        String playlistName = plData[0];
+        if (playlistName == null || "".equals(playlistName)) playlistName = "Spotify Playlist";
+        String tracksTotal = plData[1];
+        log.debug("Retrieved playlist data for " + playlistName + " from Spotify with " + tracksTotal + " tracks");
 
         final List<AudioTrack> trackList = new ArrayList<>();
+        final List<String> trackListSearchTerms = saw.getPlaylistTracksSearchTerms(spotifyUser, spotifyListId);
+        for (final String s : trackListSearchTerms) {
 
-        final List<PlaylistTrack> fullSpotifyTrackList = saw.getFullTrackList(playlist);
-        for (final PlaylistTrack t : fullSpotifyTrackList) {
-            final Track track = t.getTrack();
-            final StringBuilder sb = new StringBuilder();
-            sb.append(track.getName());
-            track.getArtists().forEach((SimpleArtist artist) -> sb.append(" ").append(artist.getName()));
-            String query = sb.toString();
-
+            String query = s;
             //remove all punctuation
             query = query.replaceAll("[.,/#!$%\\^&*;:{}=\\-_`~()]", "");
 
             final AudioTrack audioItem = searchSingleTrack(query);
             if (audioItem == null) {
-                continue; //skip the track if we couldn't find it TODO notify the user we skipped it?
+                continue; //skip the track if we couldn't find it
             }
-
             trackList.add(audioItem);
         }
-
-        return new BasicAudioPlaylist(playlist.getName(), trackList, null, true);
+        return new BasicAudioPlaylist(playlistName, trackList, null, true);
     }
 
     /**

@@ -1,21 +1,19 @@
 package fredboat.util;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
-import com.wrapper.spotify.Api;
-import com.wrapper.spotify.methods.PlaylistRequest;
-import com.wrapper.spotify.methods.PlaylistTracksRequest;
-import com.wrapper.spotify.models.ClientCredentials;
-import com.wrapper.spotify.models.Page;
-import com.wrapper.spotify.models.Playlist;
-import com.wrapper.spotify.models.PlaylistTrack;
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+import com.mashape.unirest.request.HttpRequest;
 import fredboat.Config;
+import org.apache.commons.codec.binary.Base64;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,12 +25,14 @@ import java.util.regex.Pattern;
  * When expanding this class, make sure to call refreshTokenIfNecessary() before every request
  */
 public class SpotifyAPIWrapper {
-
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(SpotifyAPIWrapper.class);
-    private static SpotifyAPIWrapper SPOTIFYAPIWRAPPER;
-
     //https://regex101.com/r/FkknVc/1
     private static final Pattern PARAMETER_PATTERN = Pattern.compile("offset=([0-9]*)&limit=([0-9]*)$");
+
+    private static final String URL_SPOTIFY_API = "https://api.spotify.com";
+    private static final String URL_SPOTIFY_AUTHENTICATION_HOST = "https://accounts.spotify.com";
+
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(SpotifyAPIWrapper.class);
+    private static volatile SpotifyAPIWrapper SPOTIFYAPIWRAPPER;
 
     /**
      * This should be the only way to grab a handle on this class.
@@ -42,53 +42,49 @@ public class SpotifyAPIWrapper {
      */
     public static SpotifyAPIWrapper getApi() {
         if (SPOTIFYAPIWRAPPER == null) {
-            SPOTIFYAPIWRAPPER = new SpotifyAPIWrapper(Config.CONFIG.getSpotifyId(), Config.CONFIG.getSpotifySecret());
+            SPOTIFYAPIWRAPPER = new SpotifyAPIWrapper();
         }
         return SPOTIFYAPIWRAPPER;
     }
 
+    private volatile long accessTokenExpires = 0;
+    private volatile String accessToken = "";
 
-    private final Api spotifyApi;
-    private long accessTokenExpires = 0;
+    private final String clientId;
+    private final String clientSecret;
 
     /**
+     * Do not call this.
      * Get an instance of this class by using SpotifyAPIWrapper.getApi()
      */
     private SpotifyAPIWrapper() {
-        this.spotifyApi = Api.builder().build();
-    }
-
-    private SpotifyAPIWrapper(final String clientId, final String clientSecret) {
-        this.spotifyApi = Api.builder()
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .build();
-
-        getFreshAccessToken();
+        this.clientId = Config.CONFIG.getSpotifyId();
+        this.clientSecret = Config.CONFIG.getSpotifySecret();
+        refreshTokenIfNecessary();
     }
 
     /**
      * This is related to the client credentials flow.
+     * https://developer.spotify.com/web-api/authorization-guide/#client-credentials-flow
      */
-    private SettableFuture<ClientCredentials> getFreshAccessToken() {
+    private void refreshAccessToken() {
+        String idSecret = clientId + ":" + clientSecret;
+        String idSecretEncoded = new String(Base64.encodeBase64(idSecret.getBytes()));
+        HttpRequest request = Unirest.post(URL_SPOTIFY_AUTHENTICATION_HOST + "/api/token")
+                .header("Authorization", "Basic " + idSecretEncoded)
+                .field("grant_type", "client_credentials")
+                .getHttpRequest();
+        try {
+            HttpResponse<JsonNode> response = request.asJson();
 
-        final SettableFuture<ClientCredentials> responseFuture = this.spotifyApi.clientCredentialsGrant().build().getAsync();
+            JSONObject jsonClientCredentials = response.getBody().getObject();
 
-        Futures.addCallback(responseFuture, new FutureCallback<ClientCredentials>() {
-            @Override
-            public void onSuccess(final ClientCredentials cc) {
-                SpotifyAPIWrapper.this.spotifyApi.setAccessToken(cc.getAccessToken());
-                SpotifyAPIWrapper.this.accessTokenExpires = System.currentTimeMillis() + (cc.getExpiresIn() * 1000);
-                log.debug("Retrieved spotify access token. Expires in " + cc.getExpiresIn() + " seconds");
-            }
-
-            @Override
-            public void onFailure(final Throwable throwable) {
-                log.error("Could not request spotify access token", throwable);
-            }
-        });
-
-        return responseFuture;
+            accessToken = jsonClientCredentials.getString("access_token");
+            accessTokenExpires = System.currentTimeMillis() + (jsonClientCredentials.getInt("expires_in") * 1000);
+            log.debug("Retrieved spotify access token " + accessToken + " expiring in " + jsonClientCredentials.getInt("expires_in") + " seconds");
+        } catch (final Exception e) {
+            log.error("Could not retrieve spotify access token: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -97,67 +93,197 @@ public class SpotifyAPIWrapper {
     private void refreshTokenIfNecessary() {
         //refresh the token if it's too old
         if (System.currentTimeMillis() > this.accessTokenExpires) try {
-            getFreshAccessToken().get();
+            refreshAccessToken();
         } catch (final Exception e) {
             log.error("Could not request spotify access token", e);
         }
     }
 
     /**
-     * @param userId identifier of the spotify user which this list belongs to
-     * @param listId identifier of requested requested playlist
-     * @return a Future on the requested playlist
+     * Returns some data on a spotify playlist, currently it's name and tracks total.
+     *
+     * @param userId Spotify user id of the owner of the requested playlist
+     * @param playlistId Spotify playlist identifier
+     * @return an array containing information about the requested spotify playlist
      */
-    public Future<Playlist> getPlaylist(final String userId, final String listId) {
-        final PlaylistRequest request = this.spotifyApi.getPlaylist(userId, listId).build();
+    public String[] getPlaylistData(String userId, String playlistId) {
         refreshTokenIfNecessary();
-        return request.getAsync();
+
+        String[] result = new String[2];
+        result[0] = "";
+        result[1] = "0";
+
+        try {
+            JSONObject jsonPlaylist = Unirest.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId)
+                    .header("Authorization", "Bearer " + accessToken)
+                    .asJson()
+                    .getBody()
+                    .getObject();
+
+            //        //https://developer.spotify.com/web-api/object-model/#playlist-object-full
+            result[0] = jsonPlaylist.getString("name");
+            result[1] = jsonPlaylist.getJSONObject("tracks").getInt("total") + "";
+        } catch (Exception e) {
+            log.error("Could not retrieve playlist " + playlistId + " of user " + userId);
+        }
+        return result;
     }
 
-
     /**
-     * Returns the full tracklist of a playlist
      *
-     * @param playlist playlist for which the full tracklist shall be retrieved
-     * @return a list containing all tracks of the provided playlist
+     * @param userId Spotify user id of the owner of the requested playlist
+     * @param playlistId Spotify playlist identifier
+     * @return a string for each track on the requested playlist, containing track and artist names
      */
-    public List<PlaylistTrack> getFullTrackList(final Playlist playlist) {
-        final List<PlaylistTrack> result = new ArrayList<>();
-        Page<PlaylistTrack> page = null;
+    public List<String> getPlaylistTracksSearchTerms(String userId, String playlistId) {
+        refreshTokenIfNecessary();
 
+        //strings on this list will contain name of the track + names of the artists
+        List<String> list = new ArrayList<>();
+
+        JSONObject jsonPage = null;
+        //get page, then collect its tracks
         do {
-            final PlaylistTracksRequest.Builder builder = this.spotifyApi.getPlaylistTracks(playlist.getOwner().getId(), playlist.getId());
+            String offset = "0";
+            String limit = "100";
 
-            //this should be true in every iteration except for the first one, where we also don't need to set any parameters
-            if (page != null) {
-                final String nextPageUrl = page.getNext();
+            //this determines offset and limit on the 2nd+ pass of the do loop
+            if (jsonPage != null) {
+                String nextPageUrl;
+                try {
+                    nextPageUrl = jsonPage.getString("next");
+                    if (nextPageUrl == null) break;
+                } catch (JSONException e) {
+                    break;
+                }
                 final Matcher m = PARAMETER_PATTERN.matcher(nextPageUrl);
 
                 if (!m.find()) {
                     log.debug("Did not find parameter pattern in next page URL provided by Spotify");
                     break;
                 }
-
-                final String offset = m.group(1);
-                final String limit = m.group(2);
-
                 //We are trusting Spotify to get their shit together and provide us sane values for these
-                builder.parameter("offset", offset);
-                builder.parameter("limit", limit);
+                offset = m.group(1);
+                limit = m.group(2);
             }
 
-            final PlaylistTracksRequest request = builder.build();
+            //request a page of tracks
             try {
-                refreshTokenIfNecessary();
-                page = request.get();
-                result.addAll(page.getItems());
-            } catch (final Exception e) {
-                log.error("Could not get next page in Spotify playlist " + playlist.getId(), e);
+                jsonPage = Unirest.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId + "/tracks")
+                        .queryString("offset", offset)
+                        .queryString("limit", limit)
+                        .header("Authorization", "Bearer " + accessToken)
+                        .asJson()
+                        .getBody()
+                        .getObject();
+            } catch (UnirestException e) {
+                log.error("Could not retrieve a page of playlist " + playlistId + " of user " + userId);
                 break;
             }
 
-        } while (page.getNext() != null);
+            //add tracks to our result list
+            // https://developer.spotify.com/web-api/object-model/#paging-object
+            JSONArray jsonTracks = jsonPage.getJSONArray("items");
+            jsonTracks.forEach((jsonPlaylistTrack) -> {
+                try {
+                    JSONObject track = ((JSONObject) jsonPlaylistTrack).getJSONObject("track");
+                    final StringBuilder trackNameAndArtists = new StringBuilder();
+                    trackNameAndArtists.append(track.getString("name"));
 
-        return result;
+                    track.getJSONArray("artists").forEach((jsonArtist) -> trackNameAndArtists.append(" ")
+                            .append(((JSONObject) jsonArtist).getString("name")));
+
+                    list.add(trackNameAndArtists.toString());
+                } catch (Exception e) {
+                    log.error("Could not create track from json, skipping", e);
+                }
+            });
+
+        } while (jsonPage.has("next") && jsonPage.get("next") != null);
+
+        return list;
     }
+
+    // if that api project ever gets updated this code may come in handy
+    // https://github.com/thelinmichael/spotify-web-api-java
+//    private SettableFuture<ClientCredentials> refreshAccessToken() {
+//
+//        final SettableFuture<ClientCredentials> responseFuture = this.spotifyApi.clientCredentialsGrant().build().getAsync();
+//
+//        Futures.addCallback(responseFuture, new FutureCallback<ClientCredentials>() {
+//            @Override
+//            public void onSuccess(final ClientCredentials cc) {
+//                accessToken = cc.getAccessToken();
+//                SpotifyAPIWrapper.this.spotifyApi.setAccessToken(accessToken);
+//                SpotifyAPIWrapper.this.accessTokenExpires = System.currentTimeMillis() + (cc.getExpiresIn() * 1000);
+//                log.info("Received spotify access token " + cc.getAccessToken() + " expiring in " + cc.getExpiresIn() + " seconds");
+//                log.debug("Retrieved spotify access token " + cc.getAccessToken() + " expiring in " + cc.getExpiresIn() + " seconds");
+//            }
+//
+//            @Override
+//            public void onFailure(final Throwable throwable) {
+//                log.error("Could not request spotify access token", throwable);
+//            }
+//        });
+//
+//        return responseFuture;
+//    }
+//
+//    /**
+//     * @param userId identifier of the spotify user which this list belongs to
+//     * @param listId identifier of requested requested playlist
+//     * @return a Future on the requested playlist
+//     */
+//    public Future<Playlist> getPlaylist(final String userId, final String listId) {
+//        final PlaylistRequest request = this.spotifyApi.getPlaylist(userId, listId).build();
+//        refreshTokenIfNecessary();
+//        return request.getAsync();
+//    }
+//
+//
+//    /**
+//     * Returns the full tracklist of a playlist
+//     *
+//     * @param playlist playlist for which the full tracklist shall be retrieved
+//     * @return a list containing all tracks of the provided playlist
+//     */
+//    public List<PlaylistTrack> getFullTrackList(final Playlist playlist) {
+//        final List<PlaylistTrack> result = new ArrayList<>();
+//        Page<PlaylistTrack> page = null;
+//
+//        do {
+//            final PlaylistTracksRequest.Builder builder = this.spotifyApi.getPlaylistTracks(playlist.getOwner().getId(), playlist.getId());
+//
+//            //this should be true in every iteration except for the first one, where we also don't need to set any parameters
+//            if (page != null) {
+//                final String nextPageUrl = page.getNext();
+//                final Matcher m = PARAMETER_PATTERN.matcher(nextPageUrl);
+//
+//                if (!m.find()) {
+//                    log.debug("Did not find parameter pattern in next page URL provided by Spotify");
+//                    break;
+//                }
+//
+//                final String offset = m.group(1);
+//                final String limit = m.group(2);
+//
+//                //We are trusting Spotify to get their shit together and provide us sane values for these
+//                builder.parameter("offset", offset);
+//                builder.parameter("limit", limit);
+//            }
+//
+//            final PlaylistTracksRequest request = builder.build();
+//            try {
+//                refreshTokenIfNecessary();
+//                page = request.get();
+//                result.addAll(page.getItems());
+//            } catch (final Exception e) {
+//                log.error("Could not get next page in Spotify playlist " + playlist.getId(), e);
+//                break;
+//            }
+//
+//        } while (page.getNext() != null);
+//
+//        return result;
+//    }
 }
