@@ -52,18 +52,17 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
 
         final SpotifyAPIWrapper saw = SpotifyAPIWrapper.getApi();
 
-        String[] plData = new String[0];
+        String[] plData;
         try {
             plData = saw.getPlaylistData(spotifyUser, spotifyListId);
         } catch (Exception e) {
-            log.warn("Could not retrieve playlist " + spotifyListId + " of user " + spotifyUser);
+            log.warn("Could not retrieve playlist " + spotifyListId + " of user " + spotifyUser, e);
             throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);
         }
 
         String playlistName = plData[0];
         if (playlistName == null || "".equals(playlistName)) playlistName = "Spotify Playlist";
         String tracksTotal = plData[1];
-        log.debug("Retrieved playlist data for " + playlistName + " from Spotify with " + tracksTotal + " tracks");
 
         final List<AudioTrack> trackList = new ArrayList<>();
         final List<String> trackListSearchTerms;
@@ -71,9 +70,10 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
         try {
             trackListSearchTerms = saw.getPlaylistTracksSearchTerms(spotifyUser, spotifyListId);
         } catch (Exception e) {
-            log.warn("Could not retrieve tracks for playlist " + spotifyListId + " of user " + spotifyUser);
+            log.warn("Could not retrieve tracks for playlist " + spotifyListId + " of user " + spotifyUser, e);
             throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);
         }
+        log.info("Retrieved playlist data for " + playlistName + " from Spotify, loading up " + tracksTotal + " tracks");
 
         for (final String s : trackListSearchTerms) {
 
