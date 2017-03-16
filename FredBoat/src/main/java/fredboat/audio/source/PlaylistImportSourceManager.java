@@ -25,6 +25,18 @@
 
 package fredboat.audio.source;
 
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
+import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
+import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
+import com.sedmelluq.discord.lavaplayer.track.*;
+import fredboat.audio.AbstractPlayer;
+import fredboat.audio.queue.PlaylistInfo;
+import org.slf4j.LoggerFactory;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -34,25 +46,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 
-import org.slf4j.LoggerFactory;
-
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
-import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
-import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
-import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
-import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
-import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
-import com.sedmelluq.discord.lavaplayer.track.AudioItem;
-import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
-import com.sedmelluq.discord.lavaplayer.track.AudioReference;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
-import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
-
-import fredboat.audio.AbstractPlayer;
-
-public class PlaylistImportSourceManager implements AudioSourceManager {
+public class PlaylistImportSourceManager implements AudioSourceManager, PlaylistImporter {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(PlaylistImportSourceManager.class);
 
@@ -66,58 +60,21 @@ public class PlaylistImportSourceManager implements AudioSourceManager {
 
     @Override
     public AudioItem loadItem(DefaultAudioPlayerManager manager, AudioReference ar) {
-        String pasteId;
-        String response;
-        Matcher m;
-        Matcher serviceNameMatcher = PasteServiceConstants.SERVICE_NAME_PATTERN.matcher(ar.identifier);
 
-        if (!serviceNameMatcher.find()) {
+        String[] parsed = parse(ar.identifier);
+        if (parsed == null) return null;
+        String serviceName = parsed[0];
+        String pasteId = parsed[1];
+
+
+        if (pasteId == null || "".equals(pasteId) || !PasteServiceConstants.PASTE_SERVICE_URLS.containsKey(serviceName)) {
             return null;
         }
-
-        String serviceName = serviceNameMatcher.group(1).trim().toLowerCase();
-
-        switch (serviceName) {
-
-        case "hastebin":
-            m = PasteServiceConstants.HASTEBIN_PATTERN.matcher(ar.identifier);
-            pasteId = m.find() ? m.group(1) : null;
-            break;
-
-        case "pastebin":
-            m = PasteServiceConstants.PASTEBIN_PATTERN.matcher(ar.identifier);
-            pasteId = m.find() ? m.group(1) : null;
-            break;
-
-        default:
-            return null;
-        }
-
-        if (pasteId == null || !PasteServiceConstants.PASTE_SERVICE_URLS.containsKey(serviceName)) {
-            return null;
-        }
-
-        try {
-            response = Unirest.get(PasteServiceConstants.PASTE_SERVICE_URLS.get(serviceName) + pasteId).asString()
-                    .getBody();
-        } catch (UnirestException ex) {
-            throw new FriendlyException(
-                    "Couldn't load playlist. Either " + serviceName + " is down or the playlist does not exist.",
-                    FriendlyException.Severity.FAULT, ex);
-        }
-
-        String[] unfiltered = response.split("\\s");
-        ArrayList<String> filtered = new ArrayList<>();
-
-        for (String str : unfiltered) {
-            if (!str.equals("")) {
-                filtered.add(str);
-            }
-        }
+        List<String> trackIds = loadAndParseTrackIds(serviceName, pasteId);
 
         PasteServiceAudioResultHandler handler = new PasteServiceAudioResultHandler();
         Future<Void> lastFuture = null;
-        for (String id : filtered) {
+        for (String id : trackIds) {
             lastFuture = PRIVATE_MANAGER.loadItemOrdered(handler, id, handler);
         }
 
@@ -151,6 +108,79 @@ public class PlaylistImportSourceManager implements AudioSourceManager {
 
     @Override
     public void shutdown() {
+    }
+
+    /**
+     * @return null or a string with the hasteId
+     */
+    private String[] parse(String identifier) {
+        String pasteId;
+        Matcher m;
+        Matcher serviceNameMatcher = PasteServiceConstants.SERVICE_NAME_PATTERN.matcher(identifier);
+
+        if (!serviceNameMatcher.find()) {
+            return null;
+        }
+
+        String serviceName = serviceNameMatcher.group(1).trim().toLowerCase();
+
+        switch (serviceName) {
+
+            case "hastebin":
+                m = PasteServiceConstants.HASTEBIN_PATTERN.matcher(identifier);
+                pasteId = m.find() ? m.group(1) : null;
+                break;
+
+            case "pastebin":
+                m = PasteServiceConstants.PASTEBIN_PATTERN.matcher(identifier);
+                pasteId = m.find() ? m.group(1) : null;
+                break;
+
+            default:
+                return null;
+        }
+
+        String[] result = new String[2];
+        result[0] = serviceName;
+        result[1] = pasteId;
+        return result;
+    }
+
+    private List<String> loadAndParseTrackIds(String serviceName, String pasteId) {
+        String response;
+        try {
+            response = Unirest.get(PasteServiceConstants.PASTE_SERVICE_URLS.get(serviceName) + pasteId).asString()
+                    .getBody();
+        } catch (UnirestException ex) {
+            throw new FriendlyException(
+                    "Couldn't load playlist. Either " + serviceName + " is down or the playlist does not exist.",
+                    FriendlyException.Severity.FAULT, ex);
+        }
+
+        String[] unfiltered = response.split("\\s");
+        ArrayList<String> filtered = new ArrayList<>();
+        for (String str : unfiltered) {
+            if (!str.equals("")) {
+                filtered.add(str);
+            }
+        }
+        return filtered;
+    }
+
+
+    @Override
+    public PlaylistInfo isPlaylistAndIfYesGimmeSomeData(String identifier) {
+
+        String[] pasteData = parse(identifier);
+        if (pasteData == null) return null;
+
+        String serviceName = pasteData[0];
+        String pasteId = pasteData[1];
+        if (serviceName == null || "".equals(serviceName) || pasteId == null || "".equals(pasteId)) return null;
+
+        List<String> trackIds = loadAndParseTrackIds(serviceName, pasteId);
+
+        return new PlaylistInfo(trackIds.size(), pasteId, PlaylistInfo.Source.PASTESERVICE);
     }
 
     private class PasteServiceAudioResultHandler implements AudioLoadResultHandler {

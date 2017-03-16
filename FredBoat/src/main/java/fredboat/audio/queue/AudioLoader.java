@@ -32,6 +32,9 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.audio.GuildPlayer;
+import fredboat.audio.source.PlaylistImportSourceManager;
+import fredboat.audio.source.PlaylistImporter;
+import fredboat.audio.source.SpotifyPlaylistSourceManager;
 import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
 import fredboat.util.YoutubeAPI;
@@ -88,6 +91,14 @@ public class AudioLoader implements AudioLoadResultHandler {
                     return;
                 }
 
+                PlaylistInfo pi = isPlaylistWithPotentiallyLongLoadingTime(ic.identifier);
+                if (pi != null) {
+                    //inform user we are possibly about to do nasty time consuming work
+                    //TODO: i18n this, and the rate limit thing above
+                    if (pi.getTotalTracks() > 10) //arbitrary chosen number
+                        TextUtils.replyWithName(gplayer.getActiveTextChannel(), context.member, "About to load playlist **" + pi.getName() + "** with up to `" + pi.getTotalTracks() + "` tracks. This may take a while, please be patient.");
+                }
+
                 playerManager.loadItem(ic.identifier, this);
             } else {
                 isLoading = false;
@@ -96,6 +107,28 @@ public class AudioLoader implements AudioLoadResultHandler {
             handleThrowable(context, th);
             isLoading = false;
         }
+    }
+
+    /**
+     * this function needs to be updated if we add more manual playlist loaders
+     * currently it only covers the Hastebin and Spotify playlists
+     *
+     * @param identifier the very same identifier that the playlist loaders will be presented with if we asked them to
+     *                   load a playlist
+     * @return null if it's not a playlist that we manually parse, some data about it if it is
+     */
+    private PlaylistInfo isPlaylistWithPotentiallyLongLoadingTime(String identifier) {
+
+        PlaylistImporter pi = playerManager.source(SpotifyPlaylistSourceManager.class);
+        PlaylistInfo playlistInfo = pi.isPlaylistAndIfYesGimmeSomeData(identifier);
+
+        if (playlistInfo == null) {
+            pi = playerManager.source(PlaylistImportSourceManager.class);
+            playlistInfo = pi.isPlaylistAndIfYesGimmeSomeData(identifier);
+        }
+
+        //can be null
+        return playlistInfo;
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.*;
+import fredboat.audio.queue.PlaylistInfo;
 import fredboat.util.SearchUtil;
 import fredboat.util.SpotifyAPIWrapper;
 import org.json.JSONException;
@@ -24,7 +25,7 @@ import java.util.regex.Pattern;
  *
  * @author napster
  */
-public class SpotifyPlaylistSourceManager implements AudioSourceManager {
+public class SpotifyPlaylistSourceManager implements AudioSourceManager, PlaylistImporter {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(SpotifyPlaylistSourceManager.class);
 
@@ -39,20 +40,15 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
 
     @Override
     public AudioItem loadItem(final DefaultAudioPlayerManager manager, final AudioReference ar) {
-        final Matcher m = PLAYLIST_PATTERN.matcher(ar.identifier);
 
-        if (!m.find()) {
-            return null;
-        }
-
-        final String spotifyUser = m.group(1);
-        final String spotifyListId = m.group(2);
-
-        log.debug("matched spotify playlist link. user: " + spotifyUser + ", listId: " + spotifyListId);
+        String[] data = parse(ar.identifier);
+        if (data == null) return null;
+        final String spotifyUser = data[0];
+        final String spotifyListId = data[1];
 
         final SpotifyAPIWrapper saw = SpotifyAPIWrapper.getApi();
 
-        String[] plData;
+        PlaylistInfo plData;
         try {
             plData = saw.getPlaylistData(spotifyUser, spotifyListId);
         } catch (Exception e) {
@@ -60,9 +56,9 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
             throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);
         }
 
-        String playlistName = plData[0];
+        String playlistName = plData.getName();
         if (playlistName == null || "".equals(playlistName)) playlistName = "Spotify Playlist";
-        String tracksTotal = plData[1];
+        int tracksTotal = plData.getTotalTracks();
 
         final List<AudioTrack> trackList = new ArrayList<>();
         final List<String> trackListSearchTerms;
@@ -160,5 +156,39 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager {
     @Override
     public void shutdown() {
 
+    }
+
+    /**
+     * @return null or a string array containing spotifyUser at [0] and playlistId at [1] of the requested playlist
+     */
+    private String[] parse(String identifier) {
+        String[] result = new String[0];
+        final Matcher m = PLAYLIST_PATTERN.matcher(identifier);
+
+        if (!m.find()) {
+            return null;
+        }
+
+        result[0] = m.group(1);
+        result[1] = m.group(2);
+
+        log.debug("matched spotify playlist link. user: " + result[0] + ", listId: " + result[1]);
+        return result;
+    }
+
+    @Override
+    public PlaylistInfo isPlaylistAndIfYesGimmeSomeData(String identifier) {
+
+        String[] data = parse(identifier);
+        if (data == null) return null;
+        final String spotifyUser = data[0];
+        final String spotifyListId = data[1];
+
+        try {
+            return SpotifyAPIWrapper.getApi().getPlaylistData(spotifyUser, spotifyListId);
+        } catch (Exception e) {
+            log.warn("Could not retrieve playlist " + spotifyListId + " of user " + spotifyUser, e);
+            throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);
+        }
     }
 }

@@ -6,6 +6,7 @@ import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import com.mashape.unirest.request.HttpRequest;
 import fredboat.Config;
+import fredboat.audio.queue.PlaylistInfo;
 import org.apache.commons.codec.binary.Base64;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -106,12 +107,8 @@ public class SpotifyAPIWrapper {
      * @param playlistId Spotify playlist identifier
      * @return an array containing information about the requested spotify playlist
      */
-    public String[] getPlaylistData(String userId, String playlistId) throws UnirestException, JSONException {
+    public PlaylistInfo getPlaylistData(String userId, String playlistId) throws UnirestException, JSONException {
         refreshTokenIfNecessary();
-
-        String[] result = new String[2];
-        result[0] = "";
-        result[1] = "0";
 
         JSONObject jsonPlaylist = Unirest.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId)
                     .header("Authorization", "Bearer " + accessToken)
@@ -120,10 +117,10 @@ public class SpotifyAPIWrapper {
                     .getObject();
 
         // https://developer.spotify.com/web-api/object-model/#playlist-object-full
-        result[0] = jsonPlaylist.getString("name");
-        result[1] = jsonPlaylist.getJSONObject("tracks").getInt("total") + "";
+        String name = jsonPlaylist.getString("name");
+        int tracks = jsonPlaylist.getJSONObject("tracks").getInt("total");
 
-        return result;
+        return new PlaylistInfo(tracks, name, PlaylistInfo.Source.SPOTIFY);
     }
 
     /**
