@@ -61,6 +61,11 @@ public class PlayCommand extends Command implements IMusicCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+        if (!invoker.getVoiceState().inVoiceChannel()) {
+            channel.sendMessage(I18n.get(guild).getString("playerUserNotInChannel")).queue();
+            return;
+        }
+
         if (!message.getAttachments().isEmpty()) {
             GuildPlayer player = PlayerRegistry.get(guild);
             player.setCurrentTC(channel);
