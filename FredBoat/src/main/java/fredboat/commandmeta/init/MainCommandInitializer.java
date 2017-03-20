@@ -85,7 +85,6 @@ public class MainCommandInitializer {
 
         String[] pats = {
                 "http://i.imgur.com/wF1ohrH.gif",
-                "http://cdn.photonesta.com/images/i.imgur.com/I3yvqFL.gif",
                 "http://i4.photobucket.com/albums/y131/quentinlau/Blog/sola-02-Large15.jpg",
                 "http://i.imgur.com/OYiSZWX.gif",
                 "http://i.imgur.com/tmidE9Q.gif",
@@ -102,10 +101,8 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("pat", new PatCommand(pats));
 
         String[] facedesk = {
-                "https://45.media.tumblr.com/tumblr_lpzn2uFp4D1qew6kmo1_500.gif",
                 "http://i862.photobucket.com/albums/ab181/Shadow_Milez/Animu/kuroko-facedesk.gif",
                 "http://2.bp.blogspot.com/-Uw0i2Xv8r-M/UhyYzSHIiCI/AAAAAAAAAdg/hcI1-V7Y3A4/s1600/facedesk.gif",
-                "https://67.media.tumblr.com/dfa4f3c1b65da06d76a271feef0d08f0/tumblr_inline_o6zkkh6VsK1u293td_500.gif",
                 "http://stream1.gifsoup.com/webroot/animatedgifs/57302_o.gif",
                 "http://img.neoseeker.com/mgv/59301/301/26/facedesk_display.gif"
         };
@@ -122,12 +119,8 @@ public class MainCommandInitializer {
                 "http://25.media.tumblr.com/tumblr_m4k42bwzNy1qj0i6io1_500.gif",
                 "http://i.giphy.com/3o6LXfWUBTdBcccgSc.gif",
                 "http://66.media.tumblr.com/23dec349d26317df439099fdcb4c75a4/tumblr_mld6epWdgR1riizqco1_500.gif",
-                "https://images-2.discordapp.net/eyJ1cmwiOiJodHRwOi8vZmFybTguc3RhdGljZmxpY2tyLmNvbS83NDUxLzEyMjY4NDM2MjU1XzgwZGIxOWNlOGZfby5naWYifQ.1e8OKozMAx22ZGELeNzRkqT3v-Q.gif",
-                "https://images-1.discordapp.net/eyJ1cmwiOiJodHRwOi8vaS5pbWd1ci5jb20vS2VHY1lYSi5naWYifQ.4dCItRLO5l91JuDw-8ls-fi8wWc.gif",
                 "http://i.imgur.com/s2TL7A8.gif",
-                "http://i.imgur.com/vqTAjp5.gif",
-                "https://data.desustorage.org/a/image/1456/58/1456582568150.gif"
-
+                "http://i.imgur.com/vqTAjp5.gif"
         };
 
         CommandRegistry.registerCommand("roll", new RollCommand(roll));
