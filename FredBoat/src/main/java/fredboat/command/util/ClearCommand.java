@@ -70,7 +70,7 @@ public class ClearCommand extends Command {
                 channel.sendMessage("Deleted one message.").queue();
             } else {
 
-                if(PermissionUtil.checkPermission(channel, guild.getSelfMember(), Permission.MESSAGE_MANAGE)){
+                if (!PermissionUtil.checkPermission(channel, guild.getSelfMember(), Permission.MESSAGE_MANAGE)) {
                     throw new MessagingException("I must have the `Manage Messages` permission to delete my own messages in bulk.");
                 }
 
