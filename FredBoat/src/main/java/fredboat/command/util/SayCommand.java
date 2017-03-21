@@ -46,11 +46,7 @@ public class SayCommand extends Command {
             channel.sendMessage(I18n.get(guild).getString("sayUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix())).queue();
             return;
         }
-        String res = "";
-        for (int i = 1; i < args.length; i++) {
-            res = res+" "+args[i];
-        }
-        res = res.substring(1);
+        String res = message.getRawContent().substring(args[0].length() + 1);
         Message myMsg;
         try {
             myMsg = channel.sendMessage('\u200b' + res).complete(true);
