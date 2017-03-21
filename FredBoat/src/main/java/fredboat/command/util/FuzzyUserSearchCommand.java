@@ -48,6 +48,7 @@ public class FuzzyUserSearchCommand extends Command {
 
             if(list.isEmpty()){
                 TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("fuzzyNoResults"));
+                return;
             }
 
             String msg = "```\n";
