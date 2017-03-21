@@ -25,6 +25,7 @@
 
 package fredboat;
 
+import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.agent.CarbonitexAgent;
@@ -61,6 +62,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class FredBoat {
@@ -77,6 +80,10 @@ public abstract class FredBoat {
     static EventListenerBoat listenerBot;
     static EventListenerSelf listenerSelf;
     private static AtomicInteger numShardsReady = new AtomicInteger(0);
+
+    //unlimited threads = https://i.imgur.com/cJlBUVL.gif
+    //use this executor for various small async tasks
+    public final static ExecutorService executor = Executors.newCachedThreadPool();
 
     JDA jda;
     private static FredBoatClient fbClient;
@@ -186,6 +193,31 @@ public abstract class FredBoat {
             carbonitexAgent.setDaemon(true);
             carbonitexAgent.start();
         }
+
+        //Check MAL creds
+        executor.submit(FredBoat::hasValidMALLogin);
+    }
+
+    private static boolean hasValidMALLogin() {
+        if ("".equals(Config.CONFIG.getMalUser()) || "".equals(Config.CONFIG.getMalPassword())) {
+            log.info("MAL credentials not found. MAL related commands will not be available.");
+            return false;
+        }
+        try {
+            HttpResponse<String> response = Unirest.get("https://myanimelist.net/api/account/verify_credentials.xml")
+                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
+                    .asString();
+            int responseStatus = response.getStatus();
+            if (responseStatus == 200) {
+                log.info("MAL login successful");
+                return true;
+            } else {
+                log.warn("MAL login failed with " + responseStatus + ": " + response.getBody());
+            }
+        } catch (UnirestException e) {
+            log.warn("MAL login failed, it seems to be down.", e);
+        }
+        return false;
     }
 
     private static void initBotShards(EventListener listener) {
@@ -239,6 +271,8 @@ public abstract class FredBoat {
         try {
             Unirest.shutdown();
         } catch (IOException ignored) {}
+
+        executor.shutdown();
     };
 
     public static void shutdown(int code) {

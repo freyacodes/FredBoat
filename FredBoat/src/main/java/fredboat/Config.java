@@ -61,6 +61,7 @@ public class Config {
     private final int hikariPoolSize;
     private final int numShards;
     private String mashapeKey;
+    private String malUser;
     private String malPassword;
     private int scope;
     private List<String> googleKeys = new ArrayList<>();
@@ -114,6 +115,7 @@ public class Config {
             log.info("Using prefix: " + prefix);
 
             mashapeKey = (String) creds.getOrDefault("mashapeKey", "");
+            malUser = (String) creds.getOrDefault("malUser", "");
             malPassword = (String) creds.getOrDefault("malPassword", "");
             carbonKey = (String) creds.getOrDefault("carbonKey", "");
             cbUser = (String) creds.getOrDefault("cbUser", "");
@@ -232,6 +234,10 @@ public class Config {
 
     public String getMashapeKey() {
         return mashapeKey;
+    }
+
+    public String getMalUser() {
+        return malUser;
     }
 
     public String getMalPassword() {

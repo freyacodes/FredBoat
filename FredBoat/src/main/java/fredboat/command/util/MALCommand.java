@@ -25,9 +25,11 @@
 
 package fredboat.command.util;
 
+import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
+import fredboat.FredBoat;
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
 import fredboat.feature.I18n;
@@ -64,18 +66,37 @@ public class MALCommand extends Command {
         String term = matcher.group(1).replace(' ', '+').trim();
         log.debug("TERM:"+term);
 
+        //MALs API is currently wonky af, so we are setting rather strict timeouts for its requests
+        Unirest.setTimeouts(5000, 10000);
+        FredBoat.executor.submit(() -> requestAsync(term, channel, invoker));
+        //back to defaults
+        Unirest.setTimeouts(10000, 60000);
+    }
+
+    private void requestAsync(String term, TextChannel channel, Member invoker) {
         try {
-            String body = Unirest.get("https://myanimelist.net/api/anime/search.xml?q=" + term).basicAuth("FredBoat", Config.CONFIG.getMalPassword()).asString().getBody();
+            HttpResponse<String> response = Unirest.get("https://myanimelist.net/api/anime/search.xml")
+                    .queryString("q", term)
+                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
+                    .asString();
+
+            String body = response.getBody();
             if (body != null && body.length() > 0) {
-                if(handleAnime(channel, invoker, term, body)){
+                if (handleAnime(channel, invoker, term, body)) {
                     return;
                 }
             }
+            response = Unirest.get("http://myanimelist.net/search/prefix.json")
+                    .queryString("type", "user")
+                    .queryString("keyword", term)
+                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
+                    .asString();
+            body = response.getBody();
 
-            body = Unirest.get("http://myanimelist.net/search/prefix.json?type=user&keyword=" + term).basicAuth("FredBoat", Config.CONFIG.getMalPassword()).asString().getBody();
             handleUser(channel, invoker, body);
         } catch (UnirestException ex) {
-            throw new RuntimeException(ex);
+            channel.sendMessage(MessageFormat.format(I18n.get(channel.getGuild()).getString("malNoResults"), invoker.getEffectiveName())).queue();
+            log.warn("MAL request blew up", ex);
         }
     }
 
