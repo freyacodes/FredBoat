@@ -25,7 +25,6 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("exit", new ExitCommand());
         CommandRegistry.registerCommand("avatar", new AvatarCommand());
         CommandRegistry.registerCommand("test", new TestCommand());
-        CommandRegistry.registerCommand("lua", new LuaCommand());
         CommandRegistry.registerCommand("brainfuck", new BrainfuckCommand());
         CommandRegistry.registerCommand("joke", new JokeCommand());
         CommandRegistry.registerCommand("leet", new LeetCommand());
