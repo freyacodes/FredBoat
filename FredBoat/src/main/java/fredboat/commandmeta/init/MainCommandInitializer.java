@@ -19,8 +19,10 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("say", new SayCommand());
         CommandRegistry.registerCommand("uptime", new StatsCommand());
         CommandRegistry.registerCommand("serverinfo",new fredboat.command.util.ServerInfoCommand());
+        CommandRegistry.registerAlias("serverinfo", "guildinfo");
         CommandRegistry.registerCommand("invite", new InviteCommand());
         CommandRegistry.registerCommand("userinfo",new fredboat.command.util.UserInfoCommand());
+        CommandRegistry.registerAlias("userinfo", "memberinfo");
         CommandRegistry.registerAlias("uptime", "stats");
         CommandRegistry.registerCommand("exit", new ExitCommand());
         CommandRegistry.registerCommand("avatar", new AvatarCommand());
