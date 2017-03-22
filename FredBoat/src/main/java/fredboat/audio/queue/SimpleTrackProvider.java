@@ -106,27 +106,29 @@ public class SimpleTrackProvider extends AbstractTrackProvider {
         return null;
     }
 
+    /**
+     * Returns all songs inclusively from one index till the another in a non-bitching way.
+     */
     @Override
-    public List<AudioTrackContext> getInRange(int startIndex, int endIndex) {
-        if (queue.size() < endIndex) {
-            return new ArrayList<>();
-        } else {
-            int remain = endIndex - startIndex + 1;
-            int i = 0;
-            List<AudioTrackContext> atl = new ArrayList<>();
-            for (AudioTrackContext obj : getAsListOrdered()) {
-                if (i >= startIndex && remain > 0) {
-                    shouldUpdateShuffledQueue = true;
-                    atl.add(obj);
-                    remain--;
-                } else if (remain <= 0) {
-                    return atl;
-                }
-                i++;
-            }
+    public List<AudioTrackContext> getInRange(int indexA, int indexB) {
+
+        //make sure startIndex <= endIndex
+        int startIndex = indexA < indexB ? indexA : indexB;
+        int endIndex = indexA < indexB ? indexB : indexA;
+
+        //Collect tracks inclusively between the two indices
+        int i = 0;
+        List<AudioTrackContext> result = new ArrayList<>();
+        for (AudioTrackContext atc : getAsListOrdered()) {
+            if (i >= startIndex && i <= endIndex)
+                result.add(atc);
+            i++;
+            if (i > endIndex) break;//abort early if we're done
         }
 
-        return new ArrayList<>();
+        //trigger shuffle queue update if we found tracks to remove
+        if (result.size() > 0) shouldUpdateShuffledQueue = true;
+        return result;
     }
 
     @Override
