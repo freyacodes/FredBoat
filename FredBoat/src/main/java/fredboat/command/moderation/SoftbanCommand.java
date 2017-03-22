@@ -26,6 +26,7 @@
 package fredboat.command.moderation;
 
 import fredboat.Config;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.feature.I18n;
 import fredboat.util.ArgumentUtil;
@@ -47,7 +48,8 @@ public class SoftbanCommand extends Command {
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         //Ensure we have a search term
         if(args.length == 1){
-            channel.sendMessage(I18n.get(guild).getString("softbanUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix())).queue();
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
 
@@ -121,4 +123,8 @@ public class SoftbanCommand extends Command {
         return top.getPosition();
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpSoftbanCommand");
+    }
 }

@@ -30,7 +30,6 @@ import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.FredBoat;
-import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
@@ -58,11 +57,13 @@ public class MALCommand extends Command {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         Matcher matcher = regex.matcher(message.getContent());
-        try {
-            matcher.find();
-        } catch (IllegalStateException e) {
-            throw new MessagingException(I18n.get(guild).getString("malUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()));
+
+        if (!matcher.find()) {
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+            return;
         }
+
         String term = matcher.group(1).replace(' ', '+').trim();
         log.debug("TERM:"+term);
 
@@ -186,4 +187,8 @@ public class MALCommand extends Command {
         return true;
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpMALCommand");
+    }
 }

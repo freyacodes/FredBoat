@@ -25,6 +25,7 @@
 
 package fredboat.command.util;
 
+import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
 import fredboat.feature.I18n;
 import fredboat.util.BrainfuckException;
@@ -114,6 +115,13 @@ public class BrainfuckCommand extends Command {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+
+        if (args.length == 1) {
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+            return;
+        }
+
         code = message.getContent().replaceFirst(args[0], "").toCharArray();
         bytes = ByteBuffer.allocateDirect(1024 * 1024 * 8);
         String inputArg = "";
@@ -136,8 +144,12 @@ public class BrainfuckCommand extends Command {
         try {
             TextUtils.replyWithName(channel, invoker, " " + out + "\n-------\n" + out2.substring(1));
         } catch (IndexOutOfBoundsException ex) {
-TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("brainfuckNoOutput"));
+            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("brainfuckNoOutput"));
         }
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpBrainfuckCommand");
+    }
 }

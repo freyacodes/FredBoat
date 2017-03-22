@@ -43,7 +43,8 @@ public class SayCommand extends Command {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         if (args.length < 2) {
-            channel.sendMessage(I18n.get(guild).getString("sayUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix())).queue();
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
         String res = message.getRawContent().substring(args[0].length() + 1);
@@ -56,5 +57,9 @@ public class SayCommand extends Command {
             throw new RuntimeException(e);
         }
     }
-    
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpSayCommand");
+    }
 }

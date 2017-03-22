@@ -93,4 +93,8 @@ public class UserInfoCommand extends Command{
 
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpUserInfoCommand");
+    }
 }

@@ -82,4 +82,8 @@ public class StatsCommand extends Command {
         channel.sendMessage(TextUtils.prefaceWithName(invoker, str)).queue();
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpStatsCommand");
+    }
 }

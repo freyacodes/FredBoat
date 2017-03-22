@@ -29,6 +29,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.remote.RemoteNode;
 import fredboat.audio.AbstractPlayer;
 import fredboat.commandmeta.abs.Command;
+import fredboat.feature.I18n;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -81,5 +82,10 @@ public class NodesCommand extends Command {
 
         mb.append("```");
         channel.sendMessage(mb.build()).queue();
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpNodesCommand");
     }
 }

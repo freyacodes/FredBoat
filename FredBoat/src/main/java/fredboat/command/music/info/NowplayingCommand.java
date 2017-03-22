@@ -263,4 +263,8 @@ public class NowplayingCommand extends Command implements IMusicCommand {
         channel.sendMessage(embed).queue();
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpNowplayingCommand");
+    }
 }

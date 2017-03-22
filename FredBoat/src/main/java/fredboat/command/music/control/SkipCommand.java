@@ -29,6 +29,7 @@ import fredboat.Config;
 import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
@@ -66,7 +67,8 @@ public class SkipCommand extends Command implements IMusicCommand {
         } else if (args.length == 2 && trackRangePattern.matcher(args[1]).matches()){
             skipInRange(player, channel, invoker, args);
         } else {
-            channel.sendMessage(I18n.get(guild).getString("skipInvalidArgCount").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix())).queue();
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
         }
     }
 
@@ -151,4 +153,8 @@ public class SkipCommand extends Command implements IMusicCommand {
         }
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpSkipCommand");
+    }
 }

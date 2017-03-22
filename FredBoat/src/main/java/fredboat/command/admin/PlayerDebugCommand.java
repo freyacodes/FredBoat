@@ -30,6 +30,7 @@ import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandOwnerRestricted;
+import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -65,5 +66,9 @@ public class PlayerDebugCommand extends Command implements ICommandOwnerRestrict
             Logger.getLogger(PlayerDebugCommand.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpPlayerDebugCommand");
+    }
 }

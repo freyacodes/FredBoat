@@ -27,6 +27,7 @@ package fredboat.command.util;
 
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.commandmeta.abs.Command;
+import fredboat.feature.I18n;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -154,4 +155,8 @@ public class DumpCommand extends Command {
         return str;
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpDumpCommand");
+    }
 }

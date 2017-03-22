@@ -42,7 +42,8 @@ public class FuzzyUserSearchCommand extends Command {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         if(args.length == 1){
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("fuzzyUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()));
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
         } else {
             List<Member> list = ArgumentUtil.fuzzyMemberSearch(guild, args[1]);
 
@@ -60,5 +61,10 @@ public class FuzzyUserSearchCommand extends Command {
 
             TextUtils.replyWithName(channel, invoker, msg);
         }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpFuzzyUserSearchCommand");
     }
 }

@@ -212,6 +212,10 @@ public class TextUtils {
         return millis;
     }
 
+    public static String asMarkdown(String str) {
+        return "```md\n" + str + "```";
+    }
+
     public static String forceNDigits(int i, int n) {
         String str = Integer.toString(i);
 

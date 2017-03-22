@@ -127,4 +127,9 @@ public class ListCommand extends Command implements IMusicCommand {
             channel.sendMessage(I18n.get(guild).getString("npNotPlaying")).queue();
         }
     }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpListCommand");
+    }
 }

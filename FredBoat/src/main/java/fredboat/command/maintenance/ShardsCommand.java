@@ -27,6 +27,7 @@ package fredboat.command.maintenance;
 
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
+import fredboat.feature.I18n;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
@@ -72,6 +73,10 @@ public class ShardsCommand extends Command {
             builder.append("```");
             channel.sendMessage(builder.build()).queue();
         }
+    }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpShardsCommand");
     }
 }

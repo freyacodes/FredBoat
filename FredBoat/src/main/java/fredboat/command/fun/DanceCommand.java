@@ -26,15 +26,15 @@
 package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommand;
 import fredboat.event.EventListenerBoat;
+import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
 
-public class DanceCommand extends Command implements ICommand {
+public class DanceCommand extends Command {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
@@ -62,5 +62,10 @@ public class DanceCommand extends Command implements ICommand {
 
         Thread thread = new Thread(func);
         thread.start();
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpDanceCommand");
     }
 }

@@ -27,6 +27,7 @@ package fredboat.command.admin;
 
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandOwnerRestricted;
+import fredboat.feature.I18n;
 import fredboat.util.log.SLF4JInputStreamErrorLogger;
 import fredboat.util.log.SLF4JInputStreamLogger;
 import net.dv8tion.jda.core.entities.Guild;
@@ -101,5 +102,10 @@ public class CompileCommand extends Command implements ICommandOwnerRestricted {
         } catch (InterruptedException | IOException | RateLimitedException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpCompileCommand");
     }
 }

@@ -29,6 +29,7 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.feature.AkinatorListener;
+import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -45,5 +46,9 @@ public class AkinatorCommand extends Command {
             throw new RuntimeException(ex);
         }
     }
-    
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpAkinatorCommand");
+    }
 }

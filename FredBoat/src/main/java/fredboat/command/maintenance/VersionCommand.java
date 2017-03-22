@@ -26,6 +26,7 @@
 package fredboat.command.maintenance;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.feature.I18n;
 import net.dv8tion.jda.core.JDAInfo;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -38,5 +39,9 @@ public class VersionCommand extends Command {
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         channel.sendMessage("JDA Version: " + JDAInfo.VERSION).queue();
     }
-    
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpVersionCommand");
+    }
 }

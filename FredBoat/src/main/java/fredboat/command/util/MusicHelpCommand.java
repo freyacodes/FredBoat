@@ -38,4 +38,9 @@ public class MusicHelpCommand extends Command {
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         channel.sendMessage(I18n.get(guild).getString("musicHelp")).queue();
     }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpMusicHelpCommand");
+    }
 }

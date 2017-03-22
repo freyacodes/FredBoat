@@ -25,6 +25,7 @@
 
 package fredboat.command.fun;
 
+import fredboat.feature.I18n;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -52,4 +53,8 @@ public class FacedeskCommand extends RandomImageCommand {
         }
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpFacedeskCommand");
+    }
 }

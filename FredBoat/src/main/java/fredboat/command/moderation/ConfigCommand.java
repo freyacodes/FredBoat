@@ -26,6 +26,7 @@
 package fredboat.command.moderation;
 
 import fredboat.Config;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
@@ -74,7 +75,8 @@ public class ConfigCommand extends Command {
         }
 
         if(args.length != 3) {
-            channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("configUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()), invoker.getEffectiveName())).queue();
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
 
@@ -105,5 +107,10 @@ public class ConfigCommand extends Command {
                 channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("configUnknownKey"), invoker.getEffectiveName())).queue();
                 break;
         }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpConfigCommand");
     }
 }

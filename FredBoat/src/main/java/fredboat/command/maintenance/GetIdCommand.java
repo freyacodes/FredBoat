@@ -40,5 +40,9 @@ public class GetIdCommand extends Command {
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("getidSuccess"), guild.getId(), channel.getId())).queue();
     }
-    
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpGetIdCommand");
+    }
 }

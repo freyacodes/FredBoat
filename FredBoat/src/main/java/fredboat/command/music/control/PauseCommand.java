@@ -34,7 +34,9 @@ import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;import java.text.MessageFormat;
+import net.dv8tion.jda.core.entities.TextChannel;
+
+import java.text.MessageFormat;
 
 public class PauseCommand extends Command implements IMusicCommand {
 
@@ -52,4 +54,8 @@ public class PauseCommand extends Command implements IMusicCommand {
         }
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpPauseCommand");
+    }
 }

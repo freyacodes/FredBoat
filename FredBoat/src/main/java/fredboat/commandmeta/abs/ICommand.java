@@ -25,7 +25,6 @@
 
 package fredboat.commandmeta.abs;
 
-import com.mashape.unirest.http.exceptions.UnirestException;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -35,4 +34,5 @@ public interface ICommand {
 
     public abstract void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args);
 
+    String help(Guild guild);
 }

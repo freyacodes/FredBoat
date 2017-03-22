@@ -25,7 +25,12 @@
 
 package fredboat.command.util;
 
+import fredboat.Config;
+import fredboat.command.fun.TalkCommand;
+import fredboat.command.music.control.SelectCommand;
+import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.ICommandOwnerRestricted;
 import fredboat.commandmeta.abs.IMusicBackupCommand;
 import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
@@ -41,7 +46,23 @@ public class HelpCommand extends Command implements IMusicBackupCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        if(!invoker.getUser().hasPrivateChannel()){
+
+        if (args.length > 1) {
+            String commandOrAlias = args[1];
+            sendFormattedCommandHelp(guild, channel, invoker, commandOrAlias);
+
+        } else {
+            sendGeneralHelp(guild, channel, invoker);
+        }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpHelpCommand");
+    }
+
+    private static void sendGeneralHelp(Guild guild, TextChannel channel, Member invoker) {
+        if (!invoker.getUser().hasPrivateChannel()) {
             try {
                 invoker.getUser().openPrivateChannel().complete(true);
             } catch (RateLimitedException e) {
@@ -51,5 +72,31 @@ public class HelpCommand extends Command implements IMusicBackupCommand {
         invoker.getUser().getPrivateChannel().sendMessage(I18n.get(guild).getString("helpDM")).queue();
         TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("helpSent"));
     }
-    
+
+    public static void sendFormattedCommandHelp(Guild guild, TextChannel channel, Member invoker, String commandOrAlias) {
+        CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(commandOrAlias);
+
+        if (commandEntry == null) {
+            sendGeneralHelp(guild, channel, invoker);
+            return;
+        }
+        Command command = commandEntry.command;
+        String helpStr = command.help(guild);
+
+        //some special needs
+        //to display helpful information on some commands: thirdParam = {2} in the language resources
+        String thirdParam = "";
+        if (command instanceof TalkCommand)
+            thirdParam = guild.getSelfMember().getEffectiveName();
+        else if (command instanceof SelectCommand)
+            thirdParam = "play";
+
+        String out = MessageFormat.format(helpStr, Config.CONFIG.getPrefix(), commandOrAlias, thirdParam);
+
+        if (command instanceof ICommandOwnerRestricted)
+            out += "\n" + I18n.get(guild).getString("helpCommandOwnerRestricted");
+        out = TextUtils.asMarkdown(out);
+        out = I18n.get(guild).getString("helpProperUsage") + out;
+        TextUtils.replyWithName(channel, invoker, out);
+    }
 }

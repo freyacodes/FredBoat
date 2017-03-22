@@ -55,4 +55,8 @@ public class PatCommand extends RandomImageCommand {
         }
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpPatCommand");
+    }
 }

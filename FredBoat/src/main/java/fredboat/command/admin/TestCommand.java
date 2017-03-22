@@ -28,6 +28,7 @@ package fredboat.command.admin;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandOwnerRestricted;
 import fredboat.db.DatabaseManager;
+import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -174,4 +175,8 @@ public class TestCommand extends Command implements ICommandOwnerRestricted {
         }
     }
     //TODO update help string
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpTestCommand");
+    }
 }

@@ -47,4 +47,9 @@ public class InviteCommand extends Command {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpInviteCommand");
+    }
 }

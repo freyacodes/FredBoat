@@ -53,4 +53,8 @@ public class RollCommand extends RandomImageCommand {
         }
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpRollCommand");
+    }
 }

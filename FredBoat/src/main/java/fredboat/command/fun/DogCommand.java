@@ -25,6 +25,9 @@
 
 package fredboat.command.fun;
 
+import fredboat.feature.I18n;
+import net.dv8tion.jda.core.entities.Guild;
+
 public class DogCommand extends TextCommand {
 
     public static final String DOG
@@ -41,6 +44,11 @@ public class DogCommand extends TextCommand {
 
     public DogCommand() {
         super(DOG);
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpDogCommand");
     }
 }
 

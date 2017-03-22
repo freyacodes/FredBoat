@@ -28,6 +28,7 @@ package fredboat.command.fun;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
+import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -44,10 +45,14 @@ public class TalkCommand extends Command {
     }
 
     public static void talk(Member member, TextChannel channel, String question) {
-        //Clerverbot integration
+        //Cleverbot integration
         String response = FredBoat.jca.getResponse(question);
         response = member.getEffectiveName() + ": " + StringEscapeUtils.unescapeHtml4(response);
         channel.sendMessage(response).queue();
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpTalkCommand");
+    }
 }

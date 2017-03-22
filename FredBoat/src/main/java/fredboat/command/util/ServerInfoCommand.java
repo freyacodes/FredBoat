@@ -30,7 +30,10 @@ import fredboat.feature.I18n;
 import fredboat.util.BotConstants;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.OnlineStatus;
-import net.dv8tion.jda.core.entities.*;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 import java.time.format.DateTimeFormatter;
@@ -66,5 +69,10 @@ public class ServerInfoCommand extends Command{
         eb.addField(rb.getString("serverinfoOwner"), guild.getOwner().getAsMention(),true);
 
         channel.sendMessage(eb.build()).queue();
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpServerInfoCommand");
     }
 }

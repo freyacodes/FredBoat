@@ -36,7 +36,8 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-import java.text.MessageFormat;import java.util.ArrayList;
+import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -78,5 +79,10 @@ public class LanguageCommand extends Command implements ICommandOwnerRestricted 
         mb.append(I18n.get(guild).getString("langDisclaimer"));
 
         channel.sendMessage(mb.build()).queue();
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpLanguageCommand");
     }
 }

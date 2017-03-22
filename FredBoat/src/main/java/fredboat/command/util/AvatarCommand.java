@@ -32,17 +32,24 @@ import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;import java.text.MessageFormat;
+import net.dv8tion.jda.core.entities.TextChannel;
+
+import java.text.MessageFormat;
 
 public class AvatarCommand extends Command {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        if(message.getMentionedUsers().isEmpty()){
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("avatarUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()));
+        if (message.getMentionedUsers().isEmpty()) {
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
         } else {
             TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("avatarSuccess"), message.getMentionedUsers().get(0).getAvatarUrl()));
         }
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpAvatarCommand");
+    }
 }

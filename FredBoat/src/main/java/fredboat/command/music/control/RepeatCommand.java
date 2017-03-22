@@ -73,7 +73,6 @@ public class RepeatCommand extends Command implements IMusicCommand {
                 return;
         }
 
-
         player.setRepeatMode(desiredRepeatMode);
 
         switch (desiredRepeatMode) {
@@ -87,5 +86,10 @@ public class RepeatCommand extends Command implements IMusicCommand {
                 channel.sendMessage(I18n.get(guild).getString("repeatOnAll")).queue();
                 break;
         }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpRepeatCommand");
     }
 }

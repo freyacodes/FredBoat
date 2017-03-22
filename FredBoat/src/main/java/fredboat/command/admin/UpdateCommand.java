@@ -28,6 +28,7 @@ package fredboat.command.admin;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandOwnerRestricted;
+import fredboat.feature.I18n;
 import fredboat.util.ExitCodes;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -81,4 +82,8 @@ public class UpdateCommand extends Command implements ICommandOwnerRestricted {
         FredBoat.shutdown(ExitCodes.EXIT_CODE_UPDATE);
     }
 
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpUpdateCommand");
+    }
 }

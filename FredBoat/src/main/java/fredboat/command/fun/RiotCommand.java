@@ -26,16 +26,21 @@
 package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommand;
+import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-public class RiotCommand extends Command implements ICommand {
+public class RiotCommand extends Command {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         channel.sendMessage("ヽ༼ຈل͜ຈ༽ﾉ **" + message.getContent().replaceFirst("\\S*\\s+", "").toUpperCase()+"** ヽ༼ຈل͜ຈ༽ﾉ").queue();
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpRiotCommand");
     }
 }

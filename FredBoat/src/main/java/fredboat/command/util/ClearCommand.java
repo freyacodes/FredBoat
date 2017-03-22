@@ -27,6 +27,7 @@ package fredboat.command.util;
 
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
+import fredboat.feature.I18n;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
@@ -80,5 +81,10 @@ public class ClearCommand extends Command {
         } catch (RateLimitedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return I18n.get(guild).getString("helpClearCommand");
     }
 }
