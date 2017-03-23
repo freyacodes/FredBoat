@@ -13,51 +13,51 @@ __If you want music__ you should be using https://discordapp.com/oauth2/authoriz
 
 | Command                    | Description                                                           | Example usage                               |
 |----------------------------|-----------------------------------------------------------------------|---------------------------------------------|
-| ;;play \<url\>             | Plays music from the given URLs. See supported sources below.         | ;;play https://www.youtube.com/watch?v=dQw4w9WgXcQ     |
-| ;;list                     | Displays a list of the current songs in the playlist.                 | ;;list                                      |
-| ;;nowplaying               | Displays the currently playing song.                                  | ;;nowplaying                                |
-| ;;skip                     | Skips the current song. Please use in moderation.                     | ;;skip                                      |
-| ;;stop                     | Stops the player and **clears** the playlist. Reserved for moderators.| ;;stop                                      |
-| ;;pause                    | Pauses the player.                                                    | ;;pause                                     |
-| ;;unpause                  | Unpauses the player.                                                  | ;;unpause                                   |
-| ;;join                     | Makes the bot join your current voice channel.                        | ;;join                                      |
-| ;;leave                    | Makes the bot leave the current voice channel.                        | ;;leave                                     |
-| ;;repeat                   | Toggles repeat mode for the current song.                             | ;;repeat                                    |
-| ;;shuffle                  | Toggles shuffle mode for the current queue.                           | ;;shuffle                                   |
-| ;;fwd /<time/>             | Forwards the track by a given amount of time.                         | ;;fwd 2:30                                  |
-| ;;rew /<time/>             | Rewinds the track by a given amount of time.                          | ;;rew 30                                    |
-| ;;seek /<time/>            | Sets the position of the track to the given time.                     | ;;seek 2:45:00                              |
+| <<play \<url\>             | Plays music from the given URLs. See supported sources below.         | <<play https://www.youtube.com/watch?v=dQw4w9WgXcQ     |
+| <<list                     | Displays a list of the current songs in the playlist.                 | <<list                                      |
+| <<nowplaying               | Displays the currently playing song.                                  | <<nowplaying                                |
+| <<skip                     | Skips the current song. Please use in moderation.                     | <<skip                                      |
+| <<stop                     | Stops the player and **clears** the playlist. Reserved for moderators.| <<stop                                      |
+| <<pause                    | Pauses the player.                                                    | <<pause                                     |
+| <<unpause                  | Unpauses the player.                                                  | <<unpause                                   |
+| <<join                     | Makes the bot join your current voice channel.                        | <<join                                      |
+| <<leave                    | Makes the bot leave the current voice channel.                        | <<leave                                     |
+| <<repeat                   | Toggles repeat mode for the current song.                             | <<repeat                                    |
+| <<shuffle                  | Toggles shuffle mode for the current queue.                           | <<shuffle                                   |
+| <<fwd /<time/>             | Forwards the track by a given amount of time.                         | <<fwd 2:30                                  |
+| <<rew /<time/>             | Rewinds the track by a given amount of time.                          | <<rew 30                                    |
+| <<seek /<time/>            | Sets the position of the track to the given time.                     | <<seek 2:45:00                              |
 
 ## Non-music Commands
 [(Requires the original bot)](https://discordapp.com/oauth2/authorize?&client_id=168686772216135681&scope=bot).
 
 | Command                    | Description                                                           | Example usage                               |
 |----------------------------|-----------------------------------------------------------------------|---------------------------------------------|
-| ;;help                     | Sends a PM with instructions and a link to this site.                 | ;;help                                      |
-| ;;say \<text\>             | Makes the bot echo something.                                         | ;;say test                                  |
-| ;;avatar                   | Displays the avatar of a user.                                        | ;;avatar @Frederikam                        |
-| ;;brainfuck \<code\> \[input\] | Executes [Brainfuck](https://en.wikipedia.org/wiki/Brainfuck) code. | ;;brainfuck ,.+.+. a                        |
-| ;;lua \<code\>             | Executes Lua code.                                                    | ;;lua print("Hello, world!")                |
-| ;;riot \<text\>            | Transforms text, [example](https://fred.moe/qxB.png)                  | ;;riot Hello, world                         |
-| ;;lenny                    | Sends a lenny face.                                                   | ;;lenny                                     |
-| ;;mal \<search term\>      | Searches MyAnimeList for animes and users.                            | ;;mal re:zero                               |
-| ;;dump \<1-2000\>          | Dumps between 1 and 2000 messages to [Hastebin](http://hastebin.com/) | ;;dump 1000                                 |
-| ;;facedesk                 | Uploads an image.                                                     | ;;facedesk                                  |
-| ;;roll                     | Uploads an image.                                                     | ;;roll                                      |
+| <<help                     | Sends a PM with instructions and a link to this site.                 | <<help                                      |
+| <<say \<text\>             | Makes the bot echo something.                                         | <<say test                                  |
+| <<avatar                   | Displays the avatar of a user.                                        | <<avatar @Frederikam                        |
+| <<brainfuck \<code\> \[input\] | Executes [Brainfuck](https://en.wikipedia.org/wiki/Brainfuck) code. | <<brainfuck ,.+.+. a                        |
+| <<lua \<code\>             | Executes Lua code.                                                    | <<lua print("Hello, world!")                |
+| <<riot \<text\>            | Transforms text, [example](https://fred.moe/qxB.png)                  | <<riot Hello, world                         |
+| <<lenny                    | Sends a lenny face.                                                   | <<lenny                                     |
+| <<mal \<search term\>      | Searches MyAnimeList for animes and users.                            | <<mal re:zero                               |
+| <<dump \<1-2000\>          | Dumps between 1 and 2000 messages to [Hastebin](http://hastebin.com/) | <<dump 1000                                 |
+| <<facedesk                 | Uploads an image.                                                     | <<facedesk                                  |
+| <<roll                     | Uploads an image.                                                     | <<roll                                      |
 
 ## Music Commands
 The music bot supports media from many sites and even supports playlists from sites like YouTube and Soundcloud. The bot will not be able to play songs blocked in France (usually from copyright infringements on YouTube).
 
 ## Adding music to the playlist
-Adding music to the playlist is pretty simple. To start playing a song, simply use the ;;play command. Here are two examples:
+Adding music to the playlist is pretty simple. To start playing a song, simply use the <<play command. Here are two examples:
 ```
-;;play https://www.youtube.com/watch?v=dQw4w9WgXcQ
-;;play rick roll
+<<play https://www.youtube.com/watch?v=dQw4w9WgXcQ
+<<play rick roll
 ```
 You can either explicitly state the URL, or you can get the bot to search YouTube and give you some choices. Here's an example response:
 
 ```
-Please select a video with the ';;play n' command:
+Please select a video with the '<<play n' command:
 1: Rick Astley - Never Gonna Give You Up (03:33)
 2: YOUTUBERS REACT TO RICKROLL (Ep. #5) (09:20)
 3: I Rick Roll My Entire Chemistry Class! (05:55)
@@ -65,7 +65,7 @@ Please select a video with the ';;play n' command:
 5: Melania Trump's RNC RICKROLL (00:19)
 ```
 
-You can then choose your song with the `;;select <number>` command.
+You can then choose your song with the `<<select <number>` command.
 
 **Supported sites:**
 
@@ -94,7 +94,7 @@ Please read this fine manual. Specifically the part with the music commands.
 Simply link a playlist with the following syntax:
 
 ```
-;;play <url-to-playlist>
+<<play <url-to-playlist>
 ```
 
 ### How do I restrict music commands to a specific channel or role?
