@@ -36,6 +36,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("riot", new RiotCommand());
         CommandRegistry.registerCommand("update", new UpdateCommand());
         CommandRegistry.registerCommand("compile", new CompileCommand());
+        CommandRegistry.registerCommand("mvntest", new MavenTestCommand());
         CommandRegistry.registerCommand("botrestart", new BotRestartCommand());
         CommandRegistry.registerCommand("dance", new DanceCommand());
         CommandRegistry.registerCommand("eval", new EvalCommand());

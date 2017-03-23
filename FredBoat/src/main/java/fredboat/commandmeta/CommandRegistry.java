@@ -28,6 +28,7 @@ package fredboat.commandmeta;
 import fredboat.commandmeta.abs.Command;
 
 import java.util.HashMap;
+import java.util.Set;
 
 public class CommandRegistry {
 
@@ -48,6 +49,10 @@ public class CommandRegistry {
 
     public static int getSize() {
         return registry.size();
+    }
+
+    public static Set<String> getRegisteredCommandsAndAliases() {
+        return registry.keySet();
     }
 
     public static class CommandEntry {

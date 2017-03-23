@@ -42,6 +42,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerAlias("list", "queue");
         CommandRegistry.registerCommand("mupdate", new UpdateCommand());
         CommandRegistry.registerCommand("mcompile", new CompileCommand());
+        CommandRegistry.registerCommand("mmvntest", new MavenTestCommand());
         CommandRegistry.registerCommand("select", new SelectCommand());
         CommandRegistry.registerCommand("stop", new StopCommand());
         CommandRegistry.registerCommand("pause", new PauseCommand());

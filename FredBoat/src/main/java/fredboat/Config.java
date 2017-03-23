@@ -74,6 +74,11 @@ public class Config {
     private boolean restServerEnabled = true;
     private List<String> adminIds = new ArrayList<>();
 
+    //testing related stuff
+    private String testBotToken;
+    private String testGuildId;
+    private String testChannelId;
+
     @SuppressWarnings("unchecked")
     public Config(File credentialsFile, File configFile, int scope) {
         try {
@@ -161,12 +166,23 @@ public class Config {
             }
 
             hikariPoolSize = numShards * 2;
-
             log.info("Hikari max pool size set to " + hikariPoolSize);
+
+            testBotToken = (String) creds.getOrDefault("testBotToken", "");
+            testGuildId = creds.getOrDefault("testGuildId", "") + "";
+            testChannelId = creds.getOrDefault("testChannelId", "") + "";
 
         } catch (IOException | UnirestException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void loadDefaultConfig(int scope) throws IOException {
+        Config.CONFIG = new Config(
+                loadConfigFile("credentials"),
+                loadConfigFile("config"),
+                scope
+        );
     }
 
     /**
@@ -282,5 +298,17 @@ public class Config {
 
     public List<String> getAdminIds() {
         return adminIds;
+    }
+
+    public String getTestBotToken() {
+        return testBotToken;
+    }
+
+    public String getTestGuildId() {
+        return testGuildId;
+    }
+
+    public String getTestChannelId() {
+        return testChannelId;
     }
 }

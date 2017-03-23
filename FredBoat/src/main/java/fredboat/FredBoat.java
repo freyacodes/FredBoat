@@ -124,12 +124,7 @@ public abstract class FredBoat {
 
         log.info("JDA version:\t" + JDAInfo.VERSION);
 
-        Config.CONFIG = new Config(
-                Config.loadConfigFile("credentials"),
-                Config.loadConfigFile("config"),
-                scope
-        );
-
+        Config.loadDefaultConfig(scope);
 
         try {
             API.start();
