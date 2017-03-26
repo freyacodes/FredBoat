@@ -49,9 +49,20 @@ import java.util.regex.Pattern;
 public class PlaylistImportSourceManager implements AudioSourceManager {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(PlaylistImportSourceManager.class);
-
-    private static final Pattern PLAYLIST_PATTERN = Pattern.compile("^https?://hastebin\\.com/(?:raw/)?(\\w+)(?:\\..+)?$");
-    private static final AudioPlayerManager PRIVATE_MANAGER = AbstractPlayer.registerSourceManagers(new DefaultAudioPlayerManager());
+    private static final AudioPlayerManager PRIVATE_MANAGER = AbstractPlayer
+            .registerSourceManagers(new DefaultAudioPlayerManager());
+    private static final Pattern PLAYLIST_HASTEBIN_PATTERN = Pattern
+            .compile("^https?://hastebin\\.com/(?:raw/)?(\\w+)(?:\\..+)?$");
+    private static final Pattern PLAYLIST_PASTEBIN_PATTERN = Pattern
+            .compile("^https?://pastebin\\.com/(?:raw/)?(\\w+)?$");
+    private static final String PASTEBIN = "pastebin";
+    private static final String HASTEBIN = "hastebin";
+    private static final String PASTEBIN_RAW_URL = "http://pastebin.com/raw/";
+    private static final String HASTEBIN_RAW_URL = "http://hastebin.com/raw/";
+    private static final String ERROR_MESSAGE_LOAD_PLAYLIST = "Couldn't load playlist. Either provider is down or the playlist does not exist.";
+    private static final String ERROR_MESSAGE_LOAD_PLAYLIST_ITEM = "Failed loading playlist item";
+    private static final String ERROR_MESSAGE_UNSUPPORTED = "This source manager is only for loading playlists";
+    private static final String LINE_SEPARATOR = "\\s";
 
     @Override
     public String getSourceName() {
@@ -60,7 +71,58 @@ public class PlaylistImportSourceManager implements AudioSourceManager {
 
     @Override
     public AudioItem loadItem(DefaultAudioPlayerManager manager, AudioReference ar) {
-        Matcher m = PLAYLIST_PATTERN.matcher(ar.identifier);
+        if (ar.identifier.contains(HASTEBIN)) {
+            return loadItemHastebinPlaylist(manager, ar);
+        } else if (ar.identifier.contains(PASTEBIN)) {
+            return loadItemPastebinPlaylist(manager, ar);
+        }
+        return null;
+    }
+
+    public AudioItem loadItemPastebinPlaylist(DefaultAudioPlayerManager manager, AudioReference ar) {
+        Matcher m = PLAYLIST_PASTEBIN_PATTERN.matcher(ar.identifier);
+
+        if (!m.find()) {
+            return null;
+        }
+
+        String pastebinIdentifier = m.group(1);
+        String response;
+        try {
+            response = Unirest.get(PASTEBIN_RAW_URL + pastebinIdentifier).asString().getBody();
+        } catch (UnirestException ex) {
+            throw new FriendlyException(ERROR_MESSAGE_LOAD_PLAYLIST, FriendlyException.Severity.FAULT, ex);
+        }
+
+        String[] unfiltered = response.split(LINE_SEPARATOR);
+        ArrayList<String> filtered = new ArrayList<>();
+        for (String str : unfiltered) {
+            if (!str.equals("")) {
+                filtered.add(str);
+            }
+        }
+
+        CommonAudioResultHandler handler = new CommonAudioResultHandler();
+        Future<Void> lastFuture = null;
+        for (String id : filtered) {
+            lastFuture = PRIVATE_MANAGER.loadItemOrdered(handler, id, handler);
+        }
+
+        if (lastFuture == null) {
+            return null;
+        }
+
+        try {
+            lastFuture.get();
+        } catch (InterruptedException | ExecutionException ex) {
+            throw new FriendlyException(ERROR_MESSAGE_LOAD_PLAYLIST_ITEM, FriendlyException.Severity.FAULT, ex);
+        }
+
+        return new BasicAudioPlaylist(pastebinIdentifier, handler.getLoadedTracks(), null, false);
+    }
+
+    public AudioItem loadItemHastebinPlaylist(DefaultAudioPlayerManager manager, AudioReference ar) {
+        Matcher m = PLAYLIST_HASTEBIN_PATTERN.matcher(ar.identifier);
 
         if (!m.find()) {
             return null;
@@ -69,12 +131,12 @@ public class PlaylistImportSourceManager implements AudioSourceManager {
         String hasteId = m.group(1);
         String response;
         try {
-            response = Unirest.get("http://hastebin.com/raw/" + hasteId).asString().getBody();
+            response = Unirest.get(HASTEBIN_RAW_URL + hasteId).asString().getBody();
         } catch (UnirestException ex) {
-            throw new FriendlyException("Couldn't load playlist. Either Hastebin is down or the playlist does not exist.", FriendlyException.Severity.FAULT, ex);
+            throw new FriendlyException(ERROR_MESSAGE_LOAD_PLAYLIST, FriendlyException.Severity.FAULT, ex);
         }
 
-        String[] unfiltered = response.split("\\s");
+        String[] unfiltered = response.split(LINE_SEPARATOR);
         ArrayList<String> filtered = new ArrayList<>();
         for (String str : unfiltered) {
             if (!str.equals("")) {
@@ -82,20 +144,20 @@ public class PlaylistImportSourceManager implements AudioSourceManager {
             }
         }
 
-        HastebinAudioResultHandler handler = new HastebinAudioResultHandler();
+        CommonAudioResultHandler handler = new CommonAudioResultHandler();
         Future<Void> lastFuture = null;
         for (String id : filtered) {
             lastFuture = PRIVATE_MANAGER.loadItemOrdered(handler, id, handler);
         }
-        
-        if(lastFuture == null){
+
+        if (lastFuture == null) {
             return null;
         }
 
         try {
             lastFuture.get();
         } catch (InterruptedException | ExecutionException ex) {
-            throw new FriendlyException("Failed loading playlist item", FriendlyException.Severity.FAULT, ex);
+            throw new FriendlyException(ERROR_MESSAGE_LOAD_PLAYLIST_ITEM, FriendlyException.Severity.FAULT, ex);
         }
 
         return new BasicAudioPlaylist(hasteId, handler.getLoadedTracks(), null, false);
@@ -108,23 +170,23 @@ public class PlaylistImportSourceManager implements AudioSourceManager {
 
     @Override
     public void encodeTrack(AudioTrack track, DataOutput output) throws IOException {
-        throw new UnsupportedOperationException("This source manager is only for loading playlists");
+        throw new UnsupportedOperationException(ERROR_MESSAGE_UNSUPPORTED);
     }
 
     @Override
     public AudioTrack decodeTrack(AudioTrackInfo trackInfo, DataInput input) throws IOException {
-        throw new UnsupportedOperationException("This source manager is only for loading playlists");
+        throw new UnsupportedOperationException(ERROR_MESSAGE_UNSUPPORTED);
     }
 
     @Override
     public void shutdown() {
     }
 
-    private class HastebinAudioResultHandler implements AudioLoadResultHandler {
+    private class CommonAudioResultHandler implements AudioLoadResultHandler {
 
         private final List<AudioTrack> loadedTracks;
 
-        private HastebinAudioResultHandler() {
+        private CommonAudioResultHandler() {
             this.loadedTracks = new ArrayList<>();
         }
 
@@ -140,7 +202,7 @@ public class PlaylistImportSourceManager implements AudioSourceManager {
 
         @Override
         public void noMatches() {
-            //ignore
+            // ignore
         }
 
         @Override
