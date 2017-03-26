@@ -152,7 +152,7 @@ public class I18n {
 
         @Override
         public String toString() {
-            return "[" + nativeName + '}';
+            return "[" + nativeName + ']';
         }
     }
 
