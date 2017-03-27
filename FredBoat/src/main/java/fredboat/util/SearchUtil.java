@@ -12,6 +12,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 public class SearchUtil {
 
     private static final AudioPlayerManager PLAYER_MANAGER = initPlayerManager();
+    private static final int DEFAULT_TIMEOUT = 3000;
 
     private static AudioPlayerManager initPlayerManager() {
         DefaultAudioPlayerManager manager = new DefaultAudioPlayerManager();
@@ -21,7 +22,11 @@ public class SearchUtil {
     }
 
     public static AudioPlaylist searchForTracks(SearchProvider provider, String query) {
-        return new SearchResultHandler().searchSync(provider, query);
+        return searchForTracks(provider, query, DEFAULT_TIMEOUT);
+    }
+
+    public static AudioPlaylist searchForTracks(SearchProvider provider, String query, int timeout) {
+        return new SearchResultHandler().searchSync(provider, query, timeout);
     }
 
     public enum SearchProvider {
@@ -46,11 +51,11 @@ public class SearchUtil {
         AudioPlaylist result;
         final Object toBeNotified = new Object();
 
-        AudioPlaylist searchSync(SearchProvider provider, String query) {
+        AudioPlaylist searchSync(SearchProvider provider, String query, int timeout) {
             try {
                 synchronized (toBeNotified) {
                     PLAYER_MANAGER.loadItem(provider.getPrefix() + query, this);
-                    toBeNotified.wait(3000);
+                    toBeNotified.wait(timeout);
                 }
             } catch (InterruptedException e) {
                 throw new RuntimeException("Was interrupted while searching", e);
