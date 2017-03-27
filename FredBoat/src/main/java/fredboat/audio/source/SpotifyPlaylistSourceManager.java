@@ -50,7 +50,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
 
         PlaylistInfo plData;
         try {
-            plData = saw.getPlaylistData(spotifyUser, spotifyListId);
+            plData = saw.getPlaylistDataBlocking(spotifyUser, spotifyListId);
         } catch (Exception e) {
             log.warn("Could not retrieve playlist " + spotifyListId + " of user " + spotifyUser, e);
             throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);
@@ -64,7 +64,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
         final List<String> trackListSearchTerms;
 
         try {
-            trackListSearchTerms = saw.getPlaylistTracksSearchTerms(spotifyUser, spotifyListId);
+            trackListSearchTerms = saw.getPlaylistTracksSearchTermsBlocking(spotifyUser, spotifyListId);
         } catch (Exception e) {
             log.warn("Could not retrieve tracks for playlist " + spotifyListId + " of user " + spotifyUser, e);
             throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);
@@ -162,7 +162,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
      * @return null or a string array containing spotifyUser at [0] and playlistId at [1] of the requested playlist
      */
     private String[] parse(String identifier) {
-        String[] result = new String[0];
+        String[] result = new String[2];
         final Matcher m = PLAYLIST_PATTERN.matcher(identifier);
 
         if (!m.find()) {
@@ -177,7 +177,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
     }
 
     @Override
-    public PlaylistInfo isPlaylistAndIfYesGimmeSomeData(String identifier) {
+    public PlaylistInfo getPlaylistDataBlocking(String identifier) {
 
         String[] data = parse(identifier);
         if (data == null) return null;
@@ -185,7 +185,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
         final String spotifyListId = data[1];
 
         try {
-            return SpotifyAPIWrapper.getApi().getPlaylistData(spotifyUser, spotifyListId);
+            return SpotifyAPIWrapper.getApi().getPlaylistDataBlocking(spotifyUser, spotifyListId);
         } catch (Exception e) {
             log.warn("Could not retrieve playlist " + spotifyListId + " of user " + spotifyUser, e);
             throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);

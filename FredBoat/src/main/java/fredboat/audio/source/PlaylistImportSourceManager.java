@@ -111,7 +111,7 @@ public class PlaylistImportSourceManager implements AudioSourceManager, Playlist
     }
 
     /**
-     * @return null or a string with the hasteId
+     * @return null or a string array containing the service name at [0] and the paste id at [1] of the requested playlist
      */
     private String[] parse(String identifier) {
         String pasteId;
@@ -169,7 +169,7 @@ public class PlaylistImportSourceManager implements AudioSourceManager, Playlist
 
 
     @Override
-    public PlaylistInfo isPlaylistAndIfYesGimmeSomeData(String identifier) {
+    public PlaylistInfo getPlaylistDataBlocking(String identifier) {
 
         String[] pasteData = parse(identifier);
         if (pasteData == null) return null;

@@ -11,5 +11,5 @@ public interface PlaylistImporter {
      * @param identifier the same string by which the importer may be asked to load the whole playlist
      * @return information about the playlist or null if it's not a playlist recognized by this importer
      */
-    PlaylistInfo isPlaylistAndIfYesGimmeSomeData(String identifier);
+    PlaylistInfo getPlaylistDataBlocking(String identifier);
 }

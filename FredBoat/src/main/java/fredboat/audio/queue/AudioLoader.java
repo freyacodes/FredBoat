@@ -31,6 +31,7 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import fredboat.FredBoat;
 import fredboat.audio.GuildPlayer;
 import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.PlaylistImporter;
@@ -73,6 +74,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     public void loadAsync(IdentifierContext ic) {
         identifierQueue.add(ic);
+        FredBoat.executor.submit(() -> announceIfPlaylist(ic));
         if (!isLoading) {
             loadNextAsync();
         }
@@ -86,17 +88,10 @@ public class AudioLoader implements AudioLoadResultHandler {
                 context = ic;
 
                 if (gplayer.getRemainingTracks().size() >= QUEUE_TRACK_LIMIT) {
-                    TextUtils.replyWithName(gplayer.getActiveTextChannel(), context.getMember(), "You can't add tracks to a queue with more than " + QUEUE_TRACK_LIMIT + " tracks! This is to prevent abuse.");
+                    TextUtils.replyWithName(gplayer.getActiveTextChannel(), context.getMember(),
+                            MessageFormat.format(I18n.get(context.getMember().getGuild()).getString("loadQueueTrackLimit"), QUEUE_TRACK_LIMIT));
                     isLoading = false;
                     return;
-                }
-
-                PlaylistInfo pi = isPlaylistWithPotentiallyLongLoadingTime(ic.identifier);
-                if (pi != null) {
-                    //inform user we are possibly about to do nasty time consuming work
-                    //TODO: i18n this, and the rate limit thing above
-                    if (pi.getTotalTracks() > 10) //arbitrary chosen number
-                        TextUtils.replyWithName(gplayer.getActiveTextChannel(), context.member, "About to load playlist **" + pi.getName() + "** with up to `" + pi.getTotalTracks() + "` tracks. This may take a while, please be patient.");
                 }
 
                 playerManager.loadItem(ic.identifier, this);
@@ -110,6 +105,20 @@ public class AudioLoader implements AudioLoadResultHandler {
     }
 
     /**
+     * If the requested item is a playlist that we know of, announce to the user that it might take a while to gather it.
+     */
+    private void announceIfPlaylist(IdentifierContext ic) {
+        PlaylistInfo playlistInfo = getPlaylistData(ic.identifier);
+        if (playlistInfo != null) {
+            //inform user we are possibly about to do nasty time consuming work
+            if (playlistInfo.getTotalTracks() > 10) //arbitrary chosen number
+                TextUtils.replyWithName(gplayer.getActiveTextChannel(), ic.getMember(),
+                        MessageFormat.format(I18n.get(ic.getMember().getGuild()).getString("loadAnnouncePlaylist"), playlistInfo.getName(), playlistInfo.getTotalTracks()));
+
+        }
+    }
+
+    /**
      * this function needs to be updated if we add more manual playlist loaders
      * currently it only covers the Hastebin and Spotify playlists
      *
@@ -117,14 +126,19 @@ public class AudioLoader implements AudioLoadResultHandler {
      *                   load a playlist
      * @return null if it's not a playlist that we manually parse, some data about it if it is
      */
-    private PlaylistInfo isPlaylistWithPotentiallyLongLoadingTime(String identifier) {
+    private PlaylistInfo getPlaylistData(String identifier) {
 
+        PlaylistInfo playlistInfo = null;
         PlaylistImporter pi = playerManager.source(SpotifyPlaylistSourceManager.class);
-        PlaylistInfo playlistInfo = pi.isPlaylistAndIfYesGimmeSomeData(identifier);
+        if (pi != null) {
+            playlistInfo = pi.getPlaylistDataBlocking(identifier);
+        }
 
         if (playlistInfo == null) {
             pi = playerManager.source(PlaylistImportSourceManager.class);
-            playlistInfo = pi.isPlaylistAndIfYesGimmeSomeData(identifier);
+            if (pi != null) {
+                playlistInfo = pi.getPlaylistDataBlocking(identifier);
+            }
         }
 
         //can be null

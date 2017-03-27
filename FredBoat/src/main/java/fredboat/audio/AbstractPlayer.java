@@ -103,7 +103,9 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
         mng.registerSourceManager(new TwitchStreamAudioSourceManager());
         mng.registerSourceManager(new VimeoAudioSourceManager());
         mng.registerSourceManager(new BeamAudioSourceManager());
-        mng.registerSourceManager(new SpotifyPlaylistSourceManager());
+        if (Config.CONFIG.getDistribution() == DistributionEnum.PATRON || Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT) {
+            mng.registerSourceManager(new SpotifyPlaylistSourceManager());
+        }
         //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
         //so you will never reach a source manager below it
         mng.registerSourceManager(new HttpAudioSourceManager());
