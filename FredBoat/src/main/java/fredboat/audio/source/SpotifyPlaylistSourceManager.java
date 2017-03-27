@@ -4,6 +4,7 @@ import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.*;
+import fredboat.FredBoat;
 import fredboat.audio.queue.PlaylistInfo;
 import fredboat.util.SearchUtil;
 import fredboat.util.SpotifyAPIWrapper;
@@ -15,12 +16,14 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Created by napster on 08.03.17.
- *
+ * <p>
  * Loads playlists from Spotify playlist links.
  *
  * @author napster
@@ -71,17 +74,27 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
         }
         log.info("Retrieved playlist data for " + playlistName + " from Spotify, loading up " + tracksTotal + " tracks");
 
+        //build a task list
+        List<CompletableFuture<AudioTrack>> taskList = new ArrayList<>();
         for (final String s : trackListSearchTerms) {
-
-            String query = s;
             //remove all punctuation
-            query = query.replaceAll("[.,/#!$%\\^&*;:{}=\\-_`~()]", "");
+            final String query = s.replaceAll("[.,/#!$%\\^&*;:{}=\\-_`~()]", "");
 
-            final AudioTrack audioItem = searchSingleTrack(query);
-            if (audioItem == null) {
-                continue; //skip the track if we couldn't find it
+            CompletableFuture<AudioTrack> f = CompletableFuture.supplyAsync(() -> searchSingleTrack(query), FredBoat.executor);
+            taskList.add(f);
+        }
+
+        //build a tracklist from that task list
+        for (CompletableFuture<AudioTrack> futureTrack : taskList) {
+            try {
+                final AudioTrack audioItem = futureTrack.get();
+                if (audioItem == null) {
+                    continue; //skip the track if we couldn't find it
+                }
+                trackList.add(audioItem);
+            } catch (InterruptedException | ExecutionException e) {
+                //this is fine, loop will go for the next item
             }
-            trackList.add(audioItem);
         }
         return new BasicAudioPlaylist(playlistName, trackList, null, true);
     }
@@ -99,8 +112,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
         boolean gotYoutubeResult = true;
         AudioPlaylist list = null;
         try {
-
-            list = SearchUtil.searchForTracks(SearchUtil.SearchProvider.YOUTUBE, query);
+            list = SearchUtil.searchForTracks(SearchUtil.SearchProvider.YOUTUBE, query, 60000);
             if (list == null || list.getTracks().size() == 0) {
                 gotYoutubeResult = false;
             }
@@ -116,7 +128,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
 
         //continue looking for the track on SoundCloud
         try {
-            list = SearchUtil.searchForTracks(SearchUtil.SearchProvider.SOUNDCLOUD, query);
+            list = SearchUtil.searchForTracks(SearchUtil.SearchProvider.SOUNDCLOUD, query, 60000);
         } catch (final JSONException e) {
             log.debug("SoundCloud search exception", e);
         }
