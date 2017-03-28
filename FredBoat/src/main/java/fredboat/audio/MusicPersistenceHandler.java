@@ -146,13 +146,15 @@ public class MusicPersistenceHandler {
         if(Config.CONFIG.getDistribution() == DistributionEnum.MUSIC) {
             log.warn("Music persistence loading is currently disabled!");
 
-            for (File f : dir.listFiles()) {
-                boolean deleted = f.delete();
-                log.info(deleted ? "Deleted persistence file: " + f : "Failed to delete persistence file: " + f);
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    boolean deleted = f.delete();
+                    log.info(deleted ? "Deleted persistence file: " + f : "Failed to delete persistence file: " + f);
+                }
+
+                dir.delete();
             }
-
-            dir.delete();
-
             return;
         }
 
