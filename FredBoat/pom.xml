@@ -97,6 +97,19 @@
             <artifactId>snakeyaml</artifactId>
             <version>1.18</version>
         </dependency>
+        <!-- provides a webclient which we use to get around cloudflare protection -->
+        <dependency>
+            <groupId>net.sourceforge.htmlunit</groupId>
+            <artifactId>htmlunit</artifactId>
+            <version>2.25</version>
+            <exclusions>
+                <!-- exclude a transient dependency that clashes with one required by spark -->
+                <exclusion>
+                    <groupId>org.eclipse.jetty.websocket</groupId>
+                    <artifactId>websocket-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <!-- Postgres/Hibernate/OAuth2 stuff -->
         <dependency>
