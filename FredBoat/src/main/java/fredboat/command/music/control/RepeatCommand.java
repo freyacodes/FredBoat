@@ -29,6 +29,7 @@ import fredboat.Config;
 import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.audio.queue.RepeatMode;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
@@ -37,8 +38,6 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-import java.text.MessageFormat;
-
 public class RepeatCommand extends Command implements IMusicCommand {
 
     @Override
@@ -46,7 +45,8 @@ public class RepeatCommand extends Command implements IMusicCommand {
         GuildPlayer player = PlayerRegistry.get(guild);
 
         if (args.length < 2) {
-            channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("repeatHelp"), Config.CONFIG.getPrefix())).queue();
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
 
@@ -69,7 +69,8 @@ public class RepeatCommand extends Command implements IMusicCommand {
                 break;
             case "help":
             default:
-                channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("repeatHelp"), Config.CONFIG.getPrefix())).queue();
+                String command = args[0].substring(Config.CONFIG.getPrefix().length());
+                HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
                 return;
         }
 
