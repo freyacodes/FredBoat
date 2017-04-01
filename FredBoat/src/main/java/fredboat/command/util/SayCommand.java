@@ -26,6 +26,7 @@ package fredboat.command.util;
 
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.event.EventListenerBoat;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
@@ -38,7 +39,7 @@ import net.dv8tion.jda.core.exceptions.RateLimitedException;
  *
  * @author frederik
  */
-public class SayCommand extends Command {
+public class SayCommand extends Command implements IUtilCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {

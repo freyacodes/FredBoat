@@ -25,10 +25,11 @@
 
 package fredboat.command.fun;
 
+import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 
-public class DogCommand extends TextCommand {
+public class DogCommand extends TextCommand implements IFunCommand {
 
     public static final String DOG
             = "┈┈╱▏┈┈┈┈┈╱▔▔▔▔╲┈ \n"

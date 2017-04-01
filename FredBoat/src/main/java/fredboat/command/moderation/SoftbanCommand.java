@@ -28,6 +28,7 @@ package fredboat.command.moderation;
 import fredboat.Config;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.I18n;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.TextUtils;
@@ -40,7 +41,7 @@ import org.slf4j.LoggerFactory;
 import java.text.MessageFormat;
 import java.util.List;
 
-public class SoftbanCommand extends Command {
+public class SoftbanCommand extends Command implements IModerationCommand {
 
     private static final Logger log = LoggerFactory.getLogger(SoftbanCommand.class);
 

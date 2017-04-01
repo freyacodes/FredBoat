@@ -30,6 +30,7 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.event.EventListenerBoat;
 import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
@@ -46,7 +47,7 @@ import java.net.URLEncoder;
  *
  * @author frederik
  */
-public class LeetCommand extends Command {
+public class LeetCommand extends Command implements IFunCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {

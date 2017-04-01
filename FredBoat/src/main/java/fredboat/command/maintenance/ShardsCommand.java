@@ -27,6 +27,7 @@ package fredboat.command.maintenance;
 
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -38,7 +39,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardsCommand extends Command {
+public class ShardsCommand extends Command implements IMaintenanceCommand {
 
     private static final int SHARDS_PER_MESSAGE = 30;
 

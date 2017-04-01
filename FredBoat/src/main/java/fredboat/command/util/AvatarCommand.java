@@ -27,6 +27,7 @@ package fredboat.command.util;
 
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
@@ -36,7 +37,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 
-public class AvatarCommand extends Command {
+public class AvatarCommand extends Command implements IUtilCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {

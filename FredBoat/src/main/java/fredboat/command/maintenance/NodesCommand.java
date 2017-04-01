@@ -23,12 +23,13 @@
  *
  */
 
-package fredboat.command.admin;
+package fredboat.command.maintenance;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.remote.RemoteNode;
 import fredboat.audio.AbstractPlayer;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.feature.I18n;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
@@ -40,7 +41,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.util.List;
 
-public class NodesCommand extends Command {
+public class NodesCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {

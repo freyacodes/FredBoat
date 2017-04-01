@@ -23,10 +23,11 @@
  *
  */
 
-package fredboat.command.util;
+package fredboat.command.moderation;
 
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.I18n;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
@@ -39,7 +40,7 @@ import net.dv8tion.jda.core.utils.PermissionUtil;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClearCommand extends Command {
+public class ClearCommand extends Command implements IModerationCommand {
 
     //TODO: Redo this
     @Override

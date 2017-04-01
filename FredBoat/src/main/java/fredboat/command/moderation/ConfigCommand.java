@@ -28,6 +28,7 @@ package fredboat.command.moderation;
 import fredboat.Config;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
 import fredboat.db.entity.GuildConfig;
@@ -44,7 +45,7 @@ import net.dv8tion.jda.core.utils.PermissionUtil;
 
 import java.text.MessageFormat;
 
-public class ConfigCommand extends Command {
+public class ConfigCommand extends Command implements IModerationCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {

@@ -27,6 +27,7 @@ package fredboat.command.util;
 
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.util.BrainfuckException;
 import fredboat.util.TextUtils;
@@ -38,7 +39,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 
-public class BrainfuckCommand extends Command {
+public class BrainfuckCommand extends Command implements IUtilCommand {
 
     ByteBuffer bytes = null;
     char[] code;

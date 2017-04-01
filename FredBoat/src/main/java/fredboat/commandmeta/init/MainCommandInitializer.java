@@ -5,6 +5,7 @@ import fredboat.command.fun.*;
 import fredboat.command.maintenance.ShardsCommand;
 import fredboat.command.maintenance.StatsCommand;
 import fredboat.command.maintenance.VersionCommand;
+import fredboat.command.moderation.ClearCommand;
 import fredboat.command.moderation.SoftbanCommand;
 import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
@@ -15,6 +16,8 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("help", new HelpCommand());
         CommandRegistry.registerAlias("help", "info");
 
+        CommandRegistry.registerCommand("commands", new CommandsCommand());
+        CommandRegistry.registerAlias("commands", "comms");
         CommandRegistry.registerCommand("version", new VersionCommand());
         CommandRegistry.registerCommand("say", new SayCommand());
         CommandRegistry.registerCommand("uptime", new StatsCommand());

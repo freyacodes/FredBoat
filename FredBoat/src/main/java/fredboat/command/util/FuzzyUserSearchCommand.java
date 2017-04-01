@@ -27,6 +27,7 @@ package fredboat.command.util;
 
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.TextUtils;
@@ -37,7 +38,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.util.List;
 
-public class FuzzyUserSearchCommand extends Command {
+public class FuzzyUserSearchCommand extends Command implements IUtilCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {

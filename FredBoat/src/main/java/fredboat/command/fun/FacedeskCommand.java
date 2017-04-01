@@ -25,6 +25,7 @@
 
 package fredboat.command.fun;
 
+import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
@@ -32,7 +33,7 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-public class FacedeskCommand extends RandomImageCommand {
+public class FacedeskCommand extends RandomImageCommand implements IFunCommand {
 
     public FacedeskCommand(String[] urls) {
         super(urls);

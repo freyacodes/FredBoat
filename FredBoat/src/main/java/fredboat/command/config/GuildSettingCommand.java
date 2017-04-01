@@ -26,6 +26,7 @@
 package fredboat.command.config;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Guild;
@@ -35,7 +36,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.util.ArrayList;
 
-public abstract class GuildSettingCommand extends Command {
+public abstract class GuildSettingCommand extends Command implements IModerationCommand {
 
     //TODO: Finish this
     @Override

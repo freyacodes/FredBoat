@@ -27,6 +27,7 @@ package fredboat.command.util;
 
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.util.ArgumentUtil;
 import net.dv8tion.jda.core.EmbedBuilder;
@@ -44,7 +45,7 @@ import java.util.ResourceBundle;
 /**
  * Created by midgard on 17/01/20.
  */
-public class UserInfoCommand extends Command{
+public class UserInfoCommand extends Command implements IUtilCommand {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         ResourceBundle rb =I18n.get(guild);

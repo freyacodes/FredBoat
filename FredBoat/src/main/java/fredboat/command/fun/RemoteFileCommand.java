@@ -26,6 +26,7 @@
 package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.I18n;
 import fredboat.util.CacheUtil;
 import net.dv8tion.jda.core.entities.Guild;
@@ -35,7 +36,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.io.IOException;
 
-public class RemoteFileCommand extends Command {
+public class RemoteFileCommand extends Command implements IFunCommand {
 
     public String msg;
 

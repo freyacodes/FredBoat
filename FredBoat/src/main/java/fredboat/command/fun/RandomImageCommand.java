@@ -26,6 +26,7 @@
 package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.I18n;
 import fredboat.util.CacheUtil;
 import net.dv8tion.jda.core.entities.Guild;
@@ -37,7 +38,7 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.Random;
 
-public class RandomImageCommand extends Command {
+public class RandomImageCommand extends Command implements IFunCommand {
 
     public final String[] urls;
 
