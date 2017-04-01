@@ -48,10 +48,14 @@ public class RandomImageCommand extends Command implements IFunCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+        sendRandomFileWithMessage(channel, null);
+    }
+
+    public void sendRandomFileWithMessage(TextChannel channel, Message message) {
         //Get a random file and send it
         String randomUrl = (String) Array.get(urls, new Random().nextInt(urls.length));
         try {
-            channel.sendFile(CacheUtil.getImageFromURL(randomUrl), null);
+            channel.sendFile(CacheUtil.getImageFromURL(randomUrl), message).queue();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

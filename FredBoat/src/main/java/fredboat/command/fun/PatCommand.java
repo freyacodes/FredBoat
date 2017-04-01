@@ -33,6 +33,8 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
+import java.text.MessageFormat;
+
 public class PatCommand extends RandomImageCommand implements IFunCommand {
 
     public PatCommand(String[] urls) {
@@ -41,19 +43,20 @@ public class PatCommand extends RandomImageCommand implements IFunCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        super.onInvoke(guild, channel, invoker, message, args);
 
+        Message patMessage = null;
         if (message.getMentionedUsers().size() > 0) {
             if (message.getMentionedUsers().get(0) == guild.getJDA().getSelfUser()) {
-                channel.sendMessage(I18n.get(guild).getString("patBot")).queue();
+                patMessage = new MessageBuilder().append(I18n.get(guild).getString("patBot")).build();
             } else {
-                channel.sendMessage(new MessageBuilder()
-                        .append(I18n.get(guild).getString("patSuccess"))
-                        .append(message.getMentionedUsers().get(0))
+                patMessage = new MessageBuilder()
                         .append("_")
-                        .build()).queue();
+                        .append(MessageFormat.format(I18n.get(guild).getString("patSuccess"), message.getMentionedUsers().get(0).getAsMention()))
+                        .append("_")
+                        .build();
             }
         }
+        super.sendRandomFileWithMessage(channel, patMessage);
     }
 
     @Override

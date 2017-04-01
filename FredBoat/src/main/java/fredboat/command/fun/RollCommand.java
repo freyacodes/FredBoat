@@ -33,6 +33,8 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
+import java.text.MessageFormat;
+
 public class RollCommand extends RandomImageCommand implements IFunCommand {
 
     public RollCommand(String[] urls) {
@@ -41,17 +43,12 @@ public class RollCommand extends RandomImageCommand implements IFunCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        super.onInvoke(guild, channel, invoker, message, args);
-
-        if (message.getMentionedUsers().size() > 0) {
-            
-                channel.sendMessage(new MessageBuilder()
-                        .append("_")
-                        .append(invoker)
-                        .append(I18n.get(guild).getString("rollSuccess"))
-                        .build()).queue();
-            
-        }
+        Message ourMessage = new MessageBuilder()
+                .append("_")
+                .append(MessageFormat.format(I18n.get(guild).getString("rollSuccess"), invoker.getAsMention()))
+                .append("_")
+                .build();
+        super.sendRandomFileWithMessage(channel, ourMessage);
     }
 
     @Override
