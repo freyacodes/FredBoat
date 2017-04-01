@@ -80,8 +80,11 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
             playerManager = new DefaultAudioPlayerManager();
             registerSourceManagers(playerManager);
 
-            //Patrons get higher quality
-            AudioConfiguration.ResamplingQuality quality = Config.CONFIG.getDistribution() == DistributionEnum.PATRON ? AudioConfiguration.ResamplingQuality.HIGH : AudioConfiguration.ResamplingQuality.LOW;
+            //Patrons and development get higher quality
+            AudioConfiguration.ResamplingQuality quality = AudioConfiguration.ResamplingQuality.LOW;
+            if (Config.CONFIG.getDistribution() == DistributionEnum.PATRON || Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT)
+                quality = AudioConfiguration.ResamplingQuality.HIGH;
+
             playerManager.getConfiguration().setResamplingQuality(quality);
             playerManager.enableGcMonitoring();
 
