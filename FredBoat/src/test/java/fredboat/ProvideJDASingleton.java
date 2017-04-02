@@ -79,18 +79,18 @@ public abstract class ProvideJDASingleton {
             String comment = "";
             Color color = BotConstants.FREDBOAT_COLOR;
             if (totalPassed > totalAttempted) {
-                imageUrl = "https://cdn.discordapp.com/emojis/292111046477611008.png";
+                imageUrl = "http://i.imgur.com/q2kzLPw.png";
                 comment = "More tests passed than attempted. This can't be real, can it?";
             } else if (totalPassed == totalAttempted) {
-                imageUrl = "https://cdn.discordapp.com/emojis/289162905637879828.png";
+                imageUrl = "http://i.imgur.com/nmAmUqH.png";
                 comment = "All tests passed!";
                 color = Color.GREEN;
             } else if (totalPassed == 0) {
-                imageUrl = "https://cdn.discordapp.com/emojis/289159254978592799.png";
+                imageUrl = "http://i.imgur.com/kvpXh9x.png";
                 comment = "All tests failed.";
                 color = Color.RED;
             } else if (totalPassed < totalAttempted) {
-                imageUrl = "https://cdn.discordapp.com/emojis/289162179855253506.png";
+                imageUrl = "http://i.imgur.com/7F22vQK.png";
                 comment = "Some tests failed.";
                 color = Color.YELLOW;
             }

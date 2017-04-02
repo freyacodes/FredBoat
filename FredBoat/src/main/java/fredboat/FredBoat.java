@@ -83,7 +83,7 @@ public abstract class FredBoat {
     static EventListenerSelf listenerSelf;
     private static AtomicInteger numShardsReady = new AtomicInteger(0);
 
-    //unlimited threads = https://i.imgur.com/cJlBUVL.gif
+    //unlimited threads = http://i.imgur.com/H3b7H1S.gif
     //use this executor for various small async tasks
     public final static ExecutorService executor = Executors.newCachedThreadPool();
 
