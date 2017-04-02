@@ -26,6 +26,7 @@
 package fredboat;
 
 import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.agent.CarbonitexAgent;
@@ -53,6 +54,7 @@ import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.utils.SimpleLog;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -191,6 +193,9 @@ public abstract class FredBoat {
 
         //Check MAL creds
         executor.submit(FredBoat::hasValidMALLogin);
+
+        //Check imgur creds
+        executor.submit(FredBoat::hasValidImgurCredentials);
     }
 
     private static boolean hasValidMALLogin() {
@@ -211,6 +216,43 @@ public abstract class FredBoat {
             }
         } catch (UnirestException e) {
             log.warn("MAL login failed, it seems to be down.", e);
+        }
+        return false;
+    }
+
+    private static boolean hasValidImgurCredentials() {
+        if ("".equals(Config.CONFIG.getImgurClientId())) {
+            log.info("Imgur credentials not found. Commands relying on Imgur will not work properly.");
+            return false;
+        }
+        try {
+            HttpResponse<JsonNode> response = Unirest.get("https://api.imgur.com/3/credits")
+                    .header("Authorization", "Client-ID " + Config.CONFIG.getImgurClientId())
+                    .asJson();
+            int responseStatus = response.getStatus();
+
+
+            if (responseStatus == 200) {
+                JSONObject data = response.getBody().getObject().getJSONObject("data");
+                //https://api.imgur.com/#limits
+                //at the time of the introduction of this code imgur offers daily 12500 and hourly 500 GET requests for open source software
+                //hitting the daily limit 5 times in a month will blacklist the app for the rest of the month
+                //we use 3 requests per hour (and per restart of the bot), so there should be no problems with imgur's rate limit
+                int hourlyLimit = data.getInt("UserLimit");
+                int hourlyLeft = data.getInt("UserRemaining");
+                long seconds = data.getLong("UserReset") - (System.currentTimeMillis() / 1000);
+                String timeTillReset = String.format("%d:%02d:%02d", seconds / 3600, (seconds % 3600) / 60, (seconds % 60));
+                int dailyLimit = data.getInt("ClientLimit");
+                int dailyLeft = data.getInt("ClientRemaining");
+                log.info("Imgur credentials are valid. " + hourlyLeft + "/" + hourlyLimit +
+                        " requests remaining this hour, resetting in " + timeTillReset + ", " +
+                        dailyLeft + "/" + dailyLimit + " requests remaining today.");
+                return true;
+            } else {
+                log.warn("Imgur login failed with " + responseStatus + ": " + response.getBody());
+            }
+        } catch (UnirestException e) {
+            log.warn("Imgur login failed, it seems to be down.", e);
         }
         return false;
     }

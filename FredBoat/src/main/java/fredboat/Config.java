@@ -63,6 +63,7 @@ public class Config {
     private String mashapeKey;
     private String malUser;
     private String malPassword;
+    private String imgurClientId;
     private int scope;
     private List<String> googleKeys = new ArrayList<>();
     private final String[] lavaplayerNodes;
@@ -168,6 +169,8 @@ public class Config {
             hikariPoolSize = numShards * 2;
             log.info("Hikari max pool size set to " + hikariPoolSize);
 
+            imgurClientId = (String) creds.getOrDefault("imgurClientId", "");
+
             testBotToken = (String) creds.getOrDefault("testBotToken", "");
             testGuildId = creds.getOrDefault("testGuildId", "") + "";
             testChannelId = creds.getOrDefault("testChannelId", "") + "";
@@ -258,6 +261,10 @@ public class Config {
 
     public String getMalPassword() {
         return malPassword;
+    }
+
+    public String getImgurClientId() {
+        return imgurClientId;
     }
 
     public int getScope() {

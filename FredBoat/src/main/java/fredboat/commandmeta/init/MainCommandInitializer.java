@@ -88,47 +88,9 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("github", new TextCommand("https://github.com/Frederikam"));
         CommandRegistry.registerCommand("repo", new TextCommand("https://github.com/Frederikam/FredBoat"));
 
-        String[] pats = {
-                "http://i.imgur.com/wF1ohrH.gif",
-                "http://i4.photobucket.com/albums/y131/quentinlau/Blog/sola-02-Large15.jpg",
-                "http://i.imgur.com/OYiSZWX.gif",
-                "http://i.imgur.com/tmidE9Q.gif",
-                "http://i.imgur.com/CoW20gH.gif",
-                "http://31.media.tumblr.com/e759f2da1f07de37832fc8269e99f1e7/tumblr_n3w02z954N1swm6rso1_500.gif",
-                "https://media1.giphy.com/media/ye7OTQgwmVuVy/200.gif",
-                "http://data.whicdn.com/images/224314340/large.gif",
-                "http://i.imgur.com/BNiNMWC.gifv",
-                "http://i.imgur.com/9q6fkSK.jpg",
-                "http://i.imgur.com/eOJlnwP.gif",
-                "http://i.imgur.com/i7bklkm.gif",
-                "http://i.imgur.com/fSDbKwf.jpg",
-                "https://66.media.tumblr.com/ec7472fef28b2cdf394dc85132c22ed8/tumblr_mx1asbwrBv1qbvovho1_500.gif",};
-        CommandRegistry.registerCommand("pat", new PatCommand(pats));
-
-        String[] facedesk = {
-                "http://i862.photobucket.com/albums/ab181/Shadow_Milez/Animu/kuroko-facedesk.gif",
-                "http://2.bp.blogspot.com/-Uw0i2Xv8r-M/UhyYzSHIiCI/AAAAAAAAAdg/hcI1-V7Y3A4/s1600/facedesk.gif",
-                "http://stream1.gifsoup.com/webroot/animatedgifs/57302_o.gif",
-                "http://img.neoseeker.com/mgv/59301/301/26/facedesk_display.gif"
-        };
-
-        CommandRegistry.registerCommand("facedesk", new FacedeskCommand(facedesk));
-
-        String[] roll = {
-                "https://media.giphy.com/media/3xz2BCBXokf7rag0Ba/giphy.gif",
-                "http://i.imgur.com/IWQZaHD.gif",
-                "https://warosu.org/data/cgl/img/0077/57/1408042492433.gif",
-                "https://media.giphy.com/media/tso0dniqIDWwg/giphy.gif",
-                "http://s19.postimg.org/lg5x9zx8z/Hakase_Roll_anime_32552527_500_282.gif",
-                "http://i.imgur.com/UJxrB.gif",
-                "http://25.media.tumblr.com/tumblr_m4k42bwzNy1qj0i6io1_500.gif",
-                "http://i.giphy.com/3o6LXfWUBTdBcccgSc.gif",
-                "http://66.media.tumblr.com/23dec349d26317df439099fdcb4c75a4/tumblr_mld6epWdgR1riizqco1_500.gif",
-                "http://i.imgur.com/s2TL7A8.gif",
-                "http://i.imgur.com/vqTAjp5.gif"
-        };
-
-        CommandRegistry.registerCommand("roll", new RollCommand(roll));
+        CommandRegistry.registerCommand("pat", new PatCommand("https://imgur.com/a/WiPTl"));
+        CommandRegistry.registerCommand("facedesk", new FacedeskCommand("https://imgur.com/a/I5Q4U"));
+        CommandRegistry.registerCommand("roll", new RollCommand("https://imgur.com/a/lrEwS"));
     }
 
 }

@@ -41,6 +41,10 @@ public class PatCommand extends RandomImageCommand implements IFunCommand {
         super(urls);
     }
 
+    public PatCommand(String imgurAlbumUrl) {
+        super(imgurAlbumUrl);
+    }
+
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
 

@@ -41,6 +41,10 @@ public class RollCommand extends RandomImageCommand implements IFunCommand {
         super(urls);
     }
 
+    public RollCommand(String imgurAlbumUrl) {
+        super(imgurAlbumUrl);
+    }
+
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         Message ourMessage = new MessageBuilder()
