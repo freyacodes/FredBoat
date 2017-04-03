@@ -23,11 +23,12 @@
  *
  */
 
-package fredboat.command.util;
+package fredboat.command.maintenance;
 
 import fredboat.Config;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.IUtilCommand;
+import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.feature.I18n;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.TextUtils;
@@ -38,7 +39,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.util.List;
 
-public class FuzzyUserSearchCommand extends Command implements IUtilCommand {
+public class FuzzyUserSearchCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
@@ -66,6 +67,6 @@ public class FuzzyUserSearchCommand extends Command implements IUtilCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpFuzzyUserSearchCommand");
+        return "{0}{1} <term>\n#Fuzzy search for users in this guild.";
     }
 }

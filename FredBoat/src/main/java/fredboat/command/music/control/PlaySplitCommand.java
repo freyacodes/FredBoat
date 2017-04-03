@@ -65,6 +65,7 @@ public class PlaySplitCommand extends Command implements IMusicCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpPlaySplitCommand");
+        String usage = "{0}{1} <url>\n#";
+        return usage + I18n.get(guild).getString("helpPlaySplitCommand");
     }
 }

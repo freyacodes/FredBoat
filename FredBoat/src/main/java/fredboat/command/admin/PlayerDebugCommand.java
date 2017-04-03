@@ -30,7 +30,6 @@ import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandOwnerRestricted;
-import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -69,6 +68,6 @@ public class PlayerDebugCommand extends Command implements ICommandOwnerRestrict
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpPlayerDebugCommand");
+        return "{0}{1}\n#Show debug information about the music player of this guild.";
     }
 }

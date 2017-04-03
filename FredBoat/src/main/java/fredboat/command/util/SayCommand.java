@@ -61,6 +61,7 @@ public class SayCommand extends Command implements IUtilCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpSayCommand");
+        String usage = "{0}{1} <text>\n#";
+        return usage + I18n.get(guild).getString("helpSayCommand");
     }
 }

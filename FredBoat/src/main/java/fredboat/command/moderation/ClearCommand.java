@@ -86,6 +86,7 @@ public class ClearCommand extends Command implements IModerationCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpClearCommand");
+        String usage = "{0}{1}\n#";
+        return usage + I18n.get(guild).getString("helpClearCommand");
     }
 }

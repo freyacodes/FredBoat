@@ -64,6 +64,7 @@ public class UnpauseCommand extends Command implements IMusicCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpUnpauseCommand");
+        String usage = "{0}{1}\n#";
+        return usage + I18n.get(guild).getString("helpUnpauseCommand");
     }
 }

@@ -57,6 +57,6 @@ public class FacedeskCommand extends RandomImageCommand implements IFunCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpFacedeskCommand");
+        return "{0}{1}\n#Facedesk.";
     }
 }

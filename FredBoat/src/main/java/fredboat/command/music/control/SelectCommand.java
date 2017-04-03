@@ -84,6 +84,7 @@ public class SelectCommand extends Command implements IMusicCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpSelectCommand");
+        String usage = "{0}{1} n OR {0}{2} n\n#";
+        return usage + I18n.get(guild).getString("helpSelectCommand");
     }
 }

@@ -190,6 +190,7 @@ public class MALCommand extends Command implements IUtilCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpMALCommand");
+        String usage = "{0}{1} <search-term>\n#";
+        return usage + I18n.get(guild).getString("helpMALCommand");
     }
 }

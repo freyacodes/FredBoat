@@ -91,6 +91,7 @@ public class RepeatCommand extends Command implements IMusicCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpRepeatCommand");
+        String usage = "{0}{1} single|all|off\n#";
+        return usage + I18n.get(guild).getString("helpRepeatCommand");
     }
 }

@@ -84,6 +84,7 @@ public class LanguageCommand extends Command implements IModerationCommand, ICom
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpLanguageCommand");
+        String usage = "{0}{1} OR {0}{1} <code>\n#";
+        return usage + I18n.get(guild).getString("helpLanguageCommand");
     }
 }

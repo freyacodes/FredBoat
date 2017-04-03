@@ -30,7 +30,6 @@ import com.sedmelluq.discord.lavaplayer.remote.RemoteNode;
 import fredboat.audio.AbstractPlayer;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
-import fredboat.feature.I18n;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -87,6 +86,6 @@ public class NodesCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpNodesCommand");
+        return "{0}{1} OR {0}{1} host\n#Show information about the connected lava nodes.";
     }
 }

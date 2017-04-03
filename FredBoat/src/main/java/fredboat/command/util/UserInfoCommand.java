@@ -96,6 +96,7 @@ public class UserInfoCommand extends Command implements IUtilCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpUserInfoCommand");
+        String usage = "{0}{1} OR {0}{1} <user>\n#";
+        return usage + I18n.get(guild).getString("helpUserInfoCommand");
     }
 }

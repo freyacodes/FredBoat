@@ -155,6 +155,7 @@ public class SkipCommand extends Command implements IMusicCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpSkipCommand");
+        String usage = "{0}{1} OR {0}{1} n OR {0}{1} n-m\n#";
+        return usage + I18n.get(guild).getString("helpSkipCommand");
     }
 }

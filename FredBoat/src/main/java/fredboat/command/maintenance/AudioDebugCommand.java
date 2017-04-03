@@ -30,7 +30,6 @@ import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
-import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -61,6 +60,6 @@ public class AudioDebugCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpAudioDebugCommand");
+        return "{0}{1}\n#Show audio related debug information.";
     }
 }

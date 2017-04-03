@@ -112,6 +112,7 @@ public class ConfigCommand extends Command implements IModerationCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpConfigCommand");
+        String usage = "{0}{1} OR {0}{1} <key> <value>\n#";
+        return usage + I18n.get(guild).getString("helpConfigCommand");
     }
 }

@@ -58,7 +58,8 @@ public class HelpCommand extends Command implements IMusicBackupCommand, IUtilCo
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpHelpCommand");
+        String usage = "{0}{1} OR {0}{1} <command>\n#";
+        return usage + I18n.get(guild).getString("helpHelpCommand");
     }
 
     private static void sendGeneralHelp(Guild guild, TextChannel channel, Member invoker) {
@@ -94,7 +95,7 @@ public class HelpCommand extends Command implements IMusicBackupCommand, IUtilCo
 
         CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(commandOrAlias);
         if (commandEntry == null) {
-            String out = MessageFormat.format(I18n.get(guild).getString("helpUnknownCommand"), Config.CONFIG.getPrefix(), commandOrAlias);
+            String out = Config.CONFIG.getPrefix() + commandOrAlias + ": " + I18n.get(guild).getString("helpUnknownCommand");
             out += "\n" + MessageFormat.format(I18n.get(guild).getString("helpCommandsPromotion"), Config.CONFIG.getPrefix(), "commands");
             TextUtils.replyWithName(channel, invoker, out);
             return;
@@ -105,7 +106,7 @@ public class HelpCommand extends Command implements IMusicBackupCommand, IUtilCo
         String out = getFormattedCommandHelp(guild, command, commandOrAlias);
 
         if (command instanceof ICommandOwnerRestricted)
-            out += "\n" + I18n.get(guild).getString("helpCommandOwnerRestricted");
+            out += "\n#" + I18n.get(guild).getString("helpCommandOwnerRestricted");
         out = TextUtils.asMarkdown(out);
         out = I18n.get(guild).getString("helpProperUsage") + out;
         TextUtils.replyWithName(channel, invoker, out);

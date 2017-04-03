@@ -265,6 +265,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpNowplayingCommand");
+        String usage = "{0}{1}\n#";
+        return usage + I18n.get(guild).getString("helpNowplayingCommand");
     }
 }

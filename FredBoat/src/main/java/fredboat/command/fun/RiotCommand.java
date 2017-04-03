@@ -27,7 +27,6 @@ package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IFunCommand;
-import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -42,6 +41,6 @@ public class RiotCommand extends Command implements IFunCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpRiotCommand");
+        return "{0}{1} <text>\n#Start a riot.";
     }
 }

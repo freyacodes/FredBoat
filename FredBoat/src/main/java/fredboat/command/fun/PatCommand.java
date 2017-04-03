@@ -65,6 +65,6 @@ public class PatCommand extends RandomImageCommand implements IFunCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpPatCommand");
+        return "{0}{1} @<username>\n#Pat someone.";
     }
 }

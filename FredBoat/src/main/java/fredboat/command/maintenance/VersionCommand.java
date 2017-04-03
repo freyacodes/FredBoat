@@ -27,7 +27,6 @@ package fredboat.command.maintenance;
 
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
-import fredboat.feature.I18n;
 import net.dv8tion.jda.core.JDAInfo;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -43,6 +42,6 @@ public class VersionCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpVersionCommand");
+        return "{0}{1}\n#Show the JDA version.";
     }
 }

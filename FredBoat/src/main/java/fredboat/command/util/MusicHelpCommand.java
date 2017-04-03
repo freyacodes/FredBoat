@@ -97,7 +97,8 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpMusicHelpCommand");
+        String usage = "{0}{1}\n#";
+        return usage + I18n.get(guild).getString("helpMusicHelpCommand");
     }
 
     /**

@@ -59,6 +59,7 @@ public class JoinCommand extends Command implements IMusicCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpJoinCommand");
+        String usage = "{0}{1}\n#";
+        return usage + I18n.get(guild).getString("helpJoinCommand");
     }
 }

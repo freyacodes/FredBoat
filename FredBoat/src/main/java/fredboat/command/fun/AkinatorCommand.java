@@ -30,7 +30,6 @@ import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.AkinatorListener;
-import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -50,6 +49,6 @@ public class AkinatorCommand extends Command implements IFunCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpAkinatorCommand");
+        return "{0}{1}\n#Play a guessing game with Akinator.";
     }
 }

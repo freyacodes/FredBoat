@@ -28,7 +28,6 @@ package fredboat.command.util;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IUtilCommand;
-import fredboat.feature.I18n;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -158,6 +157,6 @@ public class DumpCommand extends Command implements IUtilCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpDumpCommand");
+        return "{0}{1} <1-2000>\n#Dumps between 1 and 2000 messages to Hastebin.";
     }
 }

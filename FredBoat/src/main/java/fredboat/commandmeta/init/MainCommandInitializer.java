@@ -2,6 +2,7 @@ package fredboat.commandmeta.init;
 
 import fredboat.command.admin.*;
 import fredboat.command.fun.*;
+import fredboat.command.maintenance.FuzzyUserSearchCommand;
 import fredboat.command.maintenance.ShardsCommand;
 import fredboat.command.maintenance.StatsCommand;
 import fredboat.command.maintenance.VersionCommand;

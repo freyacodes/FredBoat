@@ -32,7 +32,6 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IFunCommand;
-import fredboat.feature.I18n;
 import fredboat.util.CacheUtil;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -149,6 +148,6 @@ public class RandomImageCommand extends Command implements IFunCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpRandomImageCommand");
+        return "{0}{1}\n#Post a random image.";
     }
 }

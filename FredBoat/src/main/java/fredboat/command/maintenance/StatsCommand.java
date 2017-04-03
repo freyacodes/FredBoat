@@ -85,6 +85,6 @@ public class StatsCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpStatsCommand");
+        return "{0}{1}\n#Show some statistics about this bot.";
     }
 }

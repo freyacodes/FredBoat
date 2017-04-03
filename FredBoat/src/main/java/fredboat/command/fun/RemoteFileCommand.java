@@ -27,7 +27,6 @@ package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IFunCommand;
-import fredboat.feature.I18n;
 import fredboat.util.CacheUtil;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -55,6 +54,6 @@ public class RemoteFileCommand extends Command implements IFunCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpRemoteFileCommand");
+        return "{0}{1}\n#Post a funny image or meme.";
     }
 }

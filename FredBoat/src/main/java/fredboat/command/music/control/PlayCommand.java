@@ -196,6 +196,7 @@ public class PlayCommand extends Command implements IMusicCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpPlayCommand");
+        String usage = "{0}{1} <url> OR {0}{1} <search-term>\n#";
+        return usage + I18n.get(guild).getString("helpPlayCommand");
     }
 }

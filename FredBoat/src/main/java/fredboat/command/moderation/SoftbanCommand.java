@@ -126,6 +126,7 @@ public class SoftbanCommand extends Command implements IModerationCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpSoftbanCommand");
+        String usage = "{0}{1} <user>\n#";
+        return usage + I18n.get(guild).getString("helpSoftbanCommand");
     }
 }

@@ -51,6 +51,7 @@ public class AvatarCommand extends Command implements IUtilCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpAvatarCommand");
+        String usage = "{0}{1} @<username>\n#";
+        return usage + I18n.get(guild).getString("helpAvatarCommand");
     }
 }

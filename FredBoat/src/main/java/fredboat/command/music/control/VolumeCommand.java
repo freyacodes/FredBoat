@@ -70,6 +70,7 @@ public class VolumeCommand extends Command implements IMusicCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpVolumeCommand");
+        String usage = "{0}{1} <0-150>\n#";
+        return usage + I18n.get(guild).getString("helpVolumeCommand");
     }
 }

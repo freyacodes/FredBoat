@@ -28,7 +28,6 @@ package fredboat.command.admin;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandOwnerRestricted;
-import fredboat.feature.I18n;
 import fredboat.util.ExitCodes;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
@@ -55,6 +54,6 @@ public class BotRestartCommand extends Command implements ICommandOwnerRestricte
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpBotRestartCommand");
+        return "{0}{1}\n#Restarts the bot.";
     }
 }

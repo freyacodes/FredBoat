@@ -27,7 +27,6 @@ package fredboat.command.config;
 
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IModerationCommand;
-import fredboat.feature.I18n;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -44,9 +43,9 @@ public abstract class GuildSettingCommand extends Command implements IModeration
         super.onInvoke(jda, guild, channel, invoker, message, args);
     }
 
-    //TODO: when finished, update the help string
+    //TODO: when finished, i18n the help string
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpGuildSettingCommand");
+        return "{0}{1}\n#TODO";
     }
 }

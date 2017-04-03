@@ -31,7 +31,8 @@ public class ReshuffleCommand extends Command implements IMusicCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpReshuffleCommand");
+        String usage = "{0}{1}\n#";
+        return usage + I18n.get(guild).getString("helpReshuffleCommand");
     }
 
 }

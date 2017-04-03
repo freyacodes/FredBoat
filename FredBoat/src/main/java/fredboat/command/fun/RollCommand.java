@@ -57,6 +57,6 @@ public class RollCommand extends RandomImageCommand implements IFunCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpRollCommand");
+        return "{0}{1}\n#Roll around.";
     }
 }

@@ -28,7 +28,6 @@ package fredboat.command.maintenance;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
-import fredboat.feature.I18n;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
@@ -78,6 +77,6 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpShardsCommand");
+        return "{0}{1}\n#Show information about the shards of the bot.";
     }
 }

@@ -44,6 +44,6 @@ public class GetIdCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpGetIdCommand");
+        return "{0}{1}\n#Show ids of the current guild and the current text channel.";
     }
 }

@@ -71,6 +71,6 @@ public class CatgirlCommand extends Command {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpCatgirlCommand");
+        return "{0}{1}\n#Post a catgirl pic.";
     }
 }

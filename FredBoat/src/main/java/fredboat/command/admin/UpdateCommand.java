@@ -28,7 +28,6 @@ package fredboat.command.admin;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandOwnerRestricted;
-import fredboat.feature.I18n;
 import fredboat.util.ExitCodes;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -84,6 +83,6 @@ public class UpdateCommand extends Command implements ICommandOwnerRestricted {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpUpdateCommand");
+        return "{0}{1} [branch [repo]]\n#Update the bot by checking out the provided branch from the provided github repo and compiling it. Default github repo is Frederikam, default branch is master. Restart with the fresh build.";
     }
 }
