@@ -125,17 +125,27 @@ public abstract class ProvideJDASingleton {
     };
 
     static {
+        initialize();
+    }
+
+    private static void initialize() {
         try {
             startTime = System.currentTimeMillis();
-            log.info("Setting up test environment");
+            log.info("Setting up live testing environment");
             Config.loadDefaultConfig(0x111);
 
+            String testToken = Config.CONFIG.getTestBotToken();
+            if (testToken == null || "".equals(testToken)) {
+                log.info("No testing token found, live tests won't be available");
+                return;
+            }
             JDABuilder builder = new JDABuilder(AccountType.BOT)
-                    .setToken(Config.CONFIG.getTestBotToken())
+                    .setToken(testToken)
                     .setEnableShutdownHook(false); //we're setting our own
             jda = builder.buildBlocking();
-            testGuild = jda.getGuildById(Config.CONFIG.getTestGuildId());
+
             testChannel = jda.getTextChannelById(Config.CONFIG.getTestChannelId());
+            testGuild = testChannel.getGuild();
 
             String out = " < " + DateFormat.getDateTimeInstance().format(new Date()) +
                     "> testing started on machine <" + InetAddress.getLocalHost().getHostName() +

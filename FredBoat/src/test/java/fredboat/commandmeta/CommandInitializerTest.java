@@ -6,7 +6,6 @@ import fredboat.commandmeta.init.MainCommandInitializer;
 import fredboat.commandmeta.init.MusicCommandInitializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -17,7 +16,7 @@ import org.junit.jupiter.api.Test;
 public class CommandInitializerTest extends ProvideJDASingleton {
 
     @AfterAll
-    public static void postStats() {
+    public static void saveStats() {
         saveClassStats(CommandInitializerTest.class.getSimpleName());
     }
 
@@ -26,7 +25,7 @@ public class CommandInitializerTest extends ProvideJDASingleton {
      */
     @Test
     public void testHelpStrings() {
-        Assumptions.assumeFalse(isTravisEnvironment(), () -> "Aborting test: Travis CI detected");
+//        Assumptions.assumeFalse(isTravisEnvironment(), () -> "Aborting test: Travis CI detected");
 
         MainCommandInitializer.initCommands();
         MusicCommandInitializer.initCommands();
@@ -34,7 +33,7 @@ public class CommandInitializerTest extends ProvideJDASingleton {
         for (String c : CommandRegistry.getRegisteredCommandsAndAliases()) {
             Command com = CommandRegistry.getCommand(c).command;
 
-            String help = com.help(testGuild);
+            String help = com.help(null); //sending no guild should have i18n fall back to the default
             Assertions.assertNotNull(help, () -> com.getClass().getName() + ".help() returns null");
             Assertions.assertNotEquals("", help, () -> com.getClass().getName() + ".help() returns an empty string");
         }

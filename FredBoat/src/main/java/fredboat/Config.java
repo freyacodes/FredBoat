@@ -77,7 +77,6 @@ public class Config {
 
     //testing related stuff
     private String testBotToken;
-    private String testGuildId;
     private String testChannelId;
 
     @SuppressWarnings("unchecked")
@@ -171,8 +170,7 @@ public class Config {
 
             imgurClientId = (String) creds.getOrDefault("imgurClientId", "");
 
-            testBotToken = (String) creds.getOrDefault("testBotToken", "");
-            testGuildId = creds.getOrDefault("testGuildId", "") + "";
+            testBotToken = (String) creds.getOrDefault("testToken", "");
             testChannelId = creds.getOrDefault("testChannelId", "") + "";
 
         } catch (IOException | UnirestException e) {
@@ -309,10 +307,6 @@ public class Config {
 
     public String getTestBotToken() {
         return testBotToken;
-    }
-
-    public String getTestGuildId() {
-        return testGuildId;
     }
 
     public String getTestChannelId() {
