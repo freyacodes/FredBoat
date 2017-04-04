@@ -71,6 +71,7 @@ public class Config {
     private String cbKey;
     private String prefix = DEFAULT_PREFIX;
     private boolean restServerEnabled = true;
+    private List<String> adminIds = new ArrayList<>();
 
     @SuppressWarnings("unchecked")
     public Config(File credentialsFile, File configFile, int scope) {
@@ -102,6 +103,13 @@ public class Config {
 
             prefix = (String) config.getOrDefault("prefix", prefix);
             restServerEnabled = (boolean) config.getOrDefault("restServerEnabled", restServerEnabled);
+
+            Object admins = config.get("admins");
+            if (admins instanceof List) {
+                ((List) admins).forEach((Object str) -> adminIds.add(str + ""));
+            } else if (admins instanceof String) {
+                adminIds.add(admins + "");
+            }
 
             log.info("Using prefix: " + prefix);
 
@@ -264,5 +272,9 @@ public class Config {
 
     public boolean isRestServerEnabled() {
         return restServerEnabled;
+    }
+
+    public List<String> getAdminIds() {
+        return adminIds;
     }
 }

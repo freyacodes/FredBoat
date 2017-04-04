@@ -3,3 +3,4 @@ patron: false            # Change this to true for self hosting
 development: true
 prefix: '<<'
 restServerEnabled: true  # Change this if you are running multiple FredBoat bots on the same machine
+admins: []               # add comma separated userIds and roleIds that should have access to admin commands
