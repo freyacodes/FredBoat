@@ -72,7 +72,7 @@ public class RandomImageCommand extends Command implements IFunCommand {
             while (run) {
                 populateItems(imgurAlbum);
                 try {
-                    Thread.sleep(10000);
+                    Thread.sleep(1000 * 60 * 60);
                 } catch (InterruptedException e) {
                     log.info("Update thread for " + imgurAlbum + " has been interrupted.");
                     run = false;
@@ -134,12 +134,13 @@ public class RandomImageCommand extends Command implements IFunCommand {
                 urls = imageUrls.toArray(urls);
                 etag = response.getHeaders().getFirst("ETag");
             }
-
+            log.info("Refreshed imgur album " + imgurAlbumUrl + ", new data found.");
         }
         //etag implementation: nothing has changed
         //https://api.imgur.com/performancetips
         else if (response.getStatus() == 304) {
             //nothing to do here
+            log.info("Refreshed imgur album " + imgurAlbumUrl + ", no update.");
         } else {
             //some other status
             log.warn("Unexpected http status for imgur album request " + imgurAlbumUrl + ", response: " + response.getBody().toString());
