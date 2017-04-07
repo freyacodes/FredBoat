@@ -38,6 +38,7 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
     private final String guildId;
     protected final JDA jda;
     private int rand;
+    private final int id; //used to identify this track even when the track gets cloned and the rand reranded
 
     public AudioTrackContext(AudioTrack at, Member member) {
         this.track = at;
@@ -45,6 +46,7 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
         this.guildId = member.getGuild().getId();
         this.jda = member.getJDA();
         this.rand = new Random().nextInt();
+        this.id = new Random().nextInt();
     }
 
     public AudioTrackContext(AudioTrack at, Member member, int chronologicalIndex) {
@@ -53,6 +55,7 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
         this.guildId = member.getGuild().getId();
         this.jda = member.getJDA();
         this.rand = new Random().nextInt();
+        this.id = new Random().nextInt();
     }
 
     public AudioTrack getTrack() {
@@ -65,6 +68,10 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
 
     public int getRand() {
         return rand;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public void setRand(int rand) {
