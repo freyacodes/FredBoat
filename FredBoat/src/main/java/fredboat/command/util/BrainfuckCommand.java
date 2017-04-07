@@ -152,6 +152,7 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
     @Override
     public String help(Guild guild) {
         String usage = "{0}{1} <code> [input]\n#";
-        return usage + I18n.get(guild).getString("helpBrainfuckCommand");
+        String example = " {0}{1} ,.+.+. a";
+        return usage + I18n.get(guild).getString("helpBrainfuckCommand") + example;
     }
 }

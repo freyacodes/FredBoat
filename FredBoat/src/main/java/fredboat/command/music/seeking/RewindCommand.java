@@ -82,6 +82,7 @@ public class RewindCommand extends Command implements IMusicCommand {
     @Override
     public String help(Guild guild) {
         String usage = "{0}{1} [[hh:]mm:]ss\n#";
-        return usage + I18n.get(guild).getString("helpRewindCommand");
+        String example = " {0}{1} 30";
+        return usage + I18n.get(guild).getString("helpRewindCommand") + example;
     }
 }

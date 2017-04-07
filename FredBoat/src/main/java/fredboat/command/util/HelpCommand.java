@@ -72,7 +72,7 @@ public class HelpCommand extends Command implements IMusicBackupCommand, IUtilCo
         }
         invoker.getUser().getPrivateChannel().sendMessage(I18n.get(guild).getString("helpDM")).queue();
         String out = I18n.get(guild).getString("helpSent");
-        out += "\n" + MessageFormat.format(I18n.get(guild).getString("helpCommandsPromotion"), Config.CONFIG.getPrefix(), "commands");
+        out += "\n" + MessageFormat.format(I18n.get(guild).getString("helpCommandsPromotion"), "`" + Config.CONFIG.getPrefix() + "commands`");
         TextUtils.replyWithName(channel, invoker, out);
     }
 
@@ -96,7 +96,7 @@ public class HelpCommand extends Command implements IMusicBackupCommand, IUtilCo
         CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(commandOrAlias);
         if (commandEntry == null) {
             String out = Config.CONFIG.getPrefix() + commandOrAlias + ": " + I18n.get(guild).getString("helpUnknownCommand");
-            out += "\n" + MessageFormat.format(I18n.get(guild).getString("helpCommandsPromotion"), Config.CONFIG.getPrefix(), "commands");
+            out += "\n" + MessageFormat.format(I18n.get(guild).getString("helpCommandsPromotion"), "`" + Config.CONFIG.getPrefix() + "commands`");
             TextUtils.replyWithName(channel, invoker, out);
             return;
         }

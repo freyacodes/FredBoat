@@ -103,7 +103,7 @@ public class CommandsCommand extends Command implements IUtilCommand {
             out += "\n" + owner;
         }
 
-        out += "\n\n" + MessageFormat.format(I18n.get(guild).getString("commandsMoreHelp"), Config.CONFIG.getPrefix(), "help");
+        out += "\n\n" + MessageFormat.format(I18n.get(guild).getString("commandsMoreHelp"), "`" + Config.CONFIG.getPrefix() + "help <command>`");
         channel.sendMessage(out).queue();
     }
 
