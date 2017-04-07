@@ -127,6 +127,8 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     }
 
     public void stop() {
+        audioTrackProvider.clear();
+        context = null;
         player.stopTrack();
     }
 

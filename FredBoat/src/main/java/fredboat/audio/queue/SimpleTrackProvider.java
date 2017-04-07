@@ -194,6 +194,7 @@ public class SimpleTrackProvider extends AbstractTrackProvider {
 
     @Override
     public void clear() {
+        lastTrack = null;
         shouldUpdateShuffledQueue = true;
         queue.clear();
     }

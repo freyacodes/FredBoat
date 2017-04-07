@@ -274,7 +274,7 @@ public class GuildPlayer extends AbstractPlayer {
     }
 
     //Success, fail message
-    private Pair<Boolean, String> canMemberSkipTracks(Member member, List<AudioTrackContext> list) {
+    public Pair<Boolean, String> canMemberSkipTracks(Member member, List<AudioTrackContext> list) {
         if(PermissionUtil.checkPermission(getGuild(), member, Permission.MESSAGE_MANAGE)){
             return new ImmutablePair<>(true, null);
         } else {

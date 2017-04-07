@@ -31,6 +31,7 @@ import fredboat.audio.queue.AudioTrackContext;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -48,9 +49,10 @@ public class StopCommand extends Command implements IMusicCommand {
         player.setCurrentTC(channel);
         List<AudioTrackContext> tracks = player.getRemainingTracks();
 
-        Pair<Boolean, String> pair = player.skipTracksForMemberPerms(channel, invoker, tracks);
-
+        Pair<Boolean, String> pair = player.canMemberSkipTracks(invoker, tracks);
+        //skipping allowed
         if(pair.getLeft()) {
+            player.stop();
             switch (tracks.size()) {
                 case 0:
                     channel.sendMessage(I18n.get(guild).getString("stopAlreadyEmpty")).queue();
@@ -63,6 +65,9 @@ public class StopCommand extends Command implements IMusicCommand {
                     break;
             }
             player.leaveVoiceChannelRequest(channel, true);
+        } else {
+            //invoker is not allowed to skip all doz track
+            TextUtils.replyWithName(channel, invoker, pair.getRight());
         }
     }
 
