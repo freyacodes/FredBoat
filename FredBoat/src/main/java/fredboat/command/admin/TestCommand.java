@@ -173,9 +173,8 @@ public class TestCommand extends Command implements ICommandOwnerRestricted {
                 results[number] = Result.SUCCESS;
         }
     }
-    //TODO update help string
     @Override
     public String help(Guild guild) {
-        return "{0}{1}\n#Stress test the database.";
+        return "{0}{1} [n m]\n#Stress test the database with n threads each doing m operations. Results will be shown after max 10 minutes.";
     }
 }
