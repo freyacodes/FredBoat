@@ -78,19 +78,15 @@ public class I18n {
         }
 
         GuildConfig config;
-
-        /*
+        
         try {
             config = EntityReader.getGuildConfig(guild.getId());
         } catch (Exception e) {
             log.error("Error when reading entity", e);
             return DEFAULT.getProps();
-        }*/
+        }
 
-        //return LANGS.getOrDefault(config.getLang(), DEFAULT).getProps();
-
-        //TODO: Re-enable this
-        return DEFAULT.getProps();
+        return LANGS.getOrDefault(config.getLang(), DEFAULT).getProps();
     }
 
     public static FredBoatLocale getLocale(Guild guild) {
