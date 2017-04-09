@@ -58,6 +58,9 @@ public class DatabaseManager {
 
             properties.put("hibernate.show_sql", "true");
 
+            //automatically create the tables we need
+            properties.put("hibernate.hbm2ddl.auto", "update");
+
             properties.put("hibernate.hikari.maximumPoolSize", Integer.toString(Config.CONFIG.getHikariPoolSize()));
             properties.put("hibernate.hikari.idleTimeout", Integer.toString(Config.HIKARI_TIMEOUT_MILLISECONDS));
 
