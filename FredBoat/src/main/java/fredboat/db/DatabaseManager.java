@@ -34,15 +34,12 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class DatabaseManager {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseManager.class);
     
-    private static final Map<Thread, EntityManager> EM_MAP = new ConcurrentHashMap<>();
     private static EntityManagerFactory emf;
     public static DatabaseState state = DatabaseState.UNINITIALIZED;
 
@@ -82,18 +79,12 @@ public class DatabaseManager {
         }
     }
 
+    /**
+     * Please call close() on the em you receive after you are done to let the pool recycle the connection and save the
+     * nature from environmental toxins like open database connections.
+     */
     public static EntityManager getEntityManager() {
-        EntityManager em = EM_MAP.get(Thread.currentThread());
-
-        if (em == null) {
-            if(emf == null) {
-                throw new DatabaseNotReadyException();
-            }
-            em = emf.createEntityManager();
-            EM_MAP.put(Thread.currentThread(), em);
-        }
-
-        return em;
+        return emf.createEntityManager();
     }
 
     static boolean isDisabled() {
