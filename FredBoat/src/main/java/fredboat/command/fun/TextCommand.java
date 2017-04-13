@@ -26,12 +26,13 @@
 package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IFunCommand;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-public class TextCommand extends Command {
+public class TextCommand extends Command implements IFunCommand {
 
     public String msg;
 
@@ -43,5 +44,9 @@ public class TextCommand extends Command {
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         channel.sendMessage(msg).queue();
     }
-    
+
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1}\n#Send a funny text.";
+    }
 }

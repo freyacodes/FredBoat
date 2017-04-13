@@ -27,6 +27,7 @@ package fredboat.command.music.info;
 
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -37,5 +38,11 @@ public class GensokyoRadioCommand extends Command implements IMusicCommand {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         NowplayingCommand.sendGensokyoRadioEmbed(channel);
+    }
+
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1}\n#";
+        return usage + I18n.get(guild).getString("helpGensokyoRadioCommand");
     }
 }

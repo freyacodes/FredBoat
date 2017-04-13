@@ -119,4 +119,9 @@ public class EvalCommand extends Command implements ICommandOwnerRestricted {
         };
         script.start();
     }
+
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1} <Java-code>\\n#Run the provided Java code.";
+    }
 }

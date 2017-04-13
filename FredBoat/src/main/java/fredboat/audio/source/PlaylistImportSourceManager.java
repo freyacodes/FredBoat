@@ -25,17 +25,6 @@
 
 package fredboat.audio.source;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
-import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
-import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
-import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
-import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
-import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
-import com.sedmelluq.discord.lavaplayer.track.*;
-import fredboat.audio.AbstractPlayer;
-import org.slf4j.LoggerFactory;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -44,14 +33,31 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import org.slf4j.LoggerFactory;
+
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
+import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
+import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
+import com.sedmelluq.discord.lavaplayer.track.AudioItem;
+import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
+import com.sedmelluq.discord.lavaplayer.track.AudioReference;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
+import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
+
+import fredboat.audio.AbstractPlayer;
 
 public class PlaylistImportSourceManager implements AudioSourceManager {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(PlaylistImportSourceManager.class);
 
-    private static final Pattern PLAYLIST_PATTERN = Pattern.compile("^https?://hastebin\\.com/(?:raw/)?(\\w+)(?:\\..+)?$");
-    private static final AudioPlayerManager PRIVATE_MANAGER = AbstractPlayer.registerSourceManagers(new DefaultAudioPlayerManager());
+    private static final AudioPlayerManager PRIVATE_MANAGER = AbstractPlayer
+            .registerSourceManagers(new DefaultAudioPlayerManager());
 
     @Override
     public String getSourceName() {
@@ -60,35 +66,62 @@ public class PlaylistImportSourceManager implements AudioSourceManager {
 
     @Override
     public AudioItem loadItem(DefaultAudioPlayerManager manager, AudioReference ar) {
-        Matcher m = PLAYLIST_PATTERN.matcher(ar.identifier);
+        String pasteId;
+        String response;
+        Matcher m;
+        Matcher serviceNameMatcher = PasteServiceConstants.SERVICE_NAME_PATTERN.matcher(ar.identifier);
 
-        if (!m.find()) {
+        if (!serviceNameMatcher.find()) {
             return null;
         }
 
-        String hasteId = m.group(1);
-        String response;
+        String serviceName = serviceNameMatcher.group(1).trim().toLowerCase();
+
+        switch (serviceName) {
+
+        case "hastebin":
+            m = PasteServiceConstants.HASTEBIN_PATTERN.matcher(ar.identifier);
+            pasteId = m.find() ? m.group(1) : null;
+            break;
+
+        case "pastebin":
+            m = PasteServiceConstants.PASTEBIN_PATTERN.matcher(ar.identifier);
+            pasteId = m.find() ? m.group(1) : null;
+            break;
+
+        default:
+            return null;
+        }
+
+        if (pasteId == null || !PasteServiceConstants.PASTE_SERVICE_URLS.containsKey(serviceName)) {
+            return null;
+        }
+
         try {
-            response = Unirest.get("http://hastebin.com/raw/" + hasteId).asString().getBody();
+            response = Unirest.get(PasteServiceConstants.PASTE_SERVICE_URLS.get(serviceName) + pasteId).asString()
+                    .getBody();
         } catch (UnirestException ex) {
-            throw new FriendlyException("Couldn't load playlist. Either Hastebin is down or the playlist does not exist.", FriendlyException.Severity.FAULT, ex);
+            throw new FriendlyException(
+                    "Couldn't load playlist. Either " + serviceName + " is down or the playlist does not exist.",
+                    FriendlyException.Severity.FAULT, ex);
         }
 
         String[] unfiltered = response.split("\\s");
         ArrayList<String> filtered = new ArrayList<>();
+
         for (String str : unfiltered) {
             if (!str.equals("")) {
                 filtered.add(str);
             }
         }
 
-        HastebinAudioResultHandler handler = new HastebinAudioResultHandler();
+        PasteServiceAudioResultHandler handler = new PasteServiceAudioResultHandler();
         Future<Void> lastFuture = null;
         for (String id : filtered) {
             lastFuture = PRIVATE_MANAGER.loadItemOrdered(handler, id, handler);
         }
-        
-        if(lastFuture == null){
+
+        if (lastFuture == null) {
             return null;
         }
 
@@ -98,7 +131,7 @@ public class PlaylistImportSourceManager implements AudioSourceManager {
             throw new FriendlyException("Failed loading playlist item", FriendlyException.Severity.FAULT, ex);
         }
 
-        return new BasicAudioPlaylist(hasteId, handler.getLoadedTracks(), null, false);
+        return new BasicAudioPlaylist(pasteId, handler.getLoadedTracks(), null, false);
     }
 
     @Override
@@ -120,11 +153,11 @@ public class PlaylistImportSourceManager implements AudioSourceManager {
     public void shutdown() {
     }
 
-    private class HastebinAudioResultHandler implements AudioLoadResultHandler {
+    private class PasteServiceAudioResultHandler implements AudioLoadResultHandler {
 
         private final List<AudioTrack> loadedTracks;
 
-        private HastebinAudioResultHandler() {
+        private PasteServiceAudioResultHandler() {
             this.loadedTracks = new ArrayList<>();
         }
 
@@ -140,12 +173,12 @@ public class PlaylistImportSourceManager implements AudioSourceManager {
 
         @Override
         public void noMatches() {
-            //ignore
+            // ignore
         }
 
         @Override
         public void loadFailed(FriendlyException exception) {
-            log.debug("Failed loading track provided via hastebin ", exception);
+            log.debug("Failed loading track provided via the paste service", exception);
         }
 
         public List<AudioTrack> getLoadedTracks() {

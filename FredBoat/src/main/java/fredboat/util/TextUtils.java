@@ -28,7 +28,6 @@ package fredboat.util;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
-import fredboat.FredBoat;
 import fredboat.commandmeta.MessagingException;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -213,4 +212,17 @@ public class TextUtils {
         return millis;
     }
 
+    public static String asMarkdown(String str) {
+        return "```md\n" + str + "```";
+    }
+
+    public static String forceNDigits(int i, int n) {
+        String str = Integer.toString(i);
+
+        while (str.length() < n) {
+            str = "0" + str;
+        }
+
+        return str;
+    }
 }

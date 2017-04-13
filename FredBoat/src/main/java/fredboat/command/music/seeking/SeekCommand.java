@@ -30,6 +30,7 @@ import fredboat.Config;
 import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
@@ -37,7 +38,9 @@ import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;import java.text.MessageFormat;
+import net.dv8tion.jda.core.entities.TextChannel;
+
+import java.text.MessageFormat;
 
 public class SeekCommand extends Command implements IMusicCommand {
 
@@ -51,7 +54,8 @@ public class SeekCommand extends Command implements IMusicCommand {
         }
 
         if(args.length == 1) {
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("seekUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()));
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
 
@@ -59,7 +63,8 @@ public class SeekCommand extends Command implements IMusicCommand {
         try {
             t = TextUtils.parseTimeString(args[1]);
         } catch (IllegalStateException e){
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("seekUsage"));
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
 
@@ -74,4 +79,10 @@ public class SeekCommand extends Command implements IMusicCommand {
         channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("seekSuccess"), atc.getEffectiveTitle(), TextUtils.formatTime(t))).queue();
     }
 
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1} [[hh:]mm:]ss\n#";
+        String example = " {0}{1} 2:45:00";
+        return usage + I18n.get(guild).getString("helpSeekCommand") + example;
+    }
 }

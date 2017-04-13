@@ -26,11 +26,15 @@
 package fredboat.command.util;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.util.BotConstants;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.OnlineStatus;
-import net.dv8tion.jda.core.entities.*;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 import java.time.format.DateTimeFormatter;
@@ -39,7 +43,7 @@ import java.util.ResourceBundle;
 /**
  * Created by midgard/Chromaryu/knight-ryu12 on 17/01/18.
  */
-public class ServerInfoCommand extends Command{
+public class ServerInfoCommand extends Command implements IUtilCommand {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         ResourceBundle rb = I18n.get(guild);
@@ -66,5 +70,11 @@ public class ServerInfoCommand extends Command{
         eb.addField(rb.getString("serverinfoOwner"), guild.getOwner().getAsMention(),true);
 
         channel.sendMessage(eb.build()).queue();
+    }
+
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1}\n#";
+        return usage + I18n.get(guild).getString("helpServerInfoCommand");
     }
 }

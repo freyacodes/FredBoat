@@ -38,6 +38,7 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
     private final String guildId;
     protected final JDA jda;
     private int rand;
+    private final int id; //used to identify this track even when the track gets cloned and the rand reranded
 
     public AudioTrackContext(AudioTrack at, Member member) {
         this.track = at;
@@ -45,6 +46,7 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
         this.guildId = member.getGuild().getId();
         this.jda = member.getJDA();
         this.rand = new Random().nextInt();
+        this.id = new Random().nextInt();
     }
 
     public AudioTrackContext(AudioTrack at, Member member, int chronologicalIndex) {
@@ -53,6 +55,7 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
         this.guildId = member.getGuild().getId();
         this.jda = member.getJDA();
         this.rand = new Random().nextInt();
+        this.id = new Random().nextInt();
     }
 
     public AudioTrack getTrack() {
@@ -60,11 +63,23 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
     }
 
     public Member getMember() {
-        return jda.getGuildById(guildId).getMember(jda.getUserById(userId));
+        Member songOwner = jda.getGuildById(guildId).getMember(jda.getUserById(userId));
+        if (songOwner == null) //member left the guild
+            //work around tons of null pointer exceptions throwing/handling by setting fredboat as the owner of the song
+            songOwner = jda.getGuildById(guildId).getSelfMember();
+        return songOwner;
     }
 
     public int getRand() {
         return rand;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setRand(int rand) {
+        this.rand = rand;
     }
 
     public int randomize() {

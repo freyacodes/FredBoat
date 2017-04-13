@@ -37,6 +37,7 @@ import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceM
 import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import com.sedmelluq.discord.lavaplayer.track.TrackMarker;
@@ -59,10 +60,12 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(AbstractPlayer.class);
 
     private static AudioPlayerManager playerManager;
-    AudioPlayer player;
+    private AudioPlayer player;
     ITrackProvider audioTrackProvider;
     private AudioFrame lastFrame = null;
     private AudioTrackContext context;
+    private AudioLossCounter audioLossCounter = new AudioLossCounter();
+    private boolean splitTrackEnded = false;
 
     @SuppressWarnings("LeakingThisInConstructor")
     AbstractPlayer() {
@@ -77,8 +80,11 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
             playerManager = new DefaultAudioPlayerManager();
             registerSourceManagers(playerManager);
 
-            //Patrons get higher quality
-            AudioConfiguration.ResamplingQuality quality = Config.CONFIG.getDistribution() == DistributionEnum.PATRON ? AudioConfiguration.ResamplingQuality.HIGH : AudioConfiguration.ResamplingQuality.LOW;
+            //Patrons and development get higher quality
+            AudioConfiguration.ResamplingQuality quality = AudioConfiguration.ResamplingQuality.LOW;
+            if (Config.CONFIG.getDistribution() == DistributionEnum.PATRON || Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT)
+                quality = AudioConfiguration.ResamplingQuality.HIGH;
+
             playerManager.getConfiguration().setResamplingQuality(quality);
             playerManager.enableGcMonitoring();
 
@@ -125,11 +131,19 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     }
 
     public void stop() {
+        audioTrackProvider.clear();
+        context = null;
         player.stopTrack();
     }
 
     public void skip() {
         player.stopTrack();
+    }
+
+    //used by TrackEndMarkerHandler to differentiate between skips issued by users and tracks finishing playing
+    public void splitTrackEnded() {
+        splitTrackEnded = true;
+        skip();
     }
 
     public boolean isQueueEmpty() {
@@ -205,8 +219,13 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     }
 
     private void play0(boolean skipped) {
+        boolean userSkip = skipped;
         if (audioTrackProvider != null) {
-            context = audioTrackProvider.provideAudioTrack(skipped);
+            if (splitTrackEnded) {
+                userSkip = false;
+                splitTrackEnded = false;
+            }
+            context = audioTrackProvider.provideAudioTrack(userSkip);
 
             if(context != null) {
                 player.playTrack(context.getTrack());
@@ -226,7 +245,7 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
         }
     }
 
-    public void destroy() {
+    void destroy() {
         player.destroy();
     }
 
@@ -239,7 +258,17 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     public boolean canProvide() {
         lastFrame = player.provide();
 
-        return lastFrame != null;
+        if(lastFrame == null) {
+            audioLossCounter.onLoss();
+            return false;
+        } else {
+            audioLossCounter.onSuccess();
+            return true;
+        }
+    }
+
+    public AudioLossCounter getAudioLossCounter() {
+        return audioLossCounter;
     }
 
     @Override
@@ -255,4 +284,16 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
         return player.isPaused();
     }
 
+    @Override
+    public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
+        if(Config.CONFIG.getLavaplayerNodes().length > 0) {
+            log.error("Lavaplayer encountered an exception during playback while playing " + track.getIdentifier(), exception);
+            log.error("Performance stats for errored track: " + audioLossCounter);
+        }
+    }
+
+    @Override
+    public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
+        log.error("Lavaplayer got stuck while playing " + track.getIdentifier() + "\nPerformance stats for stuck track: " + audioLossCounter);
+    }
 }

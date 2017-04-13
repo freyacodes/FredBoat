@@ -12,4 +12,4 @@ cache:
 jdk:
   - oraclejdk8
 
-script: mvn clean install sonar:sonar -Dsonar.host.url=http://192.210.193.136:9000/ -Dsonar.login=$SONAR_TOKEN
+#script: mvn clean install sonar:sonar -Dsonar.host.url=http://192.210.193.136:9000/ -Dsonar.login=$SONAR_TOKEN

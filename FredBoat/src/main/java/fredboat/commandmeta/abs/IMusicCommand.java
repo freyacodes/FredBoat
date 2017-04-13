@@ -25,6 +25,9 @@
 
 package fredboat.commandmeta.abs;
 
+/**
+ * classifies a command as a music command
+ */
 public interface IMusicCommand {
     
 }

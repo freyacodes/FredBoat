@@ -25,11 +25,13 @@
 
 package fredboat.command.util;
 
+import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
-import fredboat.commandmeta.MessagingException;
+import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -48,7 +50,7 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class MALCommand extends Command {
+public class MALCommand extends Command implements IUtilCommand {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(MALCommand.class);
     private static Pattern regex = Pattern.compile("^\\S+\\s+([\\W\\w]*)");
@@ -56,26 +58,47 @@ public class MALCommand extends Command {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         Matcher matcher = regex.matcher(message.getContent());
-        try {
-            matcher.find();
-        } catch (IllegalStateException e) {
-            throw new MessagingException(I18n.get(guild).getString("malUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()));
-        }
-        String term = matcher.group(1).replace(' ', '+').trim();
-        log.debug("TERM:"+term);
 
+        if (!matcher.find()) {
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+            return;
+        }
+
+        String term = matcher.group(1).replace(' ', '+').trim();
+        log.debug("TERM:" + term);
+
+        //MALs API is currently wonky af, so we are setting rather strict timeouts for its requests
+        Unirest.setTimeouts(5000, 10000);
+        FredBoat.executor.submit(() -> requestAsync(term, channel, invoker));
+        //back to defaults
+        Unirest.setTimeouts(10000, 60000);
+    }
+
+    private void requestAsync(String term, TextChannel channel, Member invoker) {
         try {
-            String body = Unirest.get("https://myanimelist.net/api/anime/search.xml?q=" + term).basicAuth("FredBoat", Config.CONFIG.getMalPassword()).asString().getBody();
+            HttpResponse<String> response = Unirest.get("https://myanimelist.net/api/anime/search.xml")
+                    .queryString("q", term)
+                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
+                    .asString();
+
+            String body = response.getBody();
             if (body != null && body.length() > 0) {
-                if(handleAnime(channel, invoker, term, body)){
+                if (handleAnime(channel, invoker, term, body)) {
                     return;
                 }
             }
+            response = Unirest.get("http://myanimelist.net/search/prefix.json")
+                    .queryString("type", "user")
+                    .queryString("keyword", term)
+                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
+                    .asString();
+            body = response.getBody();
 
-            body = Unirest.get("http://myanimelist.net/search/prefix.json?type=user&keyword=" + term).basicAuth("FredBoat", Config.CONFIG.getMalPassword()).asString().getBody();
             handleUser(channel, invoker, body);
         } catch (UnirestException ex) {
-            throw new RuntimeException(ex);
+            channel.sendMessage(MessageFormat.format(I18n.get(channel.getGuild()).getString("malNoResults"), invoker.getEffectiveName())).queue();
+            log.warn("MAL request blew up", ex);
         }
     }
 
@@ -91,35 +114,35 @@ public class MALCommand extends Command {
         } catch (JSONException ex) {
             data = root.getJSONObject("anime").getJSONObject("entry");
         }
-        
+
         ArrayList<String> titles = new ArrayList<>();
         titles.add(data.getString("title"));
-        
-        if(data.has("synonyms")){
+
+        if (data.has("synonyms")) {
             titles.addAll(Arrays.asList(data.getString("synonyms").split(";")));
         }
-        
-        if(data.has("english")){
+
+        if (data.has("english")) {
             titles.add(data.getString("english"));
         }
-        
+
         int minDeviation = Integer.MAX_VALUE;
-        for(String str : titles){
+        for (String str : titles) {
             str = str.replace(' ', '+').trim();
             int deviation = str.compareToIgnoreCase(terms);
             deviation = deviation - Math.abs(str.length() - terms.length());
-            if(deviation < minDeviation){
+            if (deviation < minDeviation) {
                 minDeviation = deviation;
             }
         }
-        
-        
+
+
         log.debug("Anime search deviation: " + minDeviation);
-        
-        if(minDeviation > 3){
+
+        if (minDeviation > 3) {
             return false;
         }
-        
+
         msg = data.has("title") ? MessageFormat.format(I18n.get(channel.getGuild()).getString("malTitle"), msg, data.get("title")) : msg;
         msg = data.has("english") ? MessageFormat.format(I18n.get(channel.getGuild()).getString("malEnglishTitle"), msg, data.get("english")) : msg;
         msg = data.has("synonyms") ? MessageFormat.format(I18n.get(channel.getGuild()).getString("malSynonyms"), msg, data.get("synonyms")) : msg;
@@ -129,15 +152,15 @@ public class MALCommand extends Command {
         msg = data.has("status") ? MessageFormat.format(I18n.get(channel.getGuild()).getString("malStatus"), msg, data.get("status")) : msg;
         msg = data.has("start_date") ? MessageFormat.format(I18n.get(channel.getGuild()).getString("malStartDate"), msg, data.get("start_date")) : msg;
         msg = data.has("end_date") ? MessageFormat.format(I18n.get(channel.getGuild()).getString("malEndDate"), msg, data.get("end_date")) + "\n" : msg;
-        
-        if(data.has("synopsis")){
+
+        if (data.has("synopsis")) {
             Matcher m = Pattern.compile("^[^\\n\\r<]+").matcher(StringEscapeUtils.unescapeHtml4(data.getString("synopsis")));
             m.find();
             msg = data.has("synopsis") ? MessageFormat.format(I18n.get(channel.getGuild()).getString("malSynopsis"), msg, m.group(0)) : msg;
         }
 
         msg = data.has("id") ? msg + "http://myanimelist.net/anime/" + data.get("id") + "/" : msg;
-        
+
         channel.sendMessage(msg).queue();
         return true;
     }
@@ -148,13 +171,13 @@ public class MALCommand extends Command {
         //Read JSON
         JSONObject root = new JSONObject(body);
         JSONArray items = root.getJSONArray("categories").getJSONObject(0).getJSONArray("items");
-        if(items.length() == 0){
+        if (items.length() == 0) {
             channel.sendMessage(MessageFormat.format(I18n.get(channel.getGuild()).getString("malNoResults"), invoker.getEffectiveName())).queue();
             return false;
         }
-        
+
         JSONObject data = items.getJSONObject(0);
-        
+
         msg = data.has("name") ? MessageFormat.format(I18n.get(channel.getGuild()).getString("malUserName"), msg, data.get("name")) : msg;
         msg = data.has("url") ? MessageFormat.format(I18n.get(channel.getGuild()).getString("malUrl"), msg, data.get("url")) : msg;
         msg = data.has("image_url") ? msg + data.get("image_url") : msg;
@@ -165,4 +188,9 @@ public class MALCommand extends Command {
         return true;
     }
 
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1} <search-term>\n#";
+        return usage + I18n.get(guild).getString("helpMALCommand");
+    }
 }

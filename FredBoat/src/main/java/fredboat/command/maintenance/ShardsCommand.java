@@ -27,6 +27,7 @@ package fredboat.command.maintenance;
 
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IMaintenanceCommand;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
@@ -37,7 +38,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardsCommand extends Command {
+public class ShardsCommand extends Command implements IMaintenanceCommand {
 
     private static final int SHARDS_PER_MESSAGE = 30;
 
@@ -72,6 +73,10 @@ public class ShardsCommand extends Command {
             builder.append("```");
             channel.sendMessage(builder.build()).queue();
         }
+    }
 
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1}\n#Show information about the shards of the bot.";
     }
 }

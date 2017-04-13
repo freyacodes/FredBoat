@@ -25,7 +25,9 @@
 
 package fredboat.command.fun;
 
-public class DogCommand extends TextCommand {
+import fredboat.commandmeta.abs.IFunCommand;
+
+public class DogCommand extends TextCommand implements IFunCommand {
 
     public static final String DOG
             = "┈┈╱▏┈┈┈┈┈╱▔▔▔▔╲┈ \n"
@@ -42,6 +44,7 @@ public class DogCommand extends TextCommand {
     public DogCommand() {
         super(DOG);
     }
+
 }
 
 //gib pat to me now

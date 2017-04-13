@@ -28,6 +28,7 @@ package fredboat.command.music.info;
 import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
+import fredboat.audio.queue.RepeatMode;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
@@ -62,9 +63,20 @@ public class ListCommand extends Command implements IMusicCommand {
 
             int i = 0;
 
-            if(player.isShuffle()){
+            if (player.isShuffle()) {
                 mb.append(I18n.get(guild).getString("listShowShuffled"));
+                mb.append("\n");
+                if (player.getRepeatMode() == RepeatMode.OFF)
+                    mb.append("\n");
             }
+            if (player.getRepeatMode() == RepeatMode.SINGLE) {
+                mb.append(I18n.get(guild).getString("listShowRepeatSingle"));
+                mb.append("\n\n");
+            } else if (player.getRepeatMode() == RepeatMode.ALL) {
+                mb.append(I18n.get(guild).getString("listShowRepeatAll"));
+                mb.append("\n\n");
+            }
+
 
             for (AudioTrackContext atc : player.getRemainingTracksOrdered()) {
                 String status = " ";
@@ -72,7 +84,7 @@ public class ListCommand extends Command implements IMusicCommand {
                     status = player.isPlaying() ? " \\▶" : " \\\u23F8"; //Escaped play and pause emojis
                 }
                 mb.append("[" +
-                        forceNDigits(i + 1, numberLength)
+                        TextUtils.forceNDigits(i + 1, numberLength)
                         + "]", MessageBuilder.Formatting.BLOCK)
                         .append(status)
                         .append(MessageFormat.format(I18n.get(guild).getString("listAddedBy"), atc.getEffectiveTitle(), atc.getMember().getEffectiveName()))
@@ -116,14 +128,9 @@ public class ListCommand extends Command implements IMusicCommand {
         }
     }
 
-    private String forceNDigits(int i, int n) {
-        String str = Integer.toString(i);
-
-        while (str.length() < n) {
-            str = "0" + str;
-        }
-
-        return str;
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1}\n#";
+        return usage + I18n.get(guild).getString("helpListCommand");
     }
-
 }

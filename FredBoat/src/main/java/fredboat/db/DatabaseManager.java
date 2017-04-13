@@ -25,6 +25,8 @@
 
 package fredboat.db;
 
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
 import fredboat.Config;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
@@ -34,22 +36,26 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class DatabaseManager {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseManager.class);
     
-    private static final Map<Thread, EntityManager> EM_MAP = new ConcurrentHashMap<>();
     private static EntityManagerFactory emf;
     public static DatabaseState state = DatabaseState.UNINITIALIZED;
+
+    //local port, if using SSH tunnel point your jdbc to this, e.g. jdbc:postgresql://localhost:9333/...
+    private static final int SSH_TUNNEL_PORT = 9333;
 
     public static void startup(String jdbcUrl) {
         state = DatabaseState.INITIALIZING;
 
         try {
+
+            if(Config.CONFIG.isUseSshTunnel()){
+                connectSSH();
+            }
 
             //These are now located in the resources directory as XML
             Properties properties = new Properties();
@@ -59,7 +65,10 @@ public class DatabaseManager {
             properties.put("hibernate.connection.url", jdbcUrl);
             properties.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
 
-            properties.put("hibernate.show_sql", "true");
+            //properties.put("hibernate.show_sql", "true");
+
+            //automatically create the tables we need
+            properties.put("hibernate.hbm2ddl.auto", "update");
 
             properties.put("hibernate.hikari.maximumPoolSize", Integer.toString(Config.CONFIG.getHikariPoolSize()));
             properties.put("hibernate.hikari.idleTimeout", Integer.toString(Config.HIKARI_TIMEOUT_MILLISECONDS));
@@ -82,18 +91,51 @@ public class DatabaseManager {
         }
     }
 
-    public static EntityManager getEntityManager() {
-        EntityManager em = EM_MAP.get(Thread.currentThread());
+    private static void connectSSH() {
+        try {
+            //establish the tunnel
+            log.info("Starting SSH tunnel");
 
-        if (em == null) {
-            if(emf == null) {
-                throw new DatabaseNotReadyException();
-            }
-            em = emf.createEntityManager();
-            EM_MAP.put(Thread.currentThread(), em);
+            java.util.Properties config = new java.util.Properties();
+            JSch jsch = new JSch();
+            JSch.setLogger(new JSchLogger());
+
+            //Parse host:port
+            String sshHost = Config.CONFIG.getSshHost().split(":")[0];
+            int sshPort = Integer.parseInt(Config.CONFIG.getSshHost().split(":")[1]);
+
+            Session session = jsch.getSession(Config.CONFIG.getSshUser(),
+                    sshHost,
+                    sshPort
+            );
+            jsch.addIdentity(Config.CONFIG.getSshPrivateKeyFile());
+            config.put("StrictHostKeyChecking", "no");
+            config.put("ConnectionAttempts", "3");
+            session.setConfig(config);
+            session.connect();
+
+            log.info("SSH Connected");
+
+            //forward the port
+            int assignedPort = session.setPortForwardingL(
+                    SSH_TUNNEL_PORT,
+                    "localhost",
+                    Config.CONFIG.getForwardToPort()
+            );
+
+            log.info("localhost:" + assignedPort + " -> " + sshHost + ":" + Config.CONFIG.getForwardToPort());
+            log.info("Port Forwarded");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to start SSH tunnel", e);
         }
+    }
 
-        return em;
+    /**
+     * Please call close() on the em you receive after you are done to let the pool recycle the connection and save the
+     * nature from environmental toxins like open database connections.
+     */
+    public static EntityManager getEntityManager() {
+        return emf.createEntityManager();
     }
 
     static boolean isDisabled() {
@@ -106,6 +148,37 @@ public class DatabaseManager {
         INITIALIZING,
         FAILED,
         READY
+    }
+
+    private static class JSchLogger implements com.jcraft.jsch.Logger {
+
+        private static final Logger logger = LoggerFactory.getLogger("JSch");
+
+        @Override
+        public boolean isEnabled(int level) {
+            return true;
+        }
+
+        @Override
+        public void log(int level, String message) {
+            switch (level) {
+                case com.jcraft.jsch.Logger.DEBUG:
+                    logger.debug(message);
+                    break;
+                case com.jcraft.jsch.Logger.INFO:
+                    logger.info(message);
+                    break;
+                case com.jcraft.jsch.Logger.WARN:
+                    logger.warn(message);
+                    break;
+                case com.jcraft.jsch.Logger.ERROR:
+                case com.jcraft.jsch.Logger.FATAL:
+                    logger.error(message);
+                    break;
+                default:
+                    throw new RuntimeException("Invalid log level");
+            }
+        }
     }
 
 }

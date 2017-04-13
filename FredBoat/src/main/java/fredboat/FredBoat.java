@@ -25,9 +25,12 @@
 
 package fredboat;
 
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.agent.CarbonitexAgent;
+import fredboat.agent.ShardWatchdogAgent;
 import fredboat.api.API;
 import fredboat.api.OAuthManager;
 import fredboat.audio.MusicPersistenceHandler;
@@ -37,6 +40,7 @@ import fredboat.commandmeta.init.MusicCommandInitializer;
 import fredboat.db.DatabaseManager;
 import fredboat.event.EventListenerBoat;
 import fredboat.event.EventListenerSelf;
+import fredboat.event.ShardWatchdogListener;
 import fredboat.feature.I18n;
 import fredboat.util.DistributionEnum;
 import fredboat.util.log.SimpleLogToSLF4JAdapter;
@@ -52,25 +56,19 @@ import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.utils.SimpleLog;
-import org.apache.commons.io.FileUtils;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
 
 import javax.security.auth.login.LoginException;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 public abstract class FredBoat {
 
@@ -85,7 +83,12 @@ public abstract class FredBoat {
     public static int shutdownCode = UNKNOWN_SHUTDOWN_CODE;//Used when specifying the intended code for shutdown hooks
     static EventListenerBoat listenerBot;
     static EventListenerSelf listenerSelf;
+    ShardWatchdogListener shardWatchdogListener = null;
     private static AtomicInteger numShardsReady = new AtomicInteger(0);
+
+    //unlimited threads = http://i.imgur.com/H3b7H1S.gif
+    //use this executor for various small async tasks
+    public final static ExecutorService executor = Executors.newCachedThreadPool();
 
     JDA jda;
     private static FredBoatClient fbClient;
@@ -126,12 +129,7 @@ public abstract class FredBoat {
 
         log.info("JDA version:\t" + JDAInfo.VERSION);
 
-        Config.CONFIG = new Config(
-                loadConfigFile("credentials"),
-                loadConfigFile("config"),
-                scope
-        );
-
+        Config.loadDefaultConfig(scope);
 
         try {
             API.start();
@@ -173,58 +171,97 @@ public abstract class FredBoat {
         }
 
         if ((Config.CONFIG.getScope() & 0x001) != 0) {
-            fbClient = new FredBoatClient();
+            log.error("Selfbot support has been removed.");
+            //fbClient = new FredBoatClient();
         }
 
         //Initialise JCA
 
-        if(!Config.CONFIG.getCbUser().equals("") && !Config.CONFIG.getCbKey().equals("")) {
-            log.info("Starting CleverBot");
-            jca = new JCABuilder().setKey(Config.CONFIG.getCbKey()).setUser(Config.CONFIG.getCbUser()).buildBlocking();
-        } else {
-            log.warn("Credentials not found for cleverbot authentication. Skipping...");
+        try {
+            if (!Config.CONFIG.getCbUser().equals("") && !Config.CONFIG.getCbKey().equals("")) {
+                log.info("Starting CleverBot");
+                jca = new JCABuilder().setKey(Config.CONFIG.getCbKey()).setUser(Config.CONFIG.getCbUser()).buildBlocking();
+            } else {
+                log.warn("Credentials not found for cleverbot authentication. Skipping...");
+            }
+        } catch (Exception e) {
+            log.error("Error when starting JCA", e);
         }
 
-        if (Config.CONFIG.getDistribution() == DistributionEnum.MAIN && Config.CONFIG.getCarbonKey() != null) {
+        if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && Config.CONFIG.getCarbonKey() != null) {
             CarbonitexAgent carbonitexAgent = new CarbonitexAgent(Config.CONFIG.getCarbonKey());
             carbonitexAgent.setDaemon(true);
             carbonitexAgent.start();
         }
+
+        ShardWatchdogAgent shardWatchdogAgent = new ShardWatchdogAgent();
+        shardWatchdogAgent.setDaemon(true);
+        shardWatchdogAgent.start();
+
+        //Check MAL creds
+        executor.submit(FredBoat::hasValidMALLogin);
+
+        //Check imgur creds
+        executor.submit(FredBoat::hasValidImgurCredentials);
     }
 
-    /**
-     * Makes sure the requested config file exists in the current format. Will attempt to migrate old formats to new ones
-     * old files will be renamed to filename.ext.old to preserve any data
-     *
-     * @param name relative name of a config file, without the file extension
-     * @return a handle on the requested file
-     */
-    private static File loadConfigFile(String name) throws IOException {
-        String yamlPath = "./" + name + ".yaml";
-        String jsonPath = "./" + name + ".json";
-        File yamlFile = new File(yamlPath);
-        if (!yamlFile.exists() || yamlFile.isDirectory()) {
-            log.warn("Could not find file '" + yamlPath + "', looking for legacy '" + jsonPath + "' to rewrite");
-            File json = new File(jsonPath);
-            if (!json.exists() || json.isDirectory()) {
-                //file is missing
-                log.error("No " + name + " file is present. Bot cannot run without it. Check the documentation.");
-                throw new FileNotFoundException("Neither '" + yamlPath + "' nor '" + jsonPath + "' present");
-            } else {
-                //rewrite the json to yaml
-                Yaml yaml = new Yaml();
-                String fileStr = FileUtils.readFileToString(json, "UTF-8");
-                //remove tab character from json file to make it a valid YAML file
-                fileStr = fileStr.replaceAll("\t", "");
-                @SuppressWarnings("unchecked")
-                Map<String, Object> configFile = (Map) yaml.load(fileStr);
-                yaml.dump(configFile, new FileWriter(yamlFile));
-                Files.move(Paths.get(jsonPath), Paths.get(jsonPath + ".old"), REPLACE_EXISTING);
-                log.info("Migrated file '" + jsonPath + "' to '" + yamlPath + "'");
-            }
+    private static boolean hasValidMALLogin() {
+        if ("".equals(Config.CONFIG.getMalUser()) || "".equals(Config.CONFIG.getMalPassword())) {
+            log.info("MAL credentials not found. MAL related commands will not be available.");
+            return false;
         }
+        try {
+            HttpResponse<String> response = Unirest.get("https://myanimelist.net/api/account/verify_credentials.xml")
+                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
+                    .asString();
+            int responseStatus = response.getStatus();
+            if (responseStatus == 200) {
+                log.info("MAL login successful");
+                return true;
+            } else {
+                log.warn("MAL login failed with " + responseStatus + ": " + response.getBody());
+            }
+        } catch (UnirestException e) {
+            log.warn("MAL login failed, it seems to be down.", e);
+        }
+        return false;
+    }
 
-        return yamlFile;
+    private static boolean hasValidImgurCredentials() {
+        if ("".equals(Config.CONFIG.getImgurClientId())) {
+            log.info("Imgur credentials not found. Commands relying on Imgur will not work properly.");
+            return false;
+        }
+        try {
+            HttpResponse<JsonNode> response = Unirest.get("https://api.imgur.com/3/credits")
+                    .header("Authorization", "Client-ID " + Config.CONFIG.getImgurClientId())
+                    .asJson();
+            int responseStatus = response.getStatus();
+
+
+            if (responseStatus == 200) {
+                JSONObject data = response.getBody().getObject().getJSONObject("data");
+                //https://api.imgur.com/#limits
+                //at the time of the introduction of this code imgur offers daily 12500 and hourly 500 GET requests for open source software
+                //hitting the daily limit 5 times in a month will blacklist the app for the rest of the month
+                //we use 3 requests per hour (and per restart of the bot), so there should be no problems with imgur's rate limit
+                int hourlyLimit = data.getInt("UserLimit");
+                int hourlyLeft = data.getInt("UserRemaining");
+                long seconds = data.getLong("UserReset") - (System.currentTimeMillis() / 1000);
+                String timeTillReset = String.format("%d:%02d:%02d", seconds / 3600, (seconds % 3600) / 60, (seconds % 60));
+                int dailyLimit = data.getInt("ClientLimit");
+                int dailyLeft = data.getInt("ClientRemaining");
+                log.info("Imgur credentials are valid. " + hourlyLeft + "/" + hourlyLimit +
+                        " requests remaining this hour, resetting in " + timeTillReset + ", " +
+                        dailyLeft + "/" + dailyLimit + " requests remaining today.");
+                return true;
+            } else {
+                log.warn("Imgur login failed with " + responseStatus + ": " + response.getBody());
+            }
+        } catch (UnirestException e) {
+            log.warn("Imgur login failed, it seems to be down.", e);
+        }
+        return false;
     }
 
     private static void initBotShards(EventListener listener) {
@@ -278,6 +315,8 @@ public abstract class FredBoat {
         try {
             Unirest.shutdown();
         } catch (IOException ignored) {}
+
+        executor.shutdown();
     };
 
     public static void shutdown(int code) {
@@ -388,6 +427,10 @@ public abstract class FredBoat {
     public void revive() {
         jda.shutdown(false);
         shards.set(getShardInfo().getShardId(), new FredBoatBot(getShardInfo().getShardId(), listenerBot));
+    }
+
+    public ShardWatchdogListener getShardWatchdogListener() {
+        return shardWatchdogListener;
     }
 
     @SuppressWarnings("WeakerAccess")

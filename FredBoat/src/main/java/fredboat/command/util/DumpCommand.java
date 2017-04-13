@@ -27,6 +27,7 @@ package fredboat.command.util;
 
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -41,7 +42,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class DumpCommand extends Command {
+public class DumpCommand extends Command implements IUtilCommand {
 
     private static final int MAX_DUMP_SIZE = 2000;
 
@@ -154,4 +155,8 @@ public class DumpCommand extends Command {
         return str;
     }
 
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1} <1-2000>\n#Dumps between 1 and 2000 messages to Hastebin.";
+    }
 }

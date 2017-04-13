@@ -65,5 +65,9 @@ public class PlayerDebugCommand extends Command implements ICommandOwnerRestrict
             Logger.getLogger(PlayerDebugCommand.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1}\n#Show debug information about the music player of this guild.";
+    }
 }

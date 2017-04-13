@@ -42,6 +42,7 @@ public class EntityReader {
             config = new UConfig(id);
         }
 
+        em.close();
         return config;
     }
 
@@ -54,7 +55,7 @@ public class EntityReader {
         if(config == null) {
             config = new GuildConfig(id);
         }
-
+        em.close();
         return config;
     }
 

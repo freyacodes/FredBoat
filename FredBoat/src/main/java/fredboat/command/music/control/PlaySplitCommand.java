@@ -29,20 +29,23 @@ import fredboat.Config;
 import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.audio.queue.IdentifierContext;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-public class PlaySplitCommand extends Command {
+public class PlaySplitCommand extends Command implements IMusicCommand {
 
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         if (args.length < 2) {
-            channel.sendMessage(I18n.get(guild).getString("splitProperUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()));
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
 
@@ -58,5 +61,11 @@ public class PlaySplitCommand extends Command {
         } catch (Exception ignored) {
 
         }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1} <url>\n#";
+        return usage + I18n.get(guild).getString("helpPlaySplitCommand");
     }
 }

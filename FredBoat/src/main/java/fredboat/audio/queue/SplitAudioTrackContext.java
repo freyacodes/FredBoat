@@ -65,4 +65,11 @@ public class SplitAudioTrackContext extends AudioTrackContext {
     public long getStartPosition() {
         return startPos;
     }
+
+    @Override
+    public AudioTrackContext makeClone() {
+        AudioTrack track = getTrack().makeClone();
+        track.setPosition(startPos);
+        return new SplitAudioTrackContext(track, getMember(), startPos, endPos, title);
+    }
 }

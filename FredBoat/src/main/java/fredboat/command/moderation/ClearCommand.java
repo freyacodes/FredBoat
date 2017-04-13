@@ -23,10 +23,12 @@
  *
  */
 
-package fredboat.command.util;
+package fredboat.command.moderation;
 
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IModerationCommand;
+import fredboat.feature.I18n;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
@@ -38,7 +40,7 @@ import net.dv8tion.jda.core.utils.PermissionUtil;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClearCommand extends Command {
+public class ClearCommand extends Command implements IModerationCommand {
 
     //TODO: Redo this
     @Override
@@ -70,7 +72,7 @@ public class ClearCommand extends Command {
                 channel.sendMessage("Deleted one message.").queue();
             } else {
 
-                if(PermissionUtil.checkPermission(channel, guild.getSelfMember(), Permission.MESSAGE_MANAGE)){
+                if (!PermissionUtil.checkPermission(channel, guild.getSelfMember(), Permission.MESSAGE_MANAGE)) {
                     throw new MessagingException("I must have the `Manage Messages` permission to delete my own messages in bulk.");
                 }
 
@@ -80,5 +82,11 @@ public class ClearCommand extends Command {
         } catch (RateLimitedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1}\n#";
+        return usage + I18n.get(guild).getString("helpClearCommand");
     }
 }

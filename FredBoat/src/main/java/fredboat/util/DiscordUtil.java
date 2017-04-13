@@ -30,10 +30,7 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.OnlineStatus;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.Role;
-import net.dv8tion.jda.core.entities.User;
+import net.dv8tion.jda.core.entities.*;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.requests.*;
 import org.json.JSONObject;
@@ -106,7 +103,9 @@ public class DiscordUtil {
     }
 
     public static boolean isUserBotCommander(Guild guild, User user) {
-        List<Role> roles = guild.getMember(user).getRoles();
+        Member member = guild.getMember(user);
+        if (member == null) return false;
+        List<Role> roles = member.getRoles();
 
         for (Role r : roles) {
             if (r.getName().equals("Bot Commander")) {

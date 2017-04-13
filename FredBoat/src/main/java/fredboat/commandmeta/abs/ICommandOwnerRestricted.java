@@ -25,6 +25,9 @@
 
 package fredboat.commandmeta.abs;
 
+/**
+ * classifies a command as only allowed for the owner of the bot to use
+ */
 public interface ICommandOwnerRestricted extends ICommand {
-    
+
 }

@@ -27,6 +27,7 @@ package fredboat;
 
 import com.sedmelluq.discord.lavaplayer.jdaudp.NativeAudioSendFactory;
 import fredboat.event.EventLogger;
+import fredboat.event.ShardWatchdogListener;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDABuilder;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
@@ -45,6 +46,7 @@ public class FredBoatBot extends FredBoat {
 
     public FredBoatBot(int shardId, EventListener listener) {
         this.shardId = shardId;
+        shardWatchdogListener = new ShardWatchdogListener();
 
         log.info("Building shard " + shardId);
 
@@ -53,6 +55,7 @@ public class FredBoatBot extends FredBoat {
             while (!success) {
                 JDABuilder builder = new JDABuilder(AccountType.BOT)
                         .addListener(new EventLogger("216689009110417408"))
+                        .addListener(shardWatchdogListener)
                         .setToken(Config.CONFIG.getBotToken())
                         .setBulkDeleteSplittingEnabled(true)
                         .setEnableShutdownHook(false);
@@ -65,7 +68,8 @@ public class FredBoatBot extends FredBoat {
                 
                 if (!System.getProperty("os.arch").equalsIgnoreCase("arm")
                         && !System.getProperty("os.arch").equalsIgnoreCase("arm-linux")
-                        && !System.getProperty("os.arch").equalsIgnoreCase("darwin")) {
+                        && !System.getProperty("os.arch").equalsIgnoreCase("darwin")
+                        && !System.getProperty("os.name").equalsIgnoreCase("Mac OS X")) {
                     builder.setAudioSendFactory(new NativeAudioSendFactory());
                 }
                 if (Config.CONFIG.getNumShards() > 1) {

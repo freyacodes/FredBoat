@@ -28,7 +28,7 @@ package fredboat.command.fun;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommand;
+import fredboat.commandmeta.abs.IFunCommand;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -38,7 +38,7 @@ import org.json.JSONObject;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class JokeCommand extends Command implements ICommand {
+public class JokeCommand extends Command implements IFunCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
@@ -64,5 +64,10 @@ public class JokeCommand extends Command implements ICommand {
         } catch (UnirestException ex) {
             Logger.getLogger(JokeCommand.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1} @<username>\n#Tell a joke about a user.";
     }
 }

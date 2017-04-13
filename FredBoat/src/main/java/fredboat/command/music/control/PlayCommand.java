@@ -27,6 +27,7 @@ package fredboat.command.music.control;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import fredboat.Config;
 import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.audio.VideoSelection;
@@ -46,6 +47,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.slf4j.LoggerFactory;
 
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -161,7 +163,7 @@ public class PlayCommand extends Command implements IMusicCommand {
             GuildPlayer player = PlayerRegistry.get(guild);
 
             //Get at most 5 tracks
-            List<AudioTrack> selectable = list.getTracks().subList(0, Math.min(4, list.getTracks().size()));
+            List<AudioTrack> selectable = list.getTracks().subList(0, Math.min(5, list.getTracks().size()));
 
             VideoSelection oldSelection = player.selections.get(invoker.getUser().getId());
             if(oldSelection != null) {
@@ -169,7 +171,7 @@ public class PlayCommand extends Command implements IMusicCommand {
             }
 
             MessageBuilder builder = new MessageBuilder();
-            builder.append(I18n.get(guild).getString("playSelectVideo"));
+            builder.append(MessageFormat.format(I18n.get(guild).getString("playSelectVideo"), Config.CONFIG.getPrefix()));
 
             int i = 1;
             for (AudioTrack track : selectable) {
@@ -192,4 +194,9 @@ public class PlayCommand extends Command implements IMusicCommand {
         }
     }
 
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1} <url> OR {0}{1} <search-term>\n#";
+        return usage + I18n.get(guild).getString("helpPlayCommand");
+    }
 }

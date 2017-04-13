@@ -27,7 +27,7 @@ package fredboat.command.moderation;
 
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommandOwnerRestricted;
+import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -36,11 +36,12 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-import java.text.MessageFormat;import java.util.ArrayList;
+import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class LanguageCommand extends Command implements ICommandOwnerRestricted {
+public class LanguageCommand extends Command implements IModerationCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
@@ -78,5 +79,11 @@ public class LanguageCommand extends Command implements ICommandOwnerRestricted 
         mb.append(I18n.get(guild).getString("langDisclaimer"));
 
         channel.sendMessage(mb.build()).queue();
+    }
+
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1} OR {0}{1} <code>\n#";
+        return usage + I18n.get(guild).getString("helpLanguageCommand");
     }
 }

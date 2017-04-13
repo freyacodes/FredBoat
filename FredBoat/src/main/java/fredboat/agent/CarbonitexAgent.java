@@ -26,9 +26,7 @@
 package fredboat.agent;
 
 import com.mashape.unirest.http.Unirest;
-import fredboat.Config;
 import fredboat.FredBoat;
-import fredboat.util.DistributionEnum;
 import org.slf4j.LoggerFactory;
 
 public class CarbonitexAgent extends Thread {
@@ -43,10 +41,6 @@ public class CarbonitexAgent extends Thread {
 
     @Override
     public void run() {
-        if (Config.CONFIG.getDistribution() != DistributionEnum.MAIN) {
-            return;
-        }
-
         try {
             while (true) {
                 synchronized (this) {
@@ -66,9 +60,9 @@ public class CarbonitexAgent extends Thread {
                     .field("key", key)
                     .field("servercount", FredBoat.getAllGuilds().size())
                     .asString().getBody();
-            log.info("Successfully posted the botdata to carbonitex.com: " + response);
+            log.info("Successfully posted the bot data to carbonitex.com: " + response);
         } catch (Exception e) {
-            log.error("An error occured while posting the botdata to carbonitex.com", e);
+            log.error("An error occurred while posting the bot data to carbonitex.com", e);
         }
     }
 

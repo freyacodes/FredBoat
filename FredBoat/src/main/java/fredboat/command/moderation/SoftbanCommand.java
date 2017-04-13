@@ -26,7 +26,9 @@
 package fredboat.command.moderation;
 
 import fredboat.Config;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.I18n;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.TextUtils;
@@ -39,7 +41,7 @@ import org.slf4j.LoggerFactory;
 import java.text.MessageFormat;
 import java.util.List;
 
-public class SoftbanCommand extends Command {
+public class SoftbanCommand extends Command implements IModerationCommand {
 
     private static final Logger log = LoggerFactory.getLogger(SoftbanCommand.class);
 
@@ -47,7 +49,8 @@ public class SoftbanCommand extends Command {
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         //Ensure we have a search term
         if(args.length == 1){
-            channel.sendMessage(I18n.get(guild).getString("softbanUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix())).queue();
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
 
@@ -121,4 +124,9 @@ public class SoftbanCommand extends Command {
         return top.getPosition();
     }
 
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1} <user>\n#";
+        return usage + I18n.get(guild).getString("helpSoftbanCommand");
+    }
 }

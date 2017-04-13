@@ -27,7 +27,7 @@ package fredboat.command.admin;
 
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommandOwnerRestricted;
+import fredboat.commandmeta.abs.ICommandAdminRestricted;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -38,7 +38,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
  *
  * @author frederik
  */
-public class ReviveCommand extends Command implements ICommandOwnerRestricted {
+public class ReviveCommand extends Command implements ICommandAdminRestricted {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
@@ -48,4 +48,8 @@ public class ReviveCommand extends Command implements ICommandOwnerRestricted {
         FredBoat.getInstance(shardId).revive();
     }
 
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1} <shardId>\n#Revive the specified shard.";
+    }
 }

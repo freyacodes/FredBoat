@@ -23,12 +23,13 @@
  *
  */
 
-package fredboat.command.admin;
+package fredboat.command.maintenance;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.remote.RemoteNode;
 import fredboat.audio.AbstractPlayer;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -39,7 +40,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.util.List;
 
-public class NodesCommand extends Command {
+public class NodesCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
@@ -81,5 +82,10 @@ public class NodesCommand extends Command {
 
         mb.append("```");
         channel.sendMessage(mb.build()).queue();
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1} OR {0}{1} host\n#Show information about the connected lava nodes.";
     }
 }

@@ -29,19 +29,19 @@ import java.util.List;
 
 public abstract class AbstractTrackProvider implements ITrackProvider {
 
-    private boolean repeat = false;
+    private RepeatMode repeatMode = RepeatMode.OFF;
     private boolean shuffle = false;
 
-    public boolean isRepeat() {
-        return repeat;
+    public RepeatMode getRepeatMode() {
+        return repeatMode;
     }
 
     public boolean isShuffle() {
         return shuffle;
     }
 
-    public void setRepeat(boolean repeat) {
-        this.repeat = repeat;
+    public void setRepeatMode(RepeatMode repeatMode) {
+        this.repeatMode = repeatMode;
     }
 
     public void setShuffle(boolean shuffle) {

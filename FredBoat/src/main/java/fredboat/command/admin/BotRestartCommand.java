@@ -52,4 +52,8 @@ public class BotRestartCommand extends Command implements ICommandOwnerRestricte
         FredBoat.shutdown(ExitCodes.EXIT_CODE_RESTART);
     }
 
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1}\n#Restarts the bot.";
+    }
 }

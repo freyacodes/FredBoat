@@ -25,7 +25,9 @@
 
 package fredboat.command.util;
 
+import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.util.BrainfuckException;
 import fredboat.util.TextUtils;
@@ -37,7 +39,7 @@ import net.dv8tion.jda.core.entities.TextChannel;
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 
-public class BrainfuckCommand extends Command {
+public class BrainfuckCommand extends Command implements IUtilCommand {
 
     ByteBuffer bytes = null;
     char[] code;
@@ -114,6 +116,13 @@ public class BrainfuckCommand extends Command {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+
+        if (args.length == 1) {
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+            return;
+        }
+
         code = message.getContent().replaceFirst(args[0], "").toCharArray();
         bytes = ByteBuffer.allocateDirect(1024 * 1024 * 8);
         String inputArg = "";
@@ -136,8 +145,14 @@ public class BrainfuckCommand extends Command {
         try {
             TextUtils.replyWithName(channel, invoker, " " + out + "\n-------\n" + out2.substring(1));
         } catch (IndexOutOfBoundsException ex) {
-TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("brainfuckNoOutput"));
+            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("brainfuckNoOutput"));
         }
     }
 
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1} <code> [input]\n#";
+        String example = " {0}{1} ,.+.+. a";
+        return usage + I18n.get(guild).getString("helpBrainfuckCommand") + example;
+    }
 }

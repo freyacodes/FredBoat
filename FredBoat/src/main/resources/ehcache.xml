@@ -44,7 +44,7 @@
 
     <cache
             name="guild_config"
-            maxElementsInMemory="20000"
+            maxElementsInMemory="120000"
             eternal="false"
             timeToIdleSeconds="60"
             timeToLiveSeconds="120"

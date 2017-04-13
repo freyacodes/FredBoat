@@ -28,8 +28,9 @@ package fredboat.command.fun;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommand;
+import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.event.EventListenerBoat;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
@@ -45,7 +46,7 @@ import java.net.URLEncoder;
  *
  * @author frederik
  */
-public class LeetCommand extends Command implements ICommand {
+public class LeetCommand extends Command implements IFunCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
@@ -53,7 +54,8 @@ public class LeetCommand extends Command implements ICommand {
         channel.sendTyping().queue();
 
         if(args.length < 2) {
-            channel.sendMessage("Proper usage: " + Config.CONFIG.getPrefix() + "leet <text>").queue();
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
 
@@ -78,5 +80,9 @@ public class LeetCommand extends Command implements ICommand {
 
         EventListenerBoat.messagesToDeleteIfIdDeleted.put(message.getId(), myMsg);
     }
-    
+
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1} <text>\n#Make you sound like a script kiddie.";
+    }
 }

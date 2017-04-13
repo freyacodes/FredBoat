@@ -26,6 +26,7 @@ package fredboat.command.util;
 
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.event.EventListenerBoat;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
@@ -38,19 +39,16 @@ import net.dv8tion.jda.core.exceptions.RateLimitedException;
  *
  * @author frederik
  */
-public class SayCommand extends Command {
+public class SayCommand extends Command implements IUtilCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         if (args.length < 2) {
-            channel.sendMessage(I18n.get(guild).getString("sayUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix())).queue();
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
-        String res = "";
-        for (int i = 1; i < args.length; i++) {
-            res = res+" "+args[i];
-        }
-        res = res.substring(1);
+        String res = message.getRawContent().substring(args[0].length() + 1);
         Message myMsg;
         try {
             myMsg = channel.sendMessage('\u200b' + res).complete(true);
@@ -60,5 +58,10 @@ public class SayCommand extends Command {
             throw new RuntimeException(e);
         }
     }
-    
+
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1} <text>\n#";
+        return usage + I18n.get(guild).getString("helpSayCommand");
+    }
 }

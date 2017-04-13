@@ -57,6 +57,10 @@ public class CompileCommand extends Command implements ICommandOwnerRestricted {
             if (args.length > 1) {
                 branch = args[1];
             }
+            String githubUser = "Frederikam";
+            if (args.length > 2) {
+                githubUser = args[2];
+            }
 
             //Clear any old update folder if it is still present
             try {
@@ -66,7 +70,7 @@ public class CompileCommand extends Command implements ICommandOwnerRestricted {
                 throw new RuntimeException(ex);
             }
 
-            Process gitClone = rt.exec("git clone https://github.com/Frederikam/FredBoat.git --branch " + branch + " --recursive --single-branch update");
+            Process gitClone = rt.exec("git clone https://github.com/" + githubUser + "/FredBoat.git --branch " + branch + " --recursive --single-branch update");
             new SLF4JInputStreamLogger(log, gitClone.getInputStream()).start();
             new SLF4JInputStreamErrorLogger(log, gitClone.getInputStream()).start();
 
@@ -101,5 +105,10 @@ public class CompileCommand extends Command implements ICommandOwnerRestricted {
         } catch (InterruptedException | IOException | RateLimitedException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1} [branch [repo]]\n#Update the bot by checking out the provided branch from the provided github repo and compiling it. Default github repo is Frederikam, default branch is master. Does not restart the bot.";
     }
 }

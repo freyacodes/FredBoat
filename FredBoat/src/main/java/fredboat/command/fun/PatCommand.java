@@ -25,6 +25,7 @@
 
 package fredboat.command.fun;
 
+import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
@@ -32,27 +33,38 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-public class PatCommand extends RandomImageCommand {
+import java.text.MessageFormat;
+
+public class PatCommand extends RandomImageCommand implements IFunCommand {
 
     public PatCommand(String[] urls) {
         super(urls);
     }
 
-    @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        super.onInvoke(guild, channel, invoker, message, args);
-
-        if (message.getMentionedUsers().size() > 0) {
-            if (message.getMentionedUsers().get(0) == guild.getJDA().getSelfUser()) {
-                channel.sendMessage(I18n.get(guild).getString("patBot")).queue();
-            } else {
-                channel.sendMessage(new MessageBuilder()
-                        .append(I18n.get(guild).getString("patSuccess"))
-                        .append(message.getMentionedUsers().get(0))
-                        .append("_")
-                        .build()).queue();
-            }
-        }
+    public PatCommand(String imgurAlbumUrl) {
+        super(imgurAlbumUrl);
     }
 
+    @Override
+    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+
+        Message patMessage = null;
+        if (message.getMentionedUsers().size() > 0) {
+            if (message.getMentionedUsers().get(0) == guild.getJDA().getSelfUser()) {
+                patMessage = new MessageBuilder().append(I18n.get(guild).getString("patBot")).build();
+            } else {
+                patMessage = new MessageBuilder()
+                        .append("_")
+                        .append(MessageFormat.format(I18n.get(guild).getString("patSuccess"), message.getMentionedUsers().get(0).getAsMention()))
+                        .append("_")
+                        .build();
+            }
+        }
+        super.sendRandomFileWithMessage(channel, patMessage);
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1} @<username>\n#Pat someone.";
+    }
 }

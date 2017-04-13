@@ -26,6 +26,8 @@
 package fredboat.agent;
 
 import fredboat.FredBoat;
+import fredboat.audio.GuildPlayer;
+import fredboat.audio.PlayerRegistry;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.VoiceChannel;
@@ -33,12 +35,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class VoiceChannelCleanupAgent extends Thread {
 
     private static final Logger log = LoggerFactory.getLogger(VoiceChannelCleanupAgent.class);
+    private static final HashMap<String, Long> VC_LAST_USED = new HashMap<>();
     private static final int CLEANUP_INTERVAL_MILLIS = 60000 * 5;
+    private static final int UNUSED_CLEANUP_THRESHOLD = 60000 * 15; // Effective when users are in the VC, but the player is not playing
 
     public VoiceChannelCleanupAgent() {
         super("voice-cleanup");
@@ -66,7 +71,6 @@ public class VoiceChannelCleanupAgent extends Thread {
     }
 
     private void cleanup(){
-        log.info("Began doing voice channel cleanup.");
         List<Guild> guilds = FredBoat.getAllGuilds();
         log.info("Checking " + guilds.size() + " guilds for stale voice connections.");
 
@@ -78,10 +82,30 @@ public class VoiceChannelCleanupAgent extends Thread {
                     && guild.getSelfMember() != null
                     && guild.getSelfMember().getVoiceState() != null
                     && guild.getSelfMember().getVoiceState().getChannel() != null) {
+
                 total++;
-                if (getHumanMembersInVC(guild.getSelfMember().getVoiceState().getChannel()).size() == 0){
+                VoiceChannel vc = guild.getSelfMember().getVoiceState().getChannel();
+
+                if (getHumanMembersInVC(vc).size() == 0){
                     closed++;
                     guild.getAudioManager().closeAudioConnection();
+                    VC_LAST_USED.remove(vc.getId());
+                } else if(isBeingUsed(vc)) {
+                    VC_LAST_USED.put(vc.getId(), System.currentTimeMillis());
+                } else {
+                    // Not being used! But there are users in te VC. Check if we've been here for a while.
+
+                    if(!VC_LAST_USED.containsKey(vc.getId())) {
+                        VC_LAST_USED.put(vc.getId(), System.currentTimeMillis());
+                    }
+
+                    long lastUsed = VC_LAST_USED.get(vc.getId());
+
+                    if (System.currentTimeMillis() - lastUsed > UNUSED_CLEANUP_THRESHOLD) {
+                        closed++;
+                        guild.getAudioManager().closeAudioConnection();
+                        VC_LAST_USED.remove(vc.getId());
+                    }
                 }
             }
         }
@@ -99,6 +123,12 @@ public class VoiceChannelCleanupAgent extends Thread {
         }
 
         return l;
+    }
+
+    private boolean isBeingUsed(VoiceChannel vc) {
+        GuildPlayer guildPlayer = PlayerRegistry.getExisting(vc.getGuild());
+
+        return guildPlayer != null && guildPlayer.isPlaying();
     }
 
 }

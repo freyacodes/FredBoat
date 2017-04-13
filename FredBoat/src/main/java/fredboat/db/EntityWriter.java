@@ -49,6 +49,7 @@ public class EntityWriter {
         em.merge(entity);
 
         em.getTransaction().commit();
+        em.close();
     }
 
 }

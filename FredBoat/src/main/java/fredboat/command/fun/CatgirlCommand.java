@@ -25,11 +25,11 @@
 
 package fredboat.command.fun;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
+import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.feature.I18n;
 import fredboat.util.CacheUtil;
+import fredboat.util.CloudFlareScraper;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -49,21 +49,28 @@ public class CatgirlCommand extends Command {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         channel.sendTyping().queue();
+        FredBoat.executor.submit(() -> postCatgirl(guild, channel));
+    }
+
+    private void postCatgirl(Guild guild, TextChannel channel) {
         try {
-            String str = Unirest.get(BASE_URL).asString().getBody();
+            String str = CloudFlareScraper.get(BASE_URL);
             Matcher m = IMAGE_PATTERN.matcher(str);
 
-            if(!m.find()){
+            if (!m.find()) {
                 channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("catgirlFail"), BASE_URL)).queue();
                 return;
             }
 
             File tmp = CacheUtil.getImageFromURL(BASE_URL + m.group(1));
             channel.sendFile(tmp, null).queue();
-        } catch (UnirestException e) {
-            channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("catgirlFailConn"), BASE_URL)).queue();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1}\n#Post a catgirl pic.";
     }
 }

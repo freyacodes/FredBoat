@@ -23,10 +23,12 @@
  *
  */
 
-package fredboat.command.util;
+package fredboat.command.maintenance;
 
 import fredboat.Config;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.feature.I18n;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.TextUtils;
@@ -37,17 +39,19 @@ import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.util.List;
 
-public class FuzzyUserSearchCommand extends Command {
+public class FuzzyUserSearchCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         if(args.length == 1){
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("fuzzyUsage").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()));
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
         } else {
             List<Member> list = ArgumentUtil.fuzzyMemberSearch(guild, args[1]);
 
             if(list.isEmpty()){
                 TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("fuzzyNoResults"));
+                return;
             }
 
             String msg = "```\n";
@@ -59,5 +63,10 @@ public class FuzzyUserSearchCommand extends Command {
 
             TextUtils.replyWithName(channel, invoker, msg);
         }
+    }
+
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1} <term>\n#Fuzzy search for users in this guild.";
     }
 }

@@ -29,9 +29,11 @@ import fredboat.Config;
 import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -55,6 +57,7 @@ public class SkipCommand extends Command implements IMusicCommand {
         player.setCurrentTC(channel);
         if (player.isQueueEmpty()) {
             channel.sendMessage(I18n.get(guild).getString("skipEmpty")).queue();
+            return;
         }
 
         if(args.length == 1){
@@ -64,7 +67,8 @@ public class SkipCommand extends Command implements IMusicCommand {
         } else if (args.length == 2 && trackRangePattern.matcher(args[1]).matches()){
             skipInRange(player, channel, invoker, args);
         } else {
-            channel.sendMessage(I18n.get(guild).getString("skipInvalidArgCount").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix())).queue();
+            String command = args[0].substring(Config.CONFIG.getPrefix().length());
+            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
         }
     }
 
@@ -95,14 +99,24 @@ public class SkipCommand extends Command implements IMusicCommand {
 
     private void skipInRange(GuildPlayer player, TextChannel channel, Member invoker, String[] args) {
         Matcher trackMatch = trackRangePattern.matcher(args[1]);
+        if (!trackMatch.find()) return;
 
-        int startTrackIndex = Integer.parseInt(trackMatch.group(1));
-        int endTrackIndex = Integer.parseInt(trackMatch.group(2));
+        int startTrackIndex, endTrackIndex;
+        String tmp = "";
+        try {
+            tmp = trackMatch.group(1);
+            startTrackIndex = Integer.parseInt(tmp);
+            tmp = trackMatch.group(2);
+            endTrackIndex = Integer.parseInt(tmp);
+        } catch (NumberFormatException e) {
+            channel.sendMessage(MessageFormat.format(I18n.get(channel.getGuild()).getString("skipOutOfBounds"), tmp, player.getRemainingTracks().size())).queue();
+            return;
+        }
 
         if (startTrackIndex < 1) {
             channel.sendMessage(I18n.get(channel.getGuild()).getString("skipNumberTooLow")).queue();
             return;
-        } else if (endTrackIndex <= startTrackIndex) {
+        } else if (endTrackIndex < startTrackIndex) {
             channel.sendMessage(I18n.get(channel.getGuild()).getString("skipRangeInvalid")).queue();
             return;
         } else if (player.getRemainingTracks().size() < endTrackIndex) {
@@ -115,12 +129,14 @@ public class SkipCommand extends Command implements IMusicCommand {
             //Add the currently playing track
             tracks.add(player.getPlayingTrack());
         }
-        tracks.addAll(player.getAudioTrackProvider().getInRange(startTrackIndex - 1, endTrackIndex - 2));
+        tracks.addAll(player.getAudioTrackProvider().getInRange(startTrackIndex - 2, endTrackIndex - 2));
 
         Pair<Boolean, String> pair = player.skipTracksForMemberPerms(channel, invoker, tracks);
 
         if(pair.getLeft()) {
-            channel.sendMessage(MessageFormat.format(I18n.get(channel.getGuild()).getString("skipRangeSuccess"), startTrackIndex, endTrackIndex)).queue();
+            channel.sendMessage(MessageFormat.format(I18n.get(channel.getGuild()).getString("skipRangeSuccess"),
+                    TextUtils.forceNDigits(startTrackIndex, 2),
+                    TextUtils.forceNDigits(endTrackIndex, 2))).queue();
         }
     }
 
@@ -137,4 +153,9 @@ public class SkipCommand extends Command implements IMusicCommand {
         }
     }
 
+    @Override
+    public String help(Guild guild) {
+        String usage = "{0}{1} OR {0}{1} n OR {0}{1} n-m\n#";
+        return usage + I18n.get(guild).getString("helpSkipCommand");
+    }
 }

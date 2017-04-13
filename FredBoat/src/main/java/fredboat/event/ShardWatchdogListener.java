@@ -23,19 +23,33 @@
  *
  */
 
-package fredboat.command.util;
+package fredboat.event;
 
-import fredboat.commandmeta.MessagingException;
-import fredboat.commandmeta.abs.Command;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.events.Event;
+import net.dv8tion.jda.core.hooks.EventListener;
 
-public class LuaCommand extends Command {
+public class ShardWatchdogListener implements EventListener {
+
+    private Event lastEvent = null;
+    private long lastEventTime = System.currentTimeMillis();
+    private long eventCount = 0;
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        throw new MessagingException("The ;;lua command is permanently disabled and will be removed at a later date.");
+    public void onEvent(Event event) {
+        lastEvent = event;
+        lastEventTime = System.currentTimeMillis();
+        eventCount++;
+    }
+
+    public Event getLastEvent() {
+        return lastEvent;
+    }
+
+    public long getLastEventTime() {
+        return lastEventTime;
+    }
+
+    public long getEventCount() {
+        return eventCount;
     }
 }
