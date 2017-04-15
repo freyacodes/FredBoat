@@ -74,7 +74,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     public void loadAsync(IdentifierContext ic) {
         identifierQueue.add(ic);
-        FredBoat.executor.submit(() -> announceIfPlaylist(ic));
+        FredBoat.executor.submit(() -> announceIfLongPlaylist(ic));
         if (!isLoading) {
             loadNextAsync();
         }
@@ -107,14 +107,14 @@ public class AudioLoader implements AudioLoadResultHandler {
     /**
      * If the requested item is a playlist that we know of, announce to the user that it might take a while to gather it.
      */
-    private void announceIfPlaylist(IdentifierContext ic) {
+    private void announceIfLongPlaylist(IdentifierContext ic) {
         PlaylistInfo playlistInfo = getPlaylistData(ic.identifier);
-        if (playlistInfo != null) {
-            //inform user we are possibly about to do nasty time consuming work
-            if (playlistInfo.getTotalTracks() > 10) //arbitrary chosen number
-                TextUtils.replyWithName(gplayer.getActiveTextChannel(), ic.getMember(),
-                        MessageFormat.format(I18n.get(ic.getMember().getGuild()).getString("loadAnnouncePlaylist"), playlistInfo.getName(), playlistInfo.getTotalTracks()));
-
+        //inform user we are possibly about to do nasty time consuming work
+        if (playlistInfo != null && playlistInfo.getTotalTracks() > 50) {
+            String out = MessageFormat.format(I18n.get(ic.getMember().getGuild()).getString("loadAnnouncePlaylist"),
+                    playlistInfo.getName(),
+                    playlistInfo.getTotalTracks());
+            TextUtils.replyWithName(gplayer.getActiveTextChannel(), ic.getMember(), out);
         }
     }
 
