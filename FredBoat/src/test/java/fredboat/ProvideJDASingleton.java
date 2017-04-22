@@ -1,5 +1,6 @@
 package fredboat;
 
+import fredboat.db.DatabaseManager;
 import fredboat.util.BotConstants;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.AccountType;
@@ -121,6 +122,7 @@ public abstract class ProvideJDASingleton {
             testChannel.sendMessage(eb.build()).complete();
 
             jda.shutdown(true);
+            DatabaseManager.shutdown();
         }
     };
 

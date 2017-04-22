@@ -28,6 +28,7 @@ package fredboat;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDABuilder;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
+import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,4 +58,8 @@ public class FredBoatClient extends FredBoat {
         }
     }
 
+    @Override
+    public void revive() {
+        throw new NotImplementedException("Client shards can't be revived");
+    }
 }

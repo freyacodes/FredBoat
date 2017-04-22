@@ -175,7 +175,11 @@ public class Config {
             // hikariPoolSize = numShards * 2;
             //more database connections don't help with performance, so use a value based on available cores
             //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
-            hikariPoolSize = Runtime.getRuntime().availableProcessors() * 2;
+            if (jdbcUrl == null || "".equals(jdbcUrl))
+                //more than one connection for the fallback sqlite db is problematic as there is currently (2017-04-16)
+                // no supported way in the custom driver and/or dialect to set lock timeouts
+                hikariPoolSize = 1;
+            else hikariPoolSize = Runtime.getRuntime().availableProcessors() * 2;
             log.info("Hikari max pool size set to " + hikariPoolSize);
 
             imgurClientId = (String) creds.getOrDefault("imgurClientId", "");
@@ -252,7 +256,7 @@ public class Config {
         return oauthSecret;
     }
 
-    String getJdbcUrl() {
+    public String getJdbcUrl() {
         return jdbcUrl;
     }
 

@@ -83,7 +83,7 @@ public class AudioLoader implements AudioLoadResultHandler {
                 context = ic;
 
                 if (gplayer.getRemainingTracks().size() >= QUEUE_TRACK_LIMIT) {
-                    TextUtils.replyWithName(gplayer.getActiveTextChannel(), context.member, "You can't add tracks to a queue with more than " + QUEUE_TRACK_LIMIT + " tracks! This is to prevent abuse.");
+                    TextUtils.replyWithName(gplayer.getActiveTextChannel(), context.getMember(), "You can't add tracks to a queue with more than " + QUEUE_TRACK_LIMIT + " tracks! This is to prevent abuse.");
                     isLoading = false;
                     return;
                 }
@@ -106,11 +106,11 @@ public class AudioLoader implements AudioLoadResultHandler {
             } else {
 
                 if (!context.isQuiet()) {
-                    context.textChannel.sendMessage(
+                    context.getTextChannel().sendMessage(
                             gplayer.isPlaying() ?
-                                    MessageFormat.format(I18n.get(context.member.getGuild()).getString("loadSingleTrack"), at.getInfo().title)
+                                    MessageFormat.format(I18n.get(context.getMember().getGuild()).getString("loadSingleTrack"), at.getInfo().title)
                                     :
-                                    MessageFormat.format(I18n.get(context.member.getGuild()).getString("loadSingleTrackAndPlay"), at.getInfo().title)
+                                    MessageFormat.format(I18n.get(context.getMember().getGuild()).getString("loadSingleTrackAndPlay"), at.getInfo().title)
                     ).queue();
                 } else {
                     log.info("Quietly loaded " + at.getIdentifier());
@@ -118,7 +118,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
                 at.setPosition(context.getPosition());
 
-                trackProvider.add(new AudioTrackContext(at, context.member));
+                trackProvider.add(new AudioTrackContext(at, context.getMember()));
                 if (!gplayer.isPaused()) {
                     gplayer.play();
                 }
@@ -133,17 +133,17 @@ public class AudioLoader implements AudioLoadResultHandler {
     public void playlistLoaded(AudioPlaylist ap) {
         try {
             if(context.isSplit()){
-                TextUtils.replyWithName(context.textChannel, context.member, I18n.get(context.textChannel.getGuild()).getString("loadPlaySplitListFail"));
+                TextUtils.replyWithName(context.getTextChannel(), context.getMember(), I18n.get(context.getTextChannel().getGuild()).getString("loadPlaySplitListFail"));
                 loadNextAsync();
                 return;
             }
 
-            context.textChannel.sendMessage(
-                    MessageFormat.format(I18n.get(context.textChannel.getGuild()).getString("loadListSuccess"), ap.getTracks().size(), ap.getName())
+            context.getTextChannel().sendMessage(
+                    MessageFormat.format(I18n.get(context.getTextChannel().getGuild()).getString("loadListSuccess"), ap.getTracks().size(), ap.getName())
             ).queue();
 
             for (AudioTrack at : ap.getTracks()) {
-                trackProvider.add(new AudioTrackContext(at, context.member));
+                trackProvider.add(new AudioTrackContext(at, context.getMember()));
             }
             if (!gplayer.isPaused()) {
                 gplayer.play();
@@ -157,7 +157,7 @@ public class AudioLoader implements AudioLoadResultHandler {
     @Override
     public void noMatches() {
         try {
-            context.textChannel.sendMessage(MessageFormat.format(I18n.get(context.textChannel.getGuild()).getString("loadNoMatches"), context.identifier)).queue();
+            context.getTextChannel().sendMessage(MessageFormat.format(I18n.get(context.getTextChannel().getGuild()).getString("loadNoMatches"), context.identifier)).queue();
         } catch (Throwable th) {
             handleThrowable(context, th);
         }
@@ -173,7 +173,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     private void loadSplit(AudioTrack at, IdentifierContext ic){
         if(!(at instanceof YoutubeAudioTrack)){
-            ic.textChannel.sendMessage(I18n.get(ic.textChannel.getGuild()).getString("loadSplitNotYouTube")).queue();
+            ic.getTextChannel().sendMessage(I18n.get(ic.getTextChannel().getGuild()).getString("loadSplitNotYouTube")).queue();
             return;
         }
         YoutubeAudioTrack yat = (YoutubeAudioTrack) at;
@@ -205,7 +205,7 @@ public class AudioLoader implements AudioLoadResultHandler {
         }
 
         if(pairs.size() < 2) {
-            ic.textChannel.sendMessage(I18n.get(ic.textChannel.getGuild()).getString("loadSplitNotResolves")).queue();
+            ic.getTextChannel().sendMessage(I18n.get(ic.getTextChannel().getGuild()).getString("loadSplitNotResolves")).queue();
             return;
         }
 
@@ -229,7 +229,7 @@ public class AudioLoader implements AudioLoadResultHandler {
             AudioTrack newAt = at.makeClone();
             newAt.setPosition(startPos);
 
-            SplitAudioTrackContext atc = new SplitAudioTrackContext(newAt, ic.member, startPos, endPos, pair.getRight());
+            SplitAudioTrackContext atc = new SplitAudioTrackContext(newAt, ic.getMember(), startPos, endPos, pair.getRight());
 
             list.add(atc);
             gplayer.queue(atc);
@@ -238,7 +238,7 @@ public class AudioLoader implements AudioLoadResultHandler {
         }
 
         MessageBuilder mb = new MessageBuilder()
-                .append(I18n.get(ic.textChannel.getGuild()).getString("loadFollowingTracksAdded") + "\n");
+                .append(I18n.get(ic.getTextChannel().getGuild()).getString("loadFollowingTracksAdded") + "\n");
         for(SplitAudioTrackContext atc : list) {
             mb.append("`[")
                     .append(TextUtils.formatTime(atc.getEffectiveDuration()))
@@ -250,10 +250,10 @@ public class AudioLoader implements AudioLoadResultHandler {
         //This is pretty spammy .. let's use a shorter one
         if(mb.length() > 800){
             mb = new MessageBuilder()
-                    .append(MessageFormat.format(I18n.get(ic.textChannel.getGuild()).getString("loadPlaylistTooMany"), list.size()));
+                    .append(MessageFormat.format(I18n.get(ic.getTextChannel().getGuild()).getString("loadPlaylistTooMany"), list.size()));
         }
 
-        context.textChannel.sendMessage(mb.build()).queue();
+        context.getTextChannel().sendMessage(mb.build()).queue();
 
     }
 
@@ -263,21 +263,21 @@ public class AudioLoader implements AudioLoadResultHandler {
             if (th instanceof FriendlyException) {
                 FriendlyException fe = (FriendlyException) th;
                 if (fe.severity == FriendlyException.Severity.COMMON) {
-                    if (ic.textChannel != null) {
-                        context.textChannel.sendMessage(MessageFormat.format(I18n.get(ic.textChannel.getGuild()).getString("loadErrorCommon"), context.identifier, fe.getMessage())).queue();
+                    if (ic.getTextChannel() != null) {
+                        context.getTextChannel().sendMessage(MessageFormat.format(I18n.get(ic.getTextChannel().getGuild()).getString("loadErrorCommon"), context.identifier, fe.getMessage())).queue();
                     } else {
                         log.error("Error while loading track ", th);
                     }
-                } else if (ic.textChannel != null) {
-                    context.textChannel.sendMessage(MessageFormat.format(I18n.get(ic.textChannel.getGuild()).getString("loadErrorSusp"), context.identifier)).queue();
+                } else if (ic.getTextChannel() != null) {
+                    context.getTextChannel().sendMessage(MessageFormat.format(I18n.get(ic.getTextChannel().getGuild()).getString("loadErrorSusp"), context.identifier)).queue();
                     Throwable exposed = fe.getCause() == null ? fe : fe.getCause();
-                    TextUtils.handleException(exposed, context.textChannel);
+                    TextUtils.handleException(exposed, context.getTextChannel());
                 } else {
                     log.error("Error while loading track ", th);
                 }
-            } else if (ic.textChannel != null) {
-                context.textChannel.sendMessage(I18n.get(ic.textChannel.getGuild()).getString("loadErrorSusp")).queue();
-                TextUtils.handleException(th, context.textChannel);
+            } else if (ic.getTextChannel() != null) {
+                context.getTextChannel().sendMessage(I18n.get(ic.getTextChannel().getGuild()).getString("loadErrorSusp")).queue();
+                TextUtils.handleException(th, context.getTextChannel());
             } else {
                 log.error("Error while loading track ", th);
             }

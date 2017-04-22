@@ -35,6 +35,7 @@ import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import org.apache.commons.lang3.StringEscapeUtils;
 
+//TODO fix JCA and reintroduce this command
 public class TalkCommand extends Command implements IFunCommand {
 
     @Override

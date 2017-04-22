@@ -43,12 +43,17 @@ public class DatabaseManager {
     private static final Logger log = LoggerFactory.getLogger(DatabaseManager.class);
     
     private static EntityManagerFactory emf;
+    private static Session sshTunnel;
     public static DatabaseState state = DatabaseState.UNINITIALIZED;
 
     //local port, if using SSH tunnel point your jdbc to this, e.g. jdbc:postgresql://localhost:9333/...
     private static final int SSH_TUNNEL_PORT = 9333;
 
-    public static void startup(String jdbcUrl) {
+    /**
+     * @param jdbcUrl connection to the database
+     * @param dialect set to null or empty String to have it autodetected by Hibernate, chosen jdbc driver must support that
+     */
+    public static void startup(String jdbcUrl, String dialect, int poolSize) {
         state = DatabaseState.INITIALIZING;
 
         try {
@@ -63,14 +68,16 @@ public class DatabaseManager {
 
             properties.put("hibernate.connection.provider_class", "org.hibernate.hikaricp.internal.HikariCPConnectionProvider");
             properties.put("hibernate.connection.url", jdbcUrl);
+            if (dialect != null && !"".equals(dialect)) properties.put("hibernate.dialect", dialect);
             properties.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
 
             //properties.put("hibernate.show_sql", "true");
 
-            //automatically create the tables we need
+            //automatically update the tables we need
+            //caution: only add new columns, don't remove or alter old ones, otherwise manual db table migration needed
             properties.put("hibernate.hbm2ddl.auto", "update");
 
-            properties.put("hibernate.hikari.maximumPoolSize", Integer.toString(Config.CONFIG.getHikariPoolSize()));
+            properties.put("hibernate.hikari.maximumPoolSize", Integer.toString(poolSize));
             properties.put("hibernate.hikari.idleTimeout", Integer.toString(Config.HIKARI_TIMEOUT_MILLISECONDS));
 
 
@@ -123,6 +130,8 @@ public class DatabaseManager {
                     Config.CONFIG.getForwardToPort()
             );
 
+            sshTunnel = session;
+
             log.info("localhost:" + assignedPort + " -> " + sshHost + ":" + Config.CONFIG.getForwardToPort());
             log.info("Port Forwarded");
         } catch (Exception e) {
@@ -143,11 +152,21 @@ public class DatabaseManager {
     }
 
     public enum DatabaseState {
-        DISABLED, //When no JDBC URL is given
+        DISABLED, //When no JDBC URL is given TODO not true anymore with the fallback SQLite db
         UNINITIALIZED,
         INITIALIZING,
         FAILED,
         READY
+    }
+
+    public static void shutdown() {
+        log.info("DatabaseManager shutdown call received, shutting down");
+        state = DatabaseState.DISABLED;
+        if (sshTunnel != null)
+            sshTunnel.disconnect();
+
+        if (emf != null && emf.isOpen())
+            emf.close();
     }
 
     private static class JSchLogger implements com.jcraft.jsch.Logger {

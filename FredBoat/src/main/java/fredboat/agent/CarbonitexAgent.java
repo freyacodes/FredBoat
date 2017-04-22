@@ -42,6 +42,7 @@ public class CarbonitexAgent extends Thread {
     @Override
     public void run() {
         try {
+            //noinspection InfiniteLoopStatement
             while (true) {
                 synchronized (this) {
                     sendStats();

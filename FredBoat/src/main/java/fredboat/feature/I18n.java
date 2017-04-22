@@ -77,7 +77,7 @@ public class I18n {
     }
 
     public static ResourceBundle get(Guild guild) {
-        if(DatabaseManager.state != DatabaseManager.DatabaseState.READY){
+        if (DatabaseManager.state != DatabaseManager.DatabaseState.READY || guild == null) {
             return DEFAULT.getProps();
         }
 

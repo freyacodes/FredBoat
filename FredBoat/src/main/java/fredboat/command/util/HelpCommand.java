@@ -40,10 +40,17 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 
 public class HelpCommand extends Command implements IMusicBackupCommand, IUtilCommand {
+
+    //This can be set using eval in case we need to change it in the future ~Fre_d
+    public static String inviteLink = "https://discord.gg/cgPFW4q";
+
+    private static final Logger log = LoggerFactory.getLogger(HelpCommand.class);
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
@@ -70,15 +77,13 @@ public class HelpCommand extends Command implements IMusicBackupCommand, IUtilCo
                 throw new RuntimeException(e);
             }
         }
-        invoker.getUser().getPrivateChannel().sendMessage(I18n.get(guild).getString("helpDM")).queue();
+        invoker.getUser().getPrivateChannel().sendMessage(getHelpDmMsg(guild)).queue();
         String out = I18n.get(guild).getString("helpSent");
         out += "\n" + MessageFormat.format(I18n.get(guild).getString("helpCommandsPromotion"), "`" + Config.CONFIG.getPrefix() + "commands`");
         TextUtils.replyWithName(channel, invoker, out);
     }
 
     public static String getFormattedCommandHelp(Guild guild, Command command, String commandOrAlias) {
-
-
         String helpStr = command.help(guild);
         //some special needs
         //to display helpful information on some commands: thirdParam = {2} in the language resources
@@ -110,5 +115,9 @@ public class HelpCommand extends Command implements IMusicBackupCommand, IUtilCo
         out = TextUtils.asMarkdown(out);
         out = I18n.get(guild).getString("helpProperUsage") + out;
         TextUtils.replyWithName(channel, invoker, out);
+    }
+
+    public static String getHelpDmMsg(Guild guild) {
+        return MessageFormat.format(I18n.get(guild).getString("helpDM"), inviteLink);
     }
 }

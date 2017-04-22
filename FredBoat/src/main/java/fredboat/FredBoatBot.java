@@ -26,9 +26,11 @@
 package fredboat;
 
 import com.sedmelluq.discord.lavaplayer.jdaudp.NativeAudioSendFactory;
+import fredboat.audio.PlayerRegistry;
 import fredboat.event.EventLogger;
 import fredboat.event.ShardWatchdogListener;
 import net.dv8tion.jda.core.AccountType;
+import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.hooks.EventListener;
@@ -39,6 +41,7 @@ public class FredBoatBot extends FredBoat {
 
     private static final Logger log = LoggerFactory.getLogger(FredBoatBot.class);
     private final int shardId;
+    private final EventListener listener;
 
     public FredBoatBot(int shardId) {
         this(shardId, null);
@@ -46,26 +49,32 @@ public class FredBoatBot extends FredBoat {
 
     public FredBoatBot(int shardId, EventListener listener) {
         this.shardId = shardId;
+        this.listener = listener;
+        log.info("Building shard " + shardId);
+        jda = buildJDA();
+    }
+
+    private JDA buildJDA() {
         shardWatchdogListener = new ShardWatchdogListener();
 
-        log.info("Building shard " + shardId);
+        JDA newJda = null;
 
         try {
             boolean success = false;
             while (!success) {
                 JDABuilder builder = new JDABuilder(AccountType.BOT)
-                        .addListener(new EventLogger("216689009110417408"))
-                        .addListener(shardWatchdogListener)
+                        .addEventListener(new EventLogger("216689009110417408"))
+                        .addEventListener(shardWatchdogListener)
                         .setToken(Config.CONFIG.getBotToken())
                         .setBulkDeleteSplittingEnabled(true)
                         .setEnableShutdownHook(false);
 
                 if(listener != null) {
-                    builder.addListener(listener);
+                    builder.addEventListener(listener);
                 } else {
                     log.warn("Starting a shard without an event listener!");
                 }
-                
+
                 if (!System.getProperty("os.arch").equalsIgnoreCase("arm")
                         && !System.getProperty("os.arch").equalsIgnoreCase("arm-linux")
                         && !System.getProperty("os.arch").equalsIgnoreCase("darwin")
@@ -76,7 +85,7 @@ public class FredBoatBot extends FredBoat {
                     builder.useSharding(shardId, Config.CONFIG.getNumShards());
                 }
                 try {
-                    jda = builder.buildAsync();
+                    newJda = builder.buildAsync();
                     success = true;
                 } catch (RateLimitedException e) {
                     log.warn("Got rate limited while building bot JDA instance! Retrying...", e);
@@ -87,10 +96,28 @@ public class FredBoatBot extends FredBoat {
             throw new RuntimeException("Failed to start JDA shard " + shardId, e);
         }
 
+        return newJda;
+    }
+
+    @Override
+    public void revive() {
+        log.info("Reviving shard " + shardId);
+
+        try {
+            channelsToRejoin.clear();
+
+            PlayerRegistry.getPlayingPlayers().stream().filter(guildPlayer -> guildPlayer.getJda().equals(jda))
+                    .forEach(guildPlayer -> channelsToRejoin.add(guildPlayer.getChannel().getId()));
+        } catch (Exception ex) {
+            log.error("Caught exception while reviving shard " + this, ex);
+        }
+
+
+        jda.shutdown(false);
+        jda = buildJDA();
     }
 
     int getShardId() {
         return shardId;
     }
-
 }

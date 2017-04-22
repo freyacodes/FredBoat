@@ -40,7 +40,7 @@
         <dependency>
             <groupId>net.dv8tion</groupId>
             <artifactId>JDA</artifactId>
-            <version>3.0.0_168</version>
+            <version>3.0.0_175</version>
         </dependency>
         <dependency>
             <groupId>com.sedmelluq</groupId>
@@ -143,6 +143,22 @@
             <version>5.0.0-M3</version>
             <scope>test</scope>
         </dependency>
+
+        <!--sqlite driver for internal db aimed at selfhosting-->
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.16.1</version>
+        </dependency>
+        <!--sqlite dialect for hibernate
+        official sqlite support is in the works, see here https://github.com/hibernate/hibernate-orm/pull/1874 -->
+        <dependency>
+            <groupId>com.github.gwenn</groupId>
+            <artifactId>sqlite-dialect</artifactId>
+            <version>24970986d0</version>
+        </dependency>
+
+        <!-- ssh tunnel -->
         <dependency>
             <groupId>com.jcraft</groupId>
             <artifactId>jsch</artifactId>

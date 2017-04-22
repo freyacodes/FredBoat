@@ -55,7 +55,7 @@ public class ShardWatchdogAgent extends Thread {
                 try {
                     sleep(1000);
                 } catch (InterruptedException e1) {
-                    log.error("Interrupted while sleeping after an exception in shard watchdog", e);
+                    throw new RuntimeException(e1);
                 }
             }
         }

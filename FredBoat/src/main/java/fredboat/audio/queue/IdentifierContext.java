@@ -25,22 +25,28 @@
 
 package fredboat.audio.queue;
 
+import fredboat.FredBoat;
+import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 
 public class IdentifierContext {
 
+    public final FredBoat shard;
     public final String identifier;
-    public final TextChannel textChannel;
-    public final Member member;
+    private final String textChannel;
+    private final String user;
+    private final String guild;
     private boolean quiet = false;
     private boolean split = false;
     private long position = 0L;
 
     public IdentifierContext(String identifier, TextChannel textChannel, Member member) {
+        this.shard = FredBoat.getInstance(textChannel.getJDA());
         this.identifier = identifier;
-        this.textChannel = textChannel;
-        this.member = member;
+        this.textChannel = textChannel.getId();
+        this.user = member.getUser().getId();
+        this.guild = member.getGuild().getId();
     }
 
     public boolean isQuiet() {
@@ -67,4 +73,12 @@ public class IdentifierContext {
         this.position = position;
     }
 
+    public TextChannel getTextChannel() {
+        return shard.getJda().getTextChannelById(textChannel);
+    }
+
+    public Member getMember() {
+        JDA jda = shard.getJda();
+        return jda.getGuildById(guild).getMemberById(user);
+    }
 }

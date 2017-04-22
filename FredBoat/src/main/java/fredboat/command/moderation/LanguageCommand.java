@@ -71,7 +71,7 @@ public class LanguageCommand extends Command implements IModerationCommand {
 
         for (String key : keys) {
             I18n.FredBoatLocale loc = I18n.LANGS.get(key);
-            mb.append("__`" + loc.getCode() + "`__ - " + loc.getNativeName());
+            mb.append("**`" + loc.getCode() + "`** - " + loc.getNativeName());
             mb.append("\n");
         }
 

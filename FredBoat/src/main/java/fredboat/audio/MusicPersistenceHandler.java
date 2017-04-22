@@ -93,7 +93,7 @@ public class MusicPersistenceHandler {
                 player.getActiveTextChannel().sendMessage(msg).queue();
 
                 JSONObject data = new JSONObject();
-                data.put("vc", player.getUserCurrentVoiceChannel(player.getGuild().getSelfMember().getUser()).getId());
+                data.put("vc", player.getUserCurrentVoiceChannel(player.getGuild().getSelfMember()).getId());
                 data.put("tc", player.getActiveTextChannel().getId());
                 data.put("isPaused", player.isPaused());
                 data.put("volume", Float.toString(player.getVolume()));

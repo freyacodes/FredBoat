@@ -1,5 +1,6 @@
 package fredboat.commandmeta.init;
 
+import fredboat.Config;
 import fredboat.agent.VoiceChannelCleanupAgent;
 import fredboat.command.admin.BotRestartCommand;
 import fredboat.command.admin.CompileCommand;
@@ -41,9 +42,14 @@ import fredboat.command.util.CommandsCommand;
 import fredboat.command.util.HelpCommand;
 import fredboat.command.util.MusicHelpCommand;
 import fredboat.commandmeta.CommandRegistry;
+import fredboat.util.DistributionEnum;
 import fredboat.util.SearchUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MusicCommandInitializer {
+
+    private static final Logger log = LoggerFactory.getLogger(MusicCommandInitializer.class);
 
     public static void initCommands() {
         CommandRegistry.registerCommand("help", new HelpCommand());
@@ -102,7 +108,12 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("rewind", new RewindCommand());
         CommandRegistry.registerAlias("rewind", "rew");
 
-        new VoiceChannelCleanupAgent().start();
+        // The null check is to ensure we can run this in a test run
+        if (Config.CONFIG == null || Config.CONFIG.getDistribution() != DistributionEnum.PATRON) {
+            new VoiceChannelCleanupAgent().start();
+        } else {
+            log.info("Skipped setting up the VoiceChannelCleanupAgent since we are running as PATRON distribution.");
+        }
     }
 
 }

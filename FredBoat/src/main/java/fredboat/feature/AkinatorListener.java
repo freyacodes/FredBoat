@@ -44,7 +44,7 @@ public final class AkinatorListener extends UserListener {
     private final String CHOICE_URL = "http://api-en4.akinator.com/ws/choice";
     private final String EXCLUSION_URL = "http://api-en4.akinator.com/ws/exclusion";
 
-    public final JDA jda;
+    private final FredBoat shard;
     private final String channelId;
     private final String userId;
     private StepInfo stepInfo;
@@ -56,7 +56,7 @@ public final class AkinatorListener extends UserListener {
     private boolean lastQuestionWasGuess = false;
 
     public AkinatorListener(JDA jda, AbstractEventListener listener, String channelId, String userId) throws UnirestException {
-        this.jda = jda;
+        this.shard = FredBoat.getInstance(jda);
         this.listener = listener;
         this.channelId = channelId;
         this.userId = userId;
@@ -76,17 +76,17 @@ public final class AkinatorListener extends UserListener {
     }
 
     private void sendNextQuestion() {
-        String name = jda.getTextChannelById(channelId).getGuild().getMemberById(userId).getEffectiveName();
+        String name = getJda().getTextChannelById(channelId).getGuild().getMemberById(userId).getEffectiveName();
         String out = "**" + name + ": Question " + (stepInfo.getStepNum() + 1) + "**\n"
                 + stepInfo.getQuestion() + "\n [yes/no/idk/probably/probably not]";
-        jda.getTextChannelById(channelId).sendMessage(out).queue();
+        getJda().getTextChannelById(channelId).sendMessage(out).queue();
         lastQuestionWasGuess = false;
     }
 
     private void sendGuess() throws UnirestException {
         guess = new Guess();
         String out = "Is this your character?\n" + guess.toString() + "\n[yes/no]";
-        jda.getTextChannelById(channelId).sendMessage(out).queue();
+        getJda().getTextChannelById(channelId).sendMessage(out).queue();
         lastQuestionWasGuess = true;
     }
 
@@ -119,7 +119,7 @@ public final class AkinatorListener extends UserListener {
                         .queryString("step", stepInfo.getStepNum())
                         .queryString("element", guess.getId())
                         .asString();
-                jda.getTextChannelById(channelId).sendMessage("Great ! Guessed right one more time.\n"
+                getJda().getTextChannelById(channelId).sendMessage("Great ! Guessed right one more time.\n"
                         + "I love playing with you!\n"
                         + "<http://akinator.com>").queue();
                 FredBoat.getListenerBot().removeListener(userId);
@@ -192,12 +192,16 @@ public final class AkinatorListener extends UserListener {
                 return;
             }
 
-            jda.getTextChannelById(channelId).sendTyping().queue();
+            getJda().getTextChannelById(channelId).sendTyping().queue();
             answerGuess(answer);
         } else {
-            jda.getTextChannelById(channelId).sendTyping().queue();
+            getJda().getTextChannelById(channelId).sendTyping().queue();
             answerQuestion(answer);
         }
+    }
+
+    public JDA getJda() {
+        return shard.getJda();
     }
 
     private class StepInfo {

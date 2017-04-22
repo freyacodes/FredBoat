@@ -42,8 +42,8 @@ public class VoiceChannelCleanupAgent extends Thread {
 
     private static final Logger log = LoggerFactory.getLogger(VoiceChannelCleanupAgent.class);
     private static final HashMap<String, Long> VC_LAST_USED = new HashMap<>();
-    private static final int CLEANUP_INTERVAL_MILLIS = 60000 * 5;
-    private static final int UNUSED_CLEANUP_THRESHOLD = 60000 * 15; // Effective when users are in the VC, but the player is not playing
+    private static final int CLEANUP_INTERVAL_MILLIS = 60000 * 10;
+    private static final int UNUSED_CLEANUP_THRESHOLD = 60000 * 60; // Effective when users are in the VC, but the player is not playing
 
     public VoiceChannelCleanupAgent() {
         super("voice-cleanup");
@@ -64,7 +64,7 @@ public class VoiceChannelCleanupAgent extends Thread {
                 try {
                     sleep(1000);
                 } catch (InterruptedException e1) {
-                    log.error("Interrupted while sleeping after an exception in voice-cleanup", e);
+                    throw new RuntimeException(e1);
                 }
             }
         }

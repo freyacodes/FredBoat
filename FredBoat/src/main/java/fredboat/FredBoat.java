@@ -33,7 +33,9 @@ import fredboat.agent.CarbonitexAgent;
 import fredboat.agent.ShardWatchdogAgent;
 import fredboat.api.API;
 import fredboat.api.OAuthManager;
+import fredboat.audio.GuildPlayer;
 import fredboat.audio.MusicPersistenceHandler;
+import fredboat.audio.PlayerRegistry;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.init.MainCommandInitializer;
 import fredboat.commandmeta.init.MusicCommandInitializer;
@@ -55,6 +57,7 @@ import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
+import net.dv8tion.jda.core.managers.AudioManager;
 import net.dv8tion.jda.core.utils.SimpleLog;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -85,6 +88,9 @@ public abstract class FredBoat {
     static EventListenerSelf listenerSelf;
     ShardWatchdogListener shardWatchdogListener = null;
     private static AtomicInteger numShardsReady = new AtomicInteger(0);
+
+    //For when we need to join a revived shard with it's old GuildPlayers
+    final ArrayList<String> channelsToRejoin = new ArrayList<>();
 
     //unlimited threads = http://i.imgur.com/H3b7H1S.gif
     //use this executor for various small async tasks
@@ -138,11 +144,13 @@ public abstract class FredBoat {
         }
         try {
             if(!Config.CONFIG.getJdbcUrl().equals("") && !Config.CONFIG.getOauthSecret().equals("")) {
-                DatabaseManager.startup(Config.CONFIG.getJdbcUrl());
+                DatabaseManager.startup(Config.CONFIG.getJdbcUrl(), null, Config.CONFIG.getHikariPoolSize());
                 OAuthManager.start(Config.CONFIG.getBotToken(), Config.CONFIG.getOauthSecret());
             } else {
                 log.warn("No JDBC URL and/or secret found, skipped database connection and OAuth2 client");
-                DatabaseManager.state = DatabaseManager.DatabaseState.DISABLED;
+                log.warn("Falling back to internal SQLite db");
+                DatabaseManager.startup("jdbc:sqlite:fredboat.db", "org.hibernate.dialect.SQLiteDialect",
+                        Config.CONFIG.getHikariPoolSize());
             }
         } catch (Exception e) {
             log.info("Failed to start DatabaseManager and OAuth2 client", e);
@@ -164,6 +172,15 @@ public abstract class FredBoat {
 
         log.info("Loaded commands, registry size is " + CommandRegistry.getSize());
 
+        //Check MAL creds
+        executor.submit(FredBoat::hasValidMALLogin);
+
+        //Check imgur creds
+        executor.submit(FredBoat::hasValidImgurCredentials);
+
+        //Initialise JCA
+        executor.submit(FredBoat::loadJCA);
+
         /* Init JDA */
 
         if ((Config.CONFIG.getScope() & 0x110) != 0) {
@@ -175,19 +192,6 @@ public abstract class FredBoat {
             //fbClient = new FredBoatClient();
         }
 
-        //Initialise JCA
-
-        try {
-            if (!Config.CONFIG.getCbUser().equals("") && !Config.CONFIG.getCbKey().equals("")) {
-                log.info("Starting CleverBot");
-                jca = new JCABuilder().setKey(Config.CONFIG.getCbKey()).setUser(Config.CONFIG.getCbUser()).buildBlocking();
-            } else {
-                log.warn("Credentials not found for cleverbot authentication. Skipping...");
-            }
-        } catch (Exception e) {
-            log.error("Error when starting JCA", e);
-        }
-
         if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && Config.CONFIG.getCarbonKey() != null) {
             CarbonitexAgent carbonitexAgent = new CarbonitexAgent(Config.CONFIG.getCarbonKey());
             carbonitexAgent.setDaemon(true);
@@ -197,12 +201,23 @@ public abstract class FredBoat {
         ShardWatchdogAgent shardWatchdogAgent = new ShardWatchdogAgent();
         shardWatchdogAgent.setDaemon(true);
         shardWatchdogAgent.start();
+    }
 
-        //Check MAL creds
-        executor.submit(FredBoat::hasValidMALLogin);
-
-        //Check imgur creds
-        executor.submit(FredBoat::hasValidImgurCredentials);
+    private static boolean loadJCA() {
+        boolean result = true;
+        try {
+            if (!Config.CONFIG.getCbUser().equals("") && !Config.CONFIG.getCbKey().equals("")) {
+                log.info("Starting CleverBot");
+                jca = new JCABuilder().setKey(Config.CONFIG.getCbKey()).setUser(Config.CONFIG.getCbUser()).buildBlocking();
+            } else {
+                log.warn("Credentials not found for cleverbot authentication. Skipping...");
+                result = false;
+            }
+        } catch (Exception e) {
+            log.error("Error when starting JCA", e);
+            result = false;
+        }
+        return result;
     }
 
     private static boolean hasValidMALLogin() {
@@ -296,6 +311,20 @@ public abstract class FredBoat {
             log.info("All " + ready + " shards are ready.");
             MusicPersistenceHandler.reloadPlaylists();
         }
+
+        //Rejoin old channels if revived
+        channelsToRejoin.forEach(vcid -> {
+            VoiceChannel channel = jda.getVoiceChannelById(vcid);
+            if(channel == null) return;
+            GuildPlayer player = PlayerRegistry.get(channel.getGuild());
+            if(player == null) return;
+
+            AudioManager am = channel.getGuild().getAudioManager();
+            am.openAudioConnection(channel);
+            am.setSendingHandler(player);
+        });
+
+        channelsToRejoin.clear();
     }
 
     //Shutdown hook
@@ -317,6 +346,7 @@ public abstract class FredBoat {
         } catch (IOException ignored) {}
 
         executor.shutdown();
+        DatabaseManager.shutdown();
     };
 
     public static void shutdown(int code) {
@@ -424,10 +454,7 @@ public abstract class FredBoat {
         }
     }
 
-    public void revive() {
-        jda.shutdown(false);
-        shards.set(getShardInfo().getShardId(), new FredBoatBot(getShardInfo().getShardId(), listenerBot));
-    }
+    public abstract void revive();
 
     public ShardWatchdogListener getShardWatchdogListener() {
         return shardWatchdogListener;
@@ -456,5 +483,9 @@ public abstract class FredBoat {
             return String.format("[%02d / %02d]", this.shardId, this.shardTotal);
         }
 
+        @Override
+        public String toString() {
+            return getShardString();
+        }
     }
 }

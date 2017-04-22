@@ -116,6 +116,22 @@ public class DiscordUtil {
         return false;
     }
 
+    public static int getHighestRolePosition(Member member) {
+        List<Role> roles = member.getRoles();
+
+        if (roles.isEmpty()) return -1;
+
+        Role top = roles.get(0);
+
+        for (Role r : roles) {
+            if (r.getPosition() > top.getPosition()) {
+                top = r;
+            }
+        }
+
+        return top.getPosition();
+    }
+
     public static void sendShardlessMessage(String channel, Message msg) {
         sendShardlessMessage(msg.getJDA(), channel, msg.getRawContent());
     }

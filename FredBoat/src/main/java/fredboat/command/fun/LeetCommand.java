@@ -46,6 +46,7 @@ import java.net.URLEncoder;
  *
  * @author frederik
  */
+//TODO fix the API calls and reintroduce this command
 public class LeetCommand extends Command implements IFunCommand {
 
     @Override

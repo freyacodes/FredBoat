@@ -7,6 +7,8 @@ import fredboat.command.maintenance.ShardsCommand;
 import fredboat.command.maintenance.StatsCommand;
 import fredboat.command.maintenance.VersionCommand;
 import fredboat.command.moderation.ClearCommand;
+import fredboat.command.moderation.HardbanCommand;
+import fredboat.command.moderation.KickCommand;
 import fredboat.command.moderation.SoftbanCommand;
 import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
@@ -33,10 +35,11 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("test", new TestCommand());
         CommandRegistry.registerCommand("brainfuck", new BrainfuckCommand());
         CommandRegistry.registerCommand("joke", new JokeCommand());
-        CommandRegistry.registerCommand("leet", new LeetCommand());
-        CommandRegistry.registerAlias("leet", "1337");
-        CommandRegistry.registerAlias("leet", "l33t");
-        CommandRegistry.registerAlias("leet", "1ee7");
+        //TODO LeetCommand is borken. Don't throw unnecessary error reports until it's fixed or removed.
+//        CommandRegistry.registerCommand("leet", new LeetCommand());
+//        CommandRegistry.registerAlias("leet", "1337");
+//        CommandRegistry.registerAlias("leet", "l33t");
+//        CommandRegistry.registerAlias("leet", "1ee7");
         CommandRegistry.registerCommand("riot", new RiotCommand());
         CommandRegistry.registerCommand("update", new UpdateCommand());
         CommandRegistry.registerCommand("compile", new CompileCommand());
@@ -49,12 +52,17 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("lenny", new TextCommand("( ͡° ͜ʖ ͡°)"));
         CommandRegistry.registerCommand("useless", new TextCommand("This command is useless."));
         CommandRegistry.registerCommand("clear", new ClearCommand());
-        CommandRegistry.registerCommand("talk", new TalkCommand());
+        //TODO JCA (=TalkCommand) is borken. Don't throw unnecessary error reports.
+//        CommandRegistry.registerCommand("talk", new TalkCommand());
         CommandRegistry.registerCommand("mal", new MALCommand());
         CommandRegistry.registerCommand("akinator", new AkinatorCommand());
         CommandRegistry.registerCommand("fuzzy", new FuzzyUserSearchCommand());
+        CommandRegistry.registerCommand("hardban", new HardbanCommand());
+        CommandRegistry.registerCommand("kick", new KickCommand());
         CommandRegistry.registerCommand("softban", new SoftbanCommand());
         CommandRegistry.registerCommand("catgirl", new CatgirlCommand());
+        CommandRegistry.registerAlias("catgirl", "neko");
+        CommandRegistry.registerAlias("catgirl", "catgrill");
         CommandRegistry.registerCommand("shards", new ShardsCommand());
         CommandRegistry.registerCommand("revive", new ReviveCommand());
 

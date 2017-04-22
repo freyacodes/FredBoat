@@ -25,6 +25,7 @@
 
 package fredboat.command.admin;
 
+import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandOwnerRestricted;
 import fredboat.db.DatabaseManager;
@@ -38,14 +39,28 @@ import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
 
+/**
+ * Stress tests the database
+ */
 public class TestCommand extends Command implements ICommandOwnerRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(TestCommand.class);
 
     private enum Result {WORKING, SUCCESS, FAILED}
 
+    // the SQL syntax used here work with both SQLite and PostgreSQL, beware when altering
+    private final String DROP_TEST_TABLE = "DROP TABLE IF EXISTS test;";
+    private final String CREATE_TEST_TABLE = "CREATE TABLE IF NOT EXISTS test (id serial, val integer, PRIMARY KEY (id));";
+    private final String INSERT_TEST_TABLE = "INSERT INTO test (val) VALUES (:val) ";
+
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+        FredBoat.executor.submit(() -> invoke(channel, invoker, args));
+    }
+
+    boolean invoke(TextChannel channel, Member invoker, String[] args) {
+
+        boolean result = false;
 
         int t = 20;
         int o = 2000;
@@ -68,36 +83,39 @@ public class TestCommand extends Command implements ICommandOwnerRestricted {
         }
 
         //wait for when it's done and report the results
-        new Thread(() -> {
-            int maxTime = 600000; //give it max 10 mins to run
-            int sleep = 1000;
-            int maxChecks = maxTime / sleep;
-            int c = 0;
-            while (!doneYet(results) || c >= maxChecks) {
-                c++;
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    //duh
-                }
+        int maxTime = 600000; //give it max 10 mins to run
+        int sleep = 10; //ms
+        int maxChecks = maxTime / sleep;
+        int c = 0;
+        while (!doneYet(results) || c >= maxChecks) {
+            c++;
+            try {
+                Thread.sleep(sleep);
+            } catch (InterruptedException e) {
+                //duh
             }
+        }
 
-            String out = "`DB stress test results:";
-            for (int i = 0; i < results.length; i++) {
-                out += "\nThread #" + i + ": ";
-                if (results[i] == Result.WORKING) {
-                    out += "failed to get it done in " + maxTime / 1000 + " seconds";
-                } else if (results[i] == Result.FAILED) {
-                    exceptions[i].printStackTrace();
-                    out += "failed with an exception: " + exceptions[i].toString();
-                } else if (results[i] == Result.SUCCESS) {
-                    out += "successful";
-                }
+        String out = "`DB stress test results:";
+        for (int i = 0; i < results.length; i++) {
+            out += "\nThread #" + i + ": ";
+            if (results[i] == Result.WORKING) {
+                out += "failed to get it done in " + maxTime / 1000 + " seconds";
+                result = false;
+            } else if (results[i] == Result.FAILED) {
+                exceptions[i].printStackTrace();
+                out += "failed with an exception: " + exceptions[i].toString();
+                result = false;
+            } else if (results[i] == Result.SUCCESS) {
+                out += "successful";
+                result = true;
             }
-            out += "\n Time taken: " + ((System.currentTimeMillis() - started)) + "ms for " + (threads * operations) + " requested operations.`";
-            log.info(out);
-            TextUtils.replyWithName(channel, invoker, out);
-        }).start();
+        }
+        out += "\n Time taken: " + ((System.currentTimeMillis() - started)) + "ms for " + (threads * operations) + " requested operations.`";
+        log.info(out);
+        TextUtils.replyWithName(channel, invoker, out);
+
+        return result;
     }
 
     private boolean doneYet(Result[] results) {
@@ -110,25 +128,13 @@ public class TestCommand extends Command implements ICommandOwnerRestricted {
     }
 
     private void prepareStressTest() {
-        //recreate the table
+        //drop and recreate the test table
         EntityManager em = DatabaseManager.getEntityManager();
-        //String drop = "DO $do$ BEGIN IF EXISTS (SELECT relname FROM pg_class WHERE relname='test') THEN DROP TABLE test; END IF; END $do$;";
-        //String create = "CREATE TABLE test (val integer NOT NULL, id serial NOT NULL, PRIMARY KEY (id));";
-        //em.getTransaction().begin();
-        //em.createNativeQuery(drop).executeUpdate();
-        //em.getTransaction().commit();
-        //em.getTransaction().begin();
-        //em.createNativeQuery(create).executeUpdate();
-        //em.getTransaction().commit();
-
-        //create table if it isn't there
-        String createTableIfNecessary = "DO $do$ " +
-                "BEGIN IF NOT EXISTS (SELECT relname FROM pg_class WHERE relname='test') " +
-                "THEN CREATE TABLE test (val integer NOT NULL, id serial NOT NULL, PRIMARY KEY (id)); " +
-                "END IF; END $do$;";
         em.getTransaction().begin();
-        em.createNativeQuery(createTableIfNecessary).executeUpdate();
+        em.createNativeQuery(DROP_TEST_TABLE).executeUpdate();
+        em.createNativeQuery(CREATE_TEST_TABLE).executeUpdate();
         em.getTransaction().commit();
+
         em.close();
     }
 
@@ -155,7 +161,7 @@ public class TestCommand extends Command implements ICommandOwnerRestricted {
                 for (int i = 0; i < operations; i++) {
                     em = DatabaseManager.getEntityManager();
                     em.getTransaction().begin();
-                    em.createNativeQuery("INSERT INTO test VALUES (:val);")
+                    em.createNativeQuery(INSERT_TEST_TABLE)
                             .setParameter("val", (int) (Math.random() * 10000))
                             .executeUpdate();
                     em.getTransaction().commit();
@@ -173,6 +179,7 @@ public class TestCommand extends Command implements ICommandOwnerRestricted {
                 results[number] = Result.SUCCESS;
         }
     }
+
     @Override
     public String help(Guild guild) {
         return "{0}{1} [n m]\n#Stress test the database with n threads each doing m operations. Results will be shown after max 10 minutes.";

@@ -26,7 +26,6 @@
 package fredboat.event;
 
 import fredboat.FredBoat;
-import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.events.ReadyEvent;
@@ -41,7 +40,7 @@ public class EventLogger extends ListenerAdapter {
     public static final Logger log = LoggerFactory.getLogger(EventLogger.class);
 
     private final String logChannelId;
-    public JDA jda;
+    private FredBoat shard;
 
     public EventLogger(String logChannelId) {
         this.logChannelId = logChannelId;
@@ -53,6 +52,7 @@ public class EventLogger extends ListenerAdapter {
     }
 
     private void send(String msg) {
+        //JDA jda = shard.getJda(); //do a null check if you ever uncomment this code again
         /*DiscordUtil.sendShardlessMessage(jda, logChannelId,
                 FredBoat.getInstance(jda).getShardInfo().getShardString()
                 + " "
@@ -63,7 +63,7 @@ public class EventLogger extends ListenerAdapter {
 
     @Override
     public void onReady(ReadyEvent event) {
-        jda = event.getJDA();
+        FredBoat.getInstance(event.getJDA());
         send(new MessageBuilder()
                 .append("[:rocket:] Received ready event.")
                 .build()

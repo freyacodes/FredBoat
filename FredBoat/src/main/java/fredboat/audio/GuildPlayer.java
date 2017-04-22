@@ -28,7 +28,13 @@ package fredboat.audio;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
-import fredboat.audio.queue.*;
+import fredboat.FredBoat;
+import fredboat.audio.queue.AbstractTrackProvider;
+import fredboat.audio.queue.AudioLoader;
+import fredboat.audio.queue.AudioTrackContext;
+import fredboat.audio.queue.IdentifierContext;
+import fredboat.audio.queue.RepeatMode;
+import fredboat.audio.queue.SimpleTrackProvider;
 import fredboat.commandmeta.MessagingException;
 import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.EntityReader;
@@ -37,8 +43,10 @@ import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.*;
-import net.dv8tion.jda.core.entities.impl.MemberImpl;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.managers.AudioManager;
 import net.dv8tion.jda.core.utils.PermissionUtil;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -55,16 +63,16 @@ public class GuildPlayer extends AbstractPlayer {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(GuildPlayer.class);
 
-    public final JDA jda;
-    final String guildId;
+    private final FredBoat shard;
+    private final String guildId;
     public final Map<String, VideoSelection> selections = new HashMap<>();
     private TextChannel currentTC;
 
     private final AudioLoader audioLoader;
 
     @SuppressWarnings("LeakingThisInConstructor")
-    public GuildPlayer(JDA jda, Guild guild) {
-        this.jda = jda;
+    public GuildPlayer(Guild guild) {
+        this.shard = FredBoat.getInstance(guild.getJDA());
         this.guildId = guild.getId();
 
         AudioManager manager = guild.getAudioManager();
@@ -111,19 +119,11 @@ public class GuildPlayer extends AbstractPlayer {
         manager.closeAudioConnection();
     }
 
-    public VoiceChannel getUserCurrentVoiceChannel(User usr) {
-        return getUserCurrentVoiceChannel(new MemberImpl(getGuild(), usr));
-    }
-
+    /**
+     * May return null if the member is currently not in a channel
+     */
     public VoiceChannel getUserCurrentVoiceChannel(Member member) {
-        for (VoiceChannel chn : getGuild().getVoiceChannels()) {
-            for (Member memberInChannel : chn.getMembers()) {
-                if (member.getUser().getId().equals(memberInChannel.getUser().getId())) {
-                    return chn;
-                }
-            }
-        }
-        return null;
+        return member.getVoiceState().getChannel();
     }
 
     public void queue(String identifier, TextChannel channel) {
@@ -141,8 +141,8 @@ public class GuildPlayer extends AbstractPlayer {
     }
 
     public void queue(IdentifierContext ic) {
-        if (ic.member != null) {
-            joinChannel(ic.member);
+        if (ic.getMember() != null) {
+            joinChannel(ic.getMember());
         }
 
         audioLoader.loadAsync(ic);
@@ -228,7 +228,7 @@ public class GuildPlayer extends AbstractPlayer {
     }
 
     public Guild getGuild() {
-        return jda.getGuildById(guildId);
+        return getJda().getGuildById(guildId);
     }
 
     public RepeatMode getRepeatMode() {
@@ -358,4 +358,7 @@ public class GuildPlayer extends AbstractPlayer {
         return enabled;
     }
 
+    public JDA getJda() {
+        return shard.getJda();
+    }
 }

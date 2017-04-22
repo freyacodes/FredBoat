@@ -34,6 +34,8 @@ import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
@@ -41,6 +43,8 @@ import javax.script.ScriptException;
 import java.util.concurrent.*;
 
 public class EvalCommand extends Command implements ICommandOwnerRestricted {
+
+    private static final Logger log = LoggerFactory.getLogger(EvalCommand.class);
 
     //Thanks Dinos!
     private ScriptEngine engine;
@@ -87,6 +91,7 @@ public class EvalCommand extends Command implements ICommandOwnerRestricted {
 
             } catch (Exception ex) {
                 channel.sendMessage("`"+ex.getMessage()+"`").queue();
+                log.error("Error occurred in eval", ex);
                 return;
             }
 
