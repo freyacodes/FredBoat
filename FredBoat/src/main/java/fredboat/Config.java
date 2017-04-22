@@ -86,6 +86,10 @@ public class Config {
     private final String sshPrivateKeyFile;
     private final int forwardToPort; //port where the remote database is listening, postgres default: 5432
 
+
+    // openweathermap
+    private final String openweathermapKey;//openweathermap API key
+
     @SuppressWarnings("unchecked")
     public Config(File credentialsFile, File configFile, int scope) {
         try {
@@ -184,6 +188,7 @@ public class Config {
 
             imgurClientId = (String) creds.getOrDefault("imgurClientId", "");
 
+	    openweathermapKey = (String) creds.getOrDefault("openweathermapKey", "");
             testBotToken = (String) creds.getOrDefault("testToken", "");
             testChannelId = creds.getOrDefault("testChannelId", "") + "";
 
@@ -350,5 +355,8 @@ public class Config {
 
     public int getForwardToPort() {
         return forwardToPort;
+    }
+    public String getOpenWeatherKey() {
+        return openweathermapKey;
     }
 }
