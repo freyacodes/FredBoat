@@ -31,6 +31,7 @@ import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.agent.CarbonitexAgent;
 import fredboat.agent.DBConnectionWatchdogAgent;
+import fredboat.agent.FredBoatAgent;
 import fredboat.agent.ShardWatchdogAgent;
 import fredboat.api.API;
 import fredboat.audio.player.GuildPlayer;
@@ -93,9 +94,6 @@ public abstract class FredBoat {
 
     JDA jda;
 
-    private static ShardWatchdogAgent shardWatchdogAgent;
-    private static DBConnectionWatchdogAgent dbConnectionWatchdogAgent;
-
     private static DatabaseManager dbManager;
 
     public static void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException, IOException, UnirestException {
@@ -129,8 +127,7 @@ public abstract class FredBoat {
         if (!Config.CONFIG.getJdbcUrl().equals("")) {
             dbManager = new DatabaseManager(Config.CONFIG.getJdbcUrl(), null, Config.CONFIG.getHikariPoolSize());
             dbManager.startup();
-            dbConnectionWatchdogAgent = new DBConnectionWatchdogAgent(dbManager);
-            dbConnectionWatchdogAgent.start();
+            FredBoatAgent.start(new DBConnectionWatchdogAgent(dbManager));
         } else if (Config.CONFIG.getNumShards() > 2) {
             log.warn("No JDBC URL and more than 2 shard found! Initializing the SQLi DB is potentially dangerous too. Skipping...");
         } else {
@@ -166,14 +163,10 @@ public abstract class FredBoat {
         initBotShards(listenerBot);
 
         if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && Config.CONFIG.getCarbonKey() != null) {
-            CarbonitexAgent carbonitexAgent = new CarbonitexAgent(Config.CONFIG.getCarbonKey());
-            carbonitexAgent.setDaemon(true);
-            carbonitexAgent.start();
+            FredBoatAgent.start(new CarbonitexAgent(Config.CONFIG.getCarbonKey()));
         }
 
-        shardWatchdogAgent = new ShardWatchdogAgent();
-        shardWatchdogAgent.setDaemon(true);
-        shardWatchdogAgent.start();
+        FredBoatAgent.start(new ShardWatchdogAgent());
     }
 
     private static boolean hasValidMALLogin() {
@@ -290,8 +283,7 @@ public abstract class FredBoat {
     private static final Runnable ON_SHUTDOWN = () -> {
         int code = shutdownCode != UNKNOWN_SHUTDOWN_CODE ? shutdownCode : -1;
 
-        shardWatchdogAgent.shutdown();
-        if (dbConnectionWatchdogAgent != null) dbConnectionWatchdogAgent.shutdown();
+        FredBoatAgent.shutdown();
 
         try {
             MusicPersistenceHandler.handlePreShutdown(code);

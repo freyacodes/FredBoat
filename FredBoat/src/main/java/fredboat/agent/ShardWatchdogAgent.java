@@ -35,35 +35,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-public class ShardWatchdogAgent extends Thread {
+public class ShardWatchdogAgent extends FredBoatAgent {
 
     private static final Logger log = LoggerFactory.getLogger(ShardWatchdogAgent.class);
-    private static final int INTERVAL_MILLIS = 10000; // 10 secs
     private static final int ACCEPTABLE_SILENCE = getAcceptableSilenceThreshold();
 
-    private boolean shutdown = false;
-
     public ShardWatchdogAgent() {
-        super(ShardWatchdogAgent.class.getSimpleName());
+        super("shard watchdog", 10, TimeUnit.SECONDS);
     }
 
     @Override
-    public void run() {
-        log.info("Started shard watchdog");
-
-        while (!shutdown) {
-            try {
-                inspect();
-                sleep(INTERVAL_MILLIS);
-            } catch (Exception e) {
-                log.error("Caught an exception while trying kill dead shards!", e);
-                try {
-                    sleep(1000);
-                } catch (InterruptedException e1) {
-                    throw new RuntimeException(e1);
-                }
-            }
+    public void doRun() {
+        try {
+            inspect();
+        } catch (Exception e) {
+            log.error("Caught an exception while trying kill dead shards!", e);
         }
     }
 
@@ -74,8 +62,7 @@ public class ShardWatchdogAgent extends Thread {
 
         List<FredBoat> shards = FredBoat.getShards();
 
-        for (FredBoat shard : shards) {
-            if (shutdown) break;
+        for(FredBoat shard : shards) {
             ShardWatchdogListener listener = shard.getShardWatchdogListener();
 
             long diff = System.currentTimeMillis() - listener.getLastEventTime();
@@ -97,6 +84,7 @@ public class ShardWatchdogAgent extends Thread {
                     }*/
 
                     shard.revive();
+                    Thread.sleep(5000);
                 }
             }
         }
@@ -104,10 +92,6 @@ public class ShardWatchdogAgent extends Thread {
 
     private boolean isReconnecting(JDA.Status status) {
         return status == JDA.Status.ATTEMPTING_TO_RECONNECT || status == JDA.Status.WAITING_TO_RECONNECT;
-    }
-
-    public void shutdown() {
-        shutdown = true;
     }
 
     private static int getAcceptableSilenceThreshold() {

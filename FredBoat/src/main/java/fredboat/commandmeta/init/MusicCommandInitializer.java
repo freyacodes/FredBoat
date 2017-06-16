@@ -25,6 +25,7 @@
 package fredboat.commandmeta.init;
 
 import fredboat.Config;
+import fredboat.agent.FredBoatAgent;
 import fredboat.agent.VoiceChannelCleanupAgent;
 import fredboat.command.admin.*;
 import fredboat.command.maintenance.*;
@@ -125,7 +126,7 @@ public class MusicCommandInitializer {
 
         // The null check is to ensure we can run this in a test run
         if (Config.CONFIG == null || Config.CONFIG.getDistribution() != DistributionEnum.PATRON) {
-            new VoiceChannelCleanupAgent().start();
+            FredBoatAgent.start(new VoiceChannelCleanupAgent());
         } else {
             log.info("Skipped setting up the VoiceChannelCleanupAgent since we are running as PATRON distribution.");
         }

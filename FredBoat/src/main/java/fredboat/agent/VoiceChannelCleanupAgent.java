@@ -38,36 +38,24 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-public class VoiceChannelCleanupAgent extends Thread {
+public class VoiceChannelCleanupAgent extends FredBoatAgent {
 
     private static final Logger log = LoggerFactory.getLogger(VoiceChannelCleanupAgent.class);
     private static final HashMap<String, Long> VC_LAST_USED = new HashMap<>();
-    private static final int CLEANUP_INTERVAL_MILLIS = 60000 * 10;
     private static final int UNUSED_CLEANUP_THRESHOLD = 60000 * 60; // Effective when users are in the VC, but the player is not playing
 
     public VoiceChannelCleanupAgent() {
-        super("voice-cleanup");
-        setDaemon(true);
-        setPriority(4);
+        super("voice-cleanup", 10, TimeUnit.MINUTES);
     }
 
     @Override
-    public void run() {
-        log.info("Started voice-cleanup");
-        //noinspection InfiniteLoopStatement
-        while (true) {
-            try {
-                cleanup();
-                sleep(CLEANUP_INTERVAL_MILLIS);
-            } catch (Exception e) {
-                log.error("Caught an exception while trying to clean up voice channels!", e);
-                try {
-                    sleep(1000);
-                } catch (InterruptedException e1) {
-                    throw new RuntimeException(e1);
-                }
-            }
+    public void doRun() {
+        try {
+            cleanup();
+        } catch (Exception e) {
+            log.error("Caught an exception while trying to clean up voice channels!", e);
         }
     }
 
