@@ -34,7 +34,7 @@ public class CommandRegistry {
 
     private static HashMap<String, CommandEntry> registry = new HashMap<>();
 
-    public static void registerCommand(Command command, String name, String... aliases) {
+    public static void registerCommand(String name, Command command, String... aliases) {
         CommandEntry entry = new CommandEntry(command, name);
         registry.put(name, entry);
         for (String alias : aliases) {
