@@ -34,13 +34,12 @@ public class CommandRegistry {
 
     private static HashMap<String, CommandEntry> registry = new HashMap<>();
 
-    public static void registerCommand(String name, Command command) {
+    public static void registerCommand(Command command, String name, String... aliases) {
         CommandEntry entry = new CommandEntry(command, name);
         registry.put(name, entry);
-    }
-    
-    public static void registerAlias(String command, String alias) {
-        registry.put(alias, registry.get(command));
+        for (String alias : aliases) {
+            registry.put(alias, entry);
+        }
     }
 
     public static CommandEntry getCommand(String name) {
