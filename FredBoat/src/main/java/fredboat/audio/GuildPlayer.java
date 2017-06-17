@@ -84,6 +84,10 @@ public class GuildPlayer extends AbstractPlayer {
         if (targetChannel == null) {
             throw new MessagingException(I18n.get(getGuild()).getString("playerUserNotInChannel"));
         }
+        if (targetChannel.equals(getChannel())) {
+            // already connected to the channel
+            return;
+        }
 
         if (!targetChannel.getGuild().getSelfMember().hasPermission(targetChannel, Permission.VOICE_CONNECT)
                 && !targetChannel.getMembers().contains(getGuild().getSelfMember())) {
