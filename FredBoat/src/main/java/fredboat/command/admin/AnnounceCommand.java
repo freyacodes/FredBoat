@@ -29,6 +29,7 @@ import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandAdminRestricted;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -37,8 +38,11 @@ import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.MessageFormat;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
@@ -53,6 +57,10 @@ public class AnnounceCommand extends Command implements ICommandAdminRestricted 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         List<GuildPlayer> players = PlayerRegistry.getPlayingPlayers();
+
+        if (players.isEmpty()) {
+            return;
+        }
         String input = message.getRawContent().substring(args[0].length() + 1);
         String msg = HEAD + input;
 
@@ -60,40 +68,59 @@ public class AnnounceCommand extends Command implements ICommandAdminRestricted 
         try {
             status = channel.sendMessage(String.format("[0/%d]", players.size())).complete(true);
         } catch (RateLimitedException e) {
+            log.error("annuoncement failed! Rate limits.", e);
+            TextUtils.handleException(e, channel, invoker);
             throw new RuntimeException(e);
         }
 
         new Thread(() -> {
-            CountDownLatch latch = new CountDownLatch(players.size());
-            Thread parent = Thread.currentThread();
+            Phaser phaser = new Phaser(players.size());
 
             for (GuildPlayer player : players) {
-                try {
-                    player.getActiveTextChannel().sendMessage(msg).queue(
-                            message1 -> latch.countDown(),
-                            throwable -> latch.countDown());
-                } catch (Exception e) {
-                    log.error("Got exception when posting announcement", e);
-                }
-
-                latch.countDown();
+                player.getActiveTextChannel().sendMessage(msg).queue(
+                        __ -> phaser.arrive(),
+                        __ -> phaser.arriveAndDeregister());
             }
 
             new Thread(() -> {
-                while (parent.isAlive()) {
-                    synchronized (this) {
+                try {
+                    Thread.sleep(TimeUnit.SECONDS.toMillis(5));
+                    do {
                         try {
-                            this.wait(5000);
-                            status.editMessage(String.format("[%d/%d]", players.size() - latch.getCount(), players.size())).queue();
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
+                            phaser.awaitAdvanceInterruptibly(0, 5, TimeUnit.SECONDS);
+                            // now all the parties have arrived, we can break out of the loop
+                            break;
+                        } catch (TimeoutException ex) {
+                            // this is fine, this means that the required parties haven't arrived
                         }
-                    }
+                        printProgress(status,
+                                phaser.getArrivedParties(),
+                                players.size(),
+                                players.size() - phaser.getRegisteredParties());
+                    } while (true);
+                    printDone(status,
+                            phaser.getRegisteredParties(), //phaser wraps back to 0 on phase increment
+                            players.size() - phaser.getRegisteredParties());
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt(); // restore interrupt flag
+                    log.error("interrupted", ex);
+                    throw new RuntimeException(ex);
                 }
             }).start();
-
-            status.editMessage(String.format("[%d/%d]", players.size() - latch.getCount(), players.size())).queue();
         }).start();
+    }
+
+    private static void printProgress(Message message, int done, int total, int error) {
+                    message.editMessage(MessageFormat.format(
+                            "[{0}/{1}]{2,choice,0#|0< {2} failed}",
+                            done, total, error)
+                    ).queue();
+    }
+    private static void printDone(Message message, int completed, int failed) {
+                    message.editMessage(MessageFormat.format(
+                            "{0} completed, {1} failed",
+                            completed, failed)
+                    ).queue();
     }
 
     @Override
