@@ -52,7 +52,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("avatar", new AvatarCommand(), "ava");
         CommandRegistry.registerCommand("test", new TestCommand());
         CommandRegistry.registerCommand("brainfuck", new BrainfuckCommand());
-        CommandRegistry.registerCommand("joke", new JokeCommand());
+        CommandRegistry.registerCommand("joke", new JokeCommand(), "jk");
         //TODO LeetCommand is borken. Don't throw unnecessary error reports until it's fixed or removed.
 //        CommandRegistry.registerCommand("leet", new LeetCommand(), "1337", "l33t", "1ee7");
         CommandRegistry.registerCommand("riot", new RiotCommand());
