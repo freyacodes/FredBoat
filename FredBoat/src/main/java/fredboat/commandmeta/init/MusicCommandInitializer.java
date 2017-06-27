@@ -64,7 +64,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("sc", new PlayCommand(SearchUtil.SearchProvider.SOUNDCLOUD), "soundcloud");
         CommandRegistry.registerCommand("meval", new EvalCommand());
         CommandRegistry.registerCommand("skip", new SkipCommand(), "sk");
-        CommandRegistry.registerCommand("join", new JoinCommand(), "summon", "j");
+        CommandRegistry.registerCommand("join", new JoinCommand(), "summon", "jn");
         CommandRegistry.registerCommand("nowplaying", new NowplayingCommand(), "np");
         CommandRegistry.registerCommand("leave", new LeaveCommand(), "lv");
         CommandRegistry.registerCommand("list", new ListCommand(), "queue", "q");
