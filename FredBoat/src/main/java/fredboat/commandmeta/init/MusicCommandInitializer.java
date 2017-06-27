@@ -74,7 +74,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("select", new SelectCommand(), "sel");
         CommandRegistry.registerCommand("stop", new StopCommand(), "st");
         CommandRegistry.registerCommand("pause", new PauseCommand(), "pa", "ps");
-        CommandRegistry.registerCommand("unpause", new UnpauseCommand(), "up");
+        CommandRegistry.registerCommand("unpause", new UnpauseCommand(), "unp", "resume");
         CommandRegistry.registerCommand("getid", new GetIdCommand());
         CommandRegistry.registerCommand("shuffle", new ShuffleCommand(), "sh");
         CommandRegistry.registerCommand("reshuffle", new ReshuffleCommand(), "resh");
