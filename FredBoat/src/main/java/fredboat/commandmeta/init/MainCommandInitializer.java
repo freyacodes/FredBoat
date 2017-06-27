@@ -62,9 +62,6 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("botrestart", new BotRestartCommand());
         CommandRegistry.registerCommand("dance", new DanceCommand());
         CommandRegistry.registerCommand("eval", new EvalCommand());
-        CommandRegistry.registerCommand("s", new TextCommand("¯\\_(ツ)_/¯"), "shrug");
-        CommandRegistry.registerCommand("lenny", new TextCommand("( ͡° ͜ʖ ͡°)"));
-        CommandRegistry.registerCommand("useless", new TextCommand("This command is useless."));
         CommandRegistry.registerCommand("clear", new ClearCommand());
         CommandRegistry.registerCommand("talk", new TalkCommand());
         CommandRegistry.registerCommand("mal", new MALCommand());
@@ -97,8 +94,20 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("noods", new RemoteFileCommand("http://i.imgur.com/mKdTGlg.png"));
         CommandRegistry.registerCommand("internetspeed", new RemoteFileCommand("http://i.imgur.com/84nbpQe.png"));
         CommandRegistry.registerCommand("powerpoint", new RemoteFileCommand("http://i.imgur.com/i65ss6p.png"));
+        
+        /* Text Faces & Unicode 'Art' & ASCII 'Art' and Stuff*/
+        CommandRegistry.registerCommand("s", new TextCommand("¯\\_(ツ)_/¯"), "shrug");
+        CommandRegistry.registerCommand("lenny", new TextCommand("( ͡° ͜ʖ ͡°)"));
+        CommandRegistry.registerCommand("faceofdisapproval", new TextCommand("ಠ_ಠ"), "fod", "disapproving");
+        CommandRegistry.registerCommand("sendenergy", new TextCommand("༼ つ ◕_◕ ༽つ"));
+        CommandRegistry.registerCommand("peeking", new TextCommand("┬┴┬┴┤ ͜ʖ ͡°) ├┬┴┬┴"), "peekinglenny", "peek");
+        CommandRegistry.registerCommand("dealwithit", new TextCommand("(•\\_•) ( •\\_•)>⌐■-■ (⌐■_■)"), "dwi"); //NOTE: This may break, depending on how the backlashes are handled.
+        CommandRegistry.registerCommand("channelingenergy", new TextCOmmand("(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ ✧ﾟ･: *ヽ(◕ヮ◕ヽ)"));
+        CommandRegistry.registerCommand("butterfly", new TextCommand("Ƹ̵̡Ӝ̵̨̄Ʒ"));
+        CommandRegistry.registerCommand("angrytableflip", new TextCommand("(ノಠ益ಠ)ノ彡┻━┻"), "tableflipbutangry");
         CommandRegistry.registerCommand("cooldog", new DogCommand(), "dog", "dogmeme");
         CommandRegistry.registerCommand("lood", new TextCommand("T-that's l-lewd, baka!!!"), "lewd");
+        CommandRegistry.registerCommand("useless", new TextCommand("This command is useless."));
 
         CommandRegistry.registerCommand("github", new TextCommand("https://github.com/Frederikam"));
         CommandRegistry.registerCommand("repo", new TextCommand("https://github.com/Frederikam/FredBoat"));
