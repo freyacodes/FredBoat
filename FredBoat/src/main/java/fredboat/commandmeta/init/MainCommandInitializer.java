@@ -40,7 +40,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("help", new HelpCommand(), "info");
 
         CommandRegistry.registerCommand("unblacklist", new UnblacklistCommand(), "unlimit");
-        CommandRegistry.registerCommand("commands", new CommandsCommand(), "comms");
+        CommandRegistry.registerCommand("commands", new CommandsCommand(), "comms", "cmds");
         CommandRegistry.registerCommand("version", new VersionCommand());
         CommandRegistry.registerCommand("say", new SayCommand());
         CommandRegistry.registerCommand("uptime", new StatsCommand(), "stats");
@@ -49,7 +49,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("userinfo", new fredboat.command.util.UserInfoCommand(), "memberinfo");
         CommandRegistry.registerCommand("gitinfo", new GitInfoCommand(), "git");
         CommandRegistry.registerCommand("exit", new ExitCommand());
-        CommandRegistry.registerCommand("avatar", new AvatarCommand());
+        CommandRegistry.registerCommand("avatar", new AvatarCommand(), "ava");
         CommandRegistry.registerCommand("test", new TestCommand());
         CommandRegistry.registerCommand("brainfuck", new BrainfuckCommand());
         CommandRegistry.registerCommand("joke", new JokeCommand());
