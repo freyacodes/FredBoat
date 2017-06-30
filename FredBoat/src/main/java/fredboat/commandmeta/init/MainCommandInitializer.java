@@ -102,12 +102,12 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("faceofdisapproval", new TextCommand("ಠ_ಠ"), "fod", "disapproving");
         CommandRegistry.registerCommand("sendenergy", new TextCommand("༼ つ ◕_◕ ༽つ"));
         CommandRegistry.registerCommand("peeking", new TextCommand("┬┴┬┴┤ ͜ʖ ͡°) ├┬┴┬┴"), "peekinglenny", "peek");
-        CommandRegistry.registerCommand("dealwithit", new TextCommand("(•\\_•) ( •\\_•)>⌐■-■ (⌐■_■)"), "dwi"); //NOTE: This may break, depending on how the backlashes are handled.
+        CommandRegistry.registerCommand("dealwithit", new TextCommand("(•\\_•) ( •\\_•)>⌐■-■ (⌐■_■)"), "dwi"); //NOTE: This may break, depending on how the backlashes are handled. UPDATE: This works fine
         CommandRegistry.registerCommand("channelingenergy", new TextCommand("(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ ✧ﾟ･: *ヽ(◕ヮ◕ヽ)"));
         CommandRegistry.registerCommand("butterfly", new TextCommand("Ƹ̵̡Ӝ̵̨̄Ʒ"));
-        CommandRegistry.registerCommand("angrytableflip", new TextCommand("(ノಠ益ಠ)ノ彡┻━┻"), "tableflipbutangry");
+        CommandRegistry.registerCommand("angrytableflip", new TextCommand("(ノಠ益ಠ)ノ彡┻━┻"), "tableflipbutangry", "atp");
         CommandRegistry.registerCommand("cooldog", new DogCommand(), "dog", "dogmeme");
-        CommandRegistry.registerCommand("lood", new TextCommand("T-that's l-lewd, baka!!!"), "lewd");
+        CommandRegistry.registerCommand("lood", new TextCommand("T-that's l-lewd, baka!!!"), "lewd", "l00d");
         CommandRegistry.registerCommand("useless", new TextCommand("This command is useless."));
         CommandRegistry.registerCommand("swtf", new TextCommand("¯\\(°_o)/¯"), "shrugwtf");
         CommandRegistry.registerCommand("hurray", new TextCommand("ヽ(^o^)ノ")
