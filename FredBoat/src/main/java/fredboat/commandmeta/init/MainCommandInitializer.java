@@ -73,6 +73,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("catgirl", new CatgirlCommand(), "neko", "catgrill");
         CommandRegistry.registerCommand("shards", new ShardsCommand());
         CommandRegistry.registerCommand("revive", new ReviveCommand());
+        CommandRegistry.registerCommand("ping", new PingCommand());
 
         /* Other Anime Discord, Sergi memes or any other memes */
         // saved in this album https://imgur.com/a/wYvDu
@@ -108,6 +109,8 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("cooldog", new DogCommand(), "dog", "dogmeme");
         CommandRegistry.registerCommand("lood", new TextCommand("T-that's l-lewd, baka!!!"), "lewd");
         CommandRegistry.registerCommand("useless", new TextCommand("This command is useless."));
+        CommandRegistry.registerCommand("swtf", new TextCommand("¯\\(°_o)/¯"), "shrugwtf");
+        CommandRegistry.registerCommand("hurray", new TextCommand("ヽ(^o^)ノ")
 
         CommandRegistry.registerCommand("github", new TextCommand("https://github.com/Frederikam"));
         CommandRegistry.registerCommand("repo", new TextCommand("https://github.com/Frederikam/FredBoat"));
