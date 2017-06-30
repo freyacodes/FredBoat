@@ -110,7 +110,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("lood", new TextCommand("T-that's l-lewd, baka!!!"), "lewd", "l00d");
         CommandRegistry.registerCommand("useless", new TextCommand("This command is useless."));
         CommandRegistry.registerCommand("swtf", new TextCommand("¯\\(°_o)/¯"), "shrugwtf");
-        CommandRegistry.registerCommand("hurray", new TextCommand("ヽ(^o^)ノ")
+        CommandRegistry.registerCommand("hurray", new TextCommand("ヽ(^o^)ノ"));
 
         CommandRegistry.registerCommand("github", new TextCommand("https://github.com/Frederikam"));
         CommandRegistry.registerCommand("repo", new TextCommand("https://github.com/Frederikam/FredBoat"));
