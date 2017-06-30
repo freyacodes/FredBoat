@@ -24,15 +24,8 @@ public class PingCommand extends Command implements IMaintenanceCommand {
 
         JDA jda = guild.getJDA();
         long ping = jda.getPing();
-        String pingMilliSeconds = String.valueOf(ping) + "ms";
 
-        MessageEmbed embed = new EmbedBuilder()
-                .setDescription(pingMilliSeconds)
-                .setColor(FREDBOAT_COLOR)
-                .setFooter(channel.getJDA().getSelfUser().getName(), channel.getJDA().getSelfUser().getAvatarUrl())
-                .build();
-
-        channel.sendMessage(embed).queue();
+        channel.sendMessage(String.valueOf(ping) + "ms";).queue();
     }
 }
 
