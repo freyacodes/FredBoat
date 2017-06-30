@@ -25,7 +25,7 @@ public class PingCommand extends Command implements IMaintenanceCommand {
         JDA jda = guild.getJDA();
         long ping = jda.getPing();
 
-        channel.sendMessage(String.valueOf(ping) + "ms";).queue();
+        channel.sendMessage(ping + "ms";).queue();
     }
 }
 
