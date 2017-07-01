@@ -13,7 +13,7 @@ import net.dv8tion.jda.core.entities.*;
 public class PingCommand extends Command implements IMaintenanceCommand {
     @Override
     public String help(Guild guild) {
-        return null;
+        return "{0}{1}\n#Returns the ping to Discord.";
     }
     
     @Override
