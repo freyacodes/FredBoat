@@ -33,6 +33,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.*;
+import net.dv8tion.jda.core.entities.impl.JDAImpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,8 +61,9 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
         LongOpenHashSet healthyUsers = new LongOpenHashSet(FredBoat.getExpectedUserCount());
         for (FredBoat fb : shards) {
             if (fb.getJda().getStatus() == JDA.Status.CONNECTED && !full) {
-                healthyGuilds += fb.getJda().getGuilds().size();
-                fb.getJda().getUsers().parallelStream().mapToLong(ISnowflake::getIdLong).forEach(healthyUsers::add);
+                healthyGuilds += fb.getGuildCount();
+                // casting to get the underlying map, this is safe because we only need the .size()
+                ((JDAImpl) fb.getJda()).getUserMap().size();
             } else {
                 if (borkenShards % SHARDS_PER_MESSAGE == 0) {
                     mb = new MessageBuilder()
