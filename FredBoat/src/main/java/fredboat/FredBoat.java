@@ -45,16 +45,15 @@ import fredboat.event.EventListenerBoat;
 import fredboat.event.EventListenerSelf;
 import fredboat.event.ShardWatchdogListener;
 import fredboat.feature.I18n;
+import fredboat.util.JDAUtil;
 import fredboat.util.constant.DistributionEnum;
 import fredboat.util.log.SimpleLogToSLF4JAdapter;
 import frederikam.jca.JCA;
 import frederikam.jca.JCABuilder;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDAInfo;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.ISnowflake;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
@@ -66,6 +65,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.LoginException;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -400,20 +400,11 @@ public abstract class FredBoat {
     }
 
     public static List<Guild> getAllGuilds() {
-        ArrayList<Guild> list = new ArrayList<>();
-
-        for (FredBoat fb : shards) {
-            list.addAll(fb.getJda().getGuilds());
-        }
-
-        return list;
+        return JDAUtil.getAllGuilds(shards);
     }
 
     public static int countAllGuilds() {
-        return Collections.unmodifiableCollection(shards)
-                .stream()
-                .mapToInt(shard -> shard.getJda().getGuilds().size())
-                .sum();
+        return JDAUtil.countAllGuilds(shards);
     }
 
     //this probably takes horribly long and should be solved in a different way
@@ -430,28 +421,19 @@ public abstract class FredBoat {
 //        return map;
 //    }
 
-    private static int biggestUserCount = -1;
+    private static AtomicInteger biggestUserCount = new AtomicInteger(-1);
 
     //IMPORTANT: do not use this for actually counting, it will not be accurate; it is meant to be used to initialize
     // sets or maps that are about to hold all those user values
     public static int getExpectedUserCount() {
-        if (biggestUserCount <= 0) { //initialize
+        if (biggestUserCount.get() <= 0) { //initialize
             countAllUniqueUsers();
         }
-        return biggestUserCount;
+        return biggestUserCount.get();
     }
 
     public static long countAllUniqueUsers() {
-        int expected = biggestUserCount > 0 ? biggestUserCount : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
-        LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 100000); //add 100k for good measure
-        Collections.unmodifiableCollection(shards).forEach(
-                shard -> shard.getJda().getUsers().parallelStream().mapToLong(ISnowflake::getIdLong).forEach(uniqueUsers::add)
-        );
-        //never shrink the user count (might happen due to not connected shards)
-        if (uniqueUsers.size() > biggestUserCount) {
-            biggestUserCount = uniqueUsers.size();
-        }
-        return uniqueUsers.size();
+        return JDAUtil.countAllUniqueUsers(shards, biggestUserCount);
     }
 
     public static TextChannel getTextChannelById(String id) {
@@ -510,6 +492,14 @@ public abstract class FredBoat {
         } else {
             return new ShardInfo(sId, Config.CONFIG.getNumShards());
         }
+    }
+
+    public long getGuildCount() {
+        return JDAUtil.countAllGuilds(Collections.singletonList(this));
+    }
+
+    public long getUserCount() {
+        return JDAUtil.countAllUniqueUsers(shards, biggestUserCount);
     }
 
     public abstract void revive();

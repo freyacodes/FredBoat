@@ -74,8 +74,8 @@ public class API {
             for (FredBoat fb : shards) {
                 JSONObject fbStats = new JSONObject();
                 fbStats.put("id", fb.getShardInfo().getShardId())
-                        .put("guilds", fb.getJda().getGuilds().size())
-                        .put("users", fb.getJda().getUsers().size())
+                        .put("guilds", fb.getGuildCount())
+                        .put("users", fb.getUserCount())
                         .put("status", fb.getJda().getStatus());
 
                 a.put(fbStats);

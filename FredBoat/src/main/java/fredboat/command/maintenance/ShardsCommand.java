@@ -74,9 +74,9 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
                         .append(" ")
                         .append(fb.getJda().getStatus())
                         .append(" -- Guilds: ")
-                        .append(String.format("%04d", fb.getJda().getGuilds().size()))
+                        .append(String.format("%04d", fb.getGuildCount()))
                         .append(" -- Users: ")
-                        .append(fb.getJda().getUsers().size())
+                        .append(fb.getUserCount())
                         .append("\n");
                 borkenShards++;
             }

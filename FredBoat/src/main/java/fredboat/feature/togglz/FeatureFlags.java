@@ -48,7 +48,12 @@ public enum FeatureFlags implements Feature {
 
     @Label("Permissions")
     @EnabledByDefault
-    PERMISSIONS;
+    PERMISSIONS,
+
+    //using data methods that don't collect everything to new data structures
+    @Label("Streaming data methods")
+    @EnabledByDefault
+    DATA_METHODS;
 
     public boolean isActive() {
         return FeatureConfig.getTheFeatureManager().isActive(this);

@@ -42,6 +42,12 @@
             <artifactId>JDA</artifactId>
             <version>3.1.1_217</version>
         </dependency>
+        <!-- because gradle doesn't make a good pom and the scope isn't set correctly -->
+        <dependency>
+            <groupId>net.sf.trove4j</groupId>
+            <artifactId>trove4j</artifactId>
+            <version>3.0.3</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
