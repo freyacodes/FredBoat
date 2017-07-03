@@ -53,6 +53,8 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("shards", new ShardsCommand());
         CommandRegistry.registerCommand("revive", new ReviveCommand());
         CommandRegistry.registerCommand("test", new TestCommand());
+        CommandRegistry.registerCommand("gitinfo", new GitInfoCommand(), "git");
+        CommandRegistry.registerCommand("exit", new ExitCommand());
         
         /* Moderation */
         CommandRegistry.registerCommand("hardban", new HardbanCommand());
