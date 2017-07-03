@@ -499,7 +499,7 @@ public abstract class FredBoat {
     }
 
     public long getUserCount() {
-        return JDAUtil.countAllUniqueUsers(shards, biggestUserCount);
+        return JDAUtil.countAllUniqueUsers(Collections.singletonList(this), biggestUserCount);
     }
 
     public abstract void revive();
