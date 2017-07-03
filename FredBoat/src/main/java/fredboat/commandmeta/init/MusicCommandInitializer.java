@@ -43,6 +43,7 @@ import fredboat.command.music.seeking.SeekCommand;
 import fredboat.command.util.CommandsCommand;
 import fredboat.command.util.HelpCommand;
 import fredboat.command.util.MusicHelpCommand;
+import fredboat.command.util.UserInfoCommand;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.constant.DistributionEnum;
