@@ -28,7 +28,7 @@ package fredboat.agent;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.event.ShardWatchdogListener;
-import fredboat.util.constant.DistributionEnum;
+import fredboat.shared.constant.DistributionEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

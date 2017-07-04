@@ -1,6 +1,6 @@
 package fredboat;
 
-import fredboat.util.constant.BotConstants;
+import fredboat.shared.constant.BotConstants;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.EmbedBuilder;

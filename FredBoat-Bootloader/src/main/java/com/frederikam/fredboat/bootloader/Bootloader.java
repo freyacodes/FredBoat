@@ -25,14 +25,16 @@
 
 package com.frederikam.fredboat.bootloader;
 
+import fredboat.shared.constant.ExitCodes;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Scanner;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 public class Bootloader {
 

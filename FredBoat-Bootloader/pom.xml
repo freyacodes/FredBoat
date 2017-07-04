@@ -24,17 +24,30 @@
   ~
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>FredBoat-Root</artifactId>
+        <groupId>fredboat</groupId>
+        <version>1.0</version>
+    </parent>
+
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.frederikam</groupId>
     <artifactId>FredBoat-Bootloader</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-    </properties>
+
+    <dependencies>
+        <!-- fredboat internal shared library -->
+        <dependency>
+            <groupId>fredboat</groupId>
+            <artifactId>Shared</artifactId>
+            <version>1.0</version>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -61,12 +74,4 @@
             </plugin>
         </plugins>
     </build>
-    <dependencies>
-        <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20170516</version>
-            <type>jar</type>
-        </dependency>
-    </dependencies>
 </project>

@@ -28,7 +28,7 @@ package fredboat.command.util;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
-import fredboat.util.constant.BotConstants;
+import fredboat.shared.constant.BotConstants;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.OnlineStatus;
 import net.dv8tion.jda.core.entities.Guild;

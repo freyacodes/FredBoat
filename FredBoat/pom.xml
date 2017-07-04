@@ -25,18 +25,28 @@
   -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>FredBoat-Root</artifactId>
+        <groupId>fredboat</groupId>
+        <version>1.0</version>
+    </parent>
+
     <modelVersion>4.0.0</modelVersion>
-    <groupId>fredboat</groupId>
     <artifactId>FredBoat</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
+
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
         <start-class>fredboat.FredBoat</start-class>
     </properties>
+
     <dependencies>
+        <!-- fredboat internal shared library -->
+        <dependency>
+            <groupId>fredboat</groupId>
+            <artifactId>Shared</artifactId>
+            <version>1.0</version>
+        </dependency>
         <dependency>
             <groupId>net.dv8tion</groupId>
             <artifactId>JDA</artifactId>
@@ -211,20 +221,6 @@
     </repositories>
     <build>
         <plugins>
-            <!-- force clean all the time-->
-            <plugin>
-                <artifactId>maven-clean-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <id>auto-clean</id>
-                        <phase>initialize</phase>
-                        <goals>
-                            <goal>clean</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <!-- careful when updating this one, 2.20 breaks travis builds and hides test logs-->

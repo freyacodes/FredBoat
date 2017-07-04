@@ -46,7 +46,7 @@ import fredboat.command.util.MusicHelpCommand;
 import fredboat.command.util.UserInfoCommand;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.perms.PermissionLevel;
-import fredboat.util.constant.DistributionEnum;
+import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.rest.SearchUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

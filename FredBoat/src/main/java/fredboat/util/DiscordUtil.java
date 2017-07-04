@@ -29,7 +29,7 @@ import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.feature.I18n;
-import fredboat.util.constant.BotConstants;
+import fredboat.shared.constant.BotConstants;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.OnlineStatus;
 import net.dv8tion.jda.core.entities.*;

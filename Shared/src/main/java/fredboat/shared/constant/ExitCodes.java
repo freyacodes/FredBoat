@@ -23,7 +23,7 @@
  *
  */
 
-package fredboat.util.constant;
+package fredboat.shared.constant;
 
 public class ExitCodes {
 
