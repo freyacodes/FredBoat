@@ -28,20 +28,23 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>FredBoat-Root</artifactId>
         <groupId>fredboat</groupId>
+        <artifactId>FredBoat-Root</artifactId>
         <version>1.0</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.frederikam</groupId>
     <artifactId>FredBoat-Bootloader</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
 
+    <properties>
+        <start-class>fredboat.bootloader.Bootloader</start-class>
+    </properties>
+
     <dependencies>
-        <!-- fredboat internal shared library -->
         <dependency>
+            <!-- fredboat internal shared library -->
             <groupId>fredboat</groupId>
             <artifactId>Shared</artifactId>
             <version>1.0</version>
@@ -64,7 +67,7 @@
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>com.frederikam.fredboat.bootloader.Bootloader</Main-Class>
+                                        <Main-Class>fredboat.bootloader.Bootloader</Main-Class>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>

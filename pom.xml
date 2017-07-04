@@ -29,8 +29,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>fredboat</groupId>
-    <version>1.0</version>
     <artifactId>FredBoat-Root</artifactId>
+    <version>1.0</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -44,6 +44,31 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>jcenter</id>
+            <name>jcenter-bintray</name>
+            <url>http://jcenter.bintray.com</url>
+        </repository>
+        <repository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>bintray-frederikam-JCA</id>
+            <name>bintray</name>
+            <url>http://dl.bintray.com/frederikam/JCA</url>
+        </repository>
+        <repository>
+            <id>sedmelluq</id>
+            <name>sedmelluq</name>
+            <url>http://maven.sedmelluq.com/</url>
+        </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
 
     <!-- force clean all the time-->
     <build>
