@@ -97,7 +97,7 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
                 Field frameBufferDuration = playerManager.getClass().getDeclaredField("frameBufferDuration");
                 frameBufferDuration.setAccessible(true);
                 frameBufferDuration.setInt(playerManager, 200);
-                log.info("set the buffer size to " + playerManager.getFrameBufferDuration());
+                log.debug("set the buffer size to " + playerManager.getFrameBufferDuration());
             } catch (IllegalAccessException
                     | IllegalArgumentException
                     | NoSuchFieldException
