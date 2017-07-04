@@ -53,6 +53,7 @@ import fredboat.util.constant.DistributionEnum;
 import net.dv8tion.jda.core.audio.AudioSendHandler;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,7 +89,22 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
 
             playerManager.getConfiguration().setResamplingQuality(quality);
             playerManager.enableGcMonitoring();
-            playerManager.setFrameBufferDuration(1000);
+
+//          TODO: inquire why this is so inconsistent
+//                DEFAULT_FRAME_BUFFER_DURATION = 5000 but setter does Math.max(200, frameBufferDuration)
+//          playerManager.setFrameBufferDuration(1000);
+            try {
+                Field frameBufferDuration = playerManager.getClass().getDeclaredField("frameBufferDuration");
+                frameBufferDuration.setAccessible(true);
+                frameBufferDuration.setInt(playerManager, 200);
+                log.info("set the buffer size to " + playerManager.getFrameBufferDuration());
+            } catch (IllegalAccessException
+                    | IllegalArgumentException
+                    | NoSuchFieldException
+                    | SecurityException ex) {
+
+                throw new RuntimeException(ex);
+            }
 
             if (Config.CONFIG.getDistribution() != DistributionEnum.DEVELOPMENT && Config.CONFIG.isLavaplayerNodesEnabled()) {
                 playerManager.useRemoteNodes(Config.CONFIG.getLavaplayerNodes());
