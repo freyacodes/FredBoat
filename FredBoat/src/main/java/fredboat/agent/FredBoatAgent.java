@@ -65,6 +65,8 @@ public abstract class FredBoatAgent implements Runnable {
             log.info("running");
             doRun();
             log.info("done");
+        } catch (Throwable t) {
+            log.warn("Whoa! Unhandled throwable!", t);
         } finally {
             Thread.currentThread().setName(IDLE_NAME);
         }
