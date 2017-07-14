@@ -47,7 +47,9 @@ import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,50 +59,34 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
     private static final Pattern trackRangePattern = Pattern.compile(TRACK_RANGE_REGEX);
 
     /**
-     * The keyword to change the {@link #skipCooldown}
+     * Represents the relationship between a <b>guild's id</b> and <b>skip cooldown</b>.
      */
-    private static final String COOLDOWN_CMD = "cd";
+    private static Map<String, Long> guildIdToLastSkip = new HashMap<String, Long>();
 
     /**
      * The default cooldown for calling the {@link #onInvoke} method in milliseconds.
      */
-    private static final int DEFAULT_SKIP_COOLDOWN = 1000;
-
-    /**
-     * The latest time {@link #onInvoke} was called in milliseconds.
-     */
-    private long lastInvokeCall;
-
-    /**
-     * The cooldown for calling the {@link #onInvoke} method in milliseconds.
-     */
-    private long skipCooldown;
-
-    /**
-     * Initializes a new instance of the SkipCommand class.
-     */
-    public SkipCommand() {
-        super();
-        lastInvokeCall = 0L;
-        skipCooldown = DEFAULT_SKIP_COOLDOWN;
-    }
+    private static final int SKIP_COOLDOWN = 500;
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         GuildPlayer player = PlayerRegistry.get(guild);
         player.setCurrentTC(channel);
+
         if (player.isQueueEmpty()) {
             channel.sendMessage(I18n.get(guild).getString("skipEmpty")).queue();
             return;
         }
 
-        // We can always change the cooldown if we issue the skip command with the cooldown arguments.
-        if (isOnCooldown() && args.length < 3) {
-            // TODO display a message if skip is on cooldown?
+        if (!guildIdToLastSkip.containsKey(guild.getId())) {
+            guildIdToLastSkip.put(guild.getId(), System.currentTimeMillis());
+        }
+
+        if (isOnCooldown(guild)) {
             return;
         }
 
-        boolean isCmdSuccessful = true;
+        guildIdToLastSkip.put(guild.getId(), System.currentTimeMillis());
 
         if (args.length == 1) {
             skipNext(guild, channel, invoker, args);
@@ -108,29 +94,6 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
             skipGivenIndex(player, channel, invoker, args);
         } else if (args.length == 2 && trackRangePattern.matcher(args[1]).matches()) {
             skipInRange(player, channel, invoker, args);
-        } else if (args.length == 3 && args[1].equalsIgnoreCase(COOLDOWN_CMD) && StringUtils.isNumeric(args[2])) {
-            skipNext(guild, channel, invoker, args);
-            skipCooldown = Long.parseLong(args[2]);
-        } else if (
-                args.length == 4
-                && StringUtils.isNumeric(args[1])
-                && args[2].equalsIgnoreCase(COOLDOWN_CMD)
-                && StringUtils.isNumeric(args[3])) {
-            skipGivenIndex(player, channel, invoker, args);
-            skipCooldown = Long.parseLong(args[3]);
-        } else if (
-                args.length == 4
-                && trackRangePattern.matcher(args[1]).matches()
-                && args[2].equalsIgnoreCase(COOLDOWN_CMD)
-                && StringUtils.isNumeric(args[3])) {
-            skipInRange(player, channel, invoker, args);
-            skipCooldown = Long.parseLong(args[3]);
-        } else {
-            isCmdSuccessful = false;
-        }
-
-        if (isCmdSuccessful) {
-            lastInvokeCall = System.currentTimeMillis();
         } else {
             String command = args[0].substring(Config.CONFIG.getPrefix().length());
             HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
@@ -140,11 +103,11 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
     /**
      * Specifies whether the <B>skip command </B>is on cooldown.
      * @return {@code true} if the elapsed time since the <B>skip command</B> is less than or equal to
-     * {@link #skipCooldown}; otherwise, {@code false}.
+     * {@link #SKIP_COOLDOWN}; otherwise, {@code false}.
      */
-    private boolean isOnCooldown() {
+    private boolean isOnCooldown(Guild guild) {
         long currentTIme = System.currentTimeMillis();
-        return currentTIme - lastInvokeCall <= skipCooldown;
+        return currentTIme - guildIdToLastSkip.get(guild.getId()) <= SKIP_COOLDOWN;
     }
 
     private void skipGivenIndex(GuildPlayer player, TextChannel channel, Member invoker, String[] args) {
@@ -231,7 +194,7 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
 
     @Override
     public String help(Guild guild) {
-        String usage = "{0}{1} OR {0}{1} n OR {0}{1} n-m OR {0}{1} cd t OR {0}{1} n cd t OR {0}{1} n-m cd t\n#";
+        String usage = "{0}{1} OR {0}{1} n OR {0}{1} n-m\n#";
         return usage + I18n.get(guild).getString("helpSkipCommand");
     }
 
