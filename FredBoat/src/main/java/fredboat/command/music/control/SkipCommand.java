@@ -102,6 +102,7 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
 
     /**
      * Specifies whether the <B>skip command </B>is on cooldown.
+     * @param guild The guild where the <B>skip command</B> was called.
      * @return {@code true} if the elapsed time since the <B>skip command</B> is less than or equal to
      * {@link #SKIP_COOLDOWN}; otherwise, {@code false}.
      */
