@@ -37,7 +37,7 @@ public abstract class FredBoatAgent implements Runnable {
     private static final String IDLE_NAME = "idle agent worker thread";
     private static final String RUNNING_NAME = "%s agent worker thread";
 
-    private static final ScheduledExecutorService AGENTS = Executors.newSingleThreadScheduledExecutor(runnable -> {
+    private static final ScheduledExecutorService AGENTS = Executors.newScheduledThreadPool(2, runnable -> {
         Thread thread = new Thread(runnable, IDLE_NAME);
         thread.setPriority(4);
         return thread;
