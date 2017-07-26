@@ -82,15 +82,15 @@ public class EventListenerBoat extends AbstractEventListener {
             return;
         }
 
-        if (event.getAuthor().isBot()) {
-            return;
-        }
-
         if (event.getAuthor().equals(event.getJDA().getSelfUser())) {
             log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
             return;
         }
 
+        if (event.getAuthor().isBot()) {
+            return;
+        }
+        
         if (event.getMessage().getContent().length() < Config.CONFIG.getPrefix().length()) {
             return;
         }
