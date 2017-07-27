@@ -28,6 +28,7 @@ package fredboat.command.maintenance;
 import com.sedmelluq.discord.lavaplayer.tools.PlayerLibrary;
 import fredboat.Config;
 import fredboat.FredBoat;
+import fredboat.agent.FredBoatAgent;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.abs.Command;
@@ -39,6 +40,7 @@ import net.dv8tion.jda.core.JDAInfo;
 import net.dv8tion.jda.core.entities.Guild;
 
 import java.text.MessageFormat;
+import java.util.Map;
 
 public class StatsCommand extends Command implements IMaintenanceCommand {
 
@@ -76,6 +78,14 @@ public class StatsCommand extends Command implements IMaintenanceCommand {
         str = str + "JDA version:                    " + JDAInfo.VERSION + "\n";
         str = str + "FredBoat version:               " + AppInfo.getAppInfo().getVersionBuild() + "\n";
         str = str + "Lavaplayer version:             " + PlayerLibrary.VERSION + "\n";
+
+        str = str + "\n----------\n\n";
+
+        str = str + "Last agent run times:\n";
+        for (Map.Entry<Class<? extends FredBoatAgent>, Long> entry : FredBoatAgent.getLastRunTimes().entrySet()) {
+            // [classname] [padded to length 32 with spaces] [date]T[time][zone]
+            str += String.format("%1$-32s%2$TFT%2$TT%2$Tz\n", entry.getKey().getSimpleName(), entry.getValue());
+        }
 
         str = str + "```";
 

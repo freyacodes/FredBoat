@@ -28,6 +28,9 @@ package fredboat.agent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +39,8 @@ public abstract class FredBoatAgent implements Runnable {
 
     private static final String IDLE_NAME = "idle agent worker thread";
     private static final String RUNNING_NAME = "%s agent worker thread";
+
+    private static final Map<Class<? extends FredBoatAgent>, Long> LAST_RUN_TIME = new ConcurrentHashMap<>();
 
     private static final ScheduledExecutorService AGENTS = Executors.newScheduledThreadPool(2, runnable -> {
         Thread thread = new Thread(runnable, IDLE_NAME);
@@ -60,6 +65,7 @@ public abstract class FredBoatAgent implements Runnable {
 
     @Override
     public final void run() {
+        LAST_RUN_TIME.put(this.getClass(), System.currentTimeMillis());
         try {
             Thread.currentThread().setName(name);
             log.info("running");
@@ -76,6 +82,10 @@ public abstract class FredBoatAgent implements Runnable {
 
     public static void start(FredBoatAgent agent) {
         AGENTS.scheduleAtFixedRate(agent, agent.millisToSleep, agent.millisToSleep, TimeUnit.MILLISECONDS);
+    }
+
+    public static Map<Class<? extends FredBoatAgent>, Long> getLastRunTimes() {
+        return Collections.unmodifiableMap(LAST_RUN_TIME);
     }
 
     public static void shutdown() {
