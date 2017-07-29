@@ -104,7 +104,7 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
             }
             out += s + "\n";
         }
-
+        sendCommandsHelp(guild, channel, invoker, out);
     }
 
     public static void sendCommandsHelp(Guild guild, TextChannel channel, Member invoker, String dmMsg) {
