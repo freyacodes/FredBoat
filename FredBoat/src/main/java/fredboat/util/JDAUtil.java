@@ -26,9 +26,11 @@ package fredboat.util;
 
 import fredboat.FredBoat;
 import fredboat.feature.togglz.FeatureFlags;
+import gnu.trove.procedure.TObjectProcedure;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.ISnowflake;
+import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.impl.JDAImpl;
 
 import java.util.ArrayList;
@@ -81,15 +83,16 @@ public class JDAUtil {
         public static long countAllUniqueUsers(List<FredBoat> shards, AtomicInteger biggestUserCount) {
             int expected = biggestUserCount.get() > 0 ? biggestUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
             LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 100000); //add 100k for good measure
+            TObjectProcedure<User> adder = user -> {
+                uniqueUsers.add(user.getIdLong());
+                return true;
+            };
             Collections.unmodifiableCollection(shards).forEach(
                     // IMPLEMENTATION NOTE: READ
                     // careful, touching the map is in not all cases safe
                     // In this case, it just so happens to be safe, because the map is synchronized
                     // this means however, that for the (small) duration, the map cannot be used by other threads (if there are any)
-                    shard -> ((JDAImpl) shard.getJda()).getUserMap().forEachValue(user -> {
-                        uniqueUsers.add(user.getIdLong());
-                        return true;
-                    })
+                    shard -> ((JDAImpl) shard.getJda()).getUserMap().forEachValue(adder)
             );
             //never shrink the user count (might happen due to not connected shards)
             biggestUserCount.accumulateAndGet(uniqueUsers.size(), Math::max);
