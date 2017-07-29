@@ -51,7 +51,11 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+        // go send the command? IDFK
+        getFormattedCommandHelp(guild,channel,invoker);
+    }
 
+    private static List<String> getMusicComms(Guild guild) {
         //aggregate all commands and the aliases they may be called with
         Map<Class<? extends Command>, List<String>> commandToAliases = new HashMap<>();
         Set<String> commandsAndAliases = CommandRegistry.getRegisteredCommandsAndAliases();
@@ -83,16 +87,33 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
             musicComms.add(formattedHelp);
         }
 
-        //output the resulting help, splitting it in several messages if necessary
+        return musicComms;
+    }
+
+    public static void getFormattedCommandHelp(Guild guild, TextChannel channel, Member invoker) {
+        //retrieve the array of commands and messages.
+        final List<String> musicComms = getMusicComms(guild);
+
+        // Start building string:
         String out = "< " + I18n.get(guild).getString("helpMusicCommandsHeader") + " >\n";
+        // split the message into parts if it's too big pls.
         for (String s : musicComms) {
             if (out.length() + s.length() >= 1990) {
-                channel.sendMessage(TextUtils.asMarkdown(out)).queue();
+                sendCommandsHelp(guild, channel, invoker, out);
                 out = "";
             }
             out += s + "\n";
         }
-        channel.sendMessage(TextUtils.asMarkdown(out)).queue();
+
+    }
+
+    public static void sendCommandsHelp(Guild guild, TextChannel channel, Member invoker, String dmMsg) {
+        // send the commands to the user in a DM
+        invoker.getUser().openPrivateChannel().queue(privateChannel -> {
+            privateChannel.sendMessage(dmMsg).queue();
+            String out = I18n.get(guild).getString("helpSent"); //TODO: Replace this key with something better.
+            TextUtils.replyWithName(channel, invoker, out);
+        });
     }
 
     @Override
