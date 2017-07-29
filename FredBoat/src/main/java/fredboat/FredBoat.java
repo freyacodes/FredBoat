@@ -502,7 +502,7 @@ public abstract class FredBoat {
         return JDAUtil.countAllUniqueUsers(Collections.singletonList(this), biggestUserCount);
     }
 
-    public abstract void revive();
+    public abstract String revive(boolean... force);
 
     public ShardWatchdogListener getShardWatchdogListener() {
         return shardWatchdogListener;
@@ -539,5 +539,19 @@ public abstract class FredBoat {
 
     public static DatabaseManager getDbManager() {
         return dbManager;
+    }
+
+    private static volatile long lastCoinGivenOut = 0;
+
+    // if you get a coin, you are allowed to build a shard (= perform a login to discord)
+    public static synchronized boolean getShardCoin(int shardId) {
+        long now = System.currentTimeMillis();
+        if (now - lastCoinGivenOut >= SHARD_CREATION_SLEEP_INTERVAL) {
+            lastCoinGivenOut = now;
+            log.info("Coin for shard {}", shardId);
+            return true;
+        }
+        log.info("No coin for shard {}", shardId);
+        return false;
     }
 }

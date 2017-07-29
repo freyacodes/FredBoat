@@ -87,6 +87,10 @@ public class EventListenerBoat extends AbstractEventListener {
             return;
         }
 
+        if (event.getAuthor().isBot()) {
+            return;
+        }
+        
         if (event.getMessage().getContent().length() < Config.CONFIG.getPrefix().length()) {
             return;
         }

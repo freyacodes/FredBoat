@@ -91,7 +91,6 @@ public class ShardWatchdogAgent extends Thread {
                     }*/
 
                     shard.revive();
-                    sleep(5000);
                 }
             }
         }

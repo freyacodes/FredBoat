@@ -61,9 +61,12 @@ public class ReviveCommand extends Command implements ICommandRestricted {
             return;
         }
 
-        channel.sendMessage(TextUtils.prefaceWithName(invoker, " Reviving shard " + shardId)).queue();
+        boolean force = (message.getRawContent().toLowerCase().contains("force"));
+
+        channel.sendMessage(TextUtils.prefaceWithName(invoker, " Attempting to revive shard " + shardId)).queue();
         try {
-            FredBoat.getInstance(shardId).revive();
+            String answer = FredBoat.getInstance(shardId).revive(force);
+            channel.sendMessage(TextUtils.prefaceWithName(invoker, answer)).queue();
         } catch (IndexOutOfBoundsException e) {
             channel.sendMessage(TextUtils.prefaceWithName(invoker, " No such shard: " + shardId)).queue();
         }

@@ -29,6 +29,7 @@ import com.sedmelluq.discord.lavaplayer.jdaudp.NativeAudioSendFactory;
 import fredboat.audio.PlayerRegistry;
 import fredboat.event.EventLogger;
 import fredboat.event.ShardWatchdogListener;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
@@ -37,6 +38,8 @@ import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.hooks.EventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.Future;
 
 public class FredBoatBot extends FredBoat {
 
@@ -86,11 +89,14 @@ public class FredBoatBot extends FredBoat {
                     builder.useSharding(shardId, Config.CONFIG.getNumShards());
                 }
                 try {
+                    while (!getShardCoin(shardId)) {
+                        //beg aggressively for a coin
+                        Thread.sleep(1000);
+                    }
                     newJda = builder.buildAsync();
                     success = true;
                 } catch (RateLimitedException e) {
-                    log.warn("Got rate limited while building bot JDA instance! Retrying...", e);
-                    Thread.sleep(SHARD_CREATION_SLEEP_INTERVAL);
+                    log.error("Got rate limited while building bot JDA instance! Retrying...", e);
                 }
             }
         } catch (Exception e) {
@@ -100,29 +106,63 @@ public class FredBoatBot extends FredBoat {
         return newJda;
     }
 
+    private volatile Future reviveTask;
+    private volatile long reviveTaskStarted;
+
     @Override
-    public void revive() {
-        log.info("Reviving shard " + shardId);
+    public synchronized String revive(boolean... force) {
 
-        try {
-            channelsToRejoin.clear();
+        String info = "";
+        //is there an active task doing that already?
+        if (reviveTask != null && !reviveTask.isCancelled() && !reviveTask.isDone()) {
+            info += String.format("Active task to revive shard %s running for %s detected.",
+                    shardId, TextUtils.formatTime(System.currentTimeMillis() - reviveTaskStarted));
 
-            PlayerRegistry.getPlayingPlayers().stream()
-                    .filter(guildPlayer -> guildPlayer.getJda().getShardInfo().getShardId() == shardId)
-                    .forEach(guildPlayer -> {
-                        VoiceChannel channel = guildPlayer.getChannel();
-                        if (channel != null) channelsToRejoin.add(channel.getId());
-                    });
-        } catch (Exception ex) {
-            log.error("Caught exception while reviving shard " + this, ex);
+            //is the force flag set?
+            if (force.length > 0 && force[0]) {
+                info += "\nForce option detected: Killing running task, creating a new one.";
+                reviveTask.cancel(true);
+            } else {
+                info += "\nNo action required. Set force flag to force a recreation of the task.";
+                log.info(info);
+                return info;
+            }
         }
-        
-        //remove listeners from decommissioned jda for good memory hygiene
-        jda.removeEventListener(shardWatchdogListener);
-        jda.removeEventListener(listener);
 
-        jda.shutdown(false);
-        jda = buildJDA();
+        //wrap this into a task to avoid blocking a thread
+        reviveTaskStarted = System.currentTimeMillis();
+        reviveTask = FredBoat.executor.submit(() -> {
+            try {
+                log.info("Reviving shard " + shardId);
+
+                try {
+                    channelsToRejoin.clear();
+
+                    PlayerRegistry.getPlayingPlayers().stream()
+                            .filter(guildPlayer -> guildPlayer.getJda().getShardInfo().getShardId() == shardId)
+                            .forEach(guildPlayer -> {
+                                VoiceChannel channel = guildPlayer.getChannel();
+                                if (channel != null) channelsToRejoin.add(channel.getId());
+                            });
+                } catch (Exception ex) {
+                    log.error("Caught exception while saving channels to revive shard {}", shardId, ex);
+                }
+
+                //remove listeners from decommissioned jda for good memory hygiene
+                jda.removeEventListener(shardWatchdogListener);
+                jda.removeEventListener(listener);
+
+                jda.shutdown(false);
+                jda = buildJDA();
+
+            } catch (Exception e) {
+                log.error("Task to revive shard {} threw an exception after running for {}",
+                        shardId, TextUtils.formatTime(System.currentTimeMillis() - reviveTaskStarted), e);
+            }
+        });
+        info += String.format("\nTask to revive shard %s started!", shardId);
+        log.info(info);
+        return info;
     }
 
     int getShardId() {

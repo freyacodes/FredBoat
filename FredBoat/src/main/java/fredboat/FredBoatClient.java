@@ -59,7 +59,7 @@ public class FredBoatClient extends FredBoat {
     }
 
     @Override
-    public void revive() {
+    public String revive(boolean... force) {
         throw new NotImplementedException("Client shards can't be revived");
     }
 }
