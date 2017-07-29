@@ -51,7 +51,6 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        // go send the command? IDFK
         getFormattedCommandHelp(guild,channel,invoker);
     }
 
@@ -112,7 +111,7 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
         invoker.getUser().openPrivateChannel().queue(privateChannel -> {
             privateChannel.sendMessage(TextUtils.asMarkdown(dmMsg)).queue();
             String out = I18n.get(guild).getString("helpSent"); //TODO: Replace this key with something better.
-            TextUtils.replyWithName(channel, invoker, TextUtils.asMarkdown(out));
+            TextUtils.replyWithName(channel, invoker, out);
         });
     }
 
