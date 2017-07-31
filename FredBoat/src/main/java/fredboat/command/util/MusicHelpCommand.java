@@ -51,7 +51,6 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        // go send the command? IDFK
         getFormattedCommandHelp(guild,channel,invoker);
     }
 
