@@ -112,7 +112,7 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
         invoker.getUser().openPrivateChannel().queue(privateChannel -> {
             privateChannel.sendMessage(TextUtils.asMarkdown(dmMsg)).queue();
             String out = I18n.get(guild).getString("helpSent"); //TODO: Replace this key with something better.
-            TextUtils.replyWithName(channel, invoker, TextUtils.asMarkdown(out));
+            TextUtils.replyWithName(channel, invoker, out);
         });
     }
 
