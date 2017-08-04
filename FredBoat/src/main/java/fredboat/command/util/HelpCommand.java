@@ -71,12 +71,14 @@ public class HelpCommand extends Command implements IMusicBackupCommand, IUtilCo
     }
 
     private static void sendGeneralHelp(Guild guild, TextChannel channel, Member invoker) {
-        invoker.getUser().openPrivateChannel().queue(privateChannel -> {
-            privateChannel.sendMessage(getHelpDmMsg(guild)).queue();
-            String out = I18n.get(guild).getString("helpSent");
-            out += "\n" + MessageFormat.format(I18n.get(guild).getString("helpCommandsPromotion"), "`" + Config.CONFIG.getPrefix() + "commands`");
-            TextUtils.replyWithName(channel, invoker, out);
-        });
+        invoker.getUser().openPrivateChannel().queue( (privateChannel) ->
+                privateChannel.sendMessage(getHelpDmMsg(guild)).queue(message -> {
+                    // Let the user know when the message is successfully sent.
+                    String out = I18n.get(guild).getString("helpSent");
+                    out += "\n" + MessageFormat.format(I18n.get(guild).getString("helpCommandsPromotion"),
+                            "`" + Config.CONFIG.getPrefix() + "commands`");
+                    TextUtils.replyWithName(channel, invoker, out);
+        }));
     }
 
     public static String getFormattedCommandHelp(Guild guild, Command command, String commandOrAlias) {

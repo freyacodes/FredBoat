@@ -90,29 +90,29 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
     }
 
     public static void getFormattedCommandHelp(Guild guild, TextChannel channel, Member invoker) {
-        //retrieve the array of commands and messages.
         final List<String> musicComms = getMusicComms(guild);
 
         // Start building string:
         String out = "< " + I18n.get(guild).getString("helpMusicCommandsHeader") + " >\n";
-        // split the message into parts if it's too big pls.
         for (String s : musicComms) {
             if (out.length() + s.length() >= 1990) {
-                sendCommandsHelp(guild, channel, invoker, out);
+                sendCommandsHelpInDM(guild, channel, invoker, out);
                 out = "";
             }
             out += s + "\n";
         }
-        sendCommandsHelp(guild, channel, invoker, out);
+        sendCommandsHelpInDM(guild, channel, invoker, out);
     }
 
-    public static void sendCommandsHelp(Guild guild, TextChannel channel, Member invoker, String dmMsg) {
-        // send the commands to the user in a DM
-        invoker.getUser().openPrivateChannel().queue(privateChannel -> {
-            privateChannel.sendMessage(TextUtils.asMarkdown(dmMsg)).queue();
-            String out = I18n.get(guild).getString("helpSent"); //TODO: Replace this key with something better.
-            TextUtils.replyWithName(channel, invoker, out);
-        });
+    public static void sendCommandsHelpInDM(Guild guild, TextChannel channel, Member invoker, String dmMsg) {
+        invoker.getUser().openPrivateChannel().queue(privateChannel ->
+                privateChannel.sendMessage(dmMsg).queue( message -> {
+                    // Let the user know they got a DM if it was a success.
+                    /* TODO: Maybe make an I18n string that reflects this.
+                        Something like: Commands Help has been sent to you in a direct message! */
+                    String out = I18n.get(guild).getString("helpSent");
+                    TextUtils.replyWithName(channel, invoker, out);
+                }));
     }
 
     @Override
