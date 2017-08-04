@@ -89,7 +89,7 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
         return musicComms;
     }
 
-    public static void getFormattedCommandHelp(Guild guild, TextChannel channel, Member invoker) {
+    private static void getFormattedCommandHelp(Guild guild, TextChannel channel, Member invoker) {
         final List<String> musicComms = getMusicComms(guild);
 
         // Start building string:
@@ -104,9 +104,9 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
         sendCommandsHelpInDM(guild, channel, invoker, out);
     }
 
-    public static void sendCommandsHelpInDM(Guild guild, TextChannel channel, Member invoker, String dmMsg) {
+    private static void sendCommandsHelpInDM(Guild guild, TextChannel channel, Member invoker, String dmMsg) {
         invoker.getUser().openPrivateChannel().queue(privateChannel ->
-                privateChannel.sendMessage(dmMsg).queue( message -> {
+                privateChannel.sendMessage(TextUtils.asMarkdown(dmMsg)).queue( message -> {
                     // Let the user know they got a DM if it was a success.
                     /* TODO: Maybe make an I18n string that reflects this.
                         Something like: Commands Help has been sent to you in a direct message! */
