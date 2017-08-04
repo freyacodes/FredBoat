@@ -106,11 +106,11 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
 
     private static void sendCommandsHelpInDM(Guild guild, TextChannel channel, Member invoker, String dmMsg) {
         invoker.getUser().openPrivateChannel().queue(privateChannel ->
-                privateChannel.sendMessage(TextUtils.asMarkdown(dmMsg)).queue( message -> {
-                    // Let the user know they got a DM if it was a success.
-                    /* TODO: Maybe make an I18n string that reflects this.
-                        Something like: Commands Help has been sent to you in a direct message! */
-                    String out = I18n.get(guild).getString("helpSent");
+                privateChannel.sendMessage(TextUtils.asMarkdown(dmMsg)).queue( success -> {
+                    String out = "Commands Help has been sent to your DMs!"; // TODO: I18n
+                    TextUtils.replyWithName(channel, invoker, out);
+                }, failure -> {
+                    String out = ":exclamation:I couldn't send commands help to your DMs! Do you have them turned off?"; // TODO: I18n
                     TextUtils.replyWithName(channel, invoker, out);
                 }));
     }
