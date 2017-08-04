@@ -40,7 +40,7 @@ public class AkinatorCommand extends Command implements IFunCommand {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         try {
-            AkinatorListener akinator = new AkinatorListener(guild.getJDA(), FredBoat.getListenerBot(), channel.getId(), invoker.getUser().getId());
+            AkinatorListener akinator = new AkinatorListener(guild.getJDA(), channel.getId(), invoker.getUser().getId());
             FredBoat.getListenerBot().putListener(invoker.getUser().getId(), akinator);
         } catch (UnirestException ex) {
             throw new RuntimeException(ex);

@@ -41,7 +41,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
@@ -92,11 +91,7 @@ public class RandomImageCommand extends Command implements IFunCommand {
         synchronized (this) {
             randomUrl = getRandomImageUrl();
         }
-        try {
-            channel.sendFile(CacheUtil.getImageFromURL(randomUrl), message).queue();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        channel.sendFile(CacheUtil.getImageFromURL(randomUrl), message).queue();
     }
 
     public String getRandomImageUrl() {

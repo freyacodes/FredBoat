@@ -33,8 +33,6 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-import java.io.IOException;
-
 public class RemoteFileCommand extends Command implements IFunCommand {
 
     public String msg;
@@ -45,11 +43,7 @@ public class RemoteFileCommand extends Command implements IFunCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        try {
-            channel.sendFile(CacheUtil.getImageFromURL(msg), null).queue();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        channel.sendFile(CacheUtil.getImageFromURL(msg), null).queue();
     }
 
     @Override

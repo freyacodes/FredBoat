@@ -58,7 +58,7 @@ public class FredBoatBot extends FredBoat {
         jda = buildJDA();
     }
 
-    private JDA buildJDA() {
+    private JDA buildJDA(boolean... blocking) {
         shardWatchdogListener = new ShardWatchdogListener();
 
         JDA newJda = null;
@@ -93,7 +93,11 @@ public class FredBoatBot extends FredBoat {
                         //beg aggressively for a coin
                         Thread.sleep(1000);
                     }
-                    newJda = builder.buildAsync();
+                    if (blocking.length > 0 && blocking[0]) {
+                        newJda = builder.buildBlocking();
+                    } else {
+                        newJda = builder.buildAsync();
+                    }
                     success = true;
                 } catch (RateLimitedException e) {
                     log.error("Got rate limited while building bot JDA instance! Retrying...", e);
@@ -153,7 +157,9 @@ public class FredBoatBot extends FredBoat {
                 jda.removeEventListener(listener);
 
                 jda.shutdown(false);
-                jda = buildJDA();
+                //a blocking build makes sure the revive task runs until the shard is connected, otherwise the shard may
+                // get revived again accidently while still connecting
+                jda = buildJDA(true);
 
             } catch (Exception e) {
                 log.error("Task to revive shard {} threw an exception after running for {}",
