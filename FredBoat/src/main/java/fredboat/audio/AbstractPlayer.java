@@ -32,6 +32,7 @@ import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.source.bandcamp.BandcampAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.beam.BeamAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
@@ -98,21 +99,49 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     }
 
     public static AudioPlayerManager registerSourceManagers(AudioPlayerManager mng) {
-        mng.registerSourceManager(new YoutubeAudioSourceManager());
-        mng.registerSourceManager(new SoundCloudAudioSourceManager());
-        mng.registerSourceManager(new BandcampAudioSourceManager());
-        mng.registerSourceManager(new PlaylistImportSourceManager());
-        mng.registerSourceManager(new TwitchStreamAudioSourceManager());
-        mng.registerSourceManager(new VimeoAudioSourceManager());
-        mng.registerSourceManager(new BeamAudioSourceManager());
-        if (Config.CONFIG.getDistribution() == DistributionEnum.PATRON || Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT) {
-            mng.registerSourceManager(new SpotifyPlaylistSourceManager());
+        //Determine if bot is selfhosted, if so, determine which Source managers are enabled
+        //By default, all are enabled
+        if (Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT || Config.CONFIG.isSelfhosted()) {
+            if (Config.CONFIG.isYouTubeEnabled()) {
+                mng.registerSourceManager(new YoutubeAudioSourceManager());
+            }
+            if (Config.CONFIG.isSoundCloudEnabled()) {
+                mng.registerSourceManager(new SoundCloudAudioSourceManager());
+            }
+            if (Config.CONFIG.isBandCampEnabled()) {
+                mng.registerSourceManager(new BandcampAudioSourceManager());
+            }
+            if (Config.CONFIG.isTwitchEnabled()) {
+                mng.registerSourceManager(new TwitchStreamAudioSourceManager());
+            }
+            if (Config.CONFIG.isVimeoEnabled()) {
+                mng.registerSourceManager(new VimeoAudioSourceManager());
+            }
+            if (Config.CONFIG.isBeamEnabled()) {
+                mng.registerSourceManager(new BeamAudioSourceManager());
+            }
+            if (Config.CONFIG.isSpotifyEnabled()) {
+                mng.registerSourceManager(new SpotifyPlaylistSourceManager());
+            }
+            if (Config.CONFIG.isHttpEnabled()) {
+                mng.registerSourceManager(new HttpAudioSourceManager());
+            }
+        } else {
+            mng.registerSourceManager(new YoutubeAudioSourceManager());
+            mng.registerSourceManager(new SoundCloudAudioSourceManager());
+            mng.registerSourceManager(new BandcampAudioSourceManager());
+            mng.registerSourceManager(new TwitchStreamAudioSourceManager());
+            mng.registerSourceManager(new VimeoAudioSourceManager());
+            mng.registerSourceManager(new BeamAudioSourceManager());
+            if (Config.CONFIG.getDistribution() == DistributionEnum.PATRON) {
+                mng.registerSourceManager(new SpotifyPlaylistSourceManager());
+            }
+            //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
+            //so you will never reach a source manager below it
+            // commented out to prevent leaking our ip
+//            mng.registerSourceManager(new HttpAudioSourceManager());
         }
-        //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
-        //so you will never reach a source manager below it
-        // commented out to prevent leaking our ip
-//        mng.registerSourceManager(new HttpAudioSourceManager());
-        
+        mng.registerSourceManager(new PlaylistImportSourceManager());
         return mng;
     }
 
