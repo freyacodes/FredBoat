@@ -56,7 +56,7 @@ public class PermsUtil {
             return PermissionUtil.checkPermission(member, Permission.MESSAGE_MANAGE) ? PermissionLevel.DJ : PermissionLevel.USER;
         }
 
-        GuildPermissions gp = EntityReader.getGuildPermissions(member.getGuild());
+        GuildPermissions gp = EntityReader.getEntity(member.getGuild().getIdLong(), GuildPermissions.class);
 
         if (checkList(gp.getAdminList(), member)) return PermissionLevel.ADMIN;
         if (checkList(gp.getDjList(), member)) return PermissionLevel.DJ;

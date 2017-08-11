@@ -39,7 +39,7 @@ import javax.persistence.Table;
 public class GuildConfig implements IEntity {
 
     @Id
-    private String guildId;
+    private long guildId;
 
     @Column(name = "track_announce", nullable = false)
     private boolean trackAnnounce = false;
@@ -50,19 +50,19 @@ public class GuildConfig implements IEntity {
     @Column(name = "lang", nullable = false)
     private String lang = "en_US";
 
-    public GuildConfig(String id) {
+    public GuildConfig(long id) {
         this.guildId = id;
     }
 
     @Override
-    public void setId(String id) {
+    public void setId(long id) {
         this.guildId = id;
     }
 
     public GuildConfig() {
     }
 
-    public String getGuildId() {
+    public long getGuildId() {
         return guildId;
     }
 

@@ -70,8 +70,8 @@ public class BlacklistEntry implements IEntity {
     }
 
     @Override
-    public void setId(String id) {
-        this.id = Long.valueOf(id);
+    public void setId(long id) {
+        this.id = id;
     }
 
     @Override

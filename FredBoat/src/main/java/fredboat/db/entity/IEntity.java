@@ -33,5 +33,5 @@ package fredboat.db.entity;
  */
 public interface IEntity {
 
-    void setId(String id);
+    void setId(long id);
 }

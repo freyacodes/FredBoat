@@ -70,7 +70,7 @@ public class Blacklist {
     public Blacklist(Set<Long> userWhiteList, long rateLimitHitsBeforeBlacklist) {
         this.blacklist = new Long2ObjectOpenHashMap<>();
         //load blacklist from database
-        for (BlacklistEntry ble : EntityReader.loadBlacklist()) {
+        for (BlacklistEntry ble : EntityReader.loadAll(BlacklistEntry.class)) {
             blacklist.put(ble.id, ble);
         }
 
@@ -134,7 +134,7 @@ public class Blacklist {
             }
             //persist it
             //if this turns up to be a performance bottleneck, have an agent run that persists the blacklist occasionally
-            EntityWriter.mergeBlacklistEntry(blEntry);
+            blacklist.put(blEntry.getId(), EntityWriter.merge(blEntry));
             return blacklistingLength;
         }
     }
@@ -159,7 +159,7 @@ public class Blacklist {
      */
     public synchronized void liftBlacklist(long id) {
         blacklist.remove(id);
-        EntityWriter.deleteBlacklistEntry(id);
+        EntityWriter.delete(id, BlacklistEntry.class);
     }
 
     /**

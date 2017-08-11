@@ -60,7 +60,7 @@ public class GuildPlayer extends AbstractPlayer {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(GuildPlayer.class);
 
     private final FredBoat shard;
-    private final String guildId;
+    private final long guildId;
     public final Map<String, VideoSelection> selections = new HashMap<>();
     private String currentTCId;
 
@@ -69,7 +69,7 @@ public class GuildPlayer extends AbstractPlayer {
     @SuppressWarnings("LeakingThisInConstructor")
     public GuildPlayer(Guild guild) {
         this.shard = FredBoat.getInstance(guild.getJDA());
-        this.guildId = guild.getId();
+        this.guildId = guild.getIdLong();
 
         AudioManager manager = guild.getAudioManager();
         manager.setSendingHandler(this);
@@ -369,7 +369,7 @@ public class GuildPlayer extends AbstractPlayer {
     private boolean isTrackAnnounceEnabled() {
         boolean enabled = false;
         try {
-            GuildConfig config = EntityReader.getGuildConfig(guildId);
+            GuildConfig config = EntityReader.getEntity(guildId, GuildConfig.class);
             enabled = config.isTrackAnnounce();
         } catch (DatabaseNotReadyException ignored) {}
 

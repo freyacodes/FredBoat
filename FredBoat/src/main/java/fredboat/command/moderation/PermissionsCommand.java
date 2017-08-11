@@ -40,13 +40,7 @@ import fredboat.util.ArgumentUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.IMentionable;
-import net.dv8tion.jda.core.entities.ISnowflake;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.Role;
-import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.*;
 import net.dv8tion.jda.core.utils.PermissionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,7 +112,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         List<IMentionable> search = new ArrayList<>();
         search.addAll(ArgumentUtil.fuzzyRoleSearch(guild, term));
         search.addAll(ArgumentUtil.fuzzyMemberSearch(guild, term, false));
-        GuildPermissions gp = EntityReader.getGuildPermissions(guild);
+        GuildPermissions gp = EntityReader.getEntity(guild.getIdLong(), GuildPermissions.class);
         curList.addAll(idsToMentionables(guild, gp.getFromEnum(permissionLevel)));
 
         List<IMentionable> itemsInBothLists = new ArrayList<>();
@@ -142,7 +136,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         }
 
         gp.setFromEnum(permissionLevel, newList);
-        EntityWriter.mergeGuildPermissions(gp);
+        gp = EntityWriter.merge(gp);
 
         TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("permsRemoved"), mentionableToName(selected), permissionLevel));
     }
@@ -153,7 +147,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         List<IMentionable> list = new ArrayList<>();
         list.addAll(ArgumentUtil.fuzzyRoleSearch(guild, term));
         list.addAll(ArgumentUtil.fuzzyMemberSearch(guild, term, false));
-        GuildPermissions gp = EntityReader.getGuildPermissions(guild);
+        GuildPermissions gp = EntityReader.getEntity(guild.getIdLong(), GuildPermissions.class);
         list.removeAll(idsToMentionables(guild, gp.getFromEnum(permissionLevel)));
 
         IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(list, channel, term);
@@ -162,14 +156,14 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         List<String> newList = new ArrayList<>(gp.getFromEnum(permissionLevel));
         newList.add(mentionableToId(selected));
         gp.setFromEnum(permissionLevel, newList);
-        EntityWriter.mergeGuildPermissions(gp);
+        gp = EntityWriter.merge(gp);
 
         TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("permsAdded"), mentionableToName(selected), permissionLevel));
     }
 
     public void list(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         EmbedBuilder builder = new EmbedBuilder();
-        GuildPermissions gp = EntityReader.getGuildPermissions(guild);
+        GuildPermissions gp = EntityReader.getEntity(guild.getIdLong(), GuildPermissions.class);
 
         List<IMentionable> mentionables = idsToMentionables(guild, gp.getFromEnum(permissionLevel));
 

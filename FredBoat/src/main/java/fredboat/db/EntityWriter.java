@@ -26,11 +26,7 @@
 package fredboat.db;
 
 import fredboat.FredBoat;
-import fredboat.db.entity.BlacklistEntry;
-import fredboat.db.entity.GuildConfig;
-import fredboat.db.entity.GuildPermissions;
 import fredboat.db.entity.IEntity;
-import fredboat.db.entity.UConfig;
 import org.hibernate.exception.JDBCConnectionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,23 +37,12 @@ public class EntityWriter {
 
     private static final Logger log = LoggerFactory.getLogger(EntityWriter.class);
 
-    public static void mergeUConfig(UConfig config) {
-        merge(config);
-    }
-
-    public static void mergeGuildConfig(GuildConfig config) {
-        merge(config);
-    }
-
-    public static void mergeBlacklistEntry(BlacklistEntry ble) {
-        merge(ble);
-    }
-
-    public static void mergeGuildPermissions(GuildPermissions guildPermissions) {
-        merge(guildPermissions);
-    }
-
-    private static void merge(IEntity entity) {
+    /**
+     * @param entity entity to be merged
+     * @param <E>    entity needs to implement IEntity
+     * @return the merged entity
+     */
+    public static <E extends IEntity> E merge(E entity) {
         DatabaseManager dbManager = FredBoat.getDbManager();
         if (!dbManager.isAvailable()) {
             throw new DatabaseNotReadyException();
@@ -66,8 +51,9 @@ public class EntityWriter {
         EntityManager em = dbManager.getEntityManager();
         try {
             em.getTransaction().begin();
-            em.merge(entity);
+            E mergedEntity = em.merge(entity);
             em.getTransaction().commit();
+            return mergedEntity;
         } catch (JDBCConnectionException e) {
             log.error("Failed to merge entity {}", entity, e);
             throw new DatabaseNotReadyException(e);
@@ -76,7 +62,12 @@ public class EntityWriter {
         }
     }
 
-    public static void deleteBlacklistEntry(long id) {
+    /**
+     * @param id    primary key of the entity to be deleted
+     * @param clazz class of the entity to be deleted
+     * @param <E>   entity needs to implement IEntity
+     */
+    public static <E extends IEntity> void delete(long id, Class<E> clazz) {
         DatabaseManager dbManager = FredBoat.getDbManager();
         if (!dbManager.isAvailable()) {
             throw new DatabaseNotReadyException("The database is not available currently. Please try again later.");
@@ -84,11 +75,11 @@ public class EntityWriter {
 
         EntityManager em = dbManager.getEntityManager();
         try {
-            BlacklistEntry ble = em.find(BlacklistEntry.class, id);
+            E entity = em.find(clazz, id);
 
-            if (ble != null) {
+            if (entity != null) {
                 em.getTransaction().begin();
-                em.remove(ble);
+                em.remove(entity);
                 em.getTransaction().commit();
             }
         } finally {

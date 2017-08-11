@@ -34,7 +34,7 @@ import javax.persistence.Table;
 public class UConfig implements IEntity {
 
     @Id
-    private String userId;
+    private long userId;
     private String bearer;
     private String refresh;
     private long bearerexpiration;
@@ -47,7 +47,7 @@ public class UConfig implements IEntity {
         return refresh;
     }
 
-    public String getUserId() {
+    public long getUserId() {
         return userId;
     }
 
@@ -55,12 +55,12 @@ public class UConfig implements IEntity {
         return bearerexpiration;
     }
 
-    public UConfig(String id) {
+    public UConfig(long id) {
         this.userId = id;
     }
 
     @Override
-    public void setId(String id) {
+    public void setId(long id) {
         this.userId = id;
     }
 
@@ -77,7 +77,7 @@ public class UConfig implements IEntity {
         return this;
     }
 
-    public UConfig setUserId(String userId) {
+    public UConfig setUserId(long userId) {
         this.userId = userId;
         return this;
     }
