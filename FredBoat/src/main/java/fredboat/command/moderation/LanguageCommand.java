@@ -27,8 +27,10 @@ package fredboat.command.moderation;
 
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.I18n;
+import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -43,18 +45,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class LanguageCommand extends Command implements IModerationCommand {
+public class LanguageCommand extends Command implements IModerationCommand, ICommandRestricted {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         if(args.length != 2) {
             handleNoArgs(guild, channel, invoker, message, args);
-            return;
-        }
-
-        if (!invoker.hasPermission(Permission.ADMINISTRATOR)
-                && !PermsUtil.isUserBotOwner(invoker.getUser())){
-            channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("configNotAdmin"), invoker.getEffectiveName())).queue();
             return;
         }
 
@@ -93,5 +89,10 @@ public class LanguageCommand extends Command implements IModerationCommand {
     public String help(Guild guild) {
         String usage = "{0}{1} OR {0}{1} <code>\n#";
         return usage + I18n.get(guild).getString("helpLanguageCommand");
+    }
+
+    @Override
+    public PermissionLevel getMinimumPerms() {
+        return PermissionLevel.ADMIN;
     }
 }
