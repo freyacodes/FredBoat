@@ -75,6 +75,7 @@ public class Config {
     private String spotifyId;
     private String spotifySecret;
     private String prefix = DEFAULT_PREFIX;
+    private boolean isSelfhosted;
     private boolean restServerEnabled = true;
     private List<String> adminIds = new ArrayList<>();
     private boolean useAutoBlacklist = false;
@@ -90,21 +91,36 @@ public class Config {
     private final String sshPrivateKeyFile;
     private final int forwardToPort; //port where the remote database is listening, postgres default: 5432
 
+    //AudioManager Stuff
+    private Boolean youtubeAudio;
+    private Boolean soundcloudAudio;
+    private Boolean bandcampAudio;
+    private Boolean twitchAudio;
+    private Boolean vimeoAudio;
+    private Boolean beamAudio;
+    private Boolean spotifyAudio;
+    private Boolean httpAudio;
+
     @SuppressWarnings("unchecked")
-    public Config(File credentialsFile, File configFile, int scope) {
+    public Config(File credentialsFile, File configFile, File audioFile, int scope) {
         try {
             this.scope = scope;
             Yaml yaml = new Yaml();
             String credsFileStr = FileUtils.readFileToString(credentialsFile, "UTF-8");
             String configFileStr = FileUtils.readFileToString(configFile, "UTF-8");
+            String audioFileStr = FileUtils.readFileToString(audioFile, "UTF-8");
             //remove those pesky tab characters so a potential json file is YAML conform
             credsFileStr = credsFileStr.replaceAll("\t", "");
             configFileStr = configFileStr.replaceAll("\t", "");
+            audioFileStr = audioFileStr.replaceAll("\t", "");
             Map<String, Object> creds = (Map<String, Object>) yaml.load(credsFileStr);
             Map<String, Object> config = (Map<String, Object>) yaml.load(configFileStr);
+            Map<String, Object> audio = (Map<String, Object>) yaml.load(audioFileStr);
             //avoid null values, rather change them to empty strings
             creds.keySet().forEach((String key) -> creds.putIfAbsent(key, ""));
             config.keySet().forEach((String key) -> config.putIfAbsent(key, ""));
+            //default enable all audio managers, aimed at selfhosting
+            audio.keySet().forEach((String key) -> audio.putIfAbsent(key, true));
 
 
             // Determine distribution
@@ -208,6 +224,19 @@ public class Config {
             sshUser = (String) creds.getOrDefault("sshUser", "fredboat");
             sshPrivateKeyFile = (String) creds.getOrDefault("sshPrivateKeyFile", "database.ppk");
             forwardToPort = (int) creds.getOrDefault("forwardToPort", 5432);
+            isSelfhosted = (boolean) config.getOrDefault("isSelfhosted", false);
+
+            //Modularise audiomanagers for selfhosters; load from "audiomanagers.yaml"
+            if (getDistribution() == DistributionEnum.DEVELOPMENT || isSelfhosted()) {
+                youtubeAudio = (Boolean) audio.getOrDefault("enableYouTube", true);
+                soundcloudAudio = (Boolean) audio.getOrDefault("enableSoundCloud", true);
+                bandcampAudio = (Boolean) audio.getOrDefault("enableBandCamp", true);
+                twitchAudio = (Boolean) audio.getOrDefault("enableTwitch", true);
+                vimeoAudio = (Boolean) audio.getOrDefault("enableVimeo", true);
+                beamAudio = (Boolean) audio.getOrDefault("enableBeam", true);
+                spotifyAudio = (Boolean) audio.getOrDefault("enableSpotify", true);
+                httpAudio = (Boolean) audio.getOrDefault("enableHttp", true);
+            }
         } catch (IOException | UnirestException e) {
             throw new RuntimeException(e);
         }
@@ -217,6 +246,7 @@ public class Config {
         Config.CONFIG = new Config(
                 loadConfigFile("credentials"),
                 loadConfigFile("config"),
+                loadConfigFile("audiomanagers"),
                 scope
         );
     }
@@ -378,5 +408,41 @@ public class Config {
 
     public int getForwardToPort() {
         return forwardToPort;
+    }
+
+    public boolean isSelfhosted() {
+        return isSelfhosted;
+    }
+
+    public boolean isYouTubeEnabled() {
+        return youtubeAudio;
+    }
+
+    public boolean isSoundCloudEnabled() {
+        return soundcloudAudio;
+    }
+
+    public boolean isBandCampEnabled() {
+        return bandcampAudio;
+    }
+
+    public boolean isTwitchEnabled() {
+        return twitchAudio;
+    }
+
+    public boolean isVimeoEnabled() {
+        return vimeoAudio;
+    }
+
+    public boolean isBeamEnabled() {
+        return beamAudio;
+    }
+
+    public boolean isSpotifyEnabled() {
+        return spotifyAudio;
+    }
+
+    public boolean isHttpEnabled() {
+        return httpAudio;
     }
 }
