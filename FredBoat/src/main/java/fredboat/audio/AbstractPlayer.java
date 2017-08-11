@@ -100,7 +100,7 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
 
     public static AudioPlayerManager registerSourceManagers(AudioPlayerManager mng) {
         //Determine which Source managers are enabled
-        //By default, all are enabled
+        //By default, all are enabled except HttpAudioSources
             if (Config.CONFIG.isYouTubeEnabled()) {
                 mng.registerSourceManager(new YoutubeAudioSourceManager());
             }

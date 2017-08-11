@@ -101,25 +101,20 @@ public class Config {
     private Boolean httpAudio;
 
     @SuppressWarnings("unchecked")
-    public Config(File credentialsFile, File configFile, File audioFile, int scope) {
+    public Config(File credentialsFile, File configFile, int scope) {
         try {
             this.scope = scope;
             Yaml yaml = new Yaml();
             String credsFileStr = FileUtils.readFileToString(credentialsFile, "UTF-8");
             String configFileStr = FileUtils.readFileToString(configFile, "UTF-8");
-            String audioFileStr = FileUtils.readFileToString(audioFile, "UTF-8");
             //remove those pesky tab characters so a potential json file is YAML conform
             credsFileStr = credsFileStr.replaceAll("\t", "");
             configFileStr = configFileStr.replaceAll("\t", "");
-            audioFileStr = audioFileStr.replaceAll("\t", "");
             Map<String, Object> creds = (Map<String, Object>) yaml.load(credsFileStr);
             Map<String, Object> config = (Map<String, Object>) yaml.load(configFileStr);
-            Map<String, Object> audio = (Map<String, Object>) yaml.load(audioFileStr);
             //avoid null values, rather change them to empty strings
             creds.keySet().forEach((String key) -> creds.putIfAbsent(key, ""));
             config.keySet().forEach((String key) -> config.putIfAbsent(key, ""));
-            //default enable all audio managers, aimed at selfhosting
-            audio.keySet().forEach((String key) -> audio.putIfAbsent(key, true));
 
 
             // Determine distribution
@@ -226,13 +221,14 @@ public class Config {
 
             //Modularise audiomanagers; load from "audiomanagers.yaml"
 
-            youtubeAudio = (Boolean) audio.getOrDefault("enableYouTube", true);
-            soundcloudAudio = (Boolean) audio.getOrDefault("enableSoundCloud", true);
-            bandcampAudio = (Boolean) audio.getOrDefault("enableBandCamp", true);
-            twitchAudio = (Boolean) audio.getOrDefault("enableTwitch", true);
-            vimeoAudio = (Boolean) audio.getOrDefault("enableVimeo", true);
-            beamAudio = (Boolean) audio.getOrDefault("enableBeam", true);
-            spotifyAudio = (Boolean) audio.getOrDefault("enableSpotify", true);
+            youtubeAudio = (Boolean) config.getOrDefault("enableYouTube", true);
+            soundcloudAudio = (Boolean) config.getOrDefault("enableSoundCloud", true);
+            bandcampAudio = (Boolean) config.getOrDefault("enableBandCamp", true);
+            twitchAudio = (Boolean) config.getOrDefault("enableTwitch", true);
+            vimeoAudio = (Boolean) config.getOrDefault("enableVimeo", true);
+            beamAudio = (Boolean) config.getOrDefault("enableBeam", true);
+            spotifyAudio = (Boolean) config.getOrDefault("enableSpotify", true);
+            httpAudio = (Boolean) config.getOrDefault("enableHttp", false);
 
         } catch (IOException | UnirestException e) {
             throw new RuntimeException(e);
@@ -243,7 +239,6 @@ public class Config {
         Config.CONFIG = new Config(
                 loadConfigFile("credentials"),
                 loadConfigFile("config"),
-                loadConfigFile("audiomanagers"),
                 scope
         );
     }
