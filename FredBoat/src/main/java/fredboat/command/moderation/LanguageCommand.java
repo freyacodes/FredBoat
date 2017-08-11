@@ -45,7 +45,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class LanguageCommand extends Command implements IModerationCommand, ICommandRestricted {
+public class LanguageCommand extends Command implements IModerationCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
@@ -54,6 +54,9 @@ public class LanguageCommand extends Command implements IModerationCommand, ICom
             return;
         }
 
+        if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, invoker, channel))
+            return;
+        
         //Assume proper usage and that we are about to set a new language
         try {
             I18n.set(guild, args[1]);
@@ -89,10 +92,5 @@ public class LanguageCommand extends Command implements IModerationCommand, ICom
     public String help(Guild guild) {
         String usage = "{0}{1} OR {0}{1} <code>\n#";
         return usage + I18n.get(guild).getString("helpLanguageCommand");
-    }
-
-    @Override
-    public PermissionLevel getMinimumPerms() {
-        return PermissionLevel.ADMIN;
     }
 }
