@@ -1,5 +1,4 @@
 ---
-isSelfHosted:      true        # Set this to true for self hosting either development or patron distributions
 patron:            false       # Set this to true for self hosting the music bot
 development:       true        # Set this to true for self hosting the full bot (including non music commands)
 prefix:            '<<'        # Default prefix used by the bot

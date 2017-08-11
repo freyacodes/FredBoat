@@ -99,9 +99,8 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     }
 
     public static AudioPlayerManager registerSourceManagers(AudioPlayerManager mng) {
-        //Determine if bot is selfhosted, if so, determine which Source managers are enabled
+        //Determine which Source managers are enabled
         //By default, all are enabled
-        if (Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT || Config.CONFIG.isSelfhosted()) {
             if (Config.CONFIG.isYouTubeEnabled()) {
                 mng.registerSourceManager(new YoutubeAudioSourceManager());
             }
@@ -126,21 +125,11 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
             if (Config.CONFIG.isHttpEnabled()) {
                 mng.registerSourceManager(new HttpAudioSourceManager());
             }
-        } else {
-            mng.registerSourceManager(new YoutubeAudioSourceManager());
-            mng.registerSourceManager(new SoundCloudAudioSourceManager());
-            mng.registerSourceManager(new BandcampAudioSourceManager());
-            mng.registerSourceManager(new TwitchStreamAudioSourceManager());
-            mng.registerSourceManager(new VimeoAudioSourceManager());
-            mng.registerSourceManager(new BeamAudioSourceManager());
-            if (Config.CONFIG.getDistribution() == DistributionEnum.PATRON) {
-                mng.registerSourceManager(new SpotifyPlaylistSourceManager());
-            }
             //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
             //so you will never reach a source manager below it
             // commented out to prevent leaking our ip
 //            mng.registerSourceManager(new HttpAudioSourceManager());
-        }
+
         mng.registerSourceManager(new PlaylistImportSourceManager());
         return mng;
     }

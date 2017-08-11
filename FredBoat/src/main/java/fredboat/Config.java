@@ -75,7 +75,6 @@ public class Config {
     private String spotifyId;
     private String spotifySecret;
     private String prefix = DEFAULT_PREFIX;
-    private boolean isSelfhosted;
     private boolean restServerEnabled = true;
     private List<String> adminIds = new ArrayList<>();
     private boolean useAutoBlacklist = false;
@@ -224,19 +223,17 @@ public class Config {
             sshUser = (String) creds.getOrDefault("sshUser", "fredboat");
             sshPrivateKeyFile = (String) creds.getOrDefault("sshPrivateKeyFile", "database.ppk");
             forwardToPort = (int) creds.getOrDefault("forwardToPort", 5432);
-            isSelfhosted = (boolean) config.getOrDefault("isSelfhosted", false);
 
-            //Modularise audiomanagers for selfhosters; load from "audiomanagers.yaml"
-            if (getDistribution() == DistributionEnum.DEVELOPMENT || isSelfhosted()) {
-                youtubeAudio = (Boolean) audio.getOrDefault("enableYouTube", true);
-                soundcloudAudio = (Boolean) audio.getOrDefault("enableSoundCloud", true);
-                bandcampAudio = (Boolean) audio.getOrDefault("enableBandCamp", true);
-                twitchAudio = (Boolean) audio.getOrDefault("enableTwitch", true);
-                vimeoAudio = (Boolean) audio.getOrDefault("enableVimeo", true);
-                beamAudio = (Boolean) audio.getOrDefault("enableBeam", true);
-                spotifyAudio = (Boolean) audio.getOrDefault("enableSpotify", true);
-                httpAudio = (Boolean) audio.getOrDefault("enableHttp", true);
-            }
+            //Modularise audiomanagers; load from "audiomanagers.yaml"
+
+            youtubeAudio = (Boolean) audio.getOrDefault("enableYouTube", true);
+            soundcloudAudio = (Boolean) audio.getOrDefault("enableSoundCloud", true);
+            bandcampAudio = (Boolean) audio.getOrDefault("enableBandCamp", true);
+            twitchAudio = (Boolean) audio.getOrDefault("enableTwitch", true);
+            vimeoAudio = (Boolean) audio.getOrDefault("enableVimeo", true);
+            beamAudio = (Boolean) audio.getOrDefault("enableBeam", true);
+            spotifyAudio = (Boolean) audio.getOrDefault("enableSpotify", true);
+
         } catch (IOException | UnirestException e) {
             throw new RuntimeException(e);
         }
@@ -408,10 +405,6 @@ public class Config {
 
     public int getForwardToPort() {
         return forwardToPort;
-    }
-
-    public boolean isSelfhosted() {
-        return isSelfhosted;
     }
 
     public boolean isYouTubeEnabled() {
