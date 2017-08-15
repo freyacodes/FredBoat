@@ -38,10 +38,10 @@ class DebugConnectionListener implements ConnectionListener {
     private static final Logger log = LoggerFactory.getLogger(DebugConnectionListener.class);
 
     private ConnectionStatus oldStatus = null;
-    private final String guildId;
+    private final long guildId;
     private final FredBoat.ShardInfo shardInfo;
 
-    DebugConnectionListener(String guildId, FredBoat.ShardInfo shardInfo) {
+    DebugConnectionListener(long guildId, FredBoat.ShardInfo shardInfo) {
         this.guildId = guildId;
         this.shardInfo = shardInfo;
     }

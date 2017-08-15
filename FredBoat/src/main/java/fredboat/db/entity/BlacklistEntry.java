@@ -70,10 +70,14 @@ public class BlacklistEntry implements IEntity {
     }
 
     @Override
-    public void setId(String id) {
-        this.id = Long.valueOf(id);
+    public void setId(long id) {
+        this.id = id;
     }
 
+    @Override
+    public long getId() {
+        return id;
+    }
     @Override
     public int hashCode() {
         return Long.hashCode(id);
@@ -82,10 +86,6 @@ public class BlacklistEntry implements IEntity {
     //Boilerplate code below
 
     public BlacklistEntry() {
-    }
-
-    public long getId() {
-        return id;
     }
 
     public int getLevel() {

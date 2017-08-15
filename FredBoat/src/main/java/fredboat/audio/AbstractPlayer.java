@@ -48,24 +48,29 @@ import fredboat.audio.queue.SplitAudioTrackContext;
 import fredboat.audio.queue.TrackEndMarkerHandler;
 import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
+import fredboat.commandmeta.MessagingException;
 import fredboat.shared.constant.DistributionEnum;
 import net.dv8tion.jda.core.audio.AudioSendHandler;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public abstract class AbstractPlayer extends AudioEventAdapter implements AudioSendHandler {
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(AbstractPlayer.class);
+    private static final Logger log = LoggerFactory.getLogger(AbstractPlayer.class);
 
     private static AudioPlayerManager playerManager;
-    private AudioPlayer player;
+    protected AudioPlayer player;
     ITrackProvider audioTrackProvider;
     private AudioFrame lastFrame = null;
-    private AudioTrackContext context;
+    protected AudioTrackContext context;
     private AudioLossCounter audioLossCounter = new AudioLossCounter();
-    private boolean splitTrackEnded = false;
+
+    protected Consumer<AudioTrackContext> onPlayHook;
+    protected Consumer<Throwable> onErrorHook;
 
     @SuppressWarnings("LeakingThisInConstructor")
     AbstractPlayer() {
@@ -121,7 +126,7 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
             player.setPaused(false);
         }
         if (player.getPlayingTrack() == null) {
-            play0(false);
+            loadAndPlay();
         }
 
     }
@@ -139,61 +144,48 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
         player.setPaused(true);
     }
 
+    /**
+     * Clears the tracklist and stops the current track
+     */
     public void stop() {
         audioTrackProvider.clear();
+        stopTrack();
+    }
+
+    public void skip() {
+        audioTrackProvider.skipped();
+        stopTrack();
+    }
+
+    /**
+     * Stop the current track.
+     */
+    public void stopTrack() {
         context = null;
         player.stopTrack();
     }
 
-    public void skip() {
-        player.stopTrack();
-    }
-
-    //used by TrackEndMarkerHandler to differentiate between skips issued by users and tracks finishing playing
-    public void splitTrackEnded() {
-        splitTrackEnded = true;
-        skip();
-    }
-
     public boolean isQueueEmpty() {
-        return getPlayingTrack() == null && audioTrackProvider.isEmpty();
+        return player.getPlayingTrack() == null && audioTrackProvider.isEmpty();
     }
 
     public AudioTrackContext getPlayingTrack() {
-        if (player.getPlayingTrack() == null) {
-            play0(true);//Ensure we have something to return, unless the queue is really empty
-        }
-
-        if (player.getPlayingTrack() == null) {
-            context = null;
+        if (player.getPlayingTrack() == null && context == null) {
+            return audioTrackProvider.peek();
         }
 
         return context;
     }
 
-    public List<AudioTrackContext> getQueuedTracks() {
-        return audioTrackProvider.getAsList();
-    }
-
+    //the unshuffled playlist
     public List<AudioTrackContext> getRemainingTracks() {
         //Includes currently playing track, which comes first
-        if (getPlayingTrack() != null) {
-            ArrayList<AudioTrackContext> list = new ArrayList<>();
-            list.add(getPlayingTrack());
-            list.addAll(getQueuedTracks());
-            return list;
-        } else {
-            return getQueuedTracks();
-        }
-    }
-
-    public List<AudioTrackContext> getRemainingTracksOrdered() {
         List<AudioTrackContext> list = new ArrayList<>();
-        if (getPlayingTrack() != null) {
-            list.add(getPlayingTrack());
+        AudioTrackContext atc = getPlayingTrack();
+        if (atc != null) {
+            list.add(atc);
         }
-
-        list.addAll(getAudioTrackProvider().getAsListOrdered());
+        list.addAll(audioTrackProvider.getAsList());
         return list;
     }
 
@@ -205,14 +197,6 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
         return ((float) player.getVolume()) / 100;
     }
 
-    public void setAudioTrackProvider(ITrackProvider audioTrackProvider) {
-        this.audioTrackProvider = audioTrackProvider;
-    }
-
-    public ITrackProvider getAudioTrackProvider() {
-        return audioTrackProvider;
-    }
-
     public static AudioPlayerManager getPlayerManager() {
         initAudioPlayerManager();
         return playerManager;
@@ -220,10 +204,12 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
 
     @Override
     public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
-        if (endReason == AudioTrackEndReason.FINISHED) {
-            play0(false);
-        } else if(endReason == AudioTrackEndReason.STOPPED) {
-            play0(true);
+        if (endReason == AudioTrackEndReason.FINISHED || endReason == AudioTrackEndReason.STOPPED) {
+            loadAndPlay();
+        } else if (endReason == AudioTrackEndReason.LOAD_FAILED) {
+            if (onErrorHook != null)
+                onErrorHook.accept(new MessagingException("Track `" + track.getInfo().title + "` failed to load."));
+            loadAndPlay();
         } else if(endReason == AudioTrackEndReason.CLEANUP) {
             log.info("Track " + track.getIdentifier() + " was cleaned up");
         } else {
@@ -231,34 +217,44 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
         }
     }
 
-    private void play0(boolean skipped) {
-        boolean userSkip = skipped;
+    //request the next track from the track provider and start playing it
+    private void loadAndPlay() {
         if (audioTrackProvider != null) {
-            if (splitTrackEnded) {
-                userSkip = false;
-                splitTrackEnded = false;
-            }
-            context = audioTrackProvider.provideAudioTrack(userSkip);
-
-            if(context != null) {
-                player.playTrack(context.getTrack());
-                context.getTrack().setPosition(context.getStartPosition());
-
-                if(context instanceof SplitAudioTrackContext){
-                    //Ensure we don't step over our bounds
-                    log.info("Start: " + context.getStartPosition() + "End: " + (context.getStartPosition() + context.getEffectiveDuration()));
-
-                    context.getTrack().setMarker(
-                            new TrackMarker(context.getStartPosition() + context.getEffectiveDuration(),
-                                    new TrackEndMarkerHandler(this, context)));
-                }
+            context = audioTrackProvider.provideAudioTrack();
+            if (context != null) {
+                playTrack(context);
             }
         } else {
             log.warn("TrackProvider doesn't exist");
         }
     }
 
+    /**
+     * Plays the provided track.
+     * <p>
+     * Silently playing a track will not trigger the onPlayHook (which announces the track usually)
+     */
+    protected void playTrack(AudioTrackContext trackContext, boolean... silent) {
+        context = trackContext;
+        player.playTrack(trackContext.getTrack());
+        trackContext.getTrack().setPosition(trackContext.getStartPosition());
+
+        if (trackContext instanceof SplitAudioTrackContext) {
+            //Ensure we don't step over our bounds
+            log.info("Start: " + trackContext.getStartPosition() + " End: " + (trackContext.getStartPosition() + trackContext.getEffectiveDuration()));
+
+            trackContext.getTrack().setMarker(
+                    new TrackMarker(trackContext.getStartPosition() + trackContext.getEffectiveDuration(),
+                            new TrackEndMarkerHandler(this, trackContext)));
+        }
+
+        if (silent.length < 1 || !silent[0]) {
+            if (onPlayHook != null) onPlayHook.accept(trackContext);
+        }
+    }
+
     void destroy() {
+        stop();
         player.destroy();
     }
 

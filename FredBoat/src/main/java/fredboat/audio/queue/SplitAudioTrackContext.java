@@ -35,7 +35,11 @@ public class SplitAudioTrackContext extends AudioTrackContext {
     private final String title;
 
     public SplitAudioTrackContext(AudioTrack at, Member member, long startPos, long endPos, String title) {
-        super(at, member);
+        this(at, member.getUser().getIdLong(), member.getGuild().getIdLong(), startPos, endPos, title);
+    }
+
+    public SplitAudioTrackContext(AudioTrack at, long userId, long guildId, long startPos, long endPos, String title) {
+        super(at, userId, guildId);
         this.startPos = startPos;
         this.endPos = endPos;
         this.title = title;
@@ -70,6 +74,6 @@ public class SplitAudioTrackContext extends AudioTrackContext {
     public AudioTrackContext makeClone() {
         AudioTrack track = getTrack().makeClone();
         track.setPosition(startPos);
-        return new SplitAudioTrackContext(track, getMember(), startPos, endPos, title);
+        return new SplitAudioTrackContext(track, getUserId(), getGuildId(), startPos, endPos, title);
     }
 }

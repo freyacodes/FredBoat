@@ -43,6 +43,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
@@ -57,7 +58,7 @@ import java.util.HashMap;
 
 public class MusicPersistenceHandler {
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(MusicPersistenceHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(MusicPersistenceHandler.class);
 
     private MusicPersistenceHandler() {
     }
@@ -112,7 +113,7 @@ public class MusicPersistenceHandler {
 
                     JSONObject ident = new JSONObject()
                             .put("message", Base64.encodeBase64String(baos.toByteArray()))
-                            .put("user", atc.getMember().getUser().getId());
+                            .put("user", atc.getUserId());
 
                     if(atc instanceof SplitAudioTrackContext) {
                         JSONObject split = new JSONObject();
@@ -172,8 +173,8 @@ public class MusicPersistenceHandler {
                 //TODO: Make shard in-specific
                 boolean isPaused = data.getBoolean("isPaused");
                 final JSONArray sources = data.getJSONArray("sources");
-                VoiceChannel vc = FredBoat.getVoiceChannelById(data.getString("vc"));
-                TextChannel tc = FredBoat.getTextChannelById(data.getString("tc"));
+                VoiceChannel vc = FredBoat.getVoiceChannelById(Long.valueOf(data.getString("vc")));
+                TextChannel tc = FredBoat.getTextChannelById(Long.valueOf(data.getString("tc")));
                 float volume = Float.parseFloat(data.getString("volume"));
                 RepeatMode repeatMode = data.getEnum(RepeatMode.class, "repeatMode");
                 boolean shuffle = data.getBoolean("shuffle");

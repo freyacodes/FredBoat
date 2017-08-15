@@ -51,7 +51,7 @@ public class StopCommand extends Command implements IMusicCommand, ICommandRestr
         player.setCurrentTC(channel);
         List<AudioTrackContext> tracks = player.getRemainingTracks();
 
-        Pair<Boolean, String> pair = player.canMemberSkipTracks(channel, invoker, tracks);
+        Pair<Boolean, String> pair = player.canMemberSkipTracks(invoker, tracks);
         //skipping allowed
         if(pair.getLeft()) {
             player.stop();

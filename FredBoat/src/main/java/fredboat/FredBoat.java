@@ -41,6 +41,7 @@ import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.init.MainCommandInitializer;
 import fredboat.commandmeta.init.MusicCommandInitializer;
 import fredboat.db.DatabaseManager;
+import fredboat.db.DatabaseNotReadyException;
 import fredboat.event.EventListenerBoat;
 import fredboat.event.EventListenerSelf;
 import fredboat.event.ShardWatchdogListener;
@@ -65,7 +66,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.LoginException;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -88,10 +88,10 @@ public abstract class FredBoat {
     static EventListenerBoat listenerBot;
     static EventListenerSelf listenerSelf;
     ShardWatchdogListener shardWatchdogListener = null;
-    private static AtomicInteger numShardsReady = new AtomicInteger(0);
 
     //For when we need to join a revived shard with it's old GuildPlayers
-    final ArrayList<String> channelsToRejoin = new ArrayList<>();
+    protected boolean reviving = false;
+    protected final ArrayList<Long> channelsToRejoin = new ArrayList<>();
 
     //unlimited threads = http://i.imgur.com/H3b7H1S.gif
     //use this executor for various small async tasks
@@ -104,7 +104,6 @@ public abstract class FredBoat {
     private static DBConnectionWatchdogAgent dbConnectionWatchdogAgent;
 
     private static DatabaseManager dbManager;
-    private boolean hasReadiedOnce = false;
 
     public static void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException, IOException, UnirestException {
         Runtime.getRuntime().addShutdownHook(new Thread(ON_SHUTDOWN, "FredBoat main shutdownhook"));
@@ -302,7 +301,6 @@ public abstract class FredBoat {
                 shards.add(i, new FredBoatBot(i, listener));
             } catch (Exception e) {
                 log.error("Caught an exception while starting shard " + i + "!", e);
-                numShardsReady.getAndIncrement();
             }
             try {
                 Thread.sleep(SHARD_CREATION_SLEEP_INTERVAL);
@@ -311,42 +309,34 @@ public abstract class FredBoat {
             }
         }
 
+        if (Config.CONFIG.getNumShards() <= 10) {
+            MusicPersistenceHandler.reloadPlaylists();
+        } else {
+            log.warn("Skipped music persistence loading! We are using more than 10 shards, so probably not a good idea to run that.");
+        }
+
         log.info(shards.size() + " shards have been constructed");
 
     }
 
     public void onInit(ReadyEvent readyEvent) {
-        if (!hasReadiedOnce) {
-            numShardsReady.incrementAndGet();
-            hasReadiedOnce = false;
-        }
-
         log.info("Received ready event for " + FredBoat.getInstance(readyEvent.getJDA()).getShardInfo().getShardString());
 
-        int ready = numShardsReady.get();
-        if (ready == Config.CONFIG.getNumShards()) {
-            log.info("All " + ready + " shards are ready.");
+        if (reviving) {
+            //Rejoin old channels if revived
+            channelsToRejoin.forEach(vcid -> {
+                VoiceChannel channel = jda.getVoiceChannelById(vcid);
+                if (channel == null) return;
+                GuildPlayer player = PlayerRegistry.get(channel.getGuild());
+                if (player == null) return;
 
-            if (Config.CONFIG.getNumShards() <= 10) {
-                MusicPersistenceHandler.reloadPlaylists();
-            } else {
-                log.warn("Skipped music persistence loading! We are using more than 10 shards, so probably not a good idea to run that.");
-            }
+                AudioManager am = channel.getGuild().getAudioManager();
+                am.openAudioConnection(channel);
+                am.setSendingHandler(player);
+            });
+
+            channelsToRejoin.clear();
         }
-
-        //Rejoin old channels if revived
-        channelsToRejoin.forEach(vcid -> {
-            VoiceChannel channel = jda.getVoiceChannelById(vcid);
-            if(channel == null) return;
-            GuildPlayer player = PlayerRegistry.get(channel.getGuild());
-            if(player == null) return;
-
-            AudioManager am = channel.getGuild().getAudioManager();
-            am.openAudioConnection(channel);
-            am.setSendingHandler(player);
-        });
-
-        channelsToRejoin.clear();
     }
 
     //Shutdown hook
@@ -436,21 +426,19 @@ public abstract class FredBoat {
         return JDAUtil.countAllUniqueUsers(shards, biggestUserCount);
     }
 
-    public static TextChannel getTextChannelById(String id) {
+    public static TextChannel getTextChannelById(long id) {
         for (FredBoat fb : shards) {
-            for (TextChannel channel : fb.getJda().getTextChannels()) {
-                if(channel.getId().equals(id)) return channel;
-            }
+            TextChannel tc = fb.getJda().getTextChannelById(id);
+            if (tc != null) return tc;
         }
 
         return null;
     }
 
-    public static VoiceChannel getVoiceChannelById(String id) {
+    public static VoiceChannel getVoiceChannelById(long id) {
         for (FredBoat fb : shards) {
-            for (VoiceChannel channel : fb.getJda().getVoiceChannels()) {
-                if(channel.getId().equals(id)) return channel;
-            }
+            VoiceChannel vc = fb.getJda().getVoiceChannelById(id);
+            if (vc != null) return vc;
         }
 
         return null;
@@ -537,7 +525,11 @@ public abstract class FredBoat {
         }
     }
 
-    public static DatabaseManager getDbManager() {
+    public static DatabaseManager obtainAvailableDbManager() throws DatabaseNotReadyException {
+
+        if (dbManager == null || !dbManager.isAvailable()) {
+            throw new DatabaseNotReadyException("The database is not available currently. Please try again later.");
+        }
         return dbManager;
     }
 
@@ -551,7 +543,6 @@ public abstract class FredBoat {
             log.info("Coin for shard {}", shardId);
             return true;
         }
-        log.info("No coin for shard {}", shardId);
         return false;
     }
 }

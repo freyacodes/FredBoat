@@ -29,13 +29,14 @@ import fredboat.commandmeta.MessagingException;
 
 public class DatabaseNotReadyException extends MessagingException {
 
+    private static final long serialVersionUID = -6962784631350833389L;
     private static final String DEFAULT_MESSAGE = "The database is not available currently. Please try again in a moment.";
 
     DatabaseNotReadyException(String str, Throwable cause) {
         super(str, cause);
     }
 
-    DatabaseNotReadyException(String str) {
+    public DatabaseNotReadyException(String str) {
         super(str);
     }
 

@@ -26,6 +26,7 @@
 package fredboat;
 
 import com.sedmelluq.discord.lavaplayer.jdaudp.NativeAudioSendFactory;
+import fredboat.audio.GuildPlayer;
 import fredboat.audio.PlayerRegistry;
 import fredboat.event.EventLogger;
 import fredboat.event.ShardWatchdogListener;
@@ -138,16 +139,17 @@ public class FredBoatBot extends FredBoat {
         reviveTask = FredBoat.executor.submit(() -> {
             try {
                 log.info("Reviving shard " + shardId);
+                reviving = true;
 
                 try {
                     channelsToRejoin.clear();
-
-                    PlayerRegistry.getPlayingPlayers().stream()
-                            .filter(guildPlayer -> guildPlayer.getJda().getShardInfo().getShardId() == shardId)
-                            .forEach(guildPlayer -> {
-                                VoiceChannel channel = guildPlayer.getChannel();
-                                if (channel != null) channelsToRejoin.add(channel.getId());
-                            });
+                    for (GuildPlayer player : PlayerRegistry.getPlayingPlayers()) {
+                        if (player.getJda().getShardInfo().getShardId() != shardId) {
+                            continue;
+                        }
+                        VoiceChannel channel = player.getChannel();
+                        if (channel != null) channelsToRejoin.add(channel.getIdLong());
+                    }
                 } catch (Exception ex) {
                     log.error("Caught exception while saving channels to revive shard {}", shardId, ex);
                 }

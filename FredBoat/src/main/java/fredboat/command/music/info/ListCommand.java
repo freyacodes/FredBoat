@@ -51,10 +51,10 @@ public class ListCommand extends Command implements IMusicCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        GuildPlayer player = PlayerRegistry.get(guild);
-        player.setCurrentTC(channel);
+        GuildPlayer gplayer = PlayerRegistry.get(guild);
+        gplayer.setCurrentTC(channel);
 
-        if(player.isQueueEmpty()) {
+        if (gplayer.isQueueEmpty()) {
             channel.sendMessage(I18n.get(guild).getString("npNotPlaying")).queue();
             return;
         }
@@ -70,31 +70,32 @@ public class ListCommand extends Command implements IMusicCommand {
             }
         }
 
-        List<AudioTrackContext> tracks = player.getRemainingTracksOrdered();
+        int tracksCount = gplayer.getTrackCount();
 
-        int maxPages = (int) Math.ceil(((double) tracks.size() - 1d)) / PAGE_SIZE + 1;
+        int maxPages = (int) Math.ceil(((double) tracksCount - 1d)) / PAGE_SIZE + 1;
 
         page = Math.max(page, 1);
         page = Math.min(page, maxPages);
 
         int i = (page - 1) * PAGE_SIZE;
         int listEnd = (page - 1) * PAGE_SIZE + PAGE_SIZE;
-        listEnd = Math.min(listEnd, player.getRemainingTracksOrdered().size());
+        listEnd = Math.min(listEnd, tracksCount);
 
         int numberLength = Integer.toString(listEnd).length();
 
-        List<AudioTrackContext> sublist = tracks.subList(i, listEnd);
 
-        if (player.isShuffle()) {
+        List<AudioTrackContext> sublist = gplayer.getTracksInRange(i, listEnd);
+
+        if (gplayer.isShuffle()) {
             mb.append(I18n.get(guild).getString("listShowShuffled"));
             mb.append("\n");
-            if (player.getRepeatMode() == RepeatMode.OFF)
+            if (gplayer.getRepeatMode() == RepeatMode.OFF)
                 mb.append("\n");
         }
-        if (player.getRepeatMode() == RepeatMode.SINGLE) {
+        if (gplayer.getRepeatMode() == RepeatMode.SINGLE) {
             mb.append(I18n.get(guild).getString("listShowRepeatSingle"));
             mb.append("\n");
-        } else if (player.getRepeatMode() == RepeatMode.ALL) {
+        } else if (gplayer.getRepeatMode() == RepeatMode.ALL) {
             mb.append(I18n.get(guild).getString("listShowRepeatAll"));
             mb.append("\n");
         }
@@ -106,13 +107,15 @@ public class ListCommand extends Command implements IMusicCommand {
         for (AudioTrackContext atc : sublist) {
             String status = " ";
             if (i == 0) {
-                status = player.isPlaying() ? " \\▶" : " \\\u23F8"; //Escaped play and pause emojis
+                status = gplayer.isPlaying() ? " \\▶" : " \\\u23F8"; //Escaped play and pause emojis
             }
+            Member member = guild.getMemberById(atc.getUserId());
+            String username = member != null ? member.getEffectiveName() : guild.getSelfMember().getEffectiveName();
             mb.append("[" +
                     TextUtils.forceNDigits(i + 1, numberLength)
                     + "]", MessageBuilder.Formatting.BLOCK)
                     .append(status)
-                    .append(MessageFormat.format(I18n.get(guild).getString("listAddedBy"), atc.getEffectiveTitle(), atc.getMember().getEffectiveName()))
+                    .append(MessageFormat.format(I18n.get(guild).getString("listAddedBy"), atc.getEffectiveTitle(), username))
                     .append("\n");
 
             if (i == listEnd) {
@@ -123,29 +126,28 @@ public class ListCommand extends Command implements IMusicCommand {
         }
 
         //Now add a timestamp for how much is remaining
-        long t = player.getTotalRemainingMusicTimeSeconds();
-        String timestamp = TextUtils.formatTime(t * 1000L);
+        String timestamp = TextUtils.formatTime(gplayer.getTotalRemainingMusicTimeMillis());
 
-        int numTracks = player.getRemainingTracks().size() - player.getLiveTracks().size();
-        int streams = player.getLiveTracks().size();
+        long streamsCount = gplayer.getStreamsCount();
+        long numTracks = tracksCount - streamsCount;
 
-        String desc;
+        String description;
 
         if (numTracks == 0) {
             //We are only listening to streams
-            desc = MessageFormat.format(I18n.get(guild).getString(streams == 1 ? "listStreamsOnlySingle" : "listStreamsOnlyMultiple"),
-                    streams, streams == 1 ?
+            description = MessageFormat.format(I18n.get(guild).getString(streamsCount == 1 ? "listStreamsOnlySingle" : "listStreamsOnlyMultiple"),
+                    streamsCount, streamsCount == 1 ?
                     I18n.get(guild).getString("streamSingular") : I18n.get(guild).getString("streamPlural"));
         } else {
 
-            desc = MessageFormat.format(I18n.get(guild).getString(numTracks == 1 ? "listStreamsOrTracksSingle" : "listStreamsOrTracksMultiple"),
+            description = MessageFormat.format(I18n.get(guild).getString(numTracks == 1 ? "listStreamsOrTracksSingle" : "listStreamsOrTracksMultiple"),
                     numTracks, numTracks == 1 ?
-                    I18n.get(guild).getString("trackSingular") : I18n.get(guild).getString("trackPlural"), timestamp, streams == 0
-                    ? "" : MessageFormat.format(I18n.get(guild).getString("listAsWellAsLiveStreams"), streams, streams == 1
+                            I18n.get(guild).getString("trackSingular") : I18n.get(guild).getString("trackPlural"), timestamp, streamsCount == 0
+                            ? "" : MessageFormat.format(I18n.get(guild).getString("listAsWellAsLiveStreams"), streamsCount, streamsCount == 1
                     ? I18n.get(guild).getString("streamSingular") : I18n.get(guild).getString("streamPlural")));
         }
 
-        mb.append("\n").append(desc);
+        mb.append("\n").append(description);
 
         channel.sendMessage(mb.build()).queue();
 

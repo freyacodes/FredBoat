@@ -55,6 +55,7 @@ public class PlaySplitCommand extends Command implements IMusicCommand, ICommand
         ic.setSplit(true);
 
         GuildPlayer player = PlayerRegistry.get(guild);
+        player.setCurrentTC(channel);
         player.queue(ic);
         player.setPause(false);
 

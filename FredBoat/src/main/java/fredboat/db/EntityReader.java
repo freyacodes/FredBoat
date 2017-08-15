@@ -27,57 +27,51 @@ package fredboat.db;
 
 
 import fredboat.FredBoat;
-import fredboat.db.entity.BlacklistEntry;
-import fredboat.db.entity.GuildConfig;
-import fredboat.db.entity.GuildPermissions;
 import fredboat.db.entity.IEntity;
-import fredboat.db.entity.UConfig;
-import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceException;
+import javax.persistence.TypedQuery;
 import java.util.List;
+import java.util.Map;
 
 public class EntityReader {
 
     private static final Logger log = LoggerFactory.getLogger(EntityReader.class);
 
-    public static UConfig getUConfig(String id) {
-        return getEntity(id, UConfig.class);
+    /**
+     * @param id    id of the entity to get
+     * @param clazz class of the entity to get
+     * @param <E>   class needs to implement IEntity
+     * @return the entity with the requested id of the requested class
+     * @throws DatabaseNotReadyException if the database is not available
+     */
+    public static <E extends IEntity> E getOrCreateEntity(long id, Class<E> clazz) throws DatabaseNotReadyException {
+        E entity = getEntity(id, clazz);
+        //return a fresh object if we didn't find the one we were looking for
+        if (entity == null) entity = newInstance(id, clazz);
+        return entity;
     }
 
-    public static GuildConfig getGuildConfig(String id) {
-        return getEntity(id, GuildConfig.class);
-    }
-
-    public static GuildPermissions getGuildPermissions(Guild guild) {
-        return getEntity(guild.getId(), GuildPermissions.class);
-    }
-
-    private static <E extends IEntity> E getEntity(String id, Class<E> clazz) throws DatabaseNotReadyException {
-        DatabaseManager dbManager = FredBoat.getDbManager();
-        if (!dbManager.isAvailable()) {
-            throw new DatabaseNotReadyException();
-        }
-
+    //may return null
+    public static <E extends IEntity> E getEntity(long id, Class<E> clazz) throws DatabaseNotReadyException {
+        DatabaseManager dbManager = FredBoat.obtainAvailableDbManager();
         EntityManager em = dbManager.getEntityManager();
-        E config = null;
+        E result;
         try {
-            config = em.find(clazz, id);
+            result = em.find(clazz, id);
         } catch (PersistenceException e) {
             log.error("Error while trying to find entity of class {} from DB for id {}", clazz.getName(), id, e);
             throw new DatabaseNotReadyException(e);
         } finally {
             em.close();
         }
-        //return a fresh object if we didn't find the one we were looking for
-        if (config == null) config = newInstance(id, clazz);
-        return config;
+        return result;
     }
 
-    private static <E extends IEntity> E newInstance(String id, Class<E> clazz) {
+    private static <E extends IEntity> E newInstance(long id, Class<E> clazz) {
         try {
             E entity = clazz.newInstance();
             entity.setId(id);
@@ -87,18 +81,59 @@ public class EntityReader {
         }
     }
 
-    public static List<BlacklistEntry> loadBlacklist() {
-        DatabaseManager dbManager = FredBoat.getDbManager();
-        if (!dbManager.isAvailable()) {
-            throw new DatabaseNotReadyException("The database is not available currently. Please try again later.");
-        }
+    /**
+     * @param clazz class of the entities to get
+     * @param <E>   class needs to implement IEntity
+     * @return a list of all elements of the requested class
+     * @throws DatabaseNotReadyException if the database is not available
+     */
+    public static <E extends IEntity> List<E> loadAll(Class<E> clazz) throws DatabaseNotReadyException {
+        DatabaseManager dbManager = FredBoat.obtainAvailableDbManager();
         EntityManager em = dbManager.getEntityManager();
-        List<BlacklistEntry> result;
         try {
-            result = em.createQuery("SELECT b FROM BlacklistEntry b", BlacklistEntry.class).getResultList();
+            return em.createQuery("SELECT c FROM " + clazz.getSimpleName() + " c", clazz).getResultList();
+        } catch (PersistenceException e) {
+            log.error("Error while trying to load the blacklist", e);
+            throw new DatabaseNotReadyException(e);
         } finally {
             em.close();
         }
-        return result;
+    }
+
+    /**
+     * @param queryString the raw JPQL query string
+     * @param parameters  parameters to be set on the query
+     * @param resultClass expected class of the results of the query
+     * @param offset      set to -1 or lower for no offset
+     * @param limit       set to -1 or lower for no limit
+     * @throws DatabaseNotReadyException if the database is not available
+     */
+    //limited and offset results
+    public static <T> List<T> selectJPQLQuery(String queryString, Map<String, Object> parameters, Class<T> resultClass, int offset, int limit)
+            throws DatabaseNotReadyException {
+        DatabaseManager dbManager = FredBoat.obtainAvailableDbManager();
+        EntityManager em = dbManager.getEntityManager();
+        try {
+            TypedQuery<T> q = em.createQuery(queryString, resultClass);
+            parameters.forEach(q::setParameter);
+            if (offset > -1) q.setFirstResult(offset);
+            if (limit > -1) q.setMaxResults(limit);
+            return q.getResultList();
+        } catch (PersistenceException e) {
+            log.error("Failed to select JPQL query {}", queryString, e);
+            throw new DatabaseNotReadyException(e);
+        } finally {
+            em.close();
+        }
+    }
+
+    //limited results
+    public static <T> List<T> selectJPQLQuery(String queryString, Map<String, Object> parameters, Class<T> resultClass, int limit) {
+        return selectJPQLQuery(queryString, parameters, resultClass, -1, limit);
+    }
+
+    //all results
+    public static <T> List<T> selectJPQLQuery(String queryString, Map<String, Object> parameters, Class<T> resultClass) {
+        return selectJPQLQuery(queryString, parameters, resultClass, -1);
     }
 }

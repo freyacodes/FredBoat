@@ -120,6 +120,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
 
     private void handleNoArguments(Guild guild, TextChannel channel, Member invoker, Message message) {
         GuildPlayer player = PlayerRegistry.get(guild);
+        player.setCurrentTC(channel);
         if (player.isQueueEmpty()) {
             channel.sendMessage(I18n.get(guild).getString("playQueueEmpty")).queue();
         } else if (player.isPlaying()) {

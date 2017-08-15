@@ -26,63 +26,58 @@
 package fredboat.audio.queue;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.FredBoat;
-import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.User;
 
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class AudioTrackContext implements Comparable<AudioTrackContext> {
 
     protected final AudioTrack track;
-    private final String userId;
-    private final String guildId;
-    private final FredBoat shard;
-    private int rand;
-    private final int id; //used to identify this track even when the track gets cloned and the rand reranded
+    private final long userId;
+    private final long guildId;
+    protected long added;
+    protected int rand;
+    protected long trackId; //used to identify this track even when the track gets cloned and the rand reranded
 
     public AudioTrackContext(AudioTrack at, Member member) {
-        this.track = at;
-        this.userId = member.getUser().getId();
-        this.guildId = member.getGuild().getId();
-        this.shard = FredBoat.getInstance(member.getJDA());
-        this.rand = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
-        this.id = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
+        this(at, member.getUser().getIdLong(), member.getGuild().getIdLong());
     }
 
-    public AudioTrackContext(AudioTrack at, Member member, int chronologicalIndex) {
+    public AudioTrackContext(AudioTrack at, long userId, long guildId) {
         this.track = at;
-        this.userId = member.getUser().getId();
-        this.guildId = member.getGuild().getId();
-        this.shard = FredBoat.getInstance(member.getJDA());
+        this.userId = userId;
+        this.guildId = guildId;
+        this.added = System.currentTimeMillis();
         this.rand = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
-        this.id = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
+
+        this.trackId = UUID
+                .nameUUIDFromBytes((userId + "" + guildId + "" + added + track.getIdentifier()).getBytes())
+                .getMostSignificantBits() & Long.MAX_VALUE;
     }
 
     public AudioTrack getTrack() {
         return track;
     }
 
-    public Member getMember() {
-        //if we can't find the user anymore
-        //work around tons of null pointer exceptions throwing/handling by setting fredboat as the owner of the song
-        User user = getJda().getUserById(userId);
-        if (user == null) { //the bot has no shared servers with the user
-            user = getJda().getSelfUser();
-        }
-        Member songOwner = getJda().getGuildById(guildId).getMember(user);
-        if (songOwner == null) //member left the guild
-            songOwner = getJda().getGuildById(guildId).getSelfMember();
-        return songOwner;
+    public long getUserId() {
+        return userId;
+    }
+
+    public long getGuildId() {
+        return guildId;
+    }
+
+    public long getAdded() {
+        return added;
     }
 
     public int getRand() {
         return rand;
     }
 
-    public int getId() {
-        return id;
+    public long getTrackId() {
+        return trackId;
     }
 
     public void setRand(int rand) {
@@ -95,7 +90,7 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
     }
 
     public AudioTrackContext makeClone() {
-        return new AudioTrackContext(track.makeClone(), getMember());
+        return new AudioTrackContext(track.makeClone(), userId, guildId);
     }
 
     public long getEffectiveDuration() {
@@ -138,21 +133,17 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
 
         if (getRand() != that.getRand()) return false;
         if (!getTrack().equals(that.getTrack())) return false;
-        if (!userId.equals(that.userId)) return false;
-        return guildId.equals(that.guildId);
+        if (userId != that.userId) return false;
+        return guildId == that.guildId;
 
     }
 
     @Override
     public int hashCode() {
-        int result = getTrack().hashCode();
-        result = 31 * result + userId.hashCode();
-        result = 31 * result + guildId.hashCode();
-        result = 31 * result + getRand();
+        int result = track.hashCode();
+        result = 31 * result + Long.hashCode(userId);
+        result = 31 * result + Long.hashCode(guildId);
+        result = 31 * result + Long.hashCode(trackId);
         return result;
-    }
-
-    public JDA getJda() {
-        return shard.getJda();
     }
 }

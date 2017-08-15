@@ -45,14 +45,13 @@ public class TrackEndMarkerHandler implements TrackMarkerHandler {
     @Override
     public void handle(MarkerState state) {
         log.info("Stopping track " + track.getEffectiveTitle() + " because of end state: " + state);
-        if (player.getPlayingTrack() != null && player.getPlayingTrack().getId() == track.getId()) {
+        if (player.getPlayingTrack() != null && player.getPlayingTrack().getTrackId() == track.getTrackId()) {
             //if this was ended because the track finished instead of skipped, we need to transfer that info
-            //state == STOPPED if the user skips it
+            //state == STOPPED after we already called skip on it, so it may be ignored safely
             //state == REACHED if the tracks runs out by itself
-            if (state.equals(MarkerState.REACHED))
-                player.splitTrackEnded();
-            else
-                player.skip();
+            //state == BYPASSED if the track was forwarded over its length
+            if (state.equals(MarkerState.REACHED) | state.equals(MarkerState.BYPASSED))
+                player.stopTrack();
         }
     }
 }

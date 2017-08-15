@@ -57,7 +57,7 @@ public class TestCommand extends Command implements ICommand, ICommandRestricted
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        FredBoat.executor.submit(() -> invoke(FredBoat.getDbManager(), channel, invoker, args));
+        FredBoat.executor.submit(() -> invoke(FredBoat.obtainAvailableDbManager(), channel, invoker, args));
     }
 
     boolean invoke(DatabaseManager dbm, TextChannel channel, Member invoker, String[] args) {

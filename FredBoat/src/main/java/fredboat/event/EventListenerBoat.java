@@ -34,17 +34,22 @@ import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.db.EntityReader;
+import fredboat.db.entity.GuildConfig;
 import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
 import net.dv8tion.jda.core.entities.Game;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.User;
+import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.events.ReconnectedEvent;
 import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceJoinEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceLeaveEvent;
+import net.dv8tion.jda.core.events.guild.voice.GuildVoiceMoveEvent;
 import net.dv8tion.jda.core.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
@@ -191,7 +196,47 @@ public class EventListenerBoat extends AbstractEventListener {
     /* music related */
     @Override
     public void onGuildVoiceLeave(GuildVoiceLeaveEvent event) {
-        GuildPlayer player = PlayerRegistry.getExisting(event.getGuild());
+        checkForAutoPause(event.getChannelLeft());
+    }
+
+    @Override
+    public void onGuildVoiceMove(GuildVoiceMoveEvent event) {
+        checkForAutoPause(event.getChannelLeft());
+        checkForAutoResume(event.getChannelJoined(), event.getMember());
+
+        //were we moved?
+        if (event.getMember().getUser().getIdLong() == event.getJDA().getSelfUser().getIdLong()) {
+            checkForAutoPause(event.getChannelJoined());
+        }
+    }
+
+    @Override
+    public void onGuildVoiceJoin(GuildVoiceJoinEvent event) {
+        checkForAutoResume(event.getChannelJoined(), event.getMember());
+    }
+
+    private void checkForAutoResume(VoiceChannel joinedChannel, Member joined) {
+        //ignore bot users joining / moving
+        if (joined.getUser().isBot()) return;
+
+        Guild guild = joinedChannel.getGuild();
+        GuildPlayer player = PlayerRegistry.getExisting(guild);
+
+        if(player != null
+                && player.isPaused()
+                && player.getPlayingTrack() != null
+                && joinedChannel.getMembers().contains(guild.getSelfMember())
+                && player.getHumanUsersInVC().size() > 0
+                && EntityReader.getOrCreateEntity(guild.getIdLong(), GuildConfig.class).isAutoResume()
+                ) {
+            player.getActiveTextChannel().sendMessage(I18n.get(guild).getString("eventAutoResumed")).queue();
+            player.setPause(false);
+        }
+    }
+
+    private void checkForAutoPause(VoiceChannel channelLeft) {
+        Guild guild = channelLeft.getGuild();
+        GuildPlayer player = PlayerRegistry.getExisting(guild);
 
         if (player == null) {
             return;
@@ -199,33 +244,21 @@ public class EventListenerBoat extends AbstractEventListener {
 
         //we got kicked from the server while in a voice channel, do nothing and return, because onGuildLeave()
         // should take care of destroying stuff
-        if (!event.getGuild().isMember(event.getJDA().getSelfUser())) {
+        if (!guild.isMember(guild.getJDA().getSelfUser())) {
             log.warn("onGuildVoiceLeave called for a guild where we aren't a member. This line should only ever be " +
-                    "reached if we are getting kicked from that guild. Investigate if not.");
+                    "reached if we are getting kicked from that guild while in a voice channel. Investigate if not.");
             return;
         }
 
-        if (player.getHumanUsersInVC().isEmpty()
-                && player.getUserCurrentVoiceChannel(event.getGuild().getSelfMember()) == event.getChannelLeft()
-                && !player.isPaused()) {
-            player.pause();
-            player.getActiveTextChannel().sendMessage(I18n.get(event.getGuild()).getString("eventUsersLeftVC")).queue();
+        //are we in the channel that someone left from?
+        if (guild.getSelfMember().getVoiceState().inVoiceChannel() &&
+                guild.getSelfMember().getVoiceState().getChannel().getIdLong() != channelLeft.getIdLong()) {
+            return;
         }
-    }
 
-    @Override
-    public void onGuildVoiceJoin(GuildVoiceJoinEvent event) {
-        GuildPlayer player = PlayerRegistry.getExisting(event.getGuild());
-
-        if(player != null
-                && player.isPaused()
-                && player.getPlayingTrack() != null
-                && event.getChannelJoined().getMembers().contains(event.getGuild().getSelfMember())
-                && player.getHumanUsersInVC().size() == 1
-                && EntityReader.getGuildConfig(event.getGuild().getId()).isAutoResume()
-                ) {
-            player.getActiveTextChannel().sendMessage(I18n.get(event.getGuild()).getString("eventAutoResumed")).queue();
-            player.setPause(false);
+        if (player.getHumanUsersInVC().isEmpty() && !player.isPaused()) {
+            player.pause();
+            player.getActiveTextChannel().sendMessage(I18n.get(guild).getString("eventUsersLeftVC")).queue();
         }
     }
 

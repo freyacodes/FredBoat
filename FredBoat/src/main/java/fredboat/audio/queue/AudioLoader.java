@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -90,7 +91,7 @@ public class AudioLoader implements AudioLoadResultHandler {
                 isLoading = true;
                 context = ic;
 
-                if (gplayer.getRemainingTracks().size() >= QUEUE_TRACK_LIMIT) {
+                if (gplayer.getTrackCount() >= QUEUE_TRACK_LIMIT) {
                     TextUtils.replyWithName(gplayer.getActiveTextChannel(), context.getMember(),
                             MessageFormat.format(I18n.get(context.getMember().getGuild()).getString("loadQueueTrackLimit"), QUEUE_TRACK_LIMIT));
                     isLoading = false;
@@ -214,9 +215,11 @@ public class AudioLoader implements AudioLoadResultHandler {
                     MessageFormat.format(I18n.get(context.getTextChannel().getGuild()).getString("loadListSuccess"), ap.getTracks().size(), ap.getName())
             ).queue();
 
+            List<AudioTrackContext> toAdd = new ArrayList<>();
             for (AudioTrack at : ap.getTracks()) {
-                trackProvider.add(new AudioTrackContext(at, context.getMember()));
+                toAdd.add(new AudioTrackContext(at, context.getMember()));
             }
+            trackProvider.addAll(toAdd);
             if (!gplayer.isPaused()) {
                 gplayer.play();
             }
@@ -310,7 +313,7 @@ public class AudioLoader implements AudioLoadResultHandler {
         }
 
         MessageBuilder mb = new MessageBuilder()
-                .append(I18n.get(ic.getTextChannel().getGuild()).getString("loadFollowingTracksAdded") + "\n");
+                .append(I18n.get(ic.getTextChannel().getGuild()).getString("loadFollowingTracksAdded")).append("\n");
         for(SplitAudioTrackContext atc : list) {
             mb.append("`[")
                     .append(TextUtils.formatTime(atc.getEffectiveDuration()))

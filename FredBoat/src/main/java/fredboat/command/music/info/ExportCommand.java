@@ -49,25 +49,25 @@ public class ExportCommand extends Command implements IMusicCommand {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         GuildPlayer player = PlayerRegistry.get(guild);
-        
-        if(player.getRemainingTracks().isEmpty()){
+
+        if (player.isQueueEmpty()) {
             throw new MessagingException(I18n.get(guild).getString("exportEmpty"));
         }
-        
+
         List<AudioTrackContext> tracks = player.getRemainingTracks();
-        String out = "";
+        StringBuilder out = new StringBuilder();
         
         for(AudioTrackContext atc : tracks){
             AudioTrack at = atc.getTrack();
             if(at instanceof YoutubeAudioTrack){
-                out = out + "https://www.youtube.com/watch?v=" + at.getIdentifier() + "\n";
+                out.append("https://www.youtube.com/watch?v=").append(at.getIdentifier()).append("\n");
             } else {
-                out = out + at.getIdentifier() + "\n";
+                out.append(at.getIdentifier()).append("\n");
             }
         }
         
         try {
-            String url = TextUtils.postToHastebin(out, true) + ".fredboat";
+            String url = TextUtils.postToHastebin(out.toString(), true) + ".fredboat";
             channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("exportPlaylistResulted"), url)).queue();
         } catch (UnirestException ex) {
             throw new MessagingException(I18n.get(guild).getString("exportPlaylistFail"));
