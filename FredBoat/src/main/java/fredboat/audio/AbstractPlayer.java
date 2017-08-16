@@ -123,12 +123,10 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
                 mng.registerSourceManager(new SpotifyPlaylistSourceManager());
             }
             if (Config.CONFIG.isHttpEnabled()) {
+                //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
+                //so you will never reach a source manager below it
                 mng.registerSourceManager(new HttpAudioSourceManager());
             }
-            //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
-            //so you will never reach a source manager below it
-            // commented out to prevent leaking our ip
-//            mng.registerSourceManager(new HttpAudioSourceManager());
 
         mng.registerSourceManager(new PlaylistImportSourceManager());
         return mng;
