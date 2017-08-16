@@ -75,9 +75,22 @@
             <version>1.2.39</version>
         </dependency>
         <dependency>
+            <!-- gradle's pom scope is wrong, depending on it again -->
+            <groupId>com.sedmelluq</groupId>
+            <artifactId>lavaplayer-common</artifactId>
+            <version>1.0.5</version>
+        </dependency>
+        <dependency>
             <!-- native audio system to avoid gc stutter in the audio -->
+            <!-- we replaced the classes temporarily, but need the native parts -->
             <groupId>com.sedmelluq</groupId>
             <artifactId>jda-nas</artifactId>
+            <version>1.0.5</version>
+        </dependency>
+        <dependency>
+            <!-- gradle pls -->
+            <groupId>com.sedmelluq</groupId>
+            <artifactId>udp-queue</artifactId>
             <version>1.0.5</version>
         </dependency>
         <dependency>

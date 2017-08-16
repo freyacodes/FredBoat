@@ -25,7 +25,7 @@
 
 package fredboat;
 
-import com.sedmelluq.discord.lavaplayer.jdaudp.NativeAudioSendFactory;
+import fredboat.audio.NativeAudioSendFactory;
 import fredboat.audio.PlayerRegistry;
 import fredboat.event.EventLogger;
 import fredboat.event.ShardWatchdogListener;
