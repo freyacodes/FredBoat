@@ -112,7 +112,7 @@ public class ListCommand extends Command implements IMusicCommand {
                     TextUtils.forceNDigits(i + 1, numberLength)
                     + "]", MessageBuilder.Formatting.BLOCK)
                     .append(status)
-                    .append(MessageFormat.format(I18n.get(guild).getString("listAddedBy"), atc.getEffectiveTitle(), atc.getMember().getEffectiveName()))
+                    .append(MessageFormat.format(I18n.get(guild).getString("listAddedBy"), atc.getEffectiveTitle(), atc.getMember().getEffectiveName(), TextUtils.formatTime(atc.getEffectiveDuration())))
                     .append("\n");
 
             if (i == listEnd) {
