@@ -96,7 +96,7 @@ public class Config {
     private Boolean bandcampAudio;
     private Boolean twitchAudio;
     private Boolean vimeoAudio;
-    private Boolean beamAudio;
+    private Boolean mixerAudio;
     private Boolean spotifyAudio;
     private Boolean httpAudio;
 
@@ -226,7 +226,7 @@ public class Config {
             bandcampAudio = (Boolean) config.getOrDefault("enableBandCamp", true);
             twitchAudio = (Boolean) config.getOrDefault("enableTwitch", true);
             vimeoAudio = (Boolean) config.getOrDefault("enableVimeo", true);
-            beamAudio = (Boolean) config.getOrDefault("enableBeam", true);
+            mixerAudio = (Boolean) config.getOrDefault("enableMixer", true);
             spotifyAudio = (Boolean) config.getOrDefault("enableSpotify", true);
             httpAudio = (Boolean) config.getOrDefault("enableHttp", false);
 
@@ -422,8 +422,8 @@ public class Config {
         return vimeoAudio;
     }
 
-    public boolean isBeamEnabled() {
-        return beamAudio;
+    public boolean isMixerEnabled() {
+        return mixerAudio;
     }
 
     public boolean isSpotifyEnabled() {

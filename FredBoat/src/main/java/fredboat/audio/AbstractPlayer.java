@@ -117,7 +117,7 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
         if (Config.CONFIG.isVimeoEnabled()) {
             mng.registerSourceManager(new VimeoAudioSourceManager());
         }
-        if (Config.CONFIG.isBeamEnabled()) {
+        if (Config.CONFIG.isMixerEnabled()) {
             mng.registerSourceManager(new BeamAudioSourceManager());
         }
         if (Config.CONFIG.isSpotifyEnabled()) {
