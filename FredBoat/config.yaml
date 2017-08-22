@@ -9,8 +9,9 @@ enableYouTube:     true        # Set to true to enable playing YouTube links
 enableSoundCloud:  true	       # Set to true to enable playing SoundCloud links
 enableBandCamp:    true        # Set to true to enable playing BandCamp links
 enableTwitch:      true        # Set to true to enable playing Twitch links
+
 enableVimeo:       true        # Set to true to enable playing Vimeo links
 enableBeam:        true        # Set to true to enable playing Beam links
 enableSpotify:     true        # Set to true to enable playing Spotify links
-enableHttp:        false       # Set to true to enable playing direct links
+enableHttp:        true        # Set to true to enable playing direct links
 
