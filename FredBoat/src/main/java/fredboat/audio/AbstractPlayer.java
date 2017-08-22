@@ -102,33 +102,32 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
         mng.registerSourceManager(new PlaylistImportSourceManager());
         //Determine which Source managers are enabled
         //By default, all are enabled except HttpAudioSources
-            if (Config.CONFIG.isYouTubeEnabled()) {
-                mng.registerSourceManager(new YoutubeAudioSourceManager());
-            }
-            if (Config.CONFIG.isSoundCloudEnabled()) {
-                mng.registerSourceManager(new SoundCloudAudioSourceManager());
-            }
-            if (Config.CONFIG.isBandCampEnabled()) {
-                mng.registerSourceManager(new BandcampAudioSourceManager());
-            }
-            if (Config.CONFIG.isTwitchEnabled()) {
-                mng.registerSourceManager(new TwitchStreamAudioSourceManager());
-            }
-            if (Config.CONFIG.isVimeoEnabled()) {
-                mng.registerSourceManager(new VimeoAudioSourceManager());
-            }
-            if (Config.CONFIG.isBeamEnabled()) {
-                mng.registerSourceManager(new BeamAudioSourceManager());
-            }
-            if (Config.CONFIG.isSpotifyEnabled()) {
-                mng.registerSourceManager(new SpotifyPlaylistSourceManager());
-            }
-            if (Config.CONFIG.isHttpEnabled()) {
-                //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
-                //so you will never reach a source manager below it
-                mng.registerSourceManager(new HttpAudioSourceManager());
-            }
-
+        if (Config.CONFIG.isYouTubeEnabled()) {
+            mng.registerSourceManager(new YoutubeAudioSourceManager());
+        }
+        if (Config.CONFIG.isSoundCloudEnabled()) {
+            mng.registerSourceManager(new SoundCloudAudioSourceManager());
+        }
+        if (Config.CONFIG.isBandCampEnabled()) {
+            mng.registerSourceManager(new BandcampAudioSourceManager());
+        }
+        if (Config.CONFIG.isTwitchEnabled()) {
+            mng.registerSourceManager(new TwitchStreamAudioSourceManager());
+        }
+        if (Config.CONFIG.isVimeoEnabled()) {
+            mng.registerSourceManager(new VimeoAudioSourceManager());
+        }
+        if (Config.CONFIG.isBeamEnabled()) {
+            mng.registerSourceManager(new BeamAudioSourceManager());
+        }
+        if (Config.CONFIG.isSpotifyEnabled()) {
+            mng.registerSourceManager(new SpotifyPlaylistSourceManager());
+        }
+        if (Config.CONFIG.isHttpEnabled()) {
+            //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
+            //so you will never reach a source manager below it
+            mng.registerSourceManager(new HttpAudioSourceManager());
+        }
         return mng;
     }
 
