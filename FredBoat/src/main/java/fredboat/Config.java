@@ -219,7 +219,7 @@ public class Config {
             sshPrivateKeyFile = (String) creds.getOrDefault("sshPrivateKeyFile", "database.ppk");
             forwardToPort = (int) creds.getOrDefault("forwardToPort", 5432);
 
-            //Modularise audiomanagers; load from "audiomanagers.yaml"
+            //Modularise audiomanagers; load from "config.yaml"
 
             youtubeAudio = (Boolean) config.getOrDefault("enableYouTube", true);
             soundcloudAudio = (Boolean) config.getOrDefault("enableSoundCloud", true);
