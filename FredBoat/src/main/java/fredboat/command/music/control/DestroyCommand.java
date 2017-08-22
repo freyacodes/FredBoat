@@ -44,7 +44,7 @@ public class DestroyCommand extends Command implements IMusicCommand, ICommandRe
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         if(invoker.hasPermission(channel, Permission.MESSAGE_MANAGE)
-                || PermsUtil.checkPerms(PermissionLevel.BOT_ADMIN, invoker)) {
+                || PermsUtil.checkPerms(PermissionLevel.ADMIN, invoker)) {
             PlayerRegistry.destroyPlayer(guild);
             TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("destroySucc"));
         } else {
