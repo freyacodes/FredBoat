@@ -30,7 +30,7 @@ To run the FredBoat bot in your debugger, you need to set up a Maven run configu
 Make sure to also install all modules that FredBoat depends on by running a Maven install goal for those modules.
 
 <details>
-<summary>Here is how that looks for IntelliJ IDEA:</summary>
+<summary>Here is how that looks for IntelliJ IDEA (click me):</summary>
 
 [![Debug configuration](https://fred.moe/u73.png)](https://fred.moe/u73.png)
 
