@@ -29,7 +29,9 @@ To run the FredBoat bot in your debugger, you need to set up a Maven run configu
 
 Make sure to also install all modules that FredBoat depends on by running a Maven install goal for those modules.
 
-Here is how that looks for IntelliJ IDEA:
+<details>
+<summary>Here is how that looks for IntelliJ IDEA:</summary>
+
 [![Debug configuration](https://fred.moe/u73.png)](https://fred.moe/u73.png)
 
 Pay special attention to the bottom if that screenshot, where a before launch Maven goal `install -pl Shared` is defined, which installs the Shared module into your local Maven repository on which the FredBoat bot depends:
@@ -39,6 +41,9 @@ Add `credentials.yaml` and `config.yaml` files to the module path `FredBoat/Fred
 
 This also allows you to take advantage of Java hotswapping, which you can enable in IDEA like so:
 [![Hot swapping settings](https://fred.moe/XhC.png)](https://fred.moe/XhC.png)
+
+</details>
+
 
 Recompiling while the debugger is running will have your changes be hot swapped into the running bot, so there is no need to restart it each time when you are rapidly testing out a lot of small changes.
 
