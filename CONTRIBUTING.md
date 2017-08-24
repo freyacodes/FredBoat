@@ -22,30 +22,30 @@ Also feel free to work on your own ideas. Especially commands, we can't have too
 
 Obtaining a well functioning and productive setup of the IDE may be an intimidating process, especially for users new to coding or the Java world. Here are some tips that will hopefully make this step a bit easier.
 
-### Debugger
+### Running the bot
 
-To run the FredBoat bot in your debugger, you need to set up a Maven run configuration which executes these goals for the FredBoat module:
-`compile exec:java -Dexec.mainClass=fredboat.FredBoat -Dexec.args=272`
+Add `credentials.yaml` and `config.yaml` files to the FredBoat root directory.
 
-Make sure to also install all modules that FredBoat depends on by running a Maven install goal for those modules.
+To run the FredBoat bot in IntelliJ IDEA, find the little green triangle in the main class `FredBoat.java` and start it from there:
+<details><summary>Click me</summary>
 
-<details>
-<summary>Here is how that looks for IntelliJ IDEA (click me):</summary>
-
-[![Debug configuration](https://fred.moe/u73.png)](https://fred.moe/u73.png)
-
-Pay special attention to the bottom if that screenshot, where a before launch Maven goal `install -pl Shared` is defined, which installs the Shared module into your local Maven repository on which the FredBoat bot depends:
-[![Before launch Maven goal](https://fred.moe/1Fk.png)](https://fred.moe/1Fk.png)
-
-Add `credentials.yaml` and `config.yaml` files to the module path `FredBoat/FredBoat`.
+[![Running from IDEA](https://fred.moe/ETs.png)](https://fred.moe/ETs.png)
+</details>
+<br/>
 
 This also allows you to take advantage of Java hotswapping, which you can enable in IDEA like so:
+<details><summary>Click me</summary>
+
 [![Hot swapping settings](https://fred.moe/XhC.png)](https://fred.moe/XhC.png)
-
 </details>
+<br/>
 
+Reloading while the bot is running will have your changes hot swapped, so there is no need to fully restart it each time when you are rapidly testing out a lot of small changes.
+<details><summary>Click me</summary>
 
-Recompiling while the debugger is running will have your changes be hot swapped into the running bot, so there is no need to restart it each time when you are rapidly testing out a lot of small changes.
+[![Reloading changed classes](https://fred.moe/pFG.png)](https://fred.moe/pFG.png)
+</details>
+<br/>
 
 ### Automating tasks
 
@@ -54,4 +54,8 @@ Reformatting your code, organizing imports, recompiling, etc are tasks that you 
 A convenient time to do them is when saving files, so you might want to [create a macro](https://www.jetbrains.com/help/idea/using-macros-in-the-editor.html) that does all the housekeeping for you and put it on the CTRL + S hotkey, or use a plugin like [Save Actions](https://plugins.jetbrains.com/plugin/7642-save-actions).
 
 Here is a decent configuration:
+<details><summary>Click me</summary>
+
 [![Save Actions plugin settings](https://fred.moe/j7b.png)](https://fred.moe/j7b.png)
+</details>
+<br/>
