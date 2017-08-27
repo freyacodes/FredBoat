@@ -29,12 +29,18 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import fredboat.FredBoat;
-import fredboat.audio.queue.*;
+import fredboat.audio.queue.AbstractTrackProvider;
+import fredboat.audio.queue.AudioLoader;
+import fredboat.audio.queue.AudioTrackContext;
+import fredboat.audio.queue.IdentifierContext;
+import fredboat.audio.queue.RepeatMode;
+import fredboat.audio.queue.SimpleTrackProvider;
 import fredboat.commandmeta.MessagingException;
 import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.EntityReader;
 import fredboat.db.entity.GuildConfig;
 import fredboat.feature.I18n;
+import fredboat.feature.togglz.FeatureFlags;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.TextUtils;
@@ -63,8 +69,10 @@ public class GuildPlayer extends AbstractPlayer {
     private final String guildId;
     public final Map<String, VideoSelection> selections = new HashMap<>();
     private String currentTCId;
-
     private final AudioLoader audioLoader;
+
+    /* This is used for checking if it is time to advertise FredBoat Patron if it is enabled */
+    private final PlaybackTimeMonitor playbackTimeMonitor = new PlaybackTimeMonitor(this);
 
     @SuppressWarnings("LeakingThisInConstructor")
     public GuildPlayer(Guild guild) {
@@ -115,7 +123,23 @@ public class GuildPlayer extends AbstractPlayer {
             if (manager.getConnectedChannel() == null) {
                 channel.sendMessage(I18n.get(getGuild()).getString("playerNotInChannel")).queue();
             } else {
-                channel.sendMessage(MessageFormat.format(I18n.get(getGuild()).getString("playerLeftChannel"), getChannel().getName())).queue();
+                String msg = MessageFormat.format(I18n.get(getGuild()).getString("playerLeftChannel"), getChannel().getName());
+
+                log.info(isPlaying() + "");
+
+                // Note that we will only nag users if they seem to actually understand and use the bot
+                if (FeatureFlags.ADVERTISE_DONATION_ON_LEAVE.isActive()
+                        && playbackTimeMonitor.getPlaybackTime().toMinutes() > 120
+                        && isPlaying()) {
+                    String translated = "If you find FredBoat useful, please consider donating so that we can keep the lights on.";
+                    msg = msg + "\n\n"
+                            + translated
+                            + "\n<https://fredboat.com/docs/donate>";
+
+                    playbackTimeMonitor.reset();
+                }
+
+                channel.sendMessage(msg).queue();
             }
         }
         manager.closeAudioConnection();
@@ -352,6 +376,10 @@ public class GuildPlayer extends AbstractPlayer {
         } else {
             audioTrackProvider.remove(atc);
         }
+    }
+
+    public AudioManager getAudioManager() {
+        return getGuild().getAudioManager();
     }
 
     @Override

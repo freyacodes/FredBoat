@@ -55,6 +55,9 @@ public enum FeatureFlags implements Feature {
 
     @Label("Force soundcloud search instead of youtube")
     FORCE_SOUNDCLOUD_SEARCH,
+
+    @Label("Advertise donation page on leave")
+    ADVERTISE_DONATION_ON_LEAVE,
     ;
 
     public boolean isActive() {

@@ -279,6 +279,10 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
         }
     }
 
+    public AudioPlayer getPlayer() {
+        return player;
+    }
+
     void destroy() {
         player.destroy();
     }
