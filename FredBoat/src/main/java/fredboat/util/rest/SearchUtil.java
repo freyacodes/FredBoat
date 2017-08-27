@@ -33,14 +33,22 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import fredboat.db.entity.SearchResult;
 import fredboat.feature.togglz.FeatureFlags;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.TimeUnit;
 
 public class SearchUtil {
 
+    private static final Logger log = LoggerFactory.getLogger(SearchUtil.class);
+
     private static final AudioPlayerManager PLAYER_MANAGER = initPlayerManager();
     private static final int DEFAULT_TIMEOUT = 3000;
+    private static final long CACHE_MAX_AGE = TimeUnit.HOURS.toMillis(24); //24 hours
 
     private static AudioPlayerManager initPlayerManager() {
         DefaultAudioPlayerManager manager = new DefaultAudioPlayerManager();
@@ -87,6 +95,12 @@ public class SearchUtil {
                 provider = SearchProvider.SOUNDCLOUD;
             }
 
+            result = SearchResult.load(PLAYER_MANAGER, provider, query, CACHE_MAX_AGE);
+            if (result != null) {
+                log.debug("Loaded search result {} {} from cache", provider, query);
+                return result;
+            }
+
             try {
                 synchronized (toBeNotified) {
                     PLAYER_MANAGER.loadItem(provider.getPrefix() + query, this);
@@ -100,6 +114,9 @@ public class SearchUtil {
                 throw new RuntimeException("Failed to search!", throwable);
             }
 
+            if (result != null) {
+                new SearchResult(PLAYER_MANAGER, provider, query, result).save();
+            }
             return result;
         }
 
