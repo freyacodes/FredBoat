@@ -27,10 +27,7 @@ package fredboat.commandmeta.init;
 import fredboat.command.admin.*;
 import fredboat.command.fun.*;
 import fredboat.command.maintenance.*;
-import fredboat.command.moderation.ClearCommand;
-import fredboat.command.moderation.HardbanCommand;
-import fredboat.command.moderation.KickCommand;
-import fredboat.command.moderation.SoftbanCommand;
+import fredboat.command.moderation.*;
 import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
 
@@ -61,6 +58,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("kick", new KickCommand());
         CommandRegistry.registerCommand("softban", new SoftbanCommand());
         CommandRegistry.registerCommand("clear", new ClearCommand());
+        CommandRegistry.registerCommand("prune",new PruneCommand());
         
         /* Util */
         CommandRegistry.registerCommand("serverinfo", new fredboat.command.util.ServerInfoCommand(), "guildinfo");
