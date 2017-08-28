@@ -145,7 +145,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         String query = m.group(1);
         
         //Now remove all punctuation
-        query = query.replaceAll("[.,/#!$%\\^&*;:{}=\\-_`~()]", "");
+        query = query.replaceAll(SearchUtil.PUNCTUATION_REGEX, "");
 
         String finalQuery = query;
         channel.sendMessage(I18n.get(guild).getString("playSearching").replace("{q}", query)).queue(outMsg -> {

@@ -102,7 +102,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
         List<CompletableFuture<AudioTrack>> taskList = new ArrayList<>();
         for (final String s : trackListSearchTerms) {
             //remove all punctuation
-            final String query = s.replaceAll("[.,/#!$%\\^&*;:{}=\\-_`~()]", "");
+            final String query = s.replaceAll(SearchUtil.PUNCTUATION_REGEX, "");
 
             CompletableFuture<AudioTrack> f = CompletableFuture.supplyAsync(() -> searchSingleTrack(query), FredBoat.executor);
             taskList.add(f);

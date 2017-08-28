@@ -50,6 +50,8 @@ public class SearchUtil {
     private static final int DEFAULT_TIMEOUT = 3000;
     private static final long CACHE_MAX_AGE = TimeUnit.HOURS.toMillis(24); //24 hours
 
+    public static final String PUNCTUATION_REGEX = "[.,/#!$%^&*;:{}=\\-_`~()\"\']";
+
     private static AudioPlayerManager initPlayerManager() {
         DefaultAudioPlayerManager manager = new DefaultAudioPlayerManager();
         YoutubeAudioSourceManager youtubeAudioSourceManager = new YoutubeAudioSourceManager();
