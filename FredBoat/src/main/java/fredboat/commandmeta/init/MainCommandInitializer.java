@@ -36,8 +36,8 @@ public class MainCommandInitializer {
     public static void initCommands() {
         CommandRegistry.registerCommand("help", new HelpCommand(), "info");
         CommandRegistry.registerCommand("commands", new CommandsCommand(), "comms", "cmds");
-        CommandRegistry.registerCommand("invite", new InviteCommand());      
-        
+        CommandRegistry.registerCommand("invite", new InviteCommand());
+
         /* Bot Maintenance */
         CommandRegistry.registerCommand("unblacklist", new UnblacklistCommand(), "unlimit");
         CommandRegistry.registerCommand("version", new VersionCommand());
@@ -52,7 +52,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("test", new TestCommand());
         CommandRegistry.registerCommand("gitinfo", new GitInfoCommand(), "git");
         CommandRegistry.registerCommand("exit", new ExitCommand());
-        
+
         /* Moderation */
         CommandRegistry.registerCommand("hardban", new HardbanCommand());
         CommandRegistry.registerCommand("kick", new KickCommand());
