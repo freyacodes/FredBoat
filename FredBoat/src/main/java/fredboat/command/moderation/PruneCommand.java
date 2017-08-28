@@ -26,7 +26,7 @@ public class PruneCommand extends Command implements IModerationCommand, IComman
 
         if(args.length == 1) {
             return;
-        } else if(args.length == 2 && StringUtils.isNumeric(args[1])) {
+        } else if(args.length == 2 && StringUtils.isNumeric(args[1])) { // ;;prune <num>
             int num = Integer.parseInt(args[1]);
             channel.sendMessage(String.valueOf(num)).queue();
             if(num < THRESHOLD_NUMBER) {
@@ -42,7 +42,12 @@ public class PruneCommand extends Command implements IModerationCommand, IComman
                     e.printStackTrace();
                 }
             }
-        } 
+        } else if(args.length == 2) {
+            //Member m = ArgumentUtil.checkSingleFuzzyMemberSearchResult(channel,args[1]); // ;;prune <user>
+            return;
+        } else if(args.length == 3 && StringUtils.isNumeric(args[2])) { // ;;prune <user> <num>
+            return;
+        }
     }
 
     @Override
