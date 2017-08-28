@@ -58,7 +58,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("kick", new KickCommand());
         CommandRegistry.registerCommand("softban", new SoftbanCommand());
         CommandRegistry.registerCommand("clear", new ClearCommand());
-        CommandRegistry.registerCommand("prune",new PruneCommand());
+        //CommandRegistry.registerCommand("prune",new PruneCommand()); waiting for thing
         
         /* Util */
         CommandRegistry.registerCommand("serverinfo", new fredboat.command.util.ServerInfoCommand(), "guildinfo");
