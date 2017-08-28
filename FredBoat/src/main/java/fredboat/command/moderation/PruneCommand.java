@@ -13,6 +13,7 @@ import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.utils.PermissionUtil;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PruneCommand extends Command implements IModerationCommand, ICommandRestricted {
@@ -43,7 +44,22 @@ public class PruneCommand extends Command implements IModerationCommand, IComman
                 }
             }
         } else if(args.length == 2) {
-            //Member m = ArgumentUtil.checkSingleFuzzyMemberSearchResult(channel,args[1]); // ;;prune <user>
+            Member m = ArgumentUtil.checkSingleFuzzyMemberSearchResult(channel,args[1]); // ;;prune <user>
+            if(guild.getSelfMember().hasPermission(Permission.MESSAGE_HISTORY)) {
+                List<Message> messages = null;
+                List<Message> todelete = new ArrayList<>();
+                try {
+                    messages = channel.getHistory().retrievePast(DEFAULT_NUMBER).complete(true);
+                    for(Message mes:messages){
+                        if(mes.getAuthor().equals(m.getUser())){todelete.add(mes);}
+                    }
+                    channel.sendMessage(String.valueOf(todelete.size())).queue();
+                    channel.deleteMessages(todelete).queue();
+                } catch (RateLimitedException e) {
+                    e.printStackTrace();
+                }
+                return;
+            }
             return;
         } else if(args.length == 3 && StringUtils.isNumeric(args[2])) { // ;;prune <user> <num>
             return;
