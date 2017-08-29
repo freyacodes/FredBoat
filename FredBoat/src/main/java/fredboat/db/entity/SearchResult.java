@@ -63,7 +63,6 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "search_results")
-//todo does this need to be added to ehcache.xml?
 @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region = "search_results")
 //todo after introducing the db refactoring in the persistent tracklists PR:
 //- refactor load() and save() as calls to EntityReader and EntityWriter
