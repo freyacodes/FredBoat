@@ -26,8 +26,8 @@
 
 package fredboat.command.music.control;
 
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandRestricted;
@@ -44,6 +44,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+/**
+ * @deprecated Do not use this, this is incomplete.
+ */
 
 public class SkipToCommand extends Command implements IMusicCommand, ICommandRestricted {
 
@@ -97,7 +100,7 @@ public class SkipToCommand extends Command implements IMusicCommand, ICommandRes
     }
     @Override
     public String help(Guild guild) {
-        return null; //someone write plz
+        return "To Be Filled l8r"; //TODO: Write Later
     }
 
     @Override

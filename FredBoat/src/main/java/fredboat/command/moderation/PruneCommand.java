@@ -68,7 +68,7 @@ public class PruneCommand extends Command implements IModerationCommand, IComman
 
     @Override
     public String help(Guild guild) {
-        return null;
+        return "To Be Filled l8r"; //TODO: Write Later
     }
 
     @Override
