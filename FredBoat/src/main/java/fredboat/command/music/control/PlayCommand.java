@@ -34,20 +34,19 @@ import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
-import fredboat.util.rest.SearchUtil;
 import fredboat.util.TextUtils;
+import fredboat.util.rest.SearchUtil;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.Message.Attachment;
 import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONException;
 import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -55,11 +54,11 @@ import java.util.regex.Pattern;
 public class PlayCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(PlayCommand.class);
-    private final SearchUtil.SearchProvider searchProvider;
+    private final List<SearchUtil.SearchProvider> searchProviders;
     private static final JoinCommand JOIN_COMMAND = new JoinCommand();
 
-    public PlayCommand(SearchUtil.SearchProvider searchProvider) {
-        this.searchProvider = searchProvider;
+    public PlayCommand(SearchUtil.SearchProvider... searchProviders) {
+        this.searchProviders = Arrays.asList(searchProviders);
     }
 
     @Override
@@ -97,11 +96,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
 
         //Search youtube for videos and let the user select a video
         if (!args[1].startsWith("http")) {
-            try {
-                searchForVideos(guild, channel, invoker, message, args);
-            } catch (RateLimitedException e) {
-                throw new RuntimeException(e);
-            }
+            searchForVideos(guild, channel, invoker, message, args);
             return;
         }
 
@@ -139,7 +134,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         }
     }
 
-    private void searchForVideos(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) throws RateLimitedException {
+    private void searchForVideos(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         Matcher m = Pattern.compile("\\S+\\s+(.*)").matcher(message.getRawContent());
         m.find();
         String query = m.group(1);
@@ -151,14 +146,14 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         channel.sendMessage(I18n.get(guild).getString("playSearching").replace("{q}", query)).queue(outMsg -> {
             AudioPlaylist list;
             try {
-                list = SearchUtil.searchForTracks(searchProvider, finalQuery);
-            } catch (JSONException e) {
+                list = SearchUtil.searchForTracks(finalQuery, searchProviders);
+            } catch (SearchUtil.SearchingException e) {
                 channel.sendMessage(I18n.get(guild).getString("playYoutubeSearchError")).queue();
-                log.debug("YouTube search exception", e);
+                log.error("YouTube search exception", e);
                 return;
             }
 
-            if (list == null || list.getTracks().size() == 0) {
+            if (list == null || list.getTracks().isEmpty()) {
                 outMsg.editMessage(I18n.get(guild).getString("playSearchNoResults").replace("{q}", finalQuery)).queue();
             } else {
                 //Clean up any last search by this user

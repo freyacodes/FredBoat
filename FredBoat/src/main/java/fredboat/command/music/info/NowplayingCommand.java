@@ -120,7 +120,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
 
         MessageEmbed embed = eb.setColor(new Color(205, 32, 31))
                 .setThumbnail("https://i.ytimg.com/vi/" + at.getIdentifier() + "/hqdefault.jpg")
-                .setAuthor(yv.getCannelTitle(), yv.getChannelUrl(), yv.getChannelThumbUrl())
+                .setAuthor(yv.getChannelTitle(), yv.getChannelUrl(), yv.getChannelThumbUrl())
                 .setFooter(channel.getJDA().getSelfUser().getName(), channel.getJDA().getSelfUser().getAvatarUrl())
                 .build();
         channel.sendMessage(embed).queue();

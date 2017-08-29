@@ -100,7 +100,7 @@ public class SearchResult {
      * @return the cached search result; may return null for a non-existing or outdated search
      */
     public static AudioPlaylist load(AudioPlayerManager playerManager, SearchUtil.SearchProvider provider,
-                                     String searchTerm, long maxAgeMillis) {
+                                     String searchTerm, long maxAgeMillis) throws DatabaseNotReadyException {
         DatabaseManager dbManager = FredBoat.getDbManager();
         if (!dbManager.isAvailable()) {
             throw new DatabaseNotReadyException();
