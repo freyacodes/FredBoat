@@ -23,29 +23,44 @@
  *
  */
 
-package fredboat.audio;
+package fredboat.audio.player;
 
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import net.dv8tion.jda.core.entities.Message;
 
-import java.util.List;
+import fredboat.FredBoat;
+import net.dv8tion.jda.core.audio.hooks.ConnectionListener;
+import net.dv8tion.jda.core.audio.hooks.ConnectionStatus;
+import net.dv8tion.jda.core.entities.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class VideoSelection {
+class DebugConnectionListener implements ConnectionListener {
 
-    private final List<AudioTrack> choices;
-    private final String outMsgId;
+    private static final Logger log = LoggerFactory.getLogger(DebugConnectionListener.class);
 
-    public VideoSelection(List<AudioTrack> choices, Message outMsg) {
-        this.choices = choices;
-        this.outMsgId = outMsg.getId();
+    private ConnectionStatus oldStatus = null;
+    private final String guildId;
+    private final FredBoat.ShardInfo shardInfo;
+
+    DebugConnectionListener(String guildId, FredBoat.ShardInfo shardInfo) {
+        this.guildId = guildId;
+        this.shardInfo = shardInfo;
     }
 
-    public List<AudioTrack> getChoices() {
-        return choices;
+    @Override
+    public void onPing(long l) {
+
     }
 
-    public String getOutMsgId() {
-        return outMsgId;
+    @Override
+    public void onStatusChange(ConnectionStatus connectionStatus) {
+        log.debug(String.format("Status change for audio connection in guild %s in %s: %s => %s",
+                guildId, shardInfo, oldStatus, connectionStatus));
+
+        oldStatus = connectionStatus;
     }
 
+    @Override
+    public void onUserSpeaking(User user, boolean b) {
+
+    }
 }

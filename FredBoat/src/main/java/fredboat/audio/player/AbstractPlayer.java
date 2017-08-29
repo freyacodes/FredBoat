@@ -23,13 +23,12 @@
  *
  */
 
-package fredboat.audio;
+package fredboat.audio.player;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
-import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.source.bandcamp.BandcampAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.beam.BeamAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager;
@@ -50,6 +49,9 @@ import fredboat.audio.queue.TrackEndMarkerHandler;
 import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
 import fredboat.shared.constant.DistributionEnum;
+import lavalink.client.player.IPlayer;
+import lavalink.client.player.LavaplayerPlayerWrapper;
+import lavalink.client.player.event.AudioEventAdapterWrapped;
 import net.dv8tion.jda.core.audio.AudioSendHandler;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -58,22 +60,22 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractPlayer extends AudioEventAdapter implements AudioSendHandler {
+public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements AudioSendHandler {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(AbstractPlayer.class);
 
     private static AudioPlayerManager playerManager;
-    private AudioPlayer player;
+    private final IPlayer player;
     ITrackProvider audioTrackProvider;
     private AudioFrame lastFrame = null;
     private AudioTrackContext context;
-    private AudioLossCounter audioLossCounter = new AudioLossCounter();
+    private final AudioLossCounter audioLossCounter = new AudioLossCounter();
     private boolean splitTrackEnded = false;
 
     @SuppressWarnings("LeakingThisInConstructor")
-    AbstractPlayer() {
+    AbstractPlayer(String guildId) {
         initAudioPlayerManager();
-        player = playerManager.createPlayer();
+        player = LavalinkManager.ins.createPlayer(guildId);
 
         player.addListener(this);
     }
@@ -280,7 +282,7 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     }
 
     void destroy() {
-        player.destroy();
+        player.stopTrack();
     }
 
     @Override
@@ -290,7 +292,8 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
 
     @Override
     public boolean canProvide() {
-        lastFrame = player.provide();
+        LavaplayerPlayerWrapper lavaplayerPlayer = (LavaplayerPlayerWrapper) player;
+        lastFrame = lavaplayerPlayer.provide();
 
         if(lastFrame == null) {
             audioLossCounter.onLoss();
@@ -329,5 +332,17 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     @Override
     public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
         log.error("Lavaplayer got stuck while playing " + track.getIdentifier() + "\nPerformance stats for stuck track: " + audioLossCounter);
+    }
+
+    public long getPosition() {
+        return player.getTrackPosition();
+    }
+
+    public void seekTo(long position) {
+        player.seekTo(position);
+    }
+
+    public IPlayer getPlayer() {
+        return player;
     }
 }

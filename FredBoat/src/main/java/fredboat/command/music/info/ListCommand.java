@@ -25,8 +25,8 @@
 
 package fredboat.command.music.info;
 
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.audio.queue.RepeatMode;
 import fredboat.commandmeta.abs.Command;

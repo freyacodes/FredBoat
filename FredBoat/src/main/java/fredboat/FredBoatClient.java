@@ -49,7 +49,7 @@ public class FredBoatClient extends FredBoat {
 
                     success = true;
                 } catch (RateLimitedException e) {
-                    log.warn("Got rate limited while building client JDA instance! Retrying...", e);
+                    log.warn("Got rate limited while building client JDA ins! Retrying...", e);
                     Thread.sleep(1000);
                 }
             }

@@ -25,8 +25,8 @@
 
 package fredboat.command.admin;
 
-import fredboat.audio.AbstractPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.AbstractPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommand;
 import fredboat.commandmeta.abs.ICommandRestricted;

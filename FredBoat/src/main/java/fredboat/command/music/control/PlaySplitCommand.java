@@ -26,8 +26,9 @@
 package fredboat.command.music.control;
 
 import fredboat.Config;
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.LavalinkManager;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.IdentifierContext;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
@@ -45,6 +46,13 @@ public class PlaySplitCommand extends Command implements IMusicCommand, ICommand
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+        if (LavalinkManager.ins.isEnabled()) {
+            channel.sendMessage("Human Fred MIGHT have broken this command." +
+                    "Maybe it will be fixed in a later update." +
+                    "Who knows ¯\\_(ツ)_/¯").queue();
+            return;
+        }
+
         if (args.length < 2) {
             String command = args[0].substring(Config.CONFIG.getPrefix().length());
             HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);

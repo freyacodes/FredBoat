@@ -23,45 +23,72 @@
  *
  */
 
-package fredboat.command.music.seeking;
+package fredboat.command.admin;
 
-import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.PlayerRegistry;
+import fredboat.audio.player.LavalinkManager;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandRestricted;
-import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-import java.text.MessageFormat;
+import java.net.URI;
+import java.net.URISyntaxException;
 
-public class RestartCommand extends Command implements IMusicCommand, ICommandRestricted {
-
+public class NodeAdminCommand extends Command implements ICommandRestricted {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        GuildPlayer player = PlayerRegistry.getExisting(guild);
-
-        if (player != null && !player.isQueueEmpty()) {
-            player.getPlayingTrack().getTrack().setPosition(player.getPlayingTrack().getStartPosition());
-            channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("restartSuccess"), player.getPlayingTrack().getEffectiveTitle())).queue();
-        } else {
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("queueEmpty"));
+        if (!LavalinkManager.ins.isEnabled()) {
+            channel.sendMessage("Lavalink is disabled").queue();
         }
+
+        switch (args[1]) {
+            case "del":
+            case "delete":
+            case "remove":
+            case "rem":
+            case "rm":
+                remove(channel, args);
+                break;
+            case "add":
+                add(channel, args);
+                break;
+            case "list":
+            default:
+                HelpCommand.sendFormattedCommandHelp(message);
+                break;
+        }
+    }
+
+    private void remove(TextChannel channel, String[] args) {
+        int key = Integer.valueOf(args[2]);
+        LavalinkManager.ins.getLavalink().removeNode(key);
+        channel.sendMessage("Removed node #" + key).queue();
+    }
+
+    private void add(TextChannel channel, String[] args) {
+        URI uri;
+        try {
+            uri = new URI(args[2]);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        String password = args[3];
+        LavalinkManager.ins.getLavalink().addNode(uri, password);
+        channel.sendMessage("Added node: " + uri.toString()).queue();
     }
 
     @Override
     public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpRestartCommand");
+        return "{0}{1}\n#Add or remove lavalink nodes.";
     }
 
     @Override
     public PermissionLevel getMinimumPerms() {
-        return PermissionLevel.DJ;
+        return PermissionLevel.BOT_ADMIN;
     }
 }

@@ -25,8 +25,9 @@
 
 package fredboat;
 
-import fredboat.audio.NativeAudioSendFactory;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.nas.NativeAudioSendFactory;
+import fredboat.audio.player.LavalinkManager;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.event.EventLogger;
 import fredboat.event.ShardWatchdogListener;
 import fredboat.util.TextUtils;
@@ -79,6 +80,10 @@ public class FredBoatBot extends FredBoat {
                     builder.addEventListener(listener);
                 } else {
                     log.warn("Starting a shard without an event listener!");
+                }
+
+                if (LavalinkManager.ins.isEnabled()) {
+                    builder.addEventListener(LavalinkManager.ins.getLavalink());
                 }
 
                 if (!System.getProperty("os.arch").equalsIgnoreCase("arm")
@@ -160,9 +165,9 @@ public class FredBoatBot extends FredBoat {
                 jda.removeEventListener(shardWatchdogListener);
                 jda.removeEventListener(listener);
 
-                jda.shutdown(false);
+                jda.shutdown();
                 //a blocking build makes sure the revive task runs until the shard is connected, otherwise the shard may
-                // get revived again accidently while still connecting
+                // get revived again accidentally while still connecting
                 jda = buildJDA(true);
 
             } catch (Exception e) {

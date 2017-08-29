@@ -80,6 +80,28 @@
             <artifactId>lavaplayer-common</artifactId>
             <version>1.0.5</version>
         </dependency>
+        <!-- This is just here for convenience -->
+        <!--
+        <dependency>
+            <groupId>lavalink</groupId>
+            <artifactId>Lavalink-Client</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>G:/Lavalink/LavalinkClient/target/Lavalink-Client-1.0.jar</systemPath>
+        </dependency>
+        -->
+        <dependency>
+            <!-- Audio player node client -->
+            <groupId>com.github.Frederikam</groupId>
+            <artifactId>Lavalink</artifactId>
+            <version>cbeb20794be56b7a133aadf7586049d73f8e0486</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.Frederikam.Lavalink</groupId>
+                    <artifactId>Lavalink-Server</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <!-- native audio system to avoid gc stutter in the audio -->
             <!-- we replaced the classes temporarily, but need the native parts -->

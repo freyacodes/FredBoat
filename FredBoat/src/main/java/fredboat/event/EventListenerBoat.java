@@ -25,8 +25,8 @@
 package fredboat.event;
 
 import fredboat.Config;
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.command.fun.TalkCommand;
 import fredboat.command.music.control.SkipCommand;
 import fredboat.command.util.HelpCommand;

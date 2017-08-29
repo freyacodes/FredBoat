@@ -1,4 +1,4 @@
-package fredboat.audio;
+package fredboat.audio.nas;
 
 import com.sedmelluq.discord.lavaplayer.udpqueue.natives.UdpQueueManager;
 import net.dv8tion.jda.core.audio.factory.IAudioSendSystem;

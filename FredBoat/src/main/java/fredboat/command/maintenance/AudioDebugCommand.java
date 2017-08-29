@@ -25,9 +25,9 @@
 
 package fredboat.command.maintenance;
 
-import fredboat.audio.AudioLossCounter;
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.AudioLossCounter;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.util.TextUtils;

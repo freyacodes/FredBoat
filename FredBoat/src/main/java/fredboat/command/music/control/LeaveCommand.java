@@ -25,8 +25,9 @@
 
 package fredboat.command.music.control;
 
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.LavalinkManager;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
@@ -51,7 +52,7 @@ public class LeaveCommand extends Command implements IMusicCommand, ICommandRest
             player.leaveVoiceChannelRequest(channel, false);
         } catch (Exception e) {
             log.error("Something caused us to not properly leave a voice channel!", e);
-            guild.getAudioManager().closeAudioConnection();
+            LavalinkManager.ins.closeConnection(guild);
         }
     }
 

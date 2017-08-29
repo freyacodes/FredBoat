@@ -1,4 +1,4 @@
-package fredboat.audio;
+package fredboat.audio.nas;
 
 import com.sedmelluq.discord.lavaplayer.tools.DaemonThreadFactory;
 import com.sedmelluq.discord.lavaplayer.tools.ExecutorTools;

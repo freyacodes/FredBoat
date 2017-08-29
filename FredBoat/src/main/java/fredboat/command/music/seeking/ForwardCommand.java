@@ -27,8 +27,8 @@ package fredboat.command.music.seeking;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.Config;
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
@@ -77,7 +77,7 @@ public class ForwardCommand extends Command implements IMusicCommand, ICommandRe
         t = Math.max(0, t);
         t = Math.min(atc.getEffectiveDuration(), t);
 
-        at.setPosition(at.getPosition() + t);
+        player.seekTo(player.getPosition() + t);
         channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("fwdSuccess"), atc.getEffectiveTitle(), TextUtils.formatTime(t))).queue();
     }
 

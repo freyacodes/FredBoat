@@ -26,7 +26,7 @@
 package fredboat.audio.queue;
 
 import com.sedmelluq.discord.lavaplayer.track.TrackMarkerHandler;
-import fredboat.audio.AbstractPlayer;
+import fredboat.audio.player.AbstractPlayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

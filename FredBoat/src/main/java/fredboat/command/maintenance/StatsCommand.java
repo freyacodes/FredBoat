@@ -27,7 +27,7 @@ package fredboat.command.maintenance;
 
 import fredboat.Config;
 import fredboat.FredBoat;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMaintenanceCommand;

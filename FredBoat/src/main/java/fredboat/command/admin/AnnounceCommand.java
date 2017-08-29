@@ -25,8 +25,8 @@
 
 package fredboat.command.admin;
 
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.util.TextUtils;
 import fredboat.commandmeta.abs.ICommandRestricted;
@@ -69,7 +69,7 @@ public class AnnounceCommand extends Command implements ICommandRestricted {
         try {
             status = channel.sendMessage(String.format("[0/%d]", players.size())).complete(true);
         } catch (RateLimitedException e) {
-            log.error("annuoncement failed! Rate limits.", e);
+            log.error("Announcement failed! Rate limits.", e);
             TextUtils.handleException(e, channel, invoker);
             throw new RuntimeException(e);
         }
@@ -88,10 +88,10 @@ public class AnnounceCommand extends Command implements ICommandRestricted {
                     do {
                         try {
                             phaser.awaitAdvanceInterruptibly(0, 5, TimeUnit.SECONDS);
-                            // now all the parties have arrived, we can break out of the loop
+                            // Now all the parties have arrived, we can break out of the loop
                             break;
                         } catch (TimeoutException ex) {
-                            // this is fine, this means that the required parties haven't arrived
+                            // This is fine, this means that the required parties haven't arrived
                         }
                         printProgress(status,
                                 phaser.getArrivedParties(),

@@ -33,7 +33,7 @@ import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.*;
-import fredboat.audio.AbstractPlayer;
+import fredboat.audio.player.AbstractPlayer;
 import fredboat.audio.queue.PlaylistInfo;
 import org.slf4j.LoggerFactory;
 

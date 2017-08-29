@@ -82,6 +82,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
             case "delete":
             case "remove":
             case "rem":
+            case "rm":
                 if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, invoker, channel)) return;
 
                 if (args.length < 3) {

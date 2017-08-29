@@ -109,6 +109,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("adebug", new AudioDebugCommand());
         CommandRegistry.registerCommand("announce", new AnnounceCommand());
         CommandRegistry.registerCommand("mping", new PingCommand());
+        CommandRegistry.registerCommand("node", new NodeAdminCommand());
         
         /* Bot configuration */
         CommandRegistry.registerCommand("config", new ConfigCommand(), "cfg");
