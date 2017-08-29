@@ -35,6 +35,7 @@ import fredboat.FredBoat;
 import fredboat.db.DatabaseManager;
 import fredboat.db.DatabaseNotReadyException;
 import fredboat.util.rest.SearchUtil;
+import org.apache.commons.lang3.SerializationUtils;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.slf4j.Logger;
@@ -79,7 +80,7 @@ public class SearchResult {
 
     @Lob
     @Column(name = "search_result")
-    private SerializableAudioPlaylist encodedSearchResult;
+    private byte[] serializedSearchResult;
 
     //for JPA
     public SearchResult() {
@@ -89,7 +90,7 @@ public class SearchResult {
                         AudioPlaylist searchResult) {
         this.searchResultId = new SearchResultId(provider, searchTerm);
         this.timestamp = System.currentTimeMillis();
-        this.encodedSearchResult = new SerializableAudioPlaylist(playerManager, searchResult);
+        this.serializedSearchResult = SerializationUtils.serialize(new SerializableAudioPlaylist(playerManager, searchResult));
     }
 
     /**
@@ -180,11 +181,12 @@ public class SearchResult {
     }
 
     public AudioPlaylist getSearchResult(AudioPlayerManager playerManager) {
-        return encodedSearchResult.decode(playerManager);
+        SerializableAudioPlaylist sap = SerializationUtils.deserialize(serializedSearchResult);
+        return sap.decode(playerManager);
     }
 
     public void setSearchResult(AudioPlayerManager playerManager, AudioPlaylist searchResult) {
-        this.encodedSearchResult = new SerializableAudioPlaylist(playerManager, searchResult);
+        this.serializedSearchResult = SerializationUtils.serialize(new SerializableAudioPlaylist(playerManager, searchResult));
     }
 
     /**

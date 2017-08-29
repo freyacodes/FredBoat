@@ -58,6 +58,8 @@ import java.util.regex.Pattern;
  * <p>
  * Loads playlists from Spotify playlist links.
  *
+ * todo bulk load the songs from the search cache (remote db connections are slow when loading one by one)
+ *
  * @author napster
  */
 public class SpotifyPlaylistSourceManager implements AudioSourceManager, PlaylistImporter {
