@@ -59,6 +59,10 @@ public class SearchUtil {
     private static final AudioPlayerManager PLAYER_MANAGER = initPlayerManager();
     private static final int DEFAULT_TIMEOUT = 3000;
 
+    //give youtube a break if we get flagged and keep getting 503s
+    private static final long DEFAULT_YOUTUBE_COOLDOWN = TimeUnit.MINUTES.toMillis(10); // 10 minutes
+    private static long youtubeCooldownUntil;
+
     private static AudioPlayerManager initPlayerManager() {
         DefaultAudioPlayerManager manager = new DefaultAudioPlayerManager();
         YoutubeAudioSourceManager youtubeAudioSourceManager = new YoutubeAudioSourceManager();
@@ -87,7 +91,7 @@ public class SearchUtil {
             throws SearchingException {
 
         List<SearchProvider> provs = new ArrayList<>();
-        if (providers == null || providers.size() == 0) {
+        if (providers == null || providers.isEmpty()) {
             log.warn("No search provider provided, defaulting to youtube -> soundcloud.");
             provs.add(SearchProvider.YOUTUBE);
             provs.add(SearchProvider.SOUNDCLOUD);
@@ -95,7 +99,7 @@ public class SearchUtil {
             provs.addAll(providers);
         }
 
-        SearchingException exception = null;
+        SearchingException searchingException = null;
 
         for (SearchProvider provider : provs) {
             //1. cache
@@ -105,17 +109,24 @@ public class SearchUtil {
                 return cacheResult;
             }
 
-            //2. lavaplayer
-            try {
-                AudioPlaylist lavaplayerResult = new SearchResultHandler().searchSync(provider, query, timeoutMillis);
-                if (!lavaplayerResult.getTracks().isEmpty()) {
-                    log.debug("Loaded search result {} {} from lavaplayer", provider, query);
-                    // got a search result? cache and return it
-                    FredBoat.executor.submit(() -> new SearchResult(PLAYER_MANAGER, provider, query, lavaplayerResult).save());
-                    return lavaplayerResult;
+            //2. lavaplayer todo break up this beautiful construction of ifs and exception handling in a better readable one?
+            if (provider != SearchProvider.YOUTUBE || System.currentTimeMillis() > youtubeCooldownUntil) {
+                try {
+                    AudioPlaylist lavaplayerResult = new SearchResultHandler().searchSync(provider, query, timeoutMillis);
+                    if (!lavaplayerResult.getTracks().isEmpty()) {
+                        log.debug("Loaded search result {} {} from lavaplayer", provider, query);
+                        // got a search result? cache and return it
+                        FredBoat.executor.execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, lavaplayerResult).save());
+                        return lavaplayerResult;
+                    }
+                } catch (Http503Exception e) {
+                    if (provider == SearchProvider.YOUTUBE) {
+                        youtubeCooldownUntil = System.currentTimeMillis() + DEFAULT_YOUTUBE_COOLDOWN;
+                    }
+                    searchingException = e;
+                } catch (SearchingException e) {
+                    searchingException = e;
                 }
-            } catch (SearchingException e) {
-                exception = e;
             }
 
             //3. optional: youtube api
@@ -126,18 +137,18 @@ public class SearchUtil {
                     if (!youtubeApiResult.getTracks().isEmpty()) {
                         log.debug("Loaded search result {} {} from Youtube API", provider, query);
                         // got a search result? cache and return it
-                        FredBoat.executor.submit(() -> new SearchResult(PLAYER_MANAGER, provider, query, youtubeApiResult).save());
+                        FredBoat.executor.execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, youtubeApiResult).save());
                         return youtubeApiResult;
                     }
                 } catch (SearchingException e) {
-                    exception = e;
+                    searchingException = e;
                 }
             }
         }
 
         //did we run into searching exceptions that made us end up here?
-        if (exception != null) {
-            throw exception;
+        if (searchingException != null) {
+            throw searchingException;
         }
         //no result with any of the search providers
         return new BasicAudioPlaylist("Search result for: " + query, Collections.emptyList(), null, true);
@@ -179,6 +190,19 @@ public class SearchUtil {
         }
     }
 
+    //creative name...
+    public static class Http503Exception extends SearchingException {
+        private static final long serialVersionUID = -2698566544845714550L;
+
+        public Http503Exception(String message) {
+            super(message);
+        }
+
+        public Http503Exception(String message, Exception cause) {
+            super(message, cause);
+        }
+    }
+
     static class SearchResultHandler implements AudioLoadResultHandler {
 
         Exception exception;
@@ -203,6 +227,13 @@ public class SearchUtil {
             }
 
             if (exception != null) {
+                if (exception instanceof FriendlyException && exception.getCause() != null) {
+                    String messageOfCause = exception.getCause().getMessage();
+                    if (messageOfCause.contains("java.io.IOException: Invalid status code for search response: 503")) {
+                        throw new Http503Exception("Lavaplayer search returned a 503", exception);
+                    }
+                }
+
                 String message = String.format("Failed to search provider %s for query %s with exception %s.",
                         provider, query, exception.getMessage());
                 throw new SearchingException(message, exception);

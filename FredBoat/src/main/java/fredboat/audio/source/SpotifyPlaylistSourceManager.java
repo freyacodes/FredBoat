@@ -74,7 +74,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
     //Take care when deciding on upping the core pool size: The threads may hog database connections
     // (for selfhosters running on the SQLite db) when loading an uncached playlist.
     // Upping the threads will also fire search requests more aggressively against Youtube which is probably better avoided.
-    private static final ScheduledExecutorService loader = Executors.newScheduledThreadPool(1);
+    public static ScheduledExecutorService loader = Executors.newScheduledThreadPool(1);
 
     private static final List<SearchUtil.SearchProvider> searchProviders
             = Arrays.asList(SearchUtil.SearchProvider.YOUTUBE, SearchUtil.SearchProvider.SOUNDCLOUD);
