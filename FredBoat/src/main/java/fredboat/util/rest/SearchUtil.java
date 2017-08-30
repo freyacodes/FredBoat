@@ -39,7 +39,7 @@ import org.apache.http.client.config.RequestConfig;
 
 public class SearchUtil {
 
-    public static final int NUMBER_OF_SEARCH = 5;
+    public static final int MAX_RESULTS = 5;
 
     private static final AudioPlayerManager PLAYER_MANAGER = initPlayerManager();
     private static final int DEFAULT_TIMEOUT = 3000;

@@ -66,8 +66,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("skip", new SkipCommand(), "sk");
         CommandRegistry.registerCommand("join", new JoinCommand(), "summon", "jn");
         CommandRegistry.registerCommand("leave", new LeaveCommand(), "lv");
-        CommandRegistry.registerCommand("select", new SelectCommand(), "sel");
-        CommandRegistry.registerCommand("selecttrack", new NumericSelectTrackCommand(), buildNumericalSelectAllias());
+        CommandRegistry.registerCommand("select", new SelectCommand(), buildNumericalSelectAllias("sel"));
         CommandRegistry.registerCommand("stop", new StopCommand(), "st");
         CommandRegistry.registerCommand("pause", new PauseCommand(), "pa", "ps");
         CommandRegistry.registerCommand("shuffle", new ShuffleCommand(), "sh");
@@ -131,12 +130,17 @@ public class MusicCommandInitializer {
     /**
      * Build a string array that consist of the max number of searches.
      *
-     * @return String array that contains string representation of numbers.
+     * @param addOnAliases Aliases to be appended to the rest of the ones being built.
+     * @return String array that contains string representation of numbers with addOnAliases.
      */
-    private static String[] buildNumericalSelectAllias() {
-        String[] selectTrackAliases = new String[SearchUtil.NUMBER_OF_SEARCH];
-        for (int i = 0; i < SearchUtil.NUMBER_OF_SEARCH; i++) {
-            selectTrackAliases[i] = String.valueOf(i);
+    private static String[] buildNumericalSelectAllias(String... addOnAliases) {
+        String[] selectTrackAliases = new String[SearchUtil.MAX_RESULTS + addOnAliases.length];
+        int i = 0;
+        for (; i < addOnAliases.length; i++) {
+            selectTrackAliases[i] = addOnAliases[i];
+        }
+        for (; i < SearchUtil.MAX_RESULTS + addOnAliases.length; i++) {
+            selectTrackAliases[i] = String.valueOf(i - addOnAliases.length);
         }
         return selectTrackAliases;
     }
