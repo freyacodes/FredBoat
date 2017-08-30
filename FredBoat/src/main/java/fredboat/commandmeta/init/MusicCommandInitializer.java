@@ -67,6 +67,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("join", new JoinCommand(), "summon", "jn");
         CommandRegistry.registerCommand("leave", new LeaveCommand(), "lv");
         CommandRegistry.registerCommand("select", new SelectCommand(), "sel");
+        CommandRegistry.registerCommand("selecttrack", new NumericSelectTrackCommand(), buildNumericalSelectAllias());
         CommandRegistry.registerCommand("stop", new StopCommand(), "st");
         CommandRegistry.registerCommand("pause", new PauseCommand(), "pa", "ps");
         CommandRegistry.registerCommand("shuffle", new ShuffleCommand(), "sh");
@@ -127,4 +128,16 @@ public class MusicCommandInitializer {
         }
     }
 
+    /**
+     * Build a string array that consist of the max number of searches.
+     *
+     * @return String array that contains string representation of numbers.
+     */
+    private static String[] buildNumericalSelectAllias() {
+        String[] selectTrackAliases = new String[SearchUtil.NUMBER_OF_SEARCH];
+        for (int i = 0; i < SearchUtil.NUMBER_OF_SEARCH; i++) {
+            selectTrackAliases[i] = String.valueOf(i);
+        }
+        return selectTrackAliases;
+    }
 }

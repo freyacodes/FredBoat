@@ -28,6 +28,7 @@ import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.command.fun.TalkCommand;
+import fredboat.command.music.control.NumericSelectTrackCommand;
 import fredboat.command.music.control.SkipCommand;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.CommandManager;
@@ -45,6 +46,7 @@ import net.dv8tion.jda.core.events.guild.voice.GuildVoiceLeaveEvent;
 import net.dv8tion.jda.core.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +89,7 @@ public class EventListenerBoat extends AbstractEventListener {
         if (event.getAuthor().isBot()) {
             return;
         }
-        
+
         if (event.getMessage().getContent().length() < Config.CONFIG.getPrefix().length()) {
             return;
         }
@@ -97,10 +99,11 @@ public class EventListenerBoat extends AbstractEventListener {
             log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
             Matcher matcher = COMMAND_NAME_PREFIX.matcher(event.getMessage().getContent());
 
-            if(matcher.find()) {
+            if (matcher.find()) {
                 String cmdName = matcher.group();
+
                 CommandRegistry.CommandEntry entry = CommandRegistry.getCommand(cmdName);
-                if(entry != null) {
+                if (entry != null) {
                     invoked = entry.command;
                 } else {
                     log.info("Unknown command:", cmdName);
@@ -122,7 +125,9 @@ public class EventListenerBoat extends AbstractEventListener {
     }
 
     /**
-     * check the rate limit of user and execute the command if everything is fine
+     * Check the rate limit of the user and execute the command if everything is fine.
+     * @param invoked Command to be invoked.
+     * @param event Message received from the chat.
      */
     private void limitOrExecuteCommand(Command invoked, MessageReceivedEvent event) {
         Tuple2<Boolean, Class> ratelimiterResult = new Tuple2<>(true, null);
@@ -203,7 +208,7 @@ public class EventListenerBoat extends AbstractEventListener {
     public void onGuildVoiceJoin(GuildVoiceJoinEvent event) {
         GuildPlayer player = PlayerRegistry.getExisting(event.getGuild());
 
-        if(player != null
+        if (player != null
                 && player.isPaused()
                 && player.getPlayingTrack() != null
                 && event.getChannelJoined().getMembers().contains(event.getGuild().getSelfMember())

@@ -166,7 +166,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
                 GuildPlayer player = PlayerRegistry.get(guild);
 
                 //Get at most 5 tracks
-                List<AudioTrack> selectable = list.getTracks().subList(0, Math.min(5, list.getTracks().size()));
+                List<AudioTrack> selectable = list.getTracks().subList(0, Math.min(SearchUtil.NUMBER_OF_SEARCH, list.getTracks().size()));
 
                 VideoSelection oldSelection = player.selections.get(invoker.getUser().getId());
                 if(oldSelection != null) {
