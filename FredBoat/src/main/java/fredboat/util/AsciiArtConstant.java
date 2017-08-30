@@ -9,26 +9,21 @@ package fredboat.util;
 public final class AsciiArtConstant {
 
     public static String MAGICAL_LENNY =
-            //@formatter:off
             "（ ͡° ͜ʖ ͡°)つ━☆・。\n" +
             "⊂　　 ノ 　　　・゜+.\n" +
             "　しーＪ　　　°。+ ´¨)\n" +
             "　　　　　　　　　.· ´¸.·´¨) ¸.·*¨)\n" +
             "　　　　　　　　　　(¸.·´ (¸.·' ☆ ABRA KADABRA...";
-            //@formatter:on
 
             public static String EAGLE_OF_LENNY =
-            //@formatter:off
             ":＜￣｀ヽ、　　　　　　　／￣＞\n" +
             "　ゝ、　　＼　／⌒ヽ,ノ 　/´\n" +
             "　　　ゝ、　`（ ( ͡° ͜ʖ ͡°) ／\n" +
             "　　 　　>　 　 　,ノ\n" +
             "　　　　　∠_,,,/´”";
-            //@formatter:on
 
     public static final String DOG =
             //Dog created by @Ace#8925
-            //@formatter:off
             "┈┈╱▏┈┈┈┈┈╱▔▔▔▔╲┈ \n" +
             "┈┈▏▏┈┈┈┈┈▏╲▕▋▕▋▏ \n" +
             "┈┈╲╲┈┈┈┈┈▏┈▏┈▔▔▔▆ ------- BORF!\n" +
@@ -38,7 +33,6 @@ public final class AsciiArtConstant {
             "┈┈╲╱╲╱┈┈┈┈╲╲▂╲▂┈ \n" +
             "┈┈┈┈┈┈┈┈┈┈┈╲╱╲╱┈\n" +
             "Spread him to take over Discord!(Don't spam him though!)";
-             //@formatter:on
 }
 
 //RIP DogCommand.java 2016-2017 "gib pats to me"
