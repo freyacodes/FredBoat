@@ -70,9 +70,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
     }
 
     private void setConfig(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        if (!invoker.hasPermission(Permission.ADMINISTRATOR)
-                && !PermsUtil.isUserBotOwner(invoker.getUser())){
-            channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("configNotAdmin"), invoker.getEffectiveName())).queue();
+        if (PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, invoker, channel)){
             return;
         }
 
