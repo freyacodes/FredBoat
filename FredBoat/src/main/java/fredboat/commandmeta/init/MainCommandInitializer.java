@@ -34,6 +34,8 @@ import fredboat.command.moderation.SoftbanCommand;
 import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
 
+import static fredboat.util.AsciiArtConstant.*;
+
 public class MainCommandInitializer {
 
     public static void initCommands() {
@@ -102,21 +104,25 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("powerpoint", new RemoteFileCommand("http://i.imgur.com/i65ss6p.png"));
         
         /* Text Faces & Unicode 'Art' & ASCII 'Art' and Stuff */
-        CommandRegistry.registerCommand("s", new TextCommand("¯\\_(ツ)_/¯"), "shrug");
-        CommandRegistry.registerCommand("lenny", new TextCommand("( ͡° ͜ʖ ͡°)"));
+        CommandRegistry.registerCommand("sh", new TextCommand("¯\\_(ツ)_/¯"), "shrug");
         CommandRegistry.registerCommand("faceofdisapproval", new TextCommand("ಠ_ಠ"), "fod", "disapproving");
         CommandRegistry.registerCommand("sendenergy", new TextCommand("༼ つ ◕_◕ ༽つ"));
-        CommandRegistry.registerCommand("peeking", new TextCommand("┬┴┬┴┤ ͜ʖ ͡°) ├┬┴┬┴"), "peekinglenny", "peek");
         CommandRegistry.registerCommand("dealwithit", new TextCommand("(•\\_•) ( •\\_•)>⌐■-■ (⌐■_■)"), "dwi");
         CommandRegistry.registerCommand("channelingenergy", new TextCommand("(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ ✧ﾟ･: *ヽ(◕ヮ◕ヽ)"));
         CommandRegistry.registerCommand("butterfly", new TextCommand("Ƹ̵̡Ӝ̵̨̄Ʒ"));
         CommandRegistry.registerCommand("angrytableflip", new TextCommand("(ノಠ益ಠ)ノ彡┻━┻"), "tableflipbutangry", "atp");
-        CommandRegistry.registerCommand("cooldog", new DogCommand(), "dog", "dogmeme");
-        CommandRegistry.registerCommand("lood", new TextCommand("T-that's l-lewd, baka!!!"), "lewd", "l00d");
+        CommandRegistry.registerCommand("dog", new TextCommand(DOG), "cooldog", "dogmeme");
+        CommandRegistry.registerCommand("loqod", new TextCommand("T-that's l-lewd, baka!!!"), "lewd", "l00d");
         CommandRegistry.registerCommand("useless", new TextCommand("This command is useless."));
         CommandRegistry.registerCommand("swtf", new TextCommand("¯\\\\(°_o)/¯"), "shrugwtf");
         CommandRegistry.registerCommand("hurray", new TextCommand("ヽ(^o^)ノ"), "yay", "woot");
-        
+        // Lennies
+        CommandRegistry.registerCommand("spiderlenny", new TextCommand("/╲/╭( ͡° ͡° ͜ʖ ͡° ͡°)╮/╱\\"));
+        CommandRegistry.registerCommand("lenny", new TextCommand("( ͡° ͜ʖ ͡°)"));
+        CommandRegistry.registerCommand("peeking", new TextCommand("┬┴┬┴┤ ͜ʖ ͡°) ├┬┴┬┴"), "peekinglenny", "peek");
+        CommandRegistry.registerCommand("magicallenny", new TextCommand(MAGICAL_LENNY), "lennymagical");
+        CommandRegistry.registerCommand("eagleoflenny", new TextCommand(EAGLE_OF_LENNY), "eol", "lennyeagle");
+
         /* Misc - All commands under this line fall in this category */
         
         CommandRegistry.registerCommand("mal", new MALCommand());
