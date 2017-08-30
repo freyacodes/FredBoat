@@ -140,7 +140,7 @@ public class MusicCommandInitializer {
             selectTrackAliases[i] = addOnAliases[i];
         }
         for (; i < SearchUtil.MAX_RESULTS + addOnAliases.length; i++) {
-            selectTrackAliases[i] = String.valueOf(i - addOnAliases.length);
+            selectTrackAliases[i] = String.valueOf(i - addOnAliases.length + 1);
         }
         return selectTrackAliases;
     }
