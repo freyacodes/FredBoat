@@ -61,11 +61,11 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("commands", new CommandsCommand(), "comms", "cmds");
         
         /* Control */
-        CommandRegistry.registerCommand("play", new PlayCommand(SearchUtil.SearchProvider.YOUTUBE), "yt", "youtube");
+        CommandRegistry.registerCommand("play", new PlayCommand(SearchUtil.SearchProvider.YOUTUBE), "yt", "youtube", "p");
         CommandRegistry.registerCommand("sc", new PlayCommand(SearchUtil.SearchProvider.SOUNDCLOUD), "soundcloud");
-        CommandRegistry.registerCommand("skip", new SkipCommand(), "sk");
+        CommandRegistry.registerCommand("skip", new SkipCommand(), "sk", "s");
         CommandRegistry.registerCommand("join", new JoinCommand(), "summon", "jn");
-        CommandRegistry.registerCommand("leave", new LeaveCommand(), "lv");
+        CommandRegistry.registerCommand("leave", new LeaveCommand(), "lv", "s");
         CommandRegistry.registerCommand("select", new SelectCommand(), "sel");
         CommandRegistry.registerCommand("stop", new StopCommand(), "st");
         CommandRegistry.registerCommand("pause", new PauseCommand(), "pa", "ps");
