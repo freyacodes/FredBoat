@@ -130,17 +130,17 @@ public class MusicCommandInitializer {
     /**
      * Build a string array that consist of the max number of searches.
      *
-     * @param addOnAliases Aliases to be appended to the rest of the ones being built.
+     * @param extraAliases Aliases to be appended to the rest of the ones being built.
      * @return String array that contains string representation of numbers with addOnAliases.
      */
-    private static String[] buildNumericalSelectAllias(String... addOnAliases) {
-        String[] selectTrackAliases = new String[SearchUtil.MAX_RESULTS + addOnAliases.length];
+    private static String[] buildNumericalSelectAllias(String... extraAliases) {
+        String[] selectTrackAliases = new String[SearchUtil.MAX_RESULTS + extraAliases.length];
         int i = 0;
-        for (; i < addOnAliases.length; i++) {
-            selectTrackAliases[i] = addOnAliases[i];
+        for (; i < extraAliases.length; i++) {
+            selectTrackAliases[i] = extraAliases[i];
         }
-        for (; i < SearchUtil.MAX_RESULTS + addOnAliases.length; i++) {
-            selectTrackAliases[i] = String.valueOf(i - addOnAliases.length + 1);
+        for (; i < SearchUtil.MAX_RESULTS + extraAliases.length; i++) {
+            selectTrackAliases[i] = String.valueOf(i - extraAliases.length + 1);
         }
         return selectTrackAliases;
     }
