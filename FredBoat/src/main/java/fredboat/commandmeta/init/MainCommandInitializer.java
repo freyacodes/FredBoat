@@ -104,7 +104,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("powerpoint", new RemoteFileCommand("http://i.imgur.com/i65ss6p.png"));
         
         /* Text Faces & Unicode 'Art' & ASCII 'Art' and Stuff */
-        CommandRegistry.registerCommand("sh", new TextCommand("¯\\_(ツ)_/¯"), "shrug");
+        CommandRegistry.registerCommand("shr", new TextCommand("¯\\_(ツ)_/¯"), "shrug");
         CommandRegistry.registerCommand("faceofdisapproval", new TextCommand("ಠ_ಠ"), "fod", "disapproving");
         CommandRegistry.registerCommand("sendenergy", new TextCommand("༼ つ ◕_◕ ༽つ"));
         CommandRegistry.registerCommand("dealwithit", new TextCommand("(•\\_•) ( •\\_•)>⌐■-■ (⌐■_■)"), "dwi");
