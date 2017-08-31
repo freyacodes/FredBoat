@@ -65,7 +65,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("sc", new PlayCommand(SearchUtil.SearchProvider.SOUNDCLOUD), "soundcloud");
         CommandRegistry.registerCommand("skip", new SkipCommand(), "sk", "s");
         CommandRegistry.registerCommand("join", new JoinCommand(), "summon", "jn");
-        CommandRegistry.registerCommand("leave", new LeaveCommand(), "lv", "s");
+        CommandRegistry.registerCommand("leave", new LeaveCommand(), "lv");
         CommandRegistry.registerCommand("select", new SelectCommand(), "sel");
         CommandRegistry.registerCommand("stop", new StopCommand(), "st");
         CommandRegistry.registerCommand("pause", new PauseCommand(), "pa", "ps");
@@ -79,7 +79,7 @@ public class MusicCommandInitializer {
         
         /* Info */
         CommandRegistry.registerCommand("nowplaying", new NowplayingCommand(), "np");
-        CommandRegistry.registerCommand("list", new ListCommand(), "queue", "q");
+        CommandRegistry.registerCommand("list", new ListCommand(), "queue", "q", "l");
         CommandRegistry.registerCommand("export", new ExportCommand(), "ex");
         CommandRegistry.registerCommand("gr", new GensokyoRadioCommand(), "gensokyo", "gensokyoradio");
         CommandRegistry.registerCommand("muserinfo", new UserInfoCommand());
