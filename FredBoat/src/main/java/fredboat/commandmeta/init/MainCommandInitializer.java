@@ -112,7 +112,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("butterfly", new TextCommand("Ƹ̵̡Ӝ̵̨̄Ʒ"));
         CommandRegistry.registerCommand("angrytableflip", new TextCommand("(ノಠ益ಠ)ノ彡┻━┻"), "tableflipbutangry", "atp");
         CommandRegistry.registerCommand("dog", new TextCommand(DOG), "cooldog", "dogmeme");
-        CommandRegistry.registerCommand("loqod", new TextCommand("T-that's l-lewd, baka!!!"), "lewd", "l00d");
+        CommandRegistry.registerCommand("lood", new TextCommand("T-that's l-lewd, baka!!!"), "lewd", "l00d");
         CommandRegistry.registerCommand("useless", new TextCommand("This command is useless."));
         CommandRegistry.registerCommand("swtf", new TextCommand("¯\\\\(°_o)/¯"), "shrugwtf");
         CommandRegistry.registerCommand("hurray", new TextCommand("ヽ(^o^)ノ"), "yay", "woot");
