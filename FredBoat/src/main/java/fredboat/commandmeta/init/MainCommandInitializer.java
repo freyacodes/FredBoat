@@ -27,10 +27,7 @@ package fredboat.commandmeta.init;
 import fredboat.command.admin.*;
 import fredboat.command.fun.*;
 import fredboat.command.maintenance.*;
-import fredboat.command.moderation.ClearCommand;
-import fredboat.command.moderation.HardbanCommand;
-import fredboat.command.moderation.KickCommand;
-import fredboat.command.moderation.SoftbanCommand;
+import fredboat.command.moderation.*;
 import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
 
@@ -39,8 +36,8 @@ public class MainCommandInitializer {
     public static void initCommands() {
         CommandRegistry.registerCommand("help", new HelpCommand(), "info");
         CommandRegistry.registerCommand("commands", new CommandsCommand(), "comms", "cmds");
-        CommandRegistry.registerCommand("invite", new InviteCommand());      
-        
+        CommandRegistry.registerCommand("invite", new InviteCommand());
+
         /* Bot Maintenance */
         CommandRegistry.registerCommand("unblacklist", new UnblacklistCommand(), "unlimit");
         CommandRegistry.registerCommand("version", new VersionCommand());
@@ -55,12 +52,13 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("test", new TestCommand());
         CommandRegistry.registerCommand("gitinfo", new GitInfoCommand(), "git");
         CommandRegistry.registerCommand("exit", new ExitCommand());
-        
+
         /* Moderation */
         CommandRegistry.registerCommand("hardban", new HardbanCommand());
         CommandRegistry.registerCommand("kick", new KickCommand());
         CommandRegistry.registerCommand("softban", new SoftbanCommand());
         CommandRegistry.registerCommand("clear", new ClearCommand());
+        CommandRegistry.registerCommand("prune",new PruneCommand()); //waiting for thing
         
         /* Util */
         CommandRegistry.registerCommand("serverinfo", new fredboat.command.util.ServerInfoCommand(), "guildinfo");
