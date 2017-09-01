@@ -39,11 +39,11 @@ public class DatabaseNotReadyException extends MessagingException {
         super(str);
     }
 
-    DatabaseNotReadyException(Throwable cause) {
+    public DatabaseNotReadyException(Throwable cause) {
         super(DEFAULT_MESSAGE, cause);
     }
 
-    DatabaseNotReadyException() {
+    public DatabaseNotReadyException() {
         super(DEFAULT_MESSAGE);
     }
 }

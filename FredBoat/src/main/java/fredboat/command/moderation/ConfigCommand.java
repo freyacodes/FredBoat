@@ -38,7 +38,6 @@ import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -70,7 +69,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
     }
 
     private void setConfig(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        if (PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, invoker, channel)){
+        if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, invoker, channel)) {
             return;
         }
 
@@ -117,6 +116,6 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
 
     @Override
     public PermissionLevel getMinimumPerms() {
-        return PermissionLevel.ADMIN;
+        return PermissionLevel.BASE;
     }
 }

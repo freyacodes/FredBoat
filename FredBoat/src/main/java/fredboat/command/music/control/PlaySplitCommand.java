@@ -28,6 +28,7 @@ package fredboat.command.music.control;
 import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
+import fredboat.audio.player.PlayerLimitManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.IdentifierContext;
 import fredboat.command.util.HelpCommand;
@@ -58,6 +59,8 @@ public class PlaySplitCommand extends Command implements IMusicCommand, ICommand
             HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
+
+        if (!PlayerLimitManager.checkLimitResponsive(channel)) return;
 
         IdentifierContext ic = new IdentifierContext(args[1], channel, invoker);
         ic.setSplit(true);
