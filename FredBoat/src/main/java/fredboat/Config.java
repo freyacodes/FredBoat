@@ -51,7 +51,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 public class Config {
 
     private static final Logger log = LoggerFactory.getLogger(Config.class);
-    
+
     public static Config CONFIG = null;
 
     public static String DEFAULT_PREFIX = ";;";
@@ -83,6 +83,7 @@ public class Config {
     private boolean useAutoBlacklist = false;
     private String game = "";
     private List<LavalinkHost> lavalinkHosts = new ArrayList<>();
+    private String openWeatherKey;
 
     //testing related stuff
     private String testBotToken;
@@ -179,6 +180,8 @@ public class Config {
             }
             jdbcUrl = (String) creds.getOrDefault("jdbcUrl", "");
 
+            openWeatherKey = (String) creds.getOrDefault("openweatherkey", "");
+
             Object gkeys = creds.get("googleServerKeys");
             if (gkeys instanceof List) {
                 ((List) gkeys).forEach((Object str) -> googleKeys.add((String) str));
@@ -189,7 +192,7 @@ public class Config {
             }
 
             List<String> nodesArray = (List) creds.get("lavaplayerNodes");
-            if(nodesArray != null) {
+            if (nodesArray != null) {
                 lavaplayerNodesEnabled = true;
                 log.info("Using lavaplayer nodes");
                 lavaplayerNodes = nodesArray.toArray(new String[nodesArray.size()]);
@@ -211,7 +214,7 @@ public class Config {
                 });
             }
 
-            if(getDistribution() == DistributionEnum.DEVELOPMENT) {
+            if (getDistribution() == DistributionEnum.DEVELOPMENT) {
                 log.info("Development distribution; forcing 2 shards");
                 numShards = 2;
             } else {
@@ -391,6 +394,10 @@ public class Config {
 
     public String getPrefix() {
         return prefix;
+    }
+
+    public String getOpenWeatherKey() {
+        return openWeatherKey;
     }
 
     public boolean isRestServerEnabled() {

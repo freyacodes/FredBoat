@@ -40,10 +40,7 @@ import fredboat.command.music.seeking.ForwardCommand;
 import fredboat.command.music.seeking.RestartCommand;
 import fredboat.command.music.seeking.RewindCommand;
 import fredboat.command.music.seeking.SeekCommand;
-import fredboat.command.util.CommandsCommand;
-import fredboat.command.util.HelpCommand;
-import fredboat.command.util.MusicHelpCommand;
-import fredboat.command.util.UserInfoCommand;
+import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.DistributionEnum;
@@ -83,6 +80,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("export", new ExportCommand(), "ex");
         CommandRegistry.registerCommand("gr", new GensokyoRadioCommand(), "gensokyo", "gensokyoradio");
         CommandRegistry.registerCommand("muserinfo", new UserInfoCommand());
+        CommandRegistry.registerCommand("weather", new WeatherCommand());
 
         /* Seeking */
         CommandRegistry.registerCommand("seek", new SeekCommand());
