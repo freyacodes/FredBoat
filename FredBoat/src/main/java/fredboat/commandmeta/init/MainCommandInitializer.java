@@ -33,6 +33,7 @@ import fredboat.command.moderation.KickCommand;
 import fredboat.command.moderation.SoftbanCommand;
 import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
+import fredboat.util.AsciiArtConstant;
 
 public class MainCommandInitializer {
 
