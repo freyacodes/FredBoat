@@ -40,26 +40,26 @@ import java.io.File;
  */
 public class FeatureConfig implements FeatureManagerProvider {
 
-    private static FeatureManager featureManager;
-
     @Override
     public FeatureManager getFeatureManager() {
         return getTheFeatureManager();
     }
 
-    public static FeatureManager getTheFeatureManager() {
-        if (featureManager == null) {
-            featureManager = new FeatureManagerBuilder()
-                    .featureEnum(FeatureFlags.class)
-                    .stateRepository(new FileBasedStateRepository(new File("./feature_flags.properties")))
-                    .userProvider(new NoOpUserProvider())
-                    .build();
-        }
-        return featureManager;
+    static FeatureManager getTheFeatureManager() {
+        return FeatureManagerHolder.instance;
     }
 
     @Override
     public int priority() {
         return 0;
+    }
+
+    //holder class pattern
+    private static class FeatureManagerHolder {
+        private static final FeatureManager instance = new FeatureManagerBuilder()
+                .featureEnum(FeatureFlags.class)
+                .stateRepository(new FileBasedStateRepository(new File("./feature_flags.properties")))
+                .userProvider(new NoOpUserProvider())
+                .build();
     }
 }

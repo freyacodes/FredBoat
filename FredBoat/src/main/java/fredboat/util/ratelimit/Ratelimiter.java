@@ -52,17 +52,15 @@ public class Ratelimiter {
 
     private static final int RATE_LIMIT_HITS_BEFORE_BLACKLIST = 10;
 
-
-    //one ratelimiter for all running shards
-    private static Ratelimiter ratelimiterSingleton;
-
     public static Ratelimiter getRatelimiter() {
-        if (ratelimiterSingleton == null)
-            ratelimiterSingleton = new Ratelimiter();
-
-        return ratelimiterSingleton;
+        return RateLimiterHolder.instance;
     }
 
+    //holder class pattern
+    //one ratelimiter for all running shards
+    private static class RateLimiterHolder {
+        private static final Ratelimiter instance = new Ratelimiter();
+    }
 
     private final List<Ratelimit> ratelimits;
     private Blacklist autoBlacklist = null;
