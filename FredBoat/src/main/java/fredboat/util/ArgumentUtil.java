@@ -137,7 +137,8 @@ public class ArgumentUtil {
 
     public static String getSearchTerm(Message message, String[] args, int argsToStrip) {
         String raw = message.getRawContent();
-        return raw.substring(raw.indexOf(args[argsToStrip])).trim();
+        raw = raw.substring(args[0].length());
+        return raw.substring(raw.indexOf(args[argsToStrip]));
     }
 
 }
