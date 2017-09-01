@@ -134,3 +134,4 @@ target/
 gc-*.log
 *dbconf.yaml
 /config.yaml
+fredboat\.db
