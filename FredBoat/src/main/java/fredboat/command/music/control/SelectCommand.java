@@ -60,13 +60,14 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
             VideoSelection selection = player.selections.get(invoker.getUser().getId());
             try {
                 int i = 1;
-                if (args.length == 1) {
-                    String contentWithoutPrefix = message.getContent().substring(Config.CONFIG.getPrefix().length());
+
+                if (args.length >= 1) {
+                    String contentWithoutPrefix = args[0].substring(Config.CONFIG.getPrefix().length());
                     if (StringUtils.isNumeric(contentWithoutPrefix)) {
                         i = Integer.valueOf(contentWithoutPrefix);
+                    } else {
+                        i = Integer.valueOf(args[1]);
                     }
-                } else {
-                    i = Integer.valueOf(args[1]);
                 }
 
                 if (selection.getChoices().size() < i || i < 1) {
