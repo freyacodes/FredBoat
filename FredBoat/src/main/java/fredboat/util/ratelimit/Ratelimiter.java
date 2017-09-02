@@ -52,14 +52,23 @@ public class Ratelimiter {
 
     private static final int RATE_LIMIT_HITS_BEFORE_BLACKLIST = 10;
 
-    public static Ratelimiter getRatelimiter() {
-        return RateLimiterHolder.instance;
-    }
-
-    //holder class pattern
     //one ratelimiter for all running shards
-    private static class RateLimiterHolder {
-        private static final Ratelimiter instance = new Ratelimiter();
+    private static volatile Ratelimiter ratelimiterSingleton;
+
+    public static Ratelimiter getRatelimiter() {
+        Ratelimiter singleton = ratelimiterSingleton;
+        if (singleton == null) {
+            //we can't use the holder class pattern.
+            //we have to use double-checked locking,
+            //since we need to be able to retry the creation.
+            synchronized (Ratelimiter.class) {
+                singleton = ratelimiterSingleton;
+                if (singleton == null) {
+                    ratelimiterSingleton = singleton = new Ratelimiter();
+                }
+            }
+        }
+        return singleton;
     }
 
     private final List<Ratelimit> ratelimits;
