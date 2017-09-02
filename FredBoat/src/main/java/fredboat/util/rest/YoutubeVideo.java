@@ -45,6 +45,7 @@ public class YoutubeVideo {
     String description = null;
     String channelId = null;
     String channelTitle = null;
+    boolean isStream = false;
 
     public String getId() {
         return id;
@@ -66,8 +67,17 @@ public class YoutubeVideo {
         return channelId;
     }
 
-    public String getCannelTitle() {
+    public String getChannelTitle() {
         return channelTitle;
+    }
+
+    public boolean isStream() {
+        return isStream;
+    }
+
+    public long getDurationInMillis() {
+        return isStream ? Long.MAX_VALUE :
+                ((getDurationHours() * 60 + getDurationMinutes()) * 60 + getDurationSeconds()) * 1000;
     }
 
     public int getDurationHours() {

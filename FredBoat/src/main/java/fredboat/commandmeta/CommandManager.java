@@ -58,7 +58,6 @@ public class CommandManager {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(CommandManager.class);
 
     public static final AtomicInteger commandsExecuted = new AtomicInteger(0);
-    private static PatronageChecker patronageChecker = null;
 
     public static void prefixCalled(Command invoked, Guild guild, TextChannel channel, Member invoker, Message message) {
         String[] args = commandToArguments(message.getRawContent());
@@ -79,9 +78,7 @@ public class CommandManager {
         }
 
         if (FeatureFlags.PATRON_VALIDATION.isActive()) {
-            if (patronageChecker == null) patronageChecker = new PatronageChecker();
-
-            PatronageChecker.Status status = patronageChecker.getStatus(guild);
+            PatronageChecker.Status status = PatronageCheckerHolder.instance.getStatus(guild);
             if (!status.isValid()) {
                 String msg = "Access denied. This bot can only be used if invited from <https://patron.fredboat.com/> "
                         + "by someone who currently has a valid pledge on Patreon.\n**Denial reason:** " + status.getReason() + "\n\n";
@@ -195,5 +192,10 @@ public class CommandManager {
         }
 
         return a;
+    }
+
+    //holder class pattern for the checker
+    private static class PatronageCheckerHolder {
+        private static final PatronageChecker instance = new PatronageChecker();
     }
 }

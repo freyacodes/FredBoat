@@ -61,9 +61,10 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("commands", new CommandsCommand(), "comms", "cmds");
         
         /* Control */
-        CommandRegistry.registerCommand("play", new PlayCommand(SearchUtil.SearchProvider.YOUTUBE), "yt", "youtube");
+        CommandRegistry.registerCommand("play", new PlayCommand(SearchUtil.SearchProvider.YOUTUBE, SearchUtil.SearchProvider.SOUNDCLOUD), "p");
+        CommandRegistry.registerCommand("yt", new PlayCommand(SearchUtil.SearchProvider.YOUTUBE), "youtube");
         CommandRegistry.registerCommand("sc", new PlayCommand(SearchUtil.SearchProvider.SOUNDCLOUD), "soundcloud");
-        CommandRegistry.registerCommand("skip", new SkipCommand(), "sk");
+        CommandRegistry.registerCommand("skip", new SkipCommand(), "sk", "s");
         CommandRegistry.registerCommand("join", new JoinCommand(), "summon", "jn");
         CommandRegistry.registerCommand("leave", new LeaveCommand(), "lv");
         CommandRegistry.registerCommand("select", new SelectCommand(), buildNumericalSelectAllias("sel"));
@@ -79,7 +80,7 @@ public class MusicCommandInitializer {
         
         /* Info */
         CommandRegistry.registerCommand("nowplaying", new NowplayingCommand(), "np");
-        CommandRegistry.registerCommand("list", new ListCommand(), "queue", "q");
+        CommandRegistry.registerCommand("list", new ListCommand(), "queue", "q", "l");
         CommandRegistry.registerCommand("export", new ExportCommand(), "ex");
         CommandRegistry.registerCommand("gr", new GensokyoRadioCommand(), "gensokyo", "gensokyoradio");
         CommandRegistry.registerCommand("muserinfo", new UserInfoCommand());

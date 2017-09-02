@@ -26,6 +26,7 @@
 package fredboat;
 
 import com.mashape.unirest.http.exceptions.UnirestException;
+import fredboat.audio.player.PlayerLimitManager;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.DiscordUtil;
 import org.apache.commons.io.FileUtils;
@@ -244,6 +245,8 @@ public class Config {
             testBotToken = (String) creds.getOrDefault("testToken", "");
             testChannelId = creds.getOrDefault("testChannelId", "") + "";
 
+            PlayerLimitManager.setLimit((Integer) config.getOrDefault("playerLimit", -1));
+
             useSshTunnel = (boolean) creds.getOrDefault("useSshTunnel", false);
             sshHost = (String) creds.getOrDefault("sshHost", "localhost:22");
             sshUser = (String) creds.getOrDefault("sshUser", "fredboat");
@@ -315,6 +318,14 @@ public class Config {
 
     public DistributionEnum getDistribution() {
         return distribution;
+    }
+
+    public boolean isPatronDistribution() {
+        return distribution == DistributionEnum.PATRON;
+    }
+
+    public boolean isDevDistribution() {
+        return distribution == DistributionEnum.DEVELOPMENT;
     }
 
     public String getBotToken() {

@@ -26,11 +26,20 @@
 package fredboat.util.rest;
 
 import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
 import fredboat.Config;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class YoutubeAPI {
 
@@ -82,6 +91,7 @@ public class YoutubeAPI {
                 vid.description = data.getJSONArray("items").getJSONObject(0).getJSONObject("snippet").getString("description");
                 vid.channelId = data.getJSONArray("items").getJSONObject(0).getJSONObject("snippet").getString("channelId");
                 vid.channelTitle = data.getJSONArray("items").getJSONObject(0).getJSONObject("snippet").getString("channelTitle");
+                vid.isStream = !data.getJSONArray("items").getJSONObject(0).getJSONObject("snippet").getString("liveBroadcastContent").equals("none");
 
                 return vid;
             } catch (JSONException ex) {
@@ -98,4 +108,55 @@ public class YoutubeAPI {
         }
     }
 
+    /**
+     * @param query         Search Youtube for this query
+     * @param maxResults    Keep this as small as necessary, each of the videos needs to be looked up for more detailed info
+     * @param sourceManager The source manager may be used by the tracks to look further information up
+     * @return A playlist representing the search results; null if there was an exception
+     */
+    //docs: https://developers.google.com/youtube/v3/docs/search/list
+    //theres a lot of room for tweaking the searches
+    public static AudioPlaylist search(String query, int maxResults, YoutubeAudioSourceManager sourceManager)
+            throws SearchUtil.SearchingException {
+        JSONObject data;
+        String gkey = Config.CONFIG.getRandomGoogleKey();
+        try {
+            data = Unirest.get("https://www.googleapis.com/youtube/v3/search?part=snippet")
+                    .queryString("key", gkey)
+                    .queryString("type", "video")
+                    .queryString("maxResults", maxResults)
+                    .queryString("q", query)
+                    .asJson()
+                    .getBody()
+                    .getObject();
+        } catch (UnirestException e) {
+            throw new SearchUtil.SearchingException("Unirest exception when search with the Youtube API", e);
+        }
+
+        //The search contains all values we need, except for the duration :feelsbadman:
+        //so we need to do another query for each video.
+        List<String> ids = new ArrayList<>(maxResults);
+        try {
+            JSONArray items = data.getJSONArray("items");
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject item = items.getJSONObject(i);
+                ids.add(item.getJSONObject("id").getString("videoId"));
+            }
+        } catch (JSONException e) {
+            String message = String.format("Youtube search with API key ending on %s for query %s returned unexpected JSON:\n%s",
+                    gkey.substring(20), query, data.toString());
+            throw new SearchUtil.SearchingException(message, e);
+        }
+
+        List<AudioTrack> tracks = new ArrayList<>();
+        for (String id : ids) {
+            try {
+                YoutubeVideo vid = getVideoFromID(id, true);
+                tracks.add(sourceManager.buildTrackObject(id, vid.name, vid.channelTitle, vid.isStream, vid.getDurationInMillis()));
+            } catch (RuntimeException e) {
+                throw new SearchUtil.SearchingException("Could not look up details for youtube video with id " + id, e);
+            }
+        }
+        return new BasicAudioPlaylist("Search results for: " + query, tracks, null, true);
+    }
 }
