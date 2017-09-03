@@ -38,6 +38,7 @@ import net.dv8tion.jda.core.entities.Game;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.hooks.EventListener;
+import net.dv8tion.jda.core.requests.SessionReconnectQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,7 @@ public class FredBoatBot extends FredBoat {
     private static final Logger log = LoggerFactory.getLogger(FredBoatBot.class);
     private final int shardId;
     private final EventListener listener;
+    private static final SessionReconnectQueue reconnectQueue = new SessionReconnectQueue();
 
     public FredBoatBot(int shardId) {
         this(shardId, null);
@@ -74,7 +76,8 @@ public class FredBoatBot extends FredBoat {
                         .setToken(Config.CONFIG.getBotToken())
                         .setGame(Game.of(Config.CONFIG.getGame()))
                         .setBulkDeleteSplittingEnabled(true)
-                        .setEnableShutdownHook(false);
+                        .setEnableShutdownHook(false)
+                        .setReconnectQueue(reconnectQueue);
 
                 if(listener != null) {
                     builder.addEventListener(listener);

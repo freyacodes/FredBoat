@@ -58,7 +58,6 @@ public class SpotifyAPIWrapper {
     private static final String URL_SPOTIFY_AUTHENTICATION_HOST = "https://accounts.spotify.com";
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(SpotifyAPIWrapper.class);
-    private static volatile SpotifyAPIWrapper SPOTIFYAPIWRAPPER;
 
     /**
      * This should be the only way to grab a handle on this class.
@@ -67,10 +66,12 @@ public class SpotifyAPIWrapper {
      * @return the singleton of the Spotify API
      */
     public static SpotifyAPIWrapper getApi() {
-        if (SPOTIFYAPIWRAPPER == null) {
-            SPOTIFYAPIWRAPPER = new SpotifyAPIWrapper();
-        }
-        return SPOTIFYAPIWRAPPER;
+        return SpotifyAPIWrapperHolder.instance;
+    }
+
+    //holder class pattern
+    private static class SpotifyAPIWrapperHolder {
+        private static final SpotifyAPIWrapper instance = new SpotifyAPIWrapper();
     }
 
     private volatile long accessTokenExpires = 0;
