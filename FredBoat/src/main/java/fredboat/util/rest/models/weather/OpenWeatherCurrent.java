@@ -4,7 +4,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import org.apache.commons.lang3.StringUtils;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -15,7 +19,7 @@ import java.util.List;
         "visibility",
         "clouds",
         "dt",
-        "weatherSystem",
+        "weatherSystemOpenWeather",
         "id",
         "name",
         "cod"
@@ -24,44 +28,41 @@ import java.util.List;
 public class OpenWeatherCurrent implements RetrievedWeather {
 
     @JsonProperty("weather")
-    private List<OpenWeather> weather = null;
+    private List<WeatherOpenWeather> weather;
     @JsonProperty("base")
     private String base;
     @JsonProperty("main")
-    private WeatherMain weatherMain;
+    private WeatherMainOpenWeather weatherMainOpenWeather;
     @JsonProperty("visibility")
     private int visibility;
     @JsonProperty("clouds")
-    private Clouds clouds;
+    private CloudsOpenWeather cloudsOpenWeather;
     @JsonProperty("dt")
-    private int dt;
+    private int datetime;
     @JsonProperty("sys")
-    private WeatherSystem weatherSystem;
+    private WeatherSystemOpenWeather weatherSystemOpenWeather;
     @JsonProperty("id")
     private int id;
     @JsonProperty("name")
     private String name;
     @JsonProperty("cod")
-    private int cod;
+    private int statusCode;
+
+    private SimpleDateFormat simpleDateFormat;
+
+    public OpenWeatherCurrent() {
+        weather = new ArrayList<>();
+        simpleDateFormat = new SimpleDateFormat("EEE, d MMM yyyy, hh:mm aaa");
+    }
 
     @JsonProperty("weather")
-    public List<OpenWeather> getWeather() {
+    public List<WeatherOpenWeather> getWeather() {
         return weather;
     }
 
-    @JsonProperty("weather")
-    public void setWeather(List<OpenWeather> weather) {
-        this.weather = weather;
-    }
-
     @JsonProperty("main")
-    public WeatherMain getMain() {
-        return weatherMain;
-    }
-
-    @JsonProperty("main")
-    public void setMain(WeatherMain weatherMain) {
-        this.weatherMain = weatherMain;
+    public WeatherMainOpenWeather getMain() {
+        return weatherMainOpenWeather;
     }
 
     @JsonProperty("visibility")
@@ -69,39 +70,19 @@ public class OpenWeatherCurrent implements RetrievedWeather {
         return visibility;
     }
 
-    @JsonProperty("visibility")
-    public void setVisibility(int visibility) {
-        this.visibility = visibility;
-    }
-
     @JsonProperty("clouds")
-    public Clouds getClouds() {
-        return clouds;
-    }
-
-    @JsonProperty("clouds")
-    public void setClouds(Clouds clouds) {
-        this.clouds = clouds;
+    public CloudsOpenWeather getClouds() {
+        return cloudsOpenWeather;
     }
 
     @JsonProperty("dt")
-    public int getDt() {
-        return dt;
-    }
-
-    @JsonProperty("dt")
-    public void setDt(int dt) {
-        this.dt = dt;
+    public int getDatetime() {
+        return datetime;
     }
 
     @JsonProperty("sys")
-    public WeatherSystem getSys() {
-        return weatherSystem;
-    }
-
-    @JsonProperty("sys")
-    public void setSys(WeatherSystem sys) {
-        this.weatherSystem = sys;
+    public WeatherSystemOpenWeather getSys() {
+        return weatherSystemOpenWeather;
     }
 
     @JsonProperty("id")
@@ -119,19 +100,14 @@ public class OpenWeatherCurrent implements RetrievedWeather {
         return name;
     }
 
-    @JsonProperty("name")
-    public void setName(String name) {
-        this.name = name;
+    @JsonProperty("cod")
+    public int getCode() {
+        return statusCode;
     }
 
-    @JsonProperty("cod")
-    public int getCod() {
-        return cod;
-    }
-
-    @JsonProperty("cod")
-    public void setCod(int cod) {
-        this.cod = cod;
+    @Override
+    public boolean IsError() {
+        return statusCode != 200;
     }
 
     @Override
@@ -149,11 +125,25 @@ public class OpenWeatherCurrent implements RetrievedWeather {
 
     @Override
     public String getFormattedDate() {
-        return "";
+        return simpleDateFormat.format(new Date((long) getDatetime() * 1000));
     }
 
     @Override
     public String getTemperature() {
-        return "";
+        return String.format("%.2f C / %.2f F", getCelsius(), getFahrenheit());
+    }
+
+    private double getFahrenheit() {
+        double fahrenheit = 0;
+        double kelvin = weatherMainOpenWeather.getTemp();
+        fahrenheit = (((kelvin - 273) * 9d / 5) + 32);
+        return fahrenheit;
+    }
+
+    private double getCelsius() {
+        double celsius = 0;
+        double kelvin = weatherMainOpenWeather.getTemp();
+        celsius = kelvin - 273.16;
+        return celsius;
     }
 }

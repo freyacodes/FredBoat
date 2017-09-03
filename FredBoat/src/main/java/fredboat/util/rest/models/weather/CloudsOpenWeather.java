@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
         "all"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Clouds {
+public class CloudsOpenWeather {
 
     @JsonProperty("all")
     private int all;

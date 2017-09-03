@@ -14,7 +14,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
         "temp_max"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class WeatherMain {
+public class WeatherMainOpenWeather {
 
     @JsonProperty("temp")
     private double temp;

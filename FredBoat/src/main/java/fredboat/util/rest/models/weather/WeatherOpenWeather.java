@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
         "icon"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OpenWeather {
+public class WeatherOpenWeather {
 
     @JsonProperty("id")
     private int id;

@@ -15,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
         "sunset"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class WeatherSystem {
+public class WeatherSystemOpenWeather {
 
     @JsonProperty("type")
     private int type;

@@ -44,6 +44,7 @@ import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.DistributionEnum;
+import fredboat.util.rest.OpenWeatherAPI;
 import fredboat.util.rest.SearchUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +81,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("export", new ExportCommand(), "ex");
         CommandRegistry.registerCommand("gr", new GensokyoRadioCommand(), "gensokyo", "gensokyoradio");
         CommandRegistry.registerCommand("muserinfo", new UserInfoCommand());
-        CommandRegistry.registerCommand("weather", new WeatherCommand());
+        CommandRegistry.registerCommand("weather", new WeatherCommand(new OpenWeatherAPI()));
 
         /* Seeking */
         CommandRegistry.registerCommand("seek", new SeekCommand());

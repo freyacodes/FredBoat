@@ -4,47 +4,71 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fredboat.Config;
 import fredboat.util.rest.models.weather.OpenWeatherCurrent;
 import fredboat.util.rest.models.weather.RetrievedWeather;
+import fredboat.util.rest.models.weather.WeatherError;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.validation.constraints.NotNull;
 import java.io.IOException;
 
 public class OpenWeatherAPI implements Weather {
     private static final Logger log = LoggerFactory.getLogger(OpenWeatherAPI.class);
-    private static final String BASE_URL = "https://api.openweathermap.org/data/2.5";
+    private static final String OPEN_WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
     protected OkHttpClient client;
+    private ObjectMapper objectMapper;
+    private HttpUrl currentWeatherBaseUrl;
 
-    public OpenWeatherAPI(Interceptor interceptor) {
+    public OpenWeatherAPI() {
         client = new OkHttpClient();
+        objectMapper = new ObjectMapper();
+
+        currentWeatherBaseUrl = HttpUrl.parse(OPEN_WEATHER_BASE_URL + "/weather");
+        if (currentWeatherBaseUrl == null) {
+            log.debug("Open weather search unable to build URL");
+        }
     }
 
-    public RetrievedWeather getCurrentWeatherByCity() {
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(BASE_URL + "/weather")
-                .newBuilder();
+    public RetrievedWeather getCurrentWeatherByCity(@NotNull String query) {
+        RetrievedWeather retrievedWeather = null;
 
-        urlBuilder.addQueryParameter("q", "san francisco");
-        urlBuilder.addQueryParameter("appid", Config.CONFIG.getOpenWeatherKey());
+        if (currentWeatherBaseUrl != null) {
+            // Strip all the query string that is not alphanumeric.
+            query = query.replaceAll("[^A-Za-z0-9 ]", "");
+            HttpUrl.Builder urlBuilder = currentWeatherBaseUrl.newBuilder();
 
-        HttpUrl url = urlBuilder.build();
-        Request request = new Request.Builder()
-                .url(url)
-                .build();
+            urlBuilder.addQueryParameter("q", query);
+            urlBuilder.addQueryParameter("appid", Config.CONFIG.getOpenWeatherKey());
 
-        try {
-            Response response = client.newCall(request).execute();
-            ResponseBody responseBody = response.body();
-            if (response.code() == 200) {
-                if (responseBody != null) {
-                    ObjectMapper objectMapper = new ObjectMapper();
-                    OpenWeatherCurrent currentWeather = objectMapper.readValue(responseBody.string(), OpenWeatherCurrent.class);
-                    log.debug(currentWeather.toString());
-                    return currentWeather;
+            HttpUrl url = urlBuilder.build();
+            Request request = new Request.Builder()
+                    .url(url)
+                    .build();
+
+            try {
+                Response response = client.newCall(request).execute();
+                ResponseBody responseBody = response.body();
+
+                switch (response.code()) {
+                    case 200:
+                        if (responseBody != null) {
+                            retrievedWeather = objectMapper.readValue(responseBody.string(), OpenWeatherCurrent.class);
+                        }
+                        break;
+
+                    default:
+                        log.debug("Open weather search error status code ", response.code());
+                        break;
                 }
+            } catch (IOException e) {
+                log.debug("Open weather search: ", e);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-        return null;
+
+        if (retrievedWeather == null) {
+            retrievedWeather = new WeatherError();
+        }
+
+        return retrievedWeather;
     }
 }
