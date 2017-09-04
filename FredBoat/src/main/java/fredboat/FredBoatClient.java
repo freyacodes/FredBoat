@@ -49,7 +49,7 @@ public class FredBoatClient extends FredBoat {
 
                     success = true;
                 } catch (RateLimitedException e) {
-                    log.warn("Got rate limited while building client JDA instance! Retrying...", e);
+                    log.warn("Got rate limited while building client JDA ins! Retrying...", e);
                     Thread.sleep(1000);
                 }
             }
@@ -59,7 +59,7 @@ public class FredBoatClient extends FredBoat {
     }
 
     @Override
-    public void revive() {
+    public String revive(boolean... force) {
         throw new NotImplementedException("Client shards can't be revived");
     }
 }

@@ -23,29 +23,58 @@
  *
  */
 
-package fredboat.audio;
+package fredboat.audio.player;
 
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import net.dv8tion.jda.core.entities.Message;
+public class AudioLossCounter {
 
-import java.util.List;
+    public static final int EXPECTED_PACKET_COUNT_PER_MIN = (60 * 1000) / 20; // 20ms packets
 
-public class VideoSelection {
+    private long curMinute = 0;
+    private int curLoss = 0;
+    private int curSucc = 0;
 
-    private final List<AudioTrack> choices;
-    private final String outMsgId;
+    private int lastLoss = 0;
+    private int lastSucc = 0;
 
-    public VideoSelection(List<AudioTrack> choices, Message outMsg) {
-        this.choices = choices;
-        this.outMsgId = outMsg.getId();
+    AudioLossCounter() {
     }
 
-    public List<AudioTrack> getChoices() {
-        return choices;
+    void onLoss() {
+        checkTime();
+        curLoss++;
     }
 
-    public String getOutMsgId() {
-        return outMsgId;
+    void onSuccess() {
+        checkTime();
+        curSucc++;
     }
 
+    public int getLastMinuteLoss() {
+        return lastLoss;
+    }
+
+    public int getLastMinuteSuccess() {
+        return lastSucc;
+    }
+
+    private void checkTime() {
+        long actualMinute = System.currentTimeMillis() / 60000;
+
+        if(curMinute != actualMinute) {
+            lastLoss = curLoss;
+            lastSucc = curSucc;
+            curLoss = 0;
+            curSucc = 0;
+            curMinute = actualMinute;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "AudioLossCounter{" +
+                "lastLoss=" + lastLoss +
+                ", lastSucc=" + lastSucc +
+                ", total=" + (lastSucc + lastLoss) +
+                '}';
+    }
 }

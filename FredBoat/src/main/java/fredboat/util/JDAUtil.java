@@ -25,10 +25,10 @@
 package fredboat.util;
 
 import fredboat.FredBoat;
-import fredboat.feature.togglz.FeatureFlags;
+import gnu.trove.procedure.TObjectProcedure;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.ISnowflake;
+import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.impl.JDAImpl;
 
 import java.util.ArrayList;
@@ -43,104 +43,40 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class JDAUtil {
 
-
     public static int countAllGuilds(List<FredBoat> shards) {
-        if (FeatureFlags.DATA_METHODS.isActive()) {
-            return New.countAllGuilds(shards);
-        } else {
-            return Old.countAllGuilds(shards);
-        }
+        return shards.stream()
+                // don't do this at home, we only use it for the size()
+                .mapToInt(shard -> ((JDAImpl) shard.getJda()).getGuildMap().size())
+                .sum();
     }
 
     public static long countAllUniqueUsers(List<FredBoat> shards, AtomicInteger biggestUserCount) {
-        if (FeatureFlags.DATA_METHODS.isActive()) {
-            return New.countAllUniqueUsers(shards, biggestUserCount);
-        } else {
-            return Old.countAllUniqueUsers(shards, biggestUserCount);
-        }
+        int expected = biggestUserCount.get() > 0 ? biggestUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
+        LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 100000); //add 100k for good measure
+        TObjectProcedure<User> adder = user -> {
+            uniqueUsers.add(user.getIdLong());
+            return true;
+        };
+        Collections.unmodifiableCollection(shards).forEach(
+                // IMPLEMENTATION NOTE: READ
+                // careful, touching the map is in not all cases safe
+                // In this case, it just so happens to be safe, because the map is synchronized
+                // this means however, that for the (small) duration, the map cannot be used by other threads (if there are any)
+                shard -> ((JDAImpl) shard.getJda()).getUserMap().forEachValue(adder)
+        );
+        //never shrink the user count (might happen due to not connected shards)
+        biggestUserCount.accumulateAndGet(uniqueUsers.size(), Math::max);
+        return uniqueUsers.size();
     }
+
     public static List<Guild> getAllGuilds(List<FredBoat> shards) {
-        if (FeatureFlags.DATA_METHODS.isActive()) {
-            return New.getAllGuilds(shards);
-        } else {
-            return Old.getAllGuilds(shards);
-        }
-    }
+        ArrayList<Guild> list = new ArrayList<>();
 
-
-
-    private static class New {
-
-        public static int countAllGuilds(List<FredBoat> shards) {
-            return shards.stream()
-                    // don't do this at home, we only use it for the size()
-                    .mapToInt(shard -> ((JDAImpl) shard.getJda()).getGuildMap().size())
-                    .sum();
+        for (FredBoat fb : shards) {
+            // addAll() does actually need to use .toArray() but 1 copy is better than 2
+            list.addAll(((JDAImpl)fb.getJda()).getGuildMap().valueCollection());
         }
 
-        public static long countAllUniqueUsers(List<FredBoat> shards, AtomicInteger biggestUserCount) {
-            int expected = biggestUserCount.get() > 0 ? biggestUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
-            LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 100000); //add 100k for good measure
-            Collections.unmodifiableCollection(shards).forEach(
-                    // IMPLEMENTATION NOTE: READ
-                    // careful, touching the map is in not all cases safe
-                    // In this case, it just so happens to be safe, because the map is synchronized
-                    // this means however, that for the (small) duration, the map cannot be used by other threads (if there are any)
-                    shard -> ((JDAImpl) shard.getJda()).getUserMap().forEachValue(user -> {
-                        uniqueUsers.add(user.getIdLong());
-                        return true;
-                    })
-            );
-            //never shrink the user count (might happen due to not connected shards)
-            biggestUserCount.accumulateAndGet(uniqueUsers.size(), Math::max);
-            return uniqueUsers.size();
-        }
-
-        public static List<Guild> getAllGuilds(List<FredBoat> shards) {
-            ArrayList<Guild> list = new ArrayList<>();
-
-            for (FredBoat fb : shards) {
-                // addAll() does actually need to use .toArray() but 1 copy is better than 2
-                list.addAll(((JDAImpl)fb.getJda()).getGuildMap().valueCollection());
-            }
-
-            return list;
-        }
-
-        private New() {
-        }
-    }
-    private static final class Old {
-
-        public static int countAllGuilds(List<FredBoat> shards) {
-            return Collections.unmodifiableCollection(shards)
-                    .stream()
-                    .mapToInt(shard -> shard.getJda().getGuilds().size())
-                    .sum();
-        }
-
-        public static long countAllUniqueUsers(List<FredBoat> shards, AtomicInteger biggestUserCount) {
-            int expected = biggestUserCount.get() > 0 ? biggestUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
-            LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 100000); //add 100k for good measure
-            Collections.unmodifiableCollection(shards).forEach(
-                    shard -> shard.getJda().getUsers().parallelStream().mapToLong(ISnowflake::getIdLong).forEach(uniqueUsers::add)
-            );
-            //never shrink the user count (might happen due to not connected shards)
-            biggestUserCount.accumulateAndGet(uniqueUsers.size(), Math::max);
-            return uniqueUsers.size();
-        }
-
-        public static List<Guild> getAllGuilds(List<FredBoat> shards) {
-            ArrayList<Guild> list = new ArrayList<>();
-
-            for (FredBoat fb : shards) {
-                list.addAll(fb.getJda().getGuilds());
-            }
-
-            return list;
-        }
-
-        private Old() {
-        }
+        return list;
     }
 }

@@ -25,56 +25,66 @@
 
 package fredboat.command.admin;
 
-import fredboat.Config;
-import fredboat.FredBoat;
+import fredboat.audio.player.LavalinkManager;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.perms.PermissionLevel;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-/**
- *
- * @author frederik
- */
-public class ReviveCommand extends Command implements ICommandRestricted {
+import java.net.URI;
+import java.net.URISyntaxException;
 
+public class NodeAdminCommand extends Command implements ICommandRestricted {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-
-        int shardId;
-        try {
-            if (args[1].equals("guild")) {
-                long guildId = Long.valueOf(args[2]);
-                //https://discordapp.com/developers/docs/topics/gateway#sharding
-                shardId = (int) ((guildId >> 22) % Config.CONFIG.getNumShards());
-            } else
-                shardId = Integer.parseInt(args[1]);
-
-        } catch (NumberFormatException | IndexOutOfBoundsException e) {
-            String command = args[0].substring(Config.CONFIG.getPrefix().length());
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
-            return;
+        if (!LavalinkManager.ins.isEnabled()) {
+            channel.sendMessage("Lavalink is disabled").queue();
         }
 
-        boolean force = (message.getRawContent().toLowerCase().contains("force"));
-
-        channel.sendMessage(TextUtils.prefaceWithName(invoker, " Attempting to revive shard " + shardId)).queue();
-        try {
-            String answer = FredBoat.getInstance(shardId).revive(force);
-            channel.sendMessage(TextUtils.prefaceWithName(invoker, answer)).queue();
-        } catch (IndexOutOfBoundsException e) {
-            channel.sendMessage(TextUtils.prefaceWithName(invoker, " No such shard: " + shardId)).queue();
+        switch (args[1]) {
+            case "del":
+            case "delete":
+            case "remove":
+            case "rem":
+            case "rm":
+                remove(channel, args);
+                break;
+            case "add":
+                add(channel, args);
+                break;
+            case "list":
+            default:
+                HelpCommand.sendFormattedCommandHelp(message);
+                break;
         }
+    }
+
+    private void remove(TextChannel channel, String[] args) {
+        int key = Integer.valueOf(args[2]);
+        LavalinkManager.ins.getLavalink().removeNode(key);
+        channel.sendMessage("Removed node #" + key).queue();
+    }
+
+    private void add(TextChannel channel, String[] args) {
+        URI uri;
+        try {
+            uri = new URI(args[2]);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        String password = args[3];
+        LavalinkManager.ins.getLavalink().addNode(uri, password);
+        channel.sendMessage("Added node: " + uri.toString()).queue();
     }
 
     @Override
     public String help(Guild guild) {
-        return "{0}{1} <shardId> OR {0}{1} guild <guildId>\n#Revive the specified shard, or the shard of the specified guild.";
+        return "{0}{1}\n#Add or remove lavalink nodes.";
     }
 
     @Override

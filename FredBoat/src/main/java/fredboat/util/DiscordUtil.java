@@ -25,6 +25,8 @@
 
 package fredboat.util;
 
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
@@ -32,9 +34,17 @@ import fredboat.feature.I18n;
 import fredboat.shared.constant.BotConstants;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.OnlineStatus;
-import net.dv8tion.jda.core.entities.*;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.Role;
+import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
-import net.dv8tion.jda.core.requests.*;
+import net.dv8tion.jda.core.requests.Request;
+import net.dv8tion.jda.core.requests.Requester;
+import net.dv8tion.jda.core.requests.Response;
+import net.dv8tion.jda.core.requests.RestAction;
+import net.dv8tion.jda.core.requests.Route;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -142,13 +152,16 @@ public class DiscordUtil {
     }
 
     public static int getRecommendedShardCount(String token) throws UnirestException {
-        return Unirest.get(Requester.DISCORD_API_PREFIX + "gateway/bot")
+        HttpResponse<JsonNode> response = Unirest.get(Requester.DISCORD_API_PREFIX + "gateway/bot")
                 .header("Authorization", "Bot " + token)
                 .header("User-agent", USER_AGENT)
-                .asJson()
-                .getBody()
-                .getObject()
-                .getInt("shards");
+                .asJson();
+        if (response.getStatus() == 401) {
+            throw new IllegalArgumentException("Invalid discord bot token provided!");
+        } else if (response.getStatus() >= 400) {
+            log.error("Unexpected response from discord: {} {}", response.getStatus(), response.getStatusText());
+        }
+        return response.getBody().getObject().getInt("shards");
     }
 
     public static User getUserFromBearer(JDA jda, String token) {
@@ -178,6 +191,16 @@ public class DiscordUtil {
                 .asJson()
                 .getBody()
                 .getObject();
+    }
+
+    public static String getUserId(String token) throws UnirestException {
+        return Unirest.get(Requester.DISCORD_API_PREFIX + "/users/@me")
+                .header("Authorization", "Bot " + token)
+                .header("User-agent", USER_AGENT)
+                .asJson()
+                .getBody()
+                .getObject()
+                .getString("id");
     }
 
     // ########## Moderation related helper functions

@@ -26,8 +26,8 @@
 package fredboat.command.admin;
 
 import com.mashape.unirest.http.exceptions.UnirestException;
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommand;
 import fredboat.commandmeta.abs.ICommandRestricted;
@@ -62,7 +62,7 @@ public class PlayerDebugCommand extends Command implements ICommand, ICommandRes
         }
         
         try {
-            channel.sendMessage(TextUtils.postToHastebin(a.toString(), true)).queue();
+            channel.sendMessage(TextUtils.postToPasteService(a.toString())).queue();
         } catch (UnirestException ex) {
             Logger.getLogger(PlayerDebugCommand.class.getName()).log(Level.SEVERE, null, ex);
         }

@@ -27,11 +27,17 @@ package fredboat.command.maintenance;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.remote.RemoteNode;
-import fredboat.audio.AbstractPlayer;
+import fredboat.audio.player.AbstractPlayer;
+import fredboat.audio.player.LavalinkManager;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
+import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.TextUtils;
+import lavalink.client.io.Lavalink;
+import lavalink.client.io.LavalinkLoadBalancer;
+import lavalink.client.io.LavalinkSocket;
+import lavalink.client.io.RemoteStats;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -44,6 +50,79 @@ public class NodesCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+        if (LavalinkManager.ins.isEnabled()) {
+            handleLavalink(guild, channel, invoker, message, args);
+        } else {
+            handleLavaplayer(guild, channel, invoker, message, args);
+        }
+
+    }
+
+    @SuppressWarnings("StringConcatenationInLoop")
+    private void handleLavalink(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+        Lavalink lavalink = LavalinkManager.ins.getLavalink();
+        if (args.length >= 2 && !args[1].equals("host")) {
+            LavalinkSocket socket = lavalink.getNodes().get(Integer.parseInt(args[1]));
+
+
+            channel.sendMessage("```json\n" + socket.getStats().getAsJson().toString(4) + "\n```").queue();
+            return;
+        }
+
+        boolean showHosts = false;
+        if (args.length >= 2 && args[1].equals("host")) {
+            if (PermsUtil.checkPermsWithFeedback(PermissionLevel.BOT_ADMIN, invoker, channel)) {
+                showHosts = true;
+            } else {
+                return;
+            }
+        }
+
+        String str = "```";
+
+        int i = 0;
+        for (LavalinkSocket socket : lavalink.getNodes()) {
+            RemoteStats stats = socket.getStats();
+            str += "Socket #" + i + "\n";
+
+            if (showHosts) {
+                str += "Address: " + socket.getRemoteUri() + "\n";
+            }
+
+            if (stats == null) {
+                str += "No stats have been received from this node! Is the node down?";
+                str += "\n";
+                str += "\n";
+                i++;
+                continue;
+            }
+
+            str += stats.getPlayingPlayers() + " playing players\n";
+            str += stats.getLavalinkLoad() * 100f + "% lavalink load\n";
+            str += stats.getSystemLoad() * 100f + "% system load\n";
+            str += stats.getMemUsed() / 1000000 + "MB/" + stats.getMemReservable() / 1000000 + "MB memory\n";
+
+            str += "\n";
+
+            str += stats.getAvgFramesSentPerMinute() + " player average frames sent\n";
+            str += stats.getAvgFramesNulledPerMinute() + " player average frames nulled\n";
+            str += stats.getAvgFramesDeficitPerMinute() + " player average frames deficit\n";
+
+            str += "\n";
+
+            str += LavalinkLoadBalancer.getPenalties(socket).toString();
+
+            str += "\n";
+            str += "\n";
+
+            i++;
+        }
+
+        str += "```";
+        channel.sendMessage(str).queue();
+    }
+
+    private void handleLavaplayer(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         AudioPlayerManager pm = AbstractPlayer.getPlayerManager();
         List<RemoteNode> nodes = pm.getRemoteNodeRegistry().getNodes();
         boolean showHost = false;

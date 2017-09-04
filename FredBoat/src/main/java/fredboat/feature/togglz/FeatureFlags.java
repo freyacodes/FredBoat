@@ -50,10 +50,12 @@ public enum FeatureFlags implements Feature {
     @EnabledByDefault
     PERMISSIONS,
 
-    //using data methods that don't collect everything to new data structures
-    @Label("Streaming data methods")
-    @EnabledByDefault
-    DATA_METHODS;
+    @Label("Patron validation")
+    PATRON_VALIDATION,
+
+    @Label("Force soundcloud search instead of youtube")
+    FORCE_SOUNDCLOUD_SEARCH,
+    ;
 
     public boolean isActive() {
         return FeatureConfig.getTheFeatureManager().isActive(this);

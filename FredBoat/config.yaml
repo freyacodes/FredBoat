@@ -3,5 +3,16 @@ patron:            false       # Set this to true for self hosting the music bot
 development:       true        # Set this to true for self hosting the full bot (including non music commands)
 prefix:            '<<'        # Default prefix used by the bot
 restServerEnabled: true        # Set this to false if you are running multiple FredBoat bots on the same machine
-admins:            []          # add comma separated userIds and roleIds that should have access to bot admin commands
-useAutoBlacklist:  true        # set to true to automatically blacklist users who frequently hit the rate limits
+admins:            []          # Add comma separated userIds and roleIds that should have access to bot admin commands
+useAutoBlacklist:  true        # Set to true to automatically blacklist users who frequently hit the rate limits
+game:              ""          # Set the displayed game/status. Leave empty quote marks for the default status
+
+enableYouTube:     true        # Set to true to enable playing YouTube links
+enableSoundCloud:  true	       # Set to true to enable playing SoundCloud links
+enableBandCamp:    true        # Set to true to enable playing BandCamp links
+enableTwitch:      true        # Set to true to enable playing Twitch links
+enableVimeo:       true        # Set to true to enable playing Vimeo links
+enableMixer:       true        # Set to true to enable playing Mixer links
+enableSpotify:     true        # Set to true to enable playing Spotify links
+enableHttp:        true        # Set to true to enable playing direct links
+

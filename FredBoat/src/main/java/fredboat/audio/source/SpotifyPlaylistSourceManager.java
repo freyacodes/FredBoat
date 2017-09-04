@@ -27,21 +27,29 @@ package fredboat.audio.source;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
-import com.sedmelluq.discord.lavaplayer.track.*;
-import fredboat.FredBoat;
+import com.sedmelluq.discord.lavaplayer.track.AudioItem;
+import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
+import com.sedmelluq.discord.lavaplayer.track.AudioReference;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
+import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
 import fredboat.audio.queue.PlaylistInfo;
 import fredboat.util.rest.SearchUtil;
 import fredboat.util.rest.SpotifyAPIWrapper;
-import org.json.JSONException;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,15 +58,26 @@ import java.util.regex.Pattern;
  * <p>
  * Loads playlists from Spotify playlist links.
  *
+ * todo bulk load the songs from the search cache (remote db connections are slow when loading one by one)
+ *
  * @author napster
  */
 public class SpotifyPlaylistSourceManager implements AudioSourceManager, PlaylistImporter {
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(SpotifyPlaylistSourceManager.class);
+    public static long CACHE_DURATION = TimeUnit.DAYS.toMillis(7);// 1 week;
+
+    private static final Logger log = LoggerFactory.getLogger(SpotifyPlaylistSourceManager.class);
 
     //https://regex101.com/r/AEWyxi/3
     private static final Pattern PLAYLIST_PATTERN = Pattern.compile("https?://.*\\.spotify\\.com/user/(.*)/playlist/([^?/\\s]*)");
 
+    //Take care when deciding on upping the core pool size: The threads may hog database connections
+    // (for selfhosters running on the SQLite db) when loading an uncached playlist.
+    // Upping the threads will also fire search requests more aggressively against Youtube which is probably better avoided.
+    public static ScheduledExecutorService loader = Executors.newScheduledThreadPool(1);
+
+    private static final List<SearchUtil.SearchProvider> searchProviders
+            = Arrays.asList(SearchUtil.SearchProvider.YOUTUBE, SearchUtil.SearchProvider.SOUNDCLOUD);
 
     @Override
     public String getSourceName() {
@@ -102,9 +121,9 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
         List<CompletableFuture<AudioTrack>> taskList = new ArrayList<>();
         for (final String s : trackListSearchTerms) {
             //remove all punctuation
-            final String query = s.replaceAll("[.,/#!$%\\^&*;:{}=\\-_`~()]", "");
+            final String query = s.replaceAll(SearchUtil.PUNCTUATION_REGEX, "");
 
-            CompletableFuture<AudioTrack> f = CompletableFuture.supplyAsync(() -> searchSingleTrack(query), FredBoat.executor);
+            CompletableFuture<AudioTrack> f = CompletableFuture.supplyAsync(() -> searchSingleTrack(query), loader);
             taskList.add(f);
         }
 
@@ -116,7 +135,10 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
                     continue; //skip the track if we couldn't find it
                 }
                 trackList.add(audioItem);
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (ExecutionException ignored) {
                 //this is fine, loop will go for the next item
             }
         }
@@ -133,45 +155,26 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
      * @return An AudioTrack likely corresponding to the query term or null.
      */
     private AudioTrack searchSingleTrack(final String query) {
-        boolean gotYoutubeResult = true;
-        AudioPlaylist list = null;
         try {
-            list = SearchUtil.searchForTracks(SearchUtil.SearchProvider.YOUTUBE, query, 60000);
-            if (list == null || list.getTracks().size() == 0) {
-                gotYoutubeResult = false;
+            AudioPlaylist list = SearchUtil.searchForTracks(query, CACHE_DURATION, 60000, searchProviders);
+            //didn't find anything
+            if (list == null || list.getTracks().isEmpty()) {
+                return null;
             }
-        } catch (final JSONException e) {
-            log.debug("YouTube search exception", e);
-            gotYoutubeResult = false;
-        }
 
-        //got a result from youtube? return it
-        if (gotYoutubeResult)
+            //pick topmost result, and hope it's what the user wants to listen to
+            //having users pick tracks like they can do for individual searches would be ridiculous for playlists with
+            //dozens of tracks. youtube search is probably good enough for this
+            //
+            //testcase:   Rammstein playlists; high quality Rammstein vids are really rare on Youtube.
+            //            https://open.spotify.com/user/11174036433/playlist/0ePRMvD3Dn3zG31A8y64xX
+            //result:     lots of low quality (covers, pitched up/down, etc) tracks loaded.
+            //conclusion: there's room for improvement to this whole method
             return list.getTracks().get(0);
-
-
-        //continue looking for the track on SoundCloud
-        try {
-            list = SearchUtil.searchForTracks(SearchUtil.SearchProvider.SOUNDCLOUD, query, 60000);
-        } catch (final JSONException e) {
-            log.debug("SoundCloud search exception", e);
-        }
-
-        //didn't find anything, or youtube & soundcloud not available
-        if (list == null || list.getTracks().size() == 0) {
+        } catch (SearchUtil.SearchingException e) {
+            //youtube & soundcloud not available
             return null;
         }
-
-        //pick topmost result, and hope it's what the user wants to listen to
-        //having users pick tracks like they can do for individual searches would be ridiculous for playlists with
-        //dozens of tracks. youtube search is probably good enough for this
-        //
-        //testcase:   Rammstein playlists; high quality Rammstein vids are really rare on Youtube.
-        //            https://open.spotify.com/user/11174036433/playlist/0ePRMvD3Dn3zG31A8y64xX
-        //result:     lots of low quality (covers, pitched up/down, etc) tracks loaded.
-        //conclusion: there's room for improvement to this whole method
-        return list.getTracks().get(0);
-
     }
 
     @Override

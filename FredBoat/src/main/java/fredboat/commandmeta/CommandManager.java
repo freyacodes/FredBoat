@@ -32,6 +32,8 @@ import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicBackupCommand;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
+import fredboat.feature.PatronageChecker;
+import fredboat.feature.togglz.FeatureFlags;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
@@ -75,13 +77,26 @@ public class CommandManager {
             return;
         }
 
+        if (FeatureFlags.PATRON_VALIDATION.isActive()) {
+            PatronageChecker.Status status = PatronageCheckerHolder.instance.getStatus(guild);
+            if (!status.isValid()) {
+                String msg = "Access denied. This bot can only be used if invited from <https://patron.fredboat.com/> "
+                        + "by someone who currently has a valid pledge on Patreon.\n**Denial reason:** " + status.getReason() + "\n\n";
+
+                msg += "Do you believe this to be a mistake? If so reach out to Fre_d on Patreon <https://www.patreon.com/fredboat>";
+
+                channel.sendMessage(msg).queue();
+                return;
+            }
+        }
+
         if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC
                 && DiscordUtil.isPatronBotPresentAndOnline(guild)
                 && guild.getMemberById(BotConstants.PATRON_BOT_ID) != null
                 && guild.getMemberById(BotConstants.PATRON_BOT_ID).hasPermission(channel, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)
                 && Config.CONFIG.getPrefix().equals(Config.DEFAULT_PREFIX)
                 && !guild.getId().equals(BotConstants.FREDBOAT_HANGOUT_ID)) {
-            log.info("Ignored command because patron bot is able to user that channel");
+            log.info("Ignored command because patron bot is able to use that channel");
             return;
         }
 
@@ -177,5 +192,10 @@ public class CommandManager {
         }
 
         return a;
+    }
+
+    //holder class pattern for the checker
+    private static class PatronageCheckerHolder {
+        private static final PatronageChecker instance = new PatronageChecker();
     }
 }

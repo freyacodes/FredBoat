@@ -28,6 +28,8 @@ package fredboat.audio.queue;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import net.dv8tion.jda.core.entities.Member;
 
+// TODO: Fix
+@Deprecated
 public class SplitAudioTrackContext extends AudioTrackContext {
 
     private final long startPos;
@@ -52,7 +54,7 @@ public class SplitAudioTrackContext extends AudioTrackContext {
     }
 
     @Override
-    public void setEffectivePosition(long position) {
+    public void seekTo(long position) {
         track.setPosition(startPos + position);
     }
 

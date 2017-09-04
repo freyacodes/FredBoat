@@ -34,8 +34,8 @@ import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioTrack;
 import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioTrack;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
@@ -120,7 +120,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
 
         MessageEmbed embed = eb.setColor(new Color(205, 32, 31))
                 .setThumbnail("https://i.ytimg.com/vi/" + at.getIdentifier() + "/hqdefault.jpg")
-                .setAuthor(yv.getCannelTitle(), yv.getChannelUrl(), yv.getChannelThumbUrl())
+                .setAuthor(yv.getChannelTitle(), yv.getChannelUrl(), yv.getChannelThumbUrl())
                 .setFooter(channel.getJDA().getSelfUser().getName(), channel.getJDA().getSelfUser().getAvatarUrl())
                 .build();
         channel.sendMessage(embed).queue();

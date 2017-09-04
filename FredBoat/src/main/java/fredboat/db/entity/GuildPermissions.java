@@ -29,18 +29,23 @@ import fredboat.perms.PermissionLevel;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 
+import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 @Entity
 @Table(name = "guild_permissions")
+@Cacheable
 @Cache(usage= CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region="guild_permissions")
-public class GuildPermissions implements IEntity {
+public class GuildPermissions implements IEntity, Serializable {
+
+    private static final long serialVersionUID = 72988747242640626L;
 
     // Guild ID
     @Id

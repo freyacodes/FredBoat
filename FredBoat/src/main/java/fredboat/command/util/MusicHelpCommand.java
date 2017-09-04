@@ -51,7 +51,10 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
 
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+        getFormattedCommandHelp(guild,channel,invoker);
+    }
 
+    private static List<String> getMusicComms(Guild guild) {
         //aggregate all commands and the aliases they may be called with
         Map<Class<? extends Command>, List<String>> commandToAliases = new HashMap<>();
         Set<String> commandsAndAliases = CommandRegistry.getRegisteredCommandsAndAliases();
@@ -83,16 +86,33 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
             musicComms.add(formattedHelp);
         }
 
-        //output the resulting help, splitting it in several messages if necessary
+        return musicComms;
+    }
+
+    private static void getFormattedCommandHelp(Guild guild, TextChannel channel, Member invoker) {
+        final List<String> musicComms = getMusicComms(guild);
+
+        // Start building string:
         String out = "< " + I18n.get(guild).getString("helpMusicCommandsHeader") + " >\n";
         for (String s : musicComms) {
             if (out.length() + s.length() >= 1990) {
-                channel.sendMessage(TextUtils.asMarkdown(out)).queue();
+                sendCommandsHelpInDM(guild, channel, invoker, out);
                 out = "";
             }
             out += s + "\n";
         }
-        channel.sendMessage(TextUtils.asMarkdown(out)).queue();
+        sendCommandsHelpInDM(guild, channel, invoker, out);
+    }
+
+    private static void sendCommandsHelpInDM(Guild guild, TextChannel channel, Member invoker, String dmMsg) {
+        invoker.getUser().openPrivateChannel().queue(privateChannel ->
+                privateChannel.sendMessage(TextUtils.asMarkdown(dmMsg)).queue( success -> {
+                    String out = I18n.get(guild).getString("helpSent");
+                    TextUtils.replyWithName(channel, invoker, out);
+                }, failure -> {
+                    String out = ":exclamation:I couldn't send commands help to your DMs! Do you have them turned off?"; // TODO: I18n
+                    TextUtils.replyWithName(channel, invoker, out);
+                }));
     }
 
     @Override

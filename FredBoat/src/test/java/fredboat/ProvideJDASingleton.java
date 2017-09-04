@@ -31,7 +31,7 @@ import java.util.List;
  * Created by napster on 22.03.17.
  * <p>
  * <p>
- * Extend this class from all tests that require a JDA instance
+ * Extend this class from all tests that require a JDA ins
  * <p>
  * <p>
  * Extend this class from all other tests and call bumpPassedTests() after every successful @Test function & call

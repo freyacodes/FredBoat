@@ -66,6 +66,20 @@
         </encoder>
     </appender>
 
+    <appender name="JDA" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/jda.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/jda.%d{yyyyMMdd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>[%d] [ %-5level] [%thread] %logger{35}: %msg%n</pattern>
+        </encoder>
+    </appender>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>INFO</level>
@@ -78,6 +92,11 @@
     <logger name="fredboat" level="DEBUG" additivity="true">
         <appender-ref ref="DEBUG"/>
         <appender-ref ref="ERROR"/>
+    </logger>
+
+    <!-- Gives us a nice JDA log with only JDA output -->
+    <logger name="net.dv8tion.jda.core.JDA" level="DEBUG" additivity="true">
+        <appender-ref ref="JDA"/>
     </logger>
 
     <root level="INFO">

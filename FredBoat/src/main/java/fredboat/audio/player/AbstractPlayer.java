@@ -23,15 +23,15 @@
  *
  */
 
-package fredboat.audio;
+package fredboat.audio.player;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
-import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.source.bandcamp.BandcampAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.beam.BeamAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
@@ -49,28 +49,33 @@ import fredboat.audio.queue.TrackEndMarkerHandler;
 import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
 import fredboat.shared.constant.DistributionEnum;
+import lavalink.client.player.IPlayer;
+import lavalink.client.player.LavaplayerPlayerWrapper;
+import lavalink.client.player.event.AudioEventAdapterWrapped;
 import net.dv8tion.jda.core.audio.AudioSendHandler;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractPlayer extends AudioEventAdapter implements AudioSendHandler {
+public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements AudioSendHandler {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(AbstractPlayer.class);
 
     private static AudioPlayerManager playerManager;
-    private AudioPlayer player;
+    private final IPlayer player;
     ITrackProvider audioTrackProvider;
     private AudioFrame lastFrame = null;
     private AudioTrackContext context;
-    private AudioLossCounter audioLossCounter = new AudioLossCounter();
+    private final AudioLossCounter audioLossCounter = new AudioLossCounter();
     private boolean splitTrackEnded = false;
 
     @SuppressWarnings("LeakingThisInConstructor")
-    AbstractPlayer() {
+    AbstractPlayer(String guildId) {
         initAudioPlayerManager();
-        player = playerManager.createPlayer();
+        player = LavalinkManager.ins.createPlayer(guildId);
 
         player.addListener(this);
     }
@@ -98,21 +103,39 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     }
 
     public static AudioPlayerManager registerSourceManagers(AudioPlayerManager mng) {
-        mng.registerSourceManager(new YoutubeAudioSourceManager());
-        mng.registerSourceManager(new SoundCloudAudioSourceManager());
-        mng.registerSourceManager(new BandcampAudioSourceManager());
         mng.registerSourceManager(new PlaylistImportSourceManager());
-        mng.registerSourceManager(new TwitchStreamAudioSourceManager());
-        mng.registerSourceManager(new VimeoAudioSourceManager());
-        mng.registerSourceManager(new BeamAudioSourceManager());
-        if (Config.CONFIG.getDistribution() == DistributionEnum.PATRON || Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT) {
+        //Determine which Source managers are enabled
+        //By default, all are enabled except HttpAudioSources
+        if (Config.CONFIG.isYouTubeEnabled()) {
+            YoutubeAudioSourceManager youtubeAudioSourceManager = new YoutubeAudioSourceManager();
+            youtubeAudioSourceManager.configureRequests(config -> RequestConfig.copy(config)
+                    .setCookieSpec(CookieSpecs.IGNORE_COOKIES)
+                    .build());
+            mng.registerSourceManager(youtubeAudioSourceManager);
+        }
+        if (Config.CONFIG.isSoundCloudEnabled()) {
+            mng.registerSourceManager(new SoundCloudAudioSourceManager());
+        }
+        if (Config.CONFIG.isBandCampEnabled()) {
+            mng.registerSourceManager(new BandcampAudioSourceManager());
+        }
+        if (Config.CONFIG.isTwitchEnabled()) {
+            mng.registerSourceManager(new TwitchStreamAudioSourceManager());
+        }
+        if (Config.CONFIG.isVimeoEnabled()) {
+            mng.registerSourceManager(new VimeoAudioSourceManager());
+        }
+        if (Config.CONFIG.isMixerEnabled()) {
+            mng.registerSourceManager(new BeamAudioSourceManager());
+        }
+        if (Config.CONFIG.isSpotifyEnabled()) {
             mng.registerSourceManager(new SpotifyPlaylistSourceManager());
         }
-        //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
-        //so you will never reach a source manager below it
-        // commented out to prevent leaking our ip
-//        mng.registerSourceManager(new HttpAudioSourceManager());
-        
+        if (Config.CONFIG.isHttpEnabled()) {
+            //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
+            //so you will never reach a source manager below it
+            mng.registerSourceManager(new HttpAudioSourceManager());
+        }
         return mng;
     }
 
@@ -259,7 +282,7 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     }
 
     void destroy() {
-        player.destroy();
+        player.stopTrack();
     }
 
     @Override
@@ -269,7 +292,8 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
 
     @Override
     public boolean canProvide() {
-        lastFrame = player.provide();
+        LavaplayerPlayerWrapper lavaplayerPlayer = (LavaplayerPlayerWrapper) player;
+        lastFrame = lavaplayerPlayer.provide();
 
         if(lastFrame == null) {
             audioLossCounter.onLoss();
@@ -308,5 +332,17 @@ public abstract class AbstractPlayer extends AudioEventAdapter implements AudioS
     @Override
     public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
         log.error("Lavaplayer got stuck while playing " + track.getIdentifier() + "\nPerformance stats for stuck track: " + audioLossCounter);
+    }
+
+    public long getPosition() {
+        return player.getTrackPosition();
+    }
+
+    public void seekTo(long position) {
+        player.seekTo(position);
+    }
+
+    public IPlayer getPlayer() {
+        return player;
     }
 }

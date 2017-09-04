@@ -25,8 +25,8 @@
 package fredboat.event;
 
 import fredboat.Config;
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.command.fun.TalkCommand;
 import fredboat.command.music.control.SkipCommand;
 import fredboat.command.util.HelpCommand;
@@ -38,10 +38,7 @@ import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
-import net.dv8tion.jda.core.entities.Game;
 import net.dv8tion.jda.core.entities.User;
-import net.dv8tion.jda.core.events.ReadyEvent;
-import net.dv8tion.jda.core.events.ReconnectedEvent;
 import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceJoinEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceLeaveEvent;
@@ -87,6 +84,10 @@ public class EventListenerBoat extends AbstractEventListener {
             return;
         }
 
+        if (event.getAuthor().isBot()) {
+            return;
+        }
+
         if (event.getMessage().getContent().length() < Config.CONFIG.getPrefix().length()) {
             return;
         }
@@ -96,10 +97,11 @@ public class EventListenerBoat extends AbstractEventListener {
             log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
             Matcher matcher = COMMAND_NAME_PREFIX.matcher(event.getMessage().getContent());
 
-            if(matcher.find()) {
+            if (matcher.find()) {
                 String cmdName = matcher.group();
+
                 CommandRegistry.CommandEntry entry = CommandRegistry.getCommand(cmdName);
-                if(entry != null) {
+                if (entry != null) {
                     invoked = entry.command;
                 } else {
                     log.info("Unknown command:", cmdName);
@@ -121,7 +123,9 @@ public class EventListenerBoat extends AbstractEventListener {
     }
 
     /**
-     * check the rate limit of user and execute the command if everything is fine
+     * Check the rate limit of the user and execute the command if everything is fine.
+     * @param invoked Command to be invoked.
+     * @param event Message received from the chat.
      */
     private void limitOrExecuteCommand(Command invoked, MessageReceivedEvent event) {
         Tuple2<Boolean, Class> ratelimiterResult = new Tuple2<>(true, null);
@@ -173,17 +177,6 @@ public class EventListenerBoat extends AbstractEventListener {
         lastUserToReceiveHelp = event.getAuthor();
     }
 
-    @Override
-    public void onReady(ReadyEvent event) {
-        super.onReady(event);
-        event.getJDA().getPresence().setGame(Game.of("Say " + Config.CONFIG.getPrefix() + "help"));
-    }
-
-    @Override
-    public void onReconnect(ReconnectedEvent event) {
-        event.getJDA().getPresence().setGame(Game.of("Say " + Config.CONFIG.getPrefix() + "help"));
-    }
-
     /* music related */
     @Override
     public void onGuildVoiceLeave(GuildVoiceLeaveEvent event) {
@@ -213,7 +206,7 @@ public class EventListenerBoat extends AbstractEventListener {
     public void onGuildVoiceJoin(GuildVoiceJoinEvent event) {
         GuildPlayer player = PlayerRegistry.getExisting(event.getGuild());
 
-        if(player != null
+        if (player != null
                 && player.isPaused()
                 && player.getPlayingTrack() != null
                 && event.getChannelJoined().getMembers().contains(event.getGuild().getSelfMember())

@@ -25,7 +25,7 @@
 
 package fredboat.command.music.control;
 
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
@@ -44,7 +44,7 @@ public class DestroyCommand extends Command implements IMusicCommand, ICommandRe
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         if(invoker.hasPermission(channel, Permission.MESSAGE_MANAGE)
-                || PermsUtil.isUserBotOwner(invoker.getUser())) {
+                || PermsUtil.checkPerms(PermissionLevel.ADMIN, invoker)) {
             PlayerRegistry.destroyPlayer(guild);
             TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("destroySucc"));
         } else {

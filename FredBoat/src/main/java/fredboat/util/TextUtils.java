@@ -117,7 +117,9 @@ public class TextUtils {
         try {
             channel.sendMessage(out).queue();
         } catch (UnsupportedOperationException tooLongEx) {
-            try {channel.sendMessage(MessageFormat.format(I18n.get(channel.getGuild()).getString("errorOccurredTooLong"), postToHastebin(out.getRawContent()))).queue();
+            try {
+                channel.sendMessage(MessageFormat.format(I18n.get(channel.getGuild()).getString("errorOccurredTooLong"),
+                        postToPasteService(out.getRawContent()))).queue();
             } catch (UnirestException e1) {
                 channel.sendMessage(I18n.get(channel.getGuild()).getString("errorOccurredTooLongAndUnirestException")).queue();
             }
@@ -128,11 +130,21 @@ public class TextUtils {
         return Unirest.post("https://hastebin.com/documents").body(body).asJson().getBody().getObject().getString("key");
     }
 
-    public static String postToHastebin(String body, boolean asURL) throws UnirestException {
-        if (asURL) {
+    public static String postToWastebin(String body) throws UnirestException {
+        return Unirest.post("https://wastebin.party/documents").body(body).asJson().getBody().getObject().getString("key");
+    }
+
+    /**
+     * @param body the content that should be uploaded to a paste service
+     * @return the url of the uploaded paste
+     * @throws UnirestException if none of the paste services allowed a successful upload
+     */
+    public static String postToPasteService(String body) throws UnirestException {
+        try {
             return "https://hastebin.com/" + postToHastebin(body);
-        } else {
-            return postToHastebin(body);
+        } catch (UnirestException e) {
+            log.warn("Could not post to hastebin, trying backup", e);
+            return "https://wastebin.party/" + postToWastebin(body);
         }
     }
 

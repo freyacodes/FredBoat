@@ -27,6 +27,7 @@ package fredboat.audio.queue;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.FredBoat;
+import fredboat.audio.player.PlayerRegistry;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.User;
@@ -43,15 +44,6 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
     private final int id; //used to identify this track even when the track gets cloned and the rand reranded
 
     public AudioTrackContext(AudioTrack at, Member member) {
-        this.track = at;
-        this.userId = member.getUser().getId();
-        this.guildId = member.getGuild().getId();
-        this.shard = FredBoat.getInstance(member.getJDA());
-        this.rand = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
-        this.id = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
-    }
-
-    public AudioTrackContext(AudioTrack at, Member member, int chronologicalIndex) {
         this.track = at;
         this.userId = member.getUser().getId();
         this.guildId = member.getGuild().getId();
@@ -103,11 +95,11 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
     }
 
     public long getEffectivePosition() {
-        return track.getPosition();
+        return PlayerRegistry.get(shard.getJda(), guildId).getPosition();
     }
 
-    public void setEffectivePosition(long position) {
-        track.setPosition(position);
+    public void seekTo(long position) {
+        PlayerRegistry.get(shard.getJda(), guildId).seekTo(position);
     }
 
     public String getEffectiveTitle() {

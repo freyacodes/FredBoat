@@ -26,8 +26,8 @@
 package fredboat.command.music.control;
 
 import fredboat.Config;
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
@@ -42,15 +42,12 @@ import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.logging.impl.SLF4JLog;
-import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -78,15 +75,11 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
             return;
         }
 
-        if (!guildIdToLastSkip.containsKey(guild.getId())) {
-            guildIdToLastSkip.put(guild.getId(), System.currentTimeMillis());
-        }
-
         if (isOnCooldown(guild)) {
             return;
+        } else {
+            guildIdToLastSkip.put(guild.getId(), System.currentTimeMillis());
         }
-
-        guildIdToLastSkip.put(guild.getId(), System.currentTimeMillis());
 
         if (args.length == 1) {
             skipNext(guild, channel, invoker, args);
@@ -108,7 +101,7 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
      */
     private boolean isOnCooldown(Guild guild) {
         long currentTIme = System.currentTimeMillis();
-        return currentTIme - guildIdToLastSkip.get(guild.getId()) <= SKIP_COOLDOWN;
+        return currentTIme - guildIdToLastSkip.getOrDefault(guild.getId(), 0L) <= SKIP_COOLDOWN;
     }
 
     private void skipGivenIndex(GuildPlayer player, TextChannel channel, Member invoker, String[] args) {

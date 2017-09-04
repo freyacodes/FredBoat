@@ -27,8 +27,10 @@ package fredboat.command.moderation;
 
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.I18n;
+import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -52,12 +54,9 @@ public class LanguageCommand extends Command implements IModerationCommand {
             return;
         }
 
-        if (!invoker.hasPermission(Permission.ADMINISTRATOR)
-                && !PermsUtil.isUserBotOwner(invoker.getUser())){
-            channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("configNotAdmin"), invoker.getEffectiveName())).queue();
+        if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, invoker, channel))
             return;
-        }
-
+        
         //Assume proper usage and that we are about to set a new language
         try {
             I18n.set(guild, args[1]);

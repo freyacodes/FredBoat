@@ -28,8 +28,8 @@ package fredboat.command.music.info;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.audio.GuildPlayer;
-import fredboat.audio.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
@@ -67,7 +67,7 @@ public class ExportCommand extends Command implements IMusicCommand {
         }
         
         try {
-            String url = TextUtils.postToHastebin(out, true) + ".fredboat";
+            String url = TextUtils.postToPasteService(out) + ".fredboat";
             channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("exportPlaylistResulted"), url)).queue();
         } catch (UnirestException ex) {
             throw new MessagingException(I18n.get(guild).getString("exportPlaylistFail"));

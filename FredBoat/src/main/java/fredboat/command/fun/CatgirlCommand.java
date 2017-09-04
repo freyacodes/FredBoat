@@ -36,7 +36,6 @@ import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.io.File;
-import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -53,20 +52,16 @@ public class CatgirlCommand extends Command {
     }
 
     private void postCatgirl(Guild guild, TextChannel channel) {
-        try {
-            String str = CloudFlareScraper.get(BASE_URL);
-            Matcher m = IMAGE_PATTERN.matcher(str);
+        String str = CloudFlareScraper.get(BASE_URL);
+        Matcher m = IMAGE_PATTERN.matcher(str);
 
-            if (!m.find()) {
-                channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("catgirlFail"), BASE_URL)).queue();
-                return;
-            }
-
-            File tmp = CacheUtil.getImageFromURL(BASE_URL + m.group(1));
-            channel.sendFile(tmp, null).queue();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (!m.find()) {
+            channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("catgirlFail"), BASE_URL)).queue();
+            return;
         }
+
+        File tmp = CacheUtil.getImageFromURL(BASE_URL + m.group(1));
+        channel.sendFile(tmp, null).queue();
     }
 
     @Override

@@ -28,15 +28,20 @@ package fredboat.db.entity;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 
+import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serializable;
 
 @Entity
 @Table(name = "guild_config")
+@Cacheable
 @Cache(usage= CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region="guild_config")
-public class GuildConfig implements IEntity {
+public class GuildConfig implements IEntity, Serializable {
+
+    private static final long serialVersionUID = 5055243002380106205L;
 
     @Id
     private String guildId;

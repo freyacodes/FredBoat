@@ -28,45 +28,52 @@
          xsi:noNamespaceSchemaLocation="http://www.ehcache.org/ehcache.xsd" updateCheck="true"
          monitoring="autodetect" dynamicConfig="true">
 
-    <diskStore path="java.io.tmpdir/ehcache" />
+    <diskStore path="java.io.tmpdir/ehcache"/>
 
     <defaultCache maxEntriesLocalHeap="10000" eternal="false"
-                  timeToIdleSeconds="120" timeToLiveSeconds="120" diskSpoolBufferSizeMB="30"
-                  maxEntriesLocalDisk="10000000" diskExpiryThreadIntervalSeconds="120"
-                  memoryStoreEvictionPolicy="LRU" statistics="true">
-        <persistence strategy="localTempSwap" />
+                  timeToIdleSeconds="120"
+                  timeToLiveSeconds="120"
+                  diskSpoolBufferSizeMB="30"
+                  maxEntriesLocalDisk="10000000"
+                  diskExpiryThreadIntervalSeconds="120"
+                  memoryStoreEvictionPolicy="LRU"
+                  statistics="true">
+        <persistence strategy="localTempSwap"/>
     </defaultCache>
 
-    <!--<cache name="guild_config" maxEntriesLocalHeap="10000" eternal="false"
-           timeToIdleSeconds="30" timeToLiveSeconds="300">
-        <persistence strategy="localTempSwap" />
-    </cache>-->
+    <cache name="guild_config"
+           maxElementsInMemory="120000"
+           eternal="false"
+           timeToIdleSeconds="60"
+           timeToLiveSeconds="120">
+        <persistence strategy="localtempswap"/>
+    </cache>
 
-    <cache
-            name="guild_config"
-            maxElementsInMemory="120000"
-            eternal="false"
-            timeToIdleSeconds="60"
-            timeToLiveSeconds="120"
-            overflowToDisk="true"
-    />
+    <cache name="guild_permissions"
+           maxElementsInMemory="120000"
+           eternal="false"
+           timeToIdleSeconds="60"
+           timeToLiveSeconds="120">
+        <persistence strategy="localtempswap"/>
+    </cache>
 
-    <cache
-            name="guild_permissions"
-            maxElementsInMemory="120000"
-            eternal="false"
-            timeToIdleSeconds="60"
-            timeToLiveSeconds="120"
-            overflowToDisk="true"
-    />
+    <cache name="search_results"
+           maxElementsInMemory="1000"
+           maxEntriesLocalDisk="100000"
+           eternal="true">
+        <persistence strategy="localtempswap"/>
+    </cache>
 
     <cache name="org.hibernate.cache.internal.StandardQueryCache"
-           maxEntriesLocalHeap="5" eternal="false" timeToLiveSeconds="120">
-        <persistence strategy="localTempSwap" />
+           maxEntriesLocalHeap="5"
+           eternal="false"
+           timeToLiveSeconds="120">
+        <persistence strategy="localTempSwap"/>
     </cache>
 
     <cache name="org.hibernate.cache.spi.UpdateTimestampsCache"
-           maxEntriesLocalHeap="5000" eternal="true">
-        <persistence strategy="localTempSwap" />
+           maxEntriesLocalHeap="5000"
+           eternal="true">
+        <persistence strategy="localTempSwap"/>
     </cache>
 </ehcache>

@@ -29,6 +29,7 @@ import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.event.ShardWatchdogListener;
 import fredboat.shared.constant.DistributionEnum;
+import net.dv8tion.jda.core.JDA;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,12 +78,15 @@ public class ShardWatchdogAgent extends Thread {
 
             long diff = System.currentTimeMillis() - listener.getLastEventTime();
 
+            JDA.Status status = shard.getJda().getStatus();
             if (diff > ACCEPTABLE_SILENCE) {
                 if (listener.getEventCount() < 100) {
-                    log.warn("Did not revive shard " + shard.getShardInfo() + " because it did not receive enough events since construction!");
+                    log.warn("Did not revive shard {} status {} because it did not receive enough events since construction!", shard.getShardInfo(), status);
+                } else if (isReconnecting(status)) {
+                    log.warn("Did not revive shard {} status {} because it is reconnecting already!", shard.getShardInfo(), status);
                 } else {
-                    log.warn("Reviving shard " + shard.getShardInfo() + " after " + (diff / 1000) +
-                            " seconds of no events. Last event received was " + listener.getLastEvent());
+                    log.warn("Reviving shard {} after {} seconds of no events. Status: {}. Last event received was {}",
+                            shard.getShardInfo(), (diff / 1000), status, listener.getLastEvent());
 
                     /*try {
                         log.info("Thread dump for shard's JDA threads at time of death: " + getShardThreadDump(shard.getShardInfo().getShardId()));
@@ -91,10 +95,13 @@ public class ShardWatchdogAgent extends Thread {
                     }*/
 
                     shard.revive();
-                    sleep(5000);
                 }
             }
         }
+    }
+
+    private boolean isReconnecting(JDA.Status status) {
+        return status == JDA.Status.ATTEMPTING_TO_RECONNECT || status == JDA.Status.WAITING_TO_RECONNECT;
     }
 
     public void shutdown() {

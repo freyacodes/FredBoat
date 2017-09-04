@@ -26,17 +26,21 @@
 package fredboat;
 
 import com.mashape.unirest.http.exceptions.UnirestException;
+import fredboat.audio.player.PlayerLimitManager;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.DiscordUtil;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.error.YAMLException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -78,6 +82,8 @@ public class Config {
     private boolean restServerEnabled = true;
     private List<String> adminIds = new ArrayList<>();
     private boolean useAutoBlacklist = false;
+    private String game = "";
+    private List<LavalinkHost> lavalinkHosts = new ArrayList<>();
 
     //testing related stuff
     private String testBotToken;
@@ -90,6 +96,16 @@ public class Config {
     private final String sshPrivateKeyFile;
     private final int forwardToPort; //port where the remote database is listening, postgres default: 5432
 
+    //AudioManager Stuff
+    private Boolean youtubeAudio;
+    private Boolean soundcloudAudio;
+    private Boolean bandcampAudio;
+    private Boolean twitchAudio;
+    private Boolean vimeoAudio;
+    private Boolean mixerAudio;
+    private Boolean spotifyAudio;
+    private Boolean httpAudio;
+
     @SuppressWarnings("unchecked")
     public Config(File credentialsFile, File configFile, int scope) {
         try {
@@ -100,8 +116,16 @@ public class Config {
             //remove those pesky tab characters so a potential json file is YAML conform
             credsFileStr = credsFileStr.replaceAll("\t", "");
             configFileStr = configFileStr.replaceAll("\t", "");
-            Map<String, Object> creds = (Map<String, Object>) yaml.load(credsFileStr);
-            Map<String, Object> config = (Map<String, Object>) yaml.load(configFileStr);
+            Map<String, Object> creds;
+            Map<String, Object> config;
+            try {
+                creds = (Map<String, Object>) yaml.load(credsFileStr);
+                config = (Map<String, Object>) yaml.load(configFileStr);
+            } catch (YAMLException e) {
+                log.error("Could not parse the credentials and/or config yaml files! There are probably misformatted. " +
+                        "Try using an online yaml format checker.");
+                throw e;
+            }
             //avoid null values, rather change them to empty strings
             creds.keySet().forEach((String key) -> creds.putIfAbsent(key, ""));
             config.keySet().forEach((String key) -> config.putIfAbsent(key, ""));
@@ -128,6 +152,7 @@ public class Config {
                 adminIds.add(admins + "");
             }
             useAutoBlacklist = (boolean) config.getOrDefault("useAutoBlacklist", useAutoBlacklist);
+            game = (String) config.getOrDefault("game", "");
 
             log.info("Using prefix: " + prefix);
 
@@ -141,6 +166,11 @@ public class Config {
             if (token != null) {
                 botToken = token.getOrDefault(distribution.getId(), "");
             } else botToken = "";
+            if (botToken == null || botToken.isEmpty()) {
+                throw new RuntimeException("No discord bot token provided for the started distribution " + distribution
+                        + "\nMake sure to put a " + distribution.getId() + " token in your credentials file.");
+            }
+
             spotifyId = (String) creds.getOrDefault("spotifyId", "");
             spotifySecret = (String) creds.getOrDefault("spotifySecret", "");
 
@@ -167,7 +197,19 @@ public class Config {
             } else {
                 lavaplayerNodesEnabled = false;
                 lavaplayerNodes = new String[0];
-                log.info("Not using lavaplayer nodes. Audio playback will be processed locally.");
+                //log.info("Not using lavaplayer nodes. Audio playback will be processed locally.");
+            }
+
+            Map<String, String> linkNodes = (Map<String, String>) creds.get("lavalinkHosts");
+            if (linkNodes != null) {
+                linkNodes.forEach((s, s2) -> {
+                    try {
+                        lavalinkHosts.add(new LavalinkHost(new URI(s), s2));
+                        log.info("Lavalink node added: " + new URI(s));
+                    } catch (URISyntaxException e) {
+                        throw new RuntimeException("Failed parsing URI", e);
+                    }
+                });
             }
 
             if(getDistribution() == DistributionEnum.DEVELOPMENT) {
@@ -203,17 +245,31 @@ public class Config {
             testBotToken = (String) creds.getOrDefault("testToken", "");
             testChannelId = creds.getOrDefault("testChannelId", "") + "";
 
+            PlayerLimitManager.setLimit((Integer) config.getOrDefault("playerLimit", -1));
+
             useSshTunnel = (boolean) creds.getOrDefault("useSshTunnel", false);
             sshHost = (String) creds.getOrDefault("sshHost", "localhost:22");
             sshUser = (String) creds.getOrDefault("sshUser", "fredboat");
             sshPrivateKeyFile = (String) creds.getOrDefault("sshPrivateKeyFile", "database.ppk");
             forwardToPort = (int) creds.getOrDefault("forwardToPort", 5432);
+
+            //Modularise audiomanagers; load from "config.yaml"
+
+            youtubeAudio = (Boolean) config.getOrDefault("enableYouTube", true);
+            soundcloudAudio = (Boolean) config.getOrDefault("enableSoundCloud", true);
+            bandcampAudio = (Boolean) config.getOrDefault("enableBandCamp", true);
+            twitchAudio = (Boolean) config.getOrDefault("enableTwitch", true);
+            vimeoAudio = (Boolean) config.getOrDefault("enableVimeo", true);
+            mixerAudio = (Boolean) config.getOrDefault("enableMixer", true);
+            spotifyAudio = (Boolean) config.getOrDefault("enableSpotify", true);
+            httpAudio = (Boolean) config.getOrDefault("enableHttp", false);
+
         } catch (IOException | UnirestException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static void loadDefaultConfig(int scope) throws IOException {
+    static void loadDefaultConfig(int scope) throws IOException {
         Config.CONFIG = new Config(
                 loadConfigFile("credentials"),
                 loadConfigFile("config"),
@@ -228,7 +284,7 @@ public class Config {
      * @param name relative name of a config file, without the file extension
      * @return a handle on the requested file
      */
-    static File loadConfigFile(String name) throws IOException {
+    private static File loadConfigFile(String name) throws IOException {
         String yamlPath = "./" + name + ".yaml";
         String jsonPath = "./" + name + ".json";
         File yamlFile = new File(yamlPath);
@@ -264,7 +320,15 @@ public class Config {
         return distribution;
     }
 
-    String getBotToken() {
+    public boolean isPatronDistribution() {
+        return distribution == DistributionEnum.PATRON;
+    }
+
+    public boolean isDevDistribution() {
+        return distribution == DistributionEnum.DEVELOPMENT;
+    }
+
+    public String getBotToken() {
         return botToken;
     }
 
@@ -352,6 +416,14 @@ public class Config {
         return useAutoBlacklist;
     }
 
+    public String getGame() {
+        if (game == null || game.isEmpty()) {
+            return "Say " + getPrefix() + "help";
+        } else {
+            return game;
+        }
+    }
+
     public String getTestBotToken() {
         return testBotToken;
     }
@@ -378,5 +450,60 @@ public class Config {
 
     public int getForwardToPort() {
         return forwardToPort;
+    }
+
+    public List<LavalinkHost> getLavalinkHosts() {
+        return lavalinkHosts;
+    }
+
+    public class LavalinkHost {
+
+        private final URI uri;
+        private final String password;
+
+        public LavalinkHost(URI uri, String password) {
+            this.uri = uri;
+            this.password = password;
+        }
+
+        public URI getUri() {
+            return uri;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+    }
+
+    public boolean isYouTubeEnabled() {
+        return youtubeAudio;
+    }
+
+    public boolean isSoundCloudEnabled() {
+        return soundcloudAudio;
+    }
+
+    public boolean isBandCampEnabled() {
+        return bandcampAudio;
+    }
+
+    public boolean isTwitchEnabled() {
+        return twitchAudio;
+    }
+
+    public boolean isVimeoEnabled() {
+        return vimeoAudio;
+    }
+
+    public boolean isMixerEnabled() {
+        return mixerAudio;
+    }
+
+    public boolean isSpotifyEnabled() {
+        return spotifyAudio;
+    }
+
+    public boolean isHttpEnabled() {
+        return httpAudio;
     }
 }
