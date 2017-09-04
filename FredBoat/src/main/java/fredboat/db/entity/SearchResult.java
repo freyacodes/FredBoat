@@ -41,6 +41,7 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.Entity;
@@ -64,11 +65,14 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "search_results")
+@Cacheable
 @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region = "search_results")
 //todo after introducing the db refactoring in the persistent tracklists PR:
 //- refactor load() and save() as calls to EntityReader and EntityWriter
 //- make this class implement IEntity<SearchResultId>
-public class SearchResult {
+public class SearchResult implements Serializable {
+
+    private static final long serialVersionUID = -6903579675867836509L;
 
     private static final Logger log = LoggerFactory.getLogger(SearchResult.class);
 

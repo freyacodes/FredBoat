@@ -29,6 +29,9 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import fredboat.Config;
 import fredboat.FredBoat;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.config.CacheConfiguration;
+import net.sf.ehcache.config.PersistenceConfiguration;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,6 +134,20 @@ public class DatabaseManager {
             closeEntityManagerFactory();
 
             emf = emfb.getObject();
+
+            //adjusting the ehcache config
+            if (!Config.CONFIG.isUseSshTunnel()) {
+                //local database: turn off overflow to disk of the cache
+                for (CacheManager cacheManager : CacheManager.ALL_CACHE_MANAGERS) {
+                    for (String cacheName : cacheManager.getCacheNames()) {
+                        CacheConfiguration cacheConfig = cacheManager.getCache(cacheName).getCacheConfiguration();
+                        cacheConfig.getPersistenceConfiguration().strategy(PersistenceConfiguration.Strategy.NONE);
+                    }
+                }
+            }
+            for (CacheManager cacheManager : CacheManager.ALL_CACHE_MANAGERS) {
+                log.debug(cacheManager.getActiveConfigurationText());
+            }
 
             log.info("Started Hibernate");
             state = DatabaseState.READY;
