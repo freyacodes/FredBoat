@@ -507,7 +507,7 @@ public abstract class FredBoat {
     }
 
     @SuppressWarnings("WeakerAccess")
-    public class ShardInfo {
+    public static class ShardInfo {
 
         int shardId;
         int shardTotal;
