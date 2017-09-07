@@ -39,10 +39,11 @@ public class CommandRegistry {
     private static HashMap<String, CommandEntry> registry = new HashMap<>();
 
     public static void registerCommand(String name, Command command, String... aliases) {
+        name = name.toLowerCase();
         CommandEntry entry = new CommandEntry(command, name);
         registry.put(name, entry);
         for (String alias : aliases) {
-            registry.put(alias, entry);
+            registry.put(alias.toLowerCase(), entry);
         }
     }
 
@@ -81,7 +82,7 @@ public class CommandRegistry {
 
         CommandEntry(Command command, String name) {
             this.command = command;
-            this.name = name;
+            this.name = name.toLowerCase();
         }
 
         public String getName() {

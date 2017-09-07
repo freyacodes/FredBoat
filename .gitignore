@@ -136,3 +136,4 @@ gc-*.log
 /config.yaml
 *fredboat.db
 *.ppk
+/feature_flags.properties
