@@ -82,7 +82,7 @@ public class CommandRegistry {
 
         CommandEntry(Command command, String name) {
             this.command = command;
-            this.name = name.toLowerCase();
+            this.name = name;
         }
 
         public String getName() {
