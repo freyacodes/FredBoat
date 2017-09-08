@@ -48,6 +48,7 @@ import fredboat.audio.queue.SplitAudioTrackContext;
 import fredboat.audio.queue.TrackEndMarkerHandler;
 import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
+import fredboat.command.music.control.VoteSkipCommand;
 import fredboat.commandmeta.MessagingException;
 import fredboat.shared.constant.DistributionEnum;
 import lavalink.client.player.IPlayer;
@@ -255,6 +256,10 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
     @Override
     public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
         log.debug("onTrackEnd({} {} {}) called", track.getInfo().title, endReason.name(), endReason.mayStartNext);
+
+
+        //Clear all the VoteSkips from the Map so we can start anew.
+        VoteSkipCommand.guildSkipVotes.clear();
 
         if (endReason == AudioTrackEndReason.FINISHED || endReason == AudioTrackEndReason.STOPPED) {
             loadAndPlay();
