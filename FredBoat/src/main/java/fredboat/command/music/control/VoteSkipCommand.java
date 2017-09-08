@@ -101,7 +101,14 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
                 votes++;
             }
         }
-        return votes * 1.0f / vcMembers.size();
+        float percentage = votes * 1.0f / vcMembers.size();
+
+        if (Float.isNaN(percentage)) {
+            return 0f;
+        } else {
+            return percentage;
+        }
+
     }
 
     private boolean hasVoted(Guild guild, Member member) {
