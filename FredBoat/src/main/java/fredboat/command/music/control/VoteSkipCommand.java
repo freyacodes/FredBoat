@@ -105,7 +105,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
                 votes++;
             }
         }
-        return votes / vcMembers.size();
+        return votes * 1.0f / vcMembers.size();
     }
 
     private boolean hasVoted(Guild guild, Member member) {
