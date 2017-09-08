@@ -25,6 +25,9 @@
 
 package fredboat.audio.player;
 
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import fredboat.FredBoat;
 import fredboat.audio.queue.AbstractTrackProvider;
 import fredboat.audio.queue.AudioLoader;
@@ -32,6 +35,7 @@ import fredboat.audio.queue.AudioTrackContext;
 import fredboat.audio.queue.IdentifierContext;
 import fredboat.audio.queue.RepeatMode;
 import fredboat.audio.queue.SimpleTrackProvider;
+import fredboat.command.music.control.VoteSkipCommand;
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.DatabaseNotReadyException;
@@ -441,5 +445,15 @@ public class GuildPlayer extends AbstractPlayer {
         audioTrackProvider.clear();
         super.destroy();
         log.info("Player for " + guildId + " was destroyed.");
+    }
+
+    @Override
+    public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
+        voteSkipCleanup();
+        super.onTrackEnd(player, track, endReason);
+    }
+
+    private void voteSkipCleanup() {
+        VoteSkipCommand.guildSkipVotes.remove(guildId);
     }
 }

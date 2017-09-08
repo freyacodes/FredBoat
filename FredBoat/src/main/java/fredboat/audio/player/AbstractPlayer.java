@@ -257,10 +257,6 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
     public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
         log.debug("onTrackEnd({} {} {}) called", track.getInfo().title, endReason.name(), endReason.mayStartNext);
 
-
-        //Clear all the VoteSkips from the Map so we can start anew.
-        VoteSkipCommand.guildSkipVotes.clear();
-
         if (endReason == AudioTrackEndReason.FINISHED || endReason == AudioTrackEndReason.STOPPED) {
             loadAndPlay();
         } else if(endReason == AudioTrackEndReason.CLEANUP) {
