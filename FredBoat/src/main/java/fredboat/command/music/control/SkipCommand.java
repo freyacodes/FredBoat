@@ -35,21 +35,23 @@ import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
+import fredboat.perms.PermsUtil;
+import fredboat.util.ArgumentUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import org.apache.commons.lang3.StringUtils;
 
 import java.text.MessageFormat;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SkipCommand extends Command implements IMusicCommand, ICommandRestricted {
     private static final String TRACK_RANGE_REGEX = "^(0?\\d+)-(0?\\d+)$";
     private static final Pattern trackRangePattern = Pattern.compile(TRACK_RANGE_REGEX);
+
+    private static final String SKIP_USER_REGEX = "\\<@!?\\d+\\>";
+    private static final Pattern skipUserPattern = Pattern.compile(SKIP_USER_REGEX);
 
     /**
      * Represents the relationship between a <b>guild's id</b> and <b>skip cooldown</b>.
@@ -83,7 +85,9 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
         } else if (args.length == 2 && StringUtils.isNumeric(args[1])) {
             skipGivenIndex(player, context);
         } else if (args.length == 2 && trackRangePattern.matcher(args[1]).matches()) {
-            skipInRange(player, context);
+            skipInRange(player, channel, invoker, args);
+        } else if (args.length == 2 && skipUserPattern.matcher(args[1]).matches()) {
+            skipUser(player, channel, invoker, args[1]);
         } else {
             HelpCommand.sendFormattedCommandHelp(context);
         }
@@ -158,8 +162,39 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
         player.skipTracksForMemberPerms(context, trackIds, successMessage);
     }
 
-    private void skipNext(CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
+    private void skipUser(GuildPlayer player, TextChannel channel, Member invoker, String user) {
+        Member member = ArgumentUtil.checkSingleFuzzyMemberSearchResult(channel, user);
+
+        if (member != null) {
+
+            if (!PermsUtil.checkPerms(PermissionLevel.DJ, invoker)) {
+                if  (invoker.getUser().getIdLong() != member.getUser().getIdLong()) {
+                    channel.sendMessage(I18n.get(player.getGuild()).getString("skipDeniedTooManyTracks")).queue();
+                    return;
+                }
+            }
+
+            List<AudioTrackContext> listAtc = player.getTracksInRange(0, player.getTrackCount());
+            List<Long> userAtcIds = new ArrayList<>();
+
+            for (AudioTrackContext atc : listAtc) {
+                if (atc.getUserId() == member.getUser().getIdLong()) {
+                    userAtcIds.add(atc.getTrackId());
+                }
+            }
+
+            if (userAtcIds.size() > 0) {
+                player.skipTracks(userAtcIds);
+                channel.sendMessage(MessageFormat.format("DEBUG: `{0}` Track/s from user **{1}#{2}({3})** have been skipped", userAtcIds.size(), member.getUser().getName(), member.getUser().getDiscriminator(), String.valueOf(member.getUser().getId()))).queue();
+            } else {
+                channel.sendMessage(MessageFormat.format("DEBUG: User **{0}#{1}({2})** does not have any Tracks in the queue", member.getUser().getName(), member.getUser().getDiscriminator(), String.valueOf(member.getUser().getId()))).queue();
+            }
+
+        }
+    }
+
+    private void skipNext(Guild guild, TextChannel channel, Member invoker) {
+        GuildPlayer player = PlayerRegistry.get(guild);
         AudioTrackContext atc = player.getPlayingTrack();
         if (atc == null) {
             context.reply(I18n.get(context, "skipTrackNotFound"));
@@ -171,7 +206,7 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
 
     @Override
     public String help(Guild guild) {
-        String usage = "{0}{1} OR {0}{1} n OR {0}{1} n-m\n#";
+        String usage = "{0}{1} OR {0}{1} n OR {0}{1} n-m OR {0}{1} @User\n#";
         return usage + I18n.get(guild).getString("helpSkipCommand");
     }
 

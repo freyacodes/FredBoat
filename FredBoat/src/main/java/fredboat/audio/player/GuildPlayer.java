@@ -390,7 +390,7 @@ public class GuildPlayer extends AbstractPlayer {
         }
     }
 
-    private void skipTracks(Collection<Long> trackIds) {
+    public void skipTracks(Collection<Long> trackIds) {
         boolean skipCurrentTrack = false;
 
         List<Long> toRemove = new ArrayList<>();
