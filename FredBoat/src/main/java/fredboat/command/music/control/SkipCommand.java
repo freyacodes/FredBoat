@@ -198,14 +198,14 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
             player.skipTracks(userAtcIds);
 
             if (users.size() > 1) {
-                channel.sendMessage(MessageFormat.format("DEBUG: `{0}` Track/s from **{1}** Users have been skipped", userAtcIds.size(), affectedUsers.size())).queue();
+                channel.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserMultiple"), userAtcIds.size(), I18n.get(player.getGuild()).getString("trackPlural"), affectedUsers.size())).queue();
             } else {
                 User user = users.get(0);
-                channel.sendMessage(MessageFormat.format("DEBUG: `{0}` Track/s from user **{1}#{2}({3})** have been skipped", userAtcIds.size(), user.getName(),user.getDiscriminator(), String.valueOf(user.getId()))).queue();
+                channel.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserSingle"), userAtcIds.size(), userAtcIds.size() > 1 ? I18n.get(player.getGuild()).getString("trackPlural") : I18n.get(player.getGuild()).getString("trackSingular"), user.getName(), user.getDiscriminator(), String.valueOf(user.getId()))).queue();
             }
 
         } else {
-            channel.sendMessage("DEBUG: None of the mentioned have any Tracks queued").queue();
+            channel.sendMessage(I18n.get(player.getGuild()).getString("skipUserNoTracks")).queue();
         }
     }
 
