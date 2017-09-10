@@ -201,7 +201,7 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
                 channel.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserMultiple"), "`" + userAtcIds.size() + "`", I18n.get(player.getGuild()).getString("trackPlural"), ("**" + affectedUsers.size() + "**"))).queue();
             } else {
                 User user = affectedUsers.get(0);
-                channel.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserSingle"), "`" + userAtcIds.size() + "`", userAtcIds.size() > 1 ? I18n.get(player.getGuild()).getString("trackPlural") : I18n.get(player.getGuild()).getString("trackSingular"), ("**" + user.getName() + "#" + user.getDiscriminator() + "**")  )).queue();
+                channel.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserSingle"), "`" + userAtcIds.size() + "`", userAtcIds.size() > 1 ? I18n.get(player.getGuild()).getString("trackPlural") : I18n.get(player.getGuild()).getString("trackSingular"), ("**" + user.getName() + "#" + user.getDiscriminator() + "**"))).queue();
             }
 
         } else {
