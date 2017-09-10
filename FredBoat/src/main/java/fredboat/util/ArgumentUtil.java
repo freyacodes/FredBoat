@@ -75,9 +75,12 @@ public class ArgumentUtil {
         return list;
     }
 
-
     public static Member checkSingleFuzzyMemberSearchResult(TextChannel tc, String term) {
-        List<Member> list = fuzzyMemberSearch(tc.getGuild(), term, false);
+        return checkSingleFuzzyMemberSearchResult(tc, term, false);
+    }
+
+    public static Member checkSingleFuzzyMemberSearchResult(TextChannel tc, String term, boolean includeBots) {
+        List<Member> list = fuzzyMemberSearch(tc.getGuild(), term, includeBots);
 
         switch (list.size()) {
             case 0:
