@@ -179,15 +179,15 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
 
         List<AudioTrackContext> listAtc = player.getTracksInRange(0, player.getTrackCount());
         List<Long> userAtcIds = new ArrayList<>();
-        List<Long> affectedUsers = new ArrayList<>();
+        List<User> affectedUsers = new ArrayList<>();
 
         for (User user : users) {
             for (AudioTrackContext atc : listAtc) {
                 if (atc.getUserId() == user.getIdLong()) {
                     userAtcIds.add(atc.getTrackId());
 
-                    if (!affectedUsers.contains(user.getIdLong())) {
-                        affectedUsers.add(user.getIdLong());
+                    if (!affectedUsers.contains(user)) {
+                        affectedUsers.add(user);
                     }
                 }
             }
@@ -197,11 +197,11 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
         if (userAtcIds.size() > 0) {
             player.skipTracks(userAtcIds);
 
-            if (users.size() > 1) {
-                channel.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserMultiple"), userAtcIds.size(), I18n.get(player.getGuild()).getString("trackPlural"), affectedUsers.size())).queue();
+            if (affectedUsers.size() > 1) {
+                channel.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserMultiple"), "`" + userAtcIds.size() + "`", I18n.get(player.getGuild()).getString("trackPlural"), ("**" + affectedUsers.size() + "**"))).queue();
             } else {
-                User user = users.get(0);
-                channel.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserSingle"), userAtcIds.size(), userAtcIds.size() > 1 ? I18n.get(player.getGuild()).getString("trackPlural") : I18n.get(player.getGuild()).getString("trackSingular"), user.getName(), user.getDiscriminator(), String.valueOf(user.getId()))).queue();
+                User user = affectedUsers.get(0);
+                channel.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserSingle"), "`" + userAtcIds.size() + "`", userAtcIds.size() > 1 ? I18n.get(player.getGuild()).getString("trackPlural") : I18n.get(player.getGuild()).getString("trackSingular"), ("**" + user.getName() + "#" + user.getDiscriminator() + "**")  )).queue();
             }
 
         } else {
