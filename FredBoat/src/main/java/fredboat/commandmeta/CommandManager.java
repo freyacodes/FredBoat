@@ -106,17 +106,6 @@ public class CommandManager {
             return;
         }
 
-        if (invoked instanceof ICommandRestricted) {
-            //Check if invoker actually has perms
-            PermissionLevel minPerms = ((ICommandRestricted) invoked).getMinimumPerms();
-            PermissionLevel actual = PermsUtil.getPerms(invoker);
-
-            if(actual.getLevel() < minPerms.getLevel()) {
-                TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("cmdPermsTooLow"), minPerms, actual));
-                return;
-            }
-        }
-
         //Hardcode music commands in FredBoatHangout. Blacklist any channel that isn't #general or #staff, but whitelist Frederikam
         if (invoked instanceof IMusicCommand
                 && guild.getId().equals(BotConstants.FREDBOAT_HANGOUT_ID)
@@ -134,6 +123,17 @@ public class CommandManager {
                     );
                 });
 
+                return;
+            }
+        }
+
+        if (invoked instanceof ICommandRestricted) {
+            //Check if invoker actually has perms
+            PermissionLevel minPerms = ((ICommandRestricted) invoked).getMinimumPerms();
+            PermissionLevel actual = PermsUtil.getPerms(invoker);
+
+            if(actual.getLevel() < minPerms.getLevel()) {
+                TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("cmdPermsTooLow"), minPerms, actual));
                 return;
             }
         }
