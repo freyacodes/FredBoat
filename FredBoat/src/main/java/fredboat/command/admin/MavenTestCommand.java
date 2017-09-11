@@ -25,45 +25,52 @@
 package fredboat.command.admin;
 
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommand;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.log.SLF4JInputStreamErrorLogger;
 import fredboat.util.log.SLF4JInputStreamLogger;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Created by napster on 23.03.17.
  * <p>
  * Attempts to run the "mvn test" command on the bots present sources.
  */
-public class MavenTestCommand extends Command implements ICommand, ICommandRestricted {
+public class MavenTestCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(MavenTestCommand.class);
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
+        context.reply("*Testing now...*",
+                status -> mavenTest(context, status)
+        );
+    }
+
+    private void mavenTest(CommandContext context, Message status) {
         try {
             Runtime rt = Runtime.getRuntime();
-            Message msg;
 
-            msg = channel.sendMessage("*Testing now...*").complete(true);
-
-            msg = msg.editMessage(msg.getRawContent() + "\n\nRunning `mvn test`... ").complete(true);
+            try {
+                CentralMessaging.editMessage(status, status.getRawContent() + "\n\nRunning `mvn test`... ")
+                        .getWithDefaultTimeout();
+            } catch (TimeoutException | ExecutionException ignored) {
+            }
             File pom = new File("FredBoat/pom.xml");
             if (!pom.exists()) pom = new File("pom.xml");
             if (!pom.exists()) {
-                msg.editMessage(msg.getRawContent() + "[:anger: could not locate pom.xml:]\n\n").complete(true);
+                CentralMessaging.editMessage(status, status.getRawContent() + "[:anger: could not locate pom.xml:]\n\n");
                 throw new RuntimeException("Could not locate file: pom.xml");
             }
 
@@ -73,16 +80,17 @@ public class MavenTestCommand extends Command implements ICommand, ICommandRestr
             new SLF4JInputStreamErrorLogger(log, mvnBuild.getInputStream()).start();
 
             if (!mvnBuild.waitFor(600, TimeUnit.SECONDS)) {
-                msg.editMessage(msg.getRawContent() + "[:anger: timed out]\n\n").complete(true);
+                CentralMessaging.editMessage(status, status.getRawContent() + "[:anger: timed out]\n\n");
                 throw new RuntimeException("Operation timed out: mvn test");
             } else if (mvnBuild.exitValue() != 0) {
-                msg.editMessage(msg.getRawContent() + "[:anger: returned code " + mvnBuild.exitValue() + "]\n\n").complete(true);
+                CentralMessaging.editMessage(status,
+                        status.getRawContent() + "[:anger: returned code " + mvnBuild.exitValue() + "]\n\n");
                 throw new RuntimeException("Bad response code");
             }
 
-            msg.editMessage(msg.getRawContent() + "👌🏽").queue();
+            CentralMessaging.editMessage(status, status.getRawContent() + "👌🏽");
 
-        } catch (InterruptedException | IOException | RateLimitedException ex) {
+        } catch (InterruptedException | IOException ex) {
             ex.printStackTrace();
             throw new RuntimeException(ex);
         }

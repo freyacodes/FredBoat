@@ -27,10 +27,11 @@ package fredboat.command.moderation;
 
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermsUtil;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.*;
@@ -42,12 +43,15 @@ import java.util.List;
 public class ClearCommand extends Command implements IModerationCommand {
 
     //TODO: Redo this
+    //TODO: i18n this class
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        JDA jda = guild.getJDA();
+    public void onInvoke(CommandContext context) {
+        JDA jda = context.guild.getJDA();
+        TextChannel channel = context.channel;
+        Member invoker = context.invoker;
 
         if (!invoker.hasPermission(channel, Permission.MESSAGE_MANAGE) && !PermsUtil.isUserBotOwner(invoker.getUser())) {
-            TextUtils.replyWithName(channel, invoker, " You must have Manage Messages to do that!");
+            context.replyWithName("You must have Manage Messages to do that!");
             return;
         }
         
@@ -67,16 +71,16 @@ public class ClearCommand extends Command implements IModerationCommand {
             if(myMessages.isEmpty()){
                 throw new MessagingException("No messages found.");
             } else if(myMessages.size() == 1) {
-                myMessages.get(0).delete().complete(true);
-                channel.sendMessage("Deleted one message.").queue();
+                context.reply("Found one message, deleting.");
+                CentralMessaging.deleteMessage(myMessages.get(0));
             } else {
 
-                if (!guild.getSelfMember().hasPermission(channel, Permission.MESSAGE_MANAGE)) {
+                if (!context.guild.getSelfMember().hasPermission(channel, Permission.MESSAGE_MANAGE)) {
                     throw new MessagingException("I must have the `Manage Messages` permission to delete my own messages in bulk.");
                 }
 
-                channel.deleteMessages(myMessages).complete(true);
-                channel.sendMessage("Deleted **" + myMessages.size() + "** messages.").queue();
+                context.reply("Deleting **" + myMessages.size() + "** messages.");
+                CentralMessaging.deleteMessages(myMessages);
             }
         } catch (RateLimitedException e) {
             throw new RuntimeException(e);

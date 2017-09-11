@@ -26,36 +26,38 @@
 package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.event.EventListenerBoat;
+import fredboat.messaging.CentralMessaging;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 public class DanceCommand extends Command implements IFunCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         Runnable func = new Runnable() {
             @Override
             public void run() {
-                synchronized (channel) {
-                    try {
-                    Message msg = channel.sendMessage('\u200b' + "\\o\\").complete(true);
-                        EventListenerBoat.messagesToDeleteIfIdDeleted.put(message.getId(), msg.getId());
-                    long start = System.currentTimeMillis();
-                        synchronized (this) {
-                            while (start + 60000 > System.currentTimeMillis()) {
-                                wait(1000);
-                                msg = msg.editMessage("/o/").complete(true);
-                                wait(1000);
-                                msg = msg.editMessage("\\o\\").complete(true);
+                synchronized (context.channel) {
+                    context.reply('\u200b' + "\\o\\", msg -> {
+                        try {
+                            EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), msg.getIdLong());
+                            long start = System.currentTimeMillis();
+                            synchronized (this) {
+                                while (start + 60000 > System.currentTimeMillis()) {
+                                    wait(1000);
+                                    msg = CentralMessaging.editMessage(msg, "/o/").getWithDefaultTimeout();
+                                    wait(1000);
+                                    msg = CentralMessaging.editMessage(msg, "\\o\\").getWithDefaultTimeout();
+                                }
                             }
+                        } catch (TimeoutException | ExecutionException | InterruptedException ignored) {
                         }
-                    } catch (InterruptedException | RateLimitedException ignored) {
-                    }
+                    });
                 }
             }
         };

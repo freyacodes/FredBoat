@@ -27,25 +27,28 @@ package fredboat.command.admin;
 
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommand;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.ExitCodes;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /**
  *
  * @author frederik
  */
-public class ExitCommand extends Command implements ICommand, ICommandRestricted {
+public class ExitCommand extends Command implements ICommandRestricted {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        channel.sendMessage(TextUtils.prefaceWithName(invoker, " :wave:")).queue();
+    public void onInvoke(CommandContext context) {
+
+        try {
+            context.replyWithName(":wave:").getWithDefaultTimeout();
+        } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
+        }
         FredBoat.shutdown(ExitCodes.EXIT_CODE_NORMAL);
     }
 

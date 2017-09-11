@@ -1,4 +1,5 @@
 /*
+ *
  * MIT License
  *
  * Copyright (c) 2017 Frederik Ar. Mikkelsen
@@ -20,31 +21,27 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-package fredboat.command.fun;
+package fredboat.messaging;
 
-import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.CommandContext;
-import fredboat.commandmeta.abs.IFunCommand;
-import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Message;
 
-public class TextCommand extends Command implements IFunCommand {
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-    public String msg;
-
-    public TextCommand(String msg) {
-        this.msg = msg;
-    }
-    
+/**
+ * Created by napster on 10.09.17.
+ */
+public class MessageFuture extends CompletableFuture<Message> {
     @Override
-    public void onInvoke(CommandContext context) {
-        context.reply(msg);
+    public boolean cancel(boolean mayInterruptIfRunning) {
+        throw new UnsupportedOperationException("Can't cancel a queued Message");
     }
 
-    @Override
-    public String help(Guild guild) {
-        return "{0}{1}\n#Send a funny text.";
+    public Message getWithDefaultTimeout() throws InterruptedException, ExecutionException, TimeoutException {
+        return get(30, TimeUnit.SECONDS);
     }
 }

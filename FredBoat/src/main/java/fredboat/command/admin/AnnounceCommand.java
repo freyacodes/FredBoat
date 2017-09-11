@@ -28,14 +28,13 @@ package fredboat.command.admin;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
-import fredboat.util.TextUtils;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,71 +55,72 @@ public class AnnounceCommand extends Command implements ICommandRestricted {
     private static final String HEAD = "__**[BROADCASTED MESSAGE]**__\n";
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         List<GuildPlayer> players = PlayerRegistry.getPlayingPlayers();
 
         if (players.isEmpty()) {
             return;
         }
-        String input = message.getRawContent().substring(args[0].length() + 1);
+        String input = context.msg.getRawContent().substring(context.args[0].length() + 1);
         String msg = HEAD + input;
 
-        Message status;
-        try {
-            status = channel.sendMessage(String.format("[0/%d]", players.size())).complete(true);
-        } catch (RateLimitedException e) {
-            log.error("Announcement failed! Rate limits.", e);
-            TextUtils.handleException(e, channel, invoker);
-            throw new RuntimeException(e);
-        }
+        context.reply(String.format("[0/%d]", players.size()),
+                //success handler
+                status -> new Thread(() -> {
+                    Phaser phaser = new Phaser(players.size());
 
-        new Thread(() -> {
-            Phaser phaser = new Phaser(players.size());
+                    for (GuildPlayer player : players) {
+                        CentralMessaging.sendMessage(player.getActiveTextChannel(), msg,
+                                __ -> phaser.arrive(),
+                                __ -> phaser.arriveAndDeregister());
+                    }
 
-            for (GuildPlayer player : players) {
-                player.getActiveTextChannel().sendMessage(msg).queue(
-                        __ -> phaser.arrive(),
-                        __ -> phaser.arriveAndDeregister());
-            }
-
-            new Thread(() -> {
-                try {
-                    do {
+                    new Thread(() -> {
                         try {
-                            phaser.awaitAdvanceInterruptibly(0, 5, TimeUnit.SECONDS);
-                            // Now all the parties have arrived, we can break out of the loop
-                            break;
-                        } catch (TimeoutException ex) {
-                            // This is fine, this means that the required parties haven't arrived
+                            do {
+                                try {
+                                    phaser.awaitAdvanceInterruptibly(0, 5, TimeUnit.SECONDS);
+                                    // Now all the parties have arrived, we can break out of the loop
+                                    break;
+                                } catch (TimeoutException ex) {
+                                    // This is fine, this means that the required parties haven't arrived
+                                }
+                                printProgress(status,
+                                        phaser.getArrivedParties(),
+                                        players.size(),
+                                        players.size() - phaser.getRegisteredParties());
+                            } while (true);
+                            printDone(status,
+                                    phaser.getRegisteredParties(), //phaser wraps back to 0 on phase increment
+                                    players.size() - phaser.getRegisteredParties());
+                        } catch (InterruptedException ex) {
+                            Thread.currentThread().interrupt(); // restore interrupt flag
+                            log.error("interrupted", ex);
+                            throw new RuntimeException(ex);
                         }
-                        printProgress(status,
-                                phaser.getArrivedParties(),
-                                players.size(),
-                                players.size() - phaser.getRegisteredParties());
-                    } while (true);
-                    printDone(status,
-                            phaser.getRegisteredParties(), //phaser wraps back to 0 on phase increment
-                            players.size() - phaser.getRegisteredParties());
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt(); // restore interrupt flag
-                    log.error("interrupted", ex);
-                    throw new RuntimeException(ex);
+                    }).start();
+                }).start(),
+
+                //failure handler
+                throwable -> {
+                    log.error("Announcement failed!", throwable);
+                    TextUtils.handleException(throwable, context);
+                    throw new RuntimeException(throwable);
                 }
-            }).start();
-        }).start();
+        );
     }
 
     private static void printProgress(Message message, int done, int total, int error) {
-                    message.editMessage(MessageFormat.format(
+        CentralMessaging.editMessage(message, MessageFormat.format(
                             "[{0}/{1}]{2,choice,0#|0< {2} failed}",
                             done, total, error)
-                    ).queue();
+        );
     }
     private static void printDone(Message message, int completed, int failed) {
-                    message.editMessage(MessageFormat.format(
+        CentralMessaging.editMessage(message, MessageFormat.format(
                             "{0} completed, {1} failed",
                             completed, failed)
-                    ).queue();
+        );
     }
 
     @Override

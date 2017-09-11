@@ -25,17 +25,13 @@
 
 package fredboat.command.admin;
 
-import fredboat.Config;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.perms.PermissionLevel;
-import fredboat.util.TextUtils;
 import io.sentry.Sentry;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 /**
  * Created by napster on 07.09.17.
@@ -44,20 +40,19 @@ import net.dv8tion.jda.core.entities.TextChannel;
  */
 public class SentryDsnCommand extends Command implements ICommandRestricted {
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        if (args.length < 2) {
-            String command = args[0].substring(Config.CONFIG.getPrefix().length());
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+    public void onInvoke(CommandContext context) {
+        if (context.args.length < 2) {
+            HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
-        String dsn = args[1];
+        String dsn = context.args[1];
 
         if (dsn.equals("stop") || dsn.equals("clear")) {
             Sentry.close();
-            TextUtils.replyWithName(channel, invoker, "Sentry service has been stopped");
+            context.replyWithName("Sentry service has been stopped");
         } else {
             Sentry.init(dsn);
-            TextUtils.replyWithName(channel, invoker, "New Sentry DSN has been set!");
+            context.replyWithName("New Sentry DSN has been set!");
         }
     }
 

@@ -26,18 +26,20 @@
 package fredboat.command.music.info;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
+import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 public class GensokyoRadioCommand extends Command implements IMusicCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        NowplayingCommand.sendGensokyoRadioEmbed(channel);
+    public void onInvoke(CommandContext context) {
+        EmbedBuilder eb = CentralMessaging.addFooter(
+                NowplayingCommand.getGensokyoRadioEmbed(I18n.get(context.guild)), context.guild.getSelfMember());
+        context.reply(eb.build());
     }
 
     @Override

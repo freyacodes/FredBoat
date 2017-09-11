@@ -1,5 +1,6 @@
 package fredboat;
 
+import fredboat.messaging.CentralMessaging;
 import fredboat.shared.constant.BotConstants;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.AccountType;
@@ -26,6 +27,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Created by napster on 22.03.17.
@@ -71,7 +74,7 @@ public abstract class ProvideJDASingleton {
         public void run() {
 
             //don't set a thumbnail, that decreases our space to display the tests results
-            EmbedBuilder eb = new EmbedBuilder();
+            EmbedBuilder eb = CentralMessaging.getClearThreadLocalEmbedBuilder();
             eb.setAuthor(jda.getSelfUser().getName(), jda.getSelfUser().getAvatarUrl(), jda.getSelfUser().getAvatarUrl());
 
             eb.addField("Total tests passed", totalPassed + "", true);
@@ -123,7 +126,10 @@ public abstract class ProvideJDASingleton {
             eb.setFooter(jda.getSelfUser().getName(), jda.getSelfUser().getAvatarUrl());
             eb.setTimestamp(Instant.now());
 
-            testChannel.sendMessage(eb.build()).complete();
+            try {
+                CentralMessaging.sendMessage(testChannel, eb.build()).getWithDefaultTimeout();
+            } catch (TimeoutException | ExecutionException | InterruptedException ignored) {
+            }
 
             jda.shutdown();
         }
@@ -165,12 +171,12 @@ public abstract class ProvideJDASingleton {
             for (int i = 0; i < out.length(); i++) spacer += "#";
             out = spacer + "\n" + out + "\n" + spacer;
             out = TextUtils.asMarkdown(out);
-            testChannel.sendMessage(out).complete();
+            CentralMessaging.sendMessage(testChannel, out).getWithDefaultTimeout();
 
             initialized = true;
             //post final test stats and shut down the JDA instance when testing is done
             Runtime.getRuntime().addShutdownHook(SHUTDOWNHOOK);
-        } catch (RateLimitedException | LoginException | InterruptedException | IOException e) {
+        } catch (RateLimitedException | LoginException | InterruptedException | IOException | ExecutionException | TimeoutException e) {
             log.error("Could not create JDA object for tests", e);
         }
     }

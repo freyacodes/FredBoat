@@ -27,29 +27,19 @@ package fredboat.command.music.control;
 
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
-import fredboat.perms.PermsUtil;
-import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 public class DestroyCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        if(invoker.hasPermission(channel, Permission.MESSAGE_MANAGE)
-                || PermsUtil.checkPerms(PermissionLevel.ADMIN, invoker)) {
-            PlayerRegistry.destroyPlayer(guild);
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("destroySucc"));
-        } else {
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("destroyDenied"));
-        }
+    public void onInvoke(CommandContext context) {
+        PlayerRegistry.destroyPlayer(context.guild);
+        context.replyWithName(I18n.get(context, "destroySucc"));
     }
 
     @Override

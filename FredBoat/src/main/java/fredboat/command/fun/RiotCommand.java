@@ -26,17 +26,15 @@
 package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 public class RiotCommand extends Command implements IFunCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        channel.sendMessage("ヽ༼ຈل͜ຈ༽ﾉ **" + message.getContent().replaceFirst("\\S*\\s+", "").toUpperCase()+"** ヽ༼ຈل͜ຈ༽ﾉ").queue();
+    public void onInvoke(CommandContext context) {
+        context.reply("ヽ༼ຈل͜ຈ༽ﾉ **" + context.msg.getContent().replaceFirst("\\S*\\s+", "").toUpperCase() + "** ヽ༼ຈل͜ຈ༽ﾉ");
     }
 
     @Override

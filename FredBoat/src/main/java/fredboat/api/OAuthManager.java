@@ -34,6 +34,7 @@ import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.entities.User;
 import org.slf4j.LoggerFactory;
 
+@Deprecated //this hasn't been used for a long time, take care
 public class OAuthManager {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(OAuthManager.class);
@@ -83,6 +84,7 @@ public class OAuthManager {
     }
 
     private static UConfig saveTokenToConfig(TokenGrant token){
+        //NOTE: the returned user might be fake, which means opening a private channel might throw an exception
         User user = DiscordUtil.getUserFromBearer(FredBoat.getFirstJDA(), token.getBearer());
 
         UConfig uconfig = EntityReader.getUConfig(user.getId());

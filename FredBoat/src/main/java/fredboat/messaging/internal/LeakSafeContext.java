@@ -1,4 +1,5 @@
 /*
+ *
  * MIT License
  *
  * Copyright (c) 2017 Frederik Ar. Mikkelsen
@@ -20,73 +21,57 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-package fredboat.audio.queue;
+package fredboat.messaging.internal;
 
 import fredboat.FredBoat;
-import fredboat.messaging.internal.LeakSafeContext;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.User;
 
-public class IdentifierContext extends LeakSafeContext {
+/**
+ * Created by napster on 11.09.17.
+ * <p>
+ * Unlike the CommandContext, this context will always look up the entities by their ids, therefore it may be saved and
+ * assigned, however it may return null for entities not found anymore.
+ */
+public class LeakSafeContext extends Context {
 
-    public final FredBoat shard;
-    public final String identifier;
-    private boolean quiet = false;
-    private boolean split = false;
-    private long position = 0L;
+    protected final long channelId;
+    protected final long guildId;
+    protected final long userId;
 
-    public IdentifierContext(String identifier, TextChannel textChannel, Member member) {
-        super(textChannel, textChannel.getGuild(), member);
-        this.shard = FredBoat.getInstance(textChannel.getJDA());
-        this.identifier = identifier;
+    public LeakSafeContext(TextChannel channel, Guild guild, Member member) {
+        this.channelId = channel.getIdLong();
+        this.guildId = guild.getIdLong();
+        this.userId = member.getUser().getIdLong();
     }
 
-    public boolean isQuiet() {
-        return quiet;
-    }
-
-    public void setQuiet(boolean quiet) {
-        this.quiet = quiet;
-    }
-
-    public long getPosition() {
-        return position;
-    }
-
-    public boolean isSplit() {
-        return split;
-    }
-
-    public void setSplit(boolean split) {
-        this.split = split;
-    }
-
-    public void setPosition(long position) {
-        this.position = position;
+    public LeakSafeContext(Context context) {
+        this(context.getTextChannel(), context.getGuild(), context.getMember());
     }
 
     @Override
     public TextChannel getTextChannel() {
-        return shard.getJda().getTextChannelById(channelId);
+        return FredBoat.getTextChannelById(Long.toString(channelId));
     }
 
     @Override
     public Guild getGuild() {
-        return shard.getJda().getGuildById(guildId);
+        return FredBoat.getGuildById(guildId);
     }
 
     @Override
     public Member getMember() {
-        return shard.getJda().getGuildById(guildId).getMemberById(userId);
+        Guild guild = getGuild();
+        return guild != null ? guild.getMemberById(userId) : null;
     }
 
     @Override
     public User getUser() {
-        return shard.getJda().getUserById(userId);
+        Member member = getMember();
+        return member != null ? member.getUser() : null;
     }
 }

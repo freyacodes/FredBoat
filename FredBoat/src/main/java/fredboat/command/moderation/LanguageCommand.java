@@ -27,18 +27,14 @@ package fredboat.command.moderation;
 
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -48,29 +44,31 @@ import java.util.List;
 public class LanguageCommand extends Command implements IModerationCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
+        String[] args = context.args;
+        Guild guild = context.guild;
         if(args.length != 2) {
-            handleNoArgs(guild, channel, invoker, message, args);
+            handleNoArgs(context);
             return;
         }
 
-        if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, invoker, channel))
+        if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, context))
             return;
         
         //Assume proper usage and that we are about to set a new language
         try {
             I18n.set(guild, args[1]);
         } catch (I18n.LanguageNotSupportedException e) {
-            TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("langInvalidCode"), args[1]));
+            context.replyWithName(MessageFormat.format(I18n.get(context, "langInvalidCode"), args[1]));
             return;
         }
 
-        TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("langSuccess"), I18n.getLocale(guild).getNativeName()));
+        context.replyWithName(MessageFormat.format(I18n.get(context, "langSuccess"), I18n.getLocale(guild).getNativeName()));
     }
 
-    private void handleNoArgs(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        MessageBuilder mb = new MessageBuilder()
-                .append(I18n.get(guild).getString("langInfo").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()))
+    private void handleNoArgs(CommandContext context) {
+        MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
+                .append(I18n.get(context, "langInfo").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()))
                 .append("\n\n");
 
         List<String> keys = new ArrayList<>(I18n.LANGS.keySet());
@@ -83,9 +81,9 @@ public class LanguageCommand extends Command implements IModerationCommand {
         }
 
         mb.append("\n");
-        mb.append(I18n.get(guild).getString("langDisclaimer"));
+        mb.append(I18n.get(context, "langDisclaimer"));
 
-        channel.sendMessage(mb.build()).queue();
+        context.reply(mb.build());
     }
 
     @Override

@@ -30,18 +30,19 @@ import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.audio.queue.RepeatMode;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.ResourceBundle;
 
 public class ListCommand extends Command implements IMusicCommand {
 
@@ -50,21 +51,22 @@ public class ListCommand extends Command implements IMusicCommand {
     private static final int PAGE_SIZE = 10;
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        GuildPlayer player = PlayerRegistry.get(guild);
-        player.setCurrentTC(channel);
+    public void onInvoke(CommandContext context) {
+        GuildPlayer player = PlayerRegistry.get(context.guild);
+        player.setCurrentTC(context.channel);
+        ResourceBundle i18n = I18n.get(context.guild);
 
         if(player.isQueueEmpty()) {
-            channel.sendMessage(I18n.get(guild).getString("npNotPlaying")).queue();
+            context.reply(i18n.getString("npNotPlaying"));
             return;
         }
 
-        MessageBuilder mb = new MessageBuilder();
+        MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder();
 
         int page = 1;
-        if(args.length >= 2) {
+        if (context.args.length >= 2) {
             try {
-                page = Integer.valueOf(args[1]);
+                page = Integer.valueOf(context.args[1]);
             } catch (NumberFormatException e) {
                 page = 1;
             }
@@ -85,20 +87,20 @@ public class ListCommand extends Command implements IMusicCommand {
         List<AudioTrackContext> sublist = player.getTracksInRange(i, listEnd);
 
         if (player.isShuffle()) {
-            mb.append(I18n.get(guild).getString("listShowShuffled"));
+            mb.append(I18n.get(context, "listShowShuffled"));
             mb.append("\n");
             if (player.getRepeatMode() == RepeatMode.OFF)
                 mb.append("\n");
         }
         if (player.getRepeatMode() == RepeatMode.SINGLE) {
-            mb.append(I18n.get(guild).getString("listShowRepeatSingle"));
+            mb.append(i18n.getString("listShowRepeatSingle"));
             mb.append("\n");
         } else if (player.getRepeatMode() == RepeatMode.ALL) {
-            mb.append(I18n.get(guild).getString("listShowRepeatAll"));
+            mb.append(i18n.getString("listShowRepeatAll"));
             mb.append("\n");
         }
 
-        mb.append(MessageFormat.format(I18n.get(guild).getString("listPageNum"), page, maxPages));
+        mb.append(MessageFormat.format(i18n.getString("listPageNum"), page, maxPages));
         mb.append("\n");
         mb.append("\n");
 
@@ -107,13 +109,13 @@ public class ListCommand extends Command implements IMusicCommand {
             if (i == 0) {
                 status = player.isPlaying() ? " \\▶" : " \\\u23F8"; //Escaped play and pause emojis
             }
-            Member member = guild.getMemberById(atc.getUserId());
-            String username = member != null ? member.getEffectiveName() : guild.getSelfMember().getEffectiveName();
+            Member member = context.guild.getMemberById(atc.getUserId());
+            String username = member != null ? member.getEffectiveName() : context.guild.getSelfMember().getEffectiveName();
             mb.append("[" +
                     TextUtils.forceNDigits(i + 1, numberLength)
                     + "]", MessageBuilder.Formatting.BLOCK)
                     .append(status)
-                    .append(MessageFormat.format(I18n.get(guild).getString("listAddedBy"), atc.getEffectiveTitle(), username, TextUtils.formatTime(atc.getEffectiveDuration())))
+                    .append(MessageFormat.format(i18n.getString("listAddedBy"), atc.getEffectiveTitle(), username, TextUtils.formatTime(atc.getEffectiveDuration())))
                     .append("\n");
 
             if (i == listEnd) {
@@ -133,21 +135,21 @@ public class ListCommand extends Command implements IMusicCommand {
 
         if (numTracks == 0) {
             //We are only listening to streams
-            desc = MessageFormat.format(I18n.get(guild).getString(streams == 1 ? "listStreamsOnlySingle" : "listStreamsOnlyMultiple"),
+            desc = MessageFormat.format(i18n.getString(streams == 1 ? "listStreamsOnlySingle" : "listStreamsOnlyMultiple"),
                     streams, streams == 1 ?
-                    I18n.get(guild).getString("streamSingular") : I18n.get(guild).getString("streamPlural"));
+                            i18n.getString("streamSingular") : i18n.getString("streamPlural"));
         } else {
 
-            desc = MessageFormat.format(I18n.get(guild).getString(numTracks == 1 ? "listStreamsOrTracksSingle" : "listStreamsOrTracksMultiple"),
+            desc = MessageFormat.format(i18n.getString(numTracks == 1 ? "listStreamsOrTracksSingle" : "listStreamsOrTracksMultiple"),
                     numTracks, numTracks == 1 ?
-                    I18n.get(guild).getString("trackSingular") : I18n.get(guild).getString("trackPlural"), timestamp, streams == 0
-                    ? "" : MessageFormat.format(I18n.get(guild).getString("listAsWellAsLiveStreams"), streams, streams == 1
-                    ? I18n.get(guild).getString("streamSingular") : I18n.get(guild).getString("streamPlural")));
+                            i18n.getString("trackSingular") : i18n.getString("trackPlural"), timestamp, streams == 0
+                            ? "" : MessageFormat.format(i18n.getString("listAsWellAsLiveStreams"), streams, streams == 1
+                            ? i18n.getString("streamSingular") : i18n.getString("streamPlural")));
         }
 
         mb.append("\n").append(desc);
 
-        channel.sendMessage(mb.build()).queue();
+        context.reply(mb.build());
 
     }
 

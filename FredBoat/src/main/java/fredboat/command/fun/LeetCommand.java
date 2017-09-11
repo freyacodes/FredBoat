@@ -30,14 +30,10 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.event.EventListenerBoat;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -50,36 +46,30 @@ import java.net.URLEncoder;
 public class LeetCommand extends Command implements IFunCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         String res = "";
-        channel.sendTyping().queue();
+        context.sendTyping();
 
-        if(args.length < 2) {
-            String command = args[0].substring(Config.CONFIG.getPrefix().length());
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+        if (context.args.length < 2) {
+            HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
-        for (int i = 1; i < args.length; i++) {
-            res = res+" "+args[i];
+        for (int i = 1; i < context.args.length; i++) {
+            res = res + " " + context.args[i];
         }
         res = res.substring(1);
         try {
             res = Unirest.get("https://montanaflynn-l33t-sp34k.p.mashape.com/encode?text=" + URLEncoder.encode(res, "UTF-8").replace("+", "%20")).header("X-Mashape-Key", Config.CONFIG.getMashapeKey()).asString().getBody();
         } catch (UnirestException ex) {
-            Message myMsg = TextUtils.replyWithName(channel, invoker, " Could not connect to API! "+ex.getMessage());
+            context.replyWithName("Could not connect to API! " + ex.getMessage());
             return;
         } catch (UnsupportedEncodingException ex) {
             throw new RuntimeException(ex);
         }
-        Message myMsg = null;
-        try {
-            myMsg = channel.sendMessage(res).complete(true);
-        } catch (RateLimitedException e) {
-            throw new RuntimeException(e);
-        }
-
-        EventListenerBoat.messagesToDeleteIfIdDeleted.put(message.getId(), myMsg.getId());
+        context.reply(res, message ->
+                EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), message.getIdLong())
+        );
     }
 
     @Override

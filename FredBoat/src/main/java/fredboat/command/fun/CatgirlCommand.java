@@ -27,41 +27,40 @@ package fredboat.command.fun;
 
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
+import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.I18n;
 import fredboat.util.rest.CacheUtil;
 import fredboat.util.rest.CloudFlareScraper;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.io.File;
 import java.text.MessageFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class CatgirlCommand extends Command {
+public class CatgirlCommand extends Command implements IFunCommand {
 
     private static final Pattern IMAGE_PATTERN = Pattern.compile("src=\"([^\"]+)");
     private static final String BASE_URL = "http://catgirls.brussell98.tk/";
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        channel.sendTyping().queue();
-        FredBoat.executor.submit(() -> postCatgirl(guild, channel));
+    public void onInvoke(CommandContext context) {
+        context.sendTyping();
+        FredBoat.executor.submit(() -> postCatgirl(context));
     }
 
-    private void postCatgirl(Guild guild, TextChannel channel) {
+    private void postCatgirl(CommandContext context) {
         String str = CloudFlareScraper.get(BASE_URL);
         Matcher m = IMAGE_PATTERN.matcher(str);
 
         if (!m.find()) {
-            channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("catgirlFail"), BASE_URL)).queue();
+            context.reply(MessageFormat.format(I18n.get(context, "catgirlFail"), BASE_URL));
             return;
         }
 
         File tmp = CacheUtil.getImageFromURL(BASE_URL + m.group(1));
-        channel.sendFile(tmp, null).queue();
+        context.replyFile(tmp, null);
     }
 
     @Override

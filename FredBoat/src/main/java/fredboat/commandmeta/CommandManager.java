@@ -27,8 +27,10 @@ package fredboat.commandmeta;
 
 
 import fredboat.Config;
+import fredboat.command.fun.AkinatorCommand;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
@@ -40,12 +42,11 @@ import fredboat.shared.constant.BotConstants;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
-import fredboat.util.rest.RestActionScheduler;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
@@ -55,12 +56,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class CommandManager {
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(CommandManager.class);
+    private static final Logger log = LoggerFactory.getLogger(CommandManager.class);
 
     public static final AtomicInteger commandsExecuted = new AtomicInteger(0);
 
-    public static void prefixCalled(Command invoked, Guild guild, TextChannel channel, Member invoker, Message message) {
-        String[] args = commandToArguments(message.getRawContent());
+    public static void prefixCalled(CommandContext context) {
+        Guild guild = context.guild;
+        Command invoked = context.command;
+        TextChannel channel = context.channel;
+        Member invoker = context.invoker;
+
         commandsExecuted.getAndIncrement();
 
         if (Config.CONFIG.getDistribution() == DistributionEnum.MAIN
@@ -85,7 +90,7 @@ public class CommandManager {
 
                 msg += "Do you believe this to be a mistake? If so reach out to Fre_d on Patreon <https://www.patreon.com/fredboat>";
 
-                channel.sendMessage(msg).queue();
+                context.reply(msg);
                 return;
             }
         }
@@ -101,28 +106,22 @@ public class CommandManager {
         }
 
         if (invoked instanceof IMusicCommand
-                && !channel.getGuild().getSelfMember().hasPermission(channel, Permission.MESSAGE_WRITE)) {
+                && !guild.getSelfMember().hasPermission(channel, Permission.MESSAGE_WRITE)) {
             log.debug("Ignored command because it was a music command, and this bot cannot write in that channel");
             return;
         }
 
         //Hardcode music commands in FredBoatHangout. Blacklist any channel that isn't #general or #staff, but whitelist Frederikam
-        if (invoked instanceof IMusicCommand
+        if ((invoked instanceof IMusicCommand || invoked instanceof AkinatorCommand) // the hate is real
                 && guild.getId().equals(BotConstants.FREDBOAT_HANGOUT_ID)
                 && guild.getJDA().getSelfUser().getId().equals(BotConstants.MUSIC_BOT_ID)) {
-            if (!channel.getId().equals("174821093633294338")
-                    && !channel.getId().equals("217526705298866177")
+            if (!channel.getId().equals("174821093633294338") // #spam_and_music
+                    && !channel.getId().equals("217526705298866177") // #staff
                     && !invoker.getUser().getId().equals("203330266461110272")//Cynth
-                    && !invoker.getUser().getId().equals("81011298891993088")) {
-                message.delete().queue();
-                channel.sendMessage(invoker.getEffectiveName() + ": Please don't spam music commands outside of <#174821093633294338>.").queue(message1 -> {
-                    RestActionScheduler.schedule(
-                            message1.delete(),
-                            5,
-                            TimeUnit.SECONDS
-                    );
-                });
-
+                    && !invoker.getUser().getId().equals("81011298891993088")) { // Fre_d
+                context.deleteMessage();
+                context.replyWithName("Please don't spam music commands outside of <#174821093633294338>.",
+                        msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
                 return;
             }
         }
@@ -133,15 +132,15 @@ public class CommandManager {
             PermissionLevel actual = PermsUtil.getPerms(invoker);
 
             if(actual.getLevel() < minPerms.getLevel()) {
-                TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("cmdPermsTooLow"), minPerms, actual));
+                context.replyWithName(MessageFormat.format(I18n.get(context, "cmdPermsTooLow"), minPerms, actual));
                 return;
             }
         }
 
         try {
-            invoked.onInvoke(guild, channel, invoker, message, args);
+            invoked.onInvoke(context);
         } catch (Exception e) {
-            TextUtils.handleException(e, channel, invoker);
+            TextUtils.handleException(e, context);
         }
 
     }

@@ -30,10 +30,11 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.commandmeta.MessagingException;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
@@ -51,42 +52,40 @@ public class TextUtils {
 
     public static Message prefaceWithName(Member member, String msg) {
         msg = ensureSpace(msg);
-
-        MessageBuilder builder = new MessageBuilder().append(member.getEffectiveName()).append(": ").append(msg);
-        return builder.build();
+        return CentralMessaging.getClearThreadLocalMessageBuilder()
+                .append(member.getAsMention())
+                .append(": ")
+                .append(msg)
+                .build();
     }
 
-    public static Message replyWithName(TextChannel channel, Member member, String msg) {
+    public static Message prefaceWithMention(Member member, String msg) {
         msg = ensureSpace(msg);
-
-        MessageBuilder builder = new MessageBuilder().append(member.getEffectiveName()).append(": ").append(msg);
-        Message mes = builder.build();
-        channel.sendMessage(mes).queue();
-        return mes;
+        return CentralMessaging.getClearThreadLocalMessageBuilder()
+                .append(member.getEffectiveName())
+                .append(": ")
+                .append(msg)
+                .build();
     }
 
     private static String ensureSpace(String msg){
         return msg.charAt(0) == ' ' ? msg : " " + msg;
     }
 
-    public static void handleException(Throwable e, TextChannel channel) {
-        handleException(e, channel, null);
-    }
-
-    public static void handleException(Throwable e, TextChannel channel, Member invoker) {
+    public static void handleException(Throwable e, Context context) {
         if (e instanceof MessagingException) {
-            channel.sendMessage(invoker.getEffectiveName() + ": " + e.getMessage()).queue();
+            context.replyWithName(e.getMessage());
             return;
         }
 
         log.error("Caught exception while executing a command", e);
 
-        MessageBuilder builder = new MessageBuilder();
+        MessageBuilder builder = CentralMessaging.getClearThreadLocalMessageBuilder();
 
-        if (invoker != null) {
-            builder.append(invoker);
+        if (context.getMember() != null) {
+            builder.append(context.getMember());
 
-            String filtered = MessageFormat.format(I18n.get(invoker.getGuild()).getString("utilErrorOccurred"), e.toString());
+            String filtered = MessageFormat.format(I18n.get(context, "utilErrorOccurred"), e.toString());
 
             for (String str : Config.CONFIG.getGoogleKeys()) {
                 filtered = filtered.replace(str, "GOOGLE_SERVER_KEY");
@@ -115,13 +114,13 @@ public class TextUtils {
         Message out = builder.build();
 
         try {
-            channel.sendMessage(out).queue();
+            context.reply(out);
         } catch (UnsupportedOperationException tooLongEx) {
             try {
-                channel.sendMessage(MessageFormat.format(I18n.get(channel.getGuild()).getString("errorOccurredTooLong"),
-                        postToPasteService(out.getRawContent()))).queue();
+                context.reply(MessageFormat.format(I18n.get(context, "errorOccurredTooLong"),
+                        postToPasteService(out.getRawContent())));
             } catch (UnirestException e1) {
-                channel.sendMessage(I18n.get(channel.getGuild()).getString("errorOccurredTooLongAndUnirestException")).queue();
+                context.reply(I18n.get(context, "errorOccurredTooLongAndUnirestException"));
             }
         }
     }

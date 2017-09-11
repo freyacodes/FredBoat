@@ -34,18 +34,17 @@ import fredboat.audio.player.PlayerLimitManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.player.VideoSelection;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
 import fredboat.util.rest.SearchUtil;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.Message.Attachment;
-import net.dv8tion.jda.core.entities.TextChannel;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
@@ -66,20 +65,21 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
     }
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        if (!invoker.getVoiceState().inVoiceChannel()) {
-            channel.sendMessage(I18n.get(guild).getString("playerUserNotInChannel")).queue();
+    public void onInvoke(CommandContext context) {
+        String[] args = context.args;
+        if (!context.invoker.getVoiceState().inVoiceChannel()) {
+            context.reply(I18n.get(context, "playerUserNotInChannel"));
             return;
         }
 
-        if (!PlayerLimitManager.checkLimitResponsive(channel)) return;
+        if (!PlayerLimitManager.checkLimitResponsive(context)) return;
 
-        if (!message.getAttachments().isEmpty()) {
-            GuildPlayer player = PlayerRegistry.get(guild);
-            player.setCurrentTC(channel);
-            
-            for (Attachment atc : message.getAttachments()) {
-                player.queue(atc.getUrl(), channel, invoker);
+        if (!context.msg.getAttachments().isEmpty()) {
+            GuildPlayer player = PlayerRegistry.get(context.guild);
+            player.setCurrentTC(context.channel);
+
+            for (Attachment atc : context.msg.getAttachments()) {
+                player.queue(atc.getUrl(), context);
             }
             
             player.setPause(false);
@@ -88,59 +88,60 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         }
 
         if (args.length < 2) {
-            handleNoArguments(guild, channel, invoker, message);
+            handleNoArguments(context);
             return;
         }
 
         //What if we want to select a selection instead?
         if (args.length == 2 && StringUtils.isNumeric(args[1])){
-            SelectCommand.select(guild, channel, invoker, message, args);
+            SelectCommand.select(context);
             return;
         }
 
         //Search youtube for videos and let the user select a video
         if (!args[1].startsWith("http")) {
-            searchForVideos(guild, channel, invoker, message, args);
+            searchForVideos(context);
             return;
         }
 
-        GuildPlayer player = PlayerRegistry.get(guild);
-        player.setCurrentTC(channel);
+        GuildPlayer player = PlayerRegistry.get(context.guild);
+        player.setCurrentTC(context.channel);
 
-        player.queue(args[1], channel, invoker);
+        player.queue(args[1], context);
         player.setPause(false);
 
         try {
-            message.delete().queue();
+            context.deleteMessage();
         } catch (Exception ignored) {
 
         }
     }
 
-    private void handleNoArguments(Guild guild, TextChannel channel, Member invoker, Message message) {
+    private void handleNoArguments(CommandContext context) {
+        Guild guild = context.guild;
         GuildPlayer player = PlayerRegistry.get(guild);
-        player.setCurrentTC(channel);
+        player.setCurrentTC(context.channel);
         if (player.isQueueEmpty()) {
-            channel.sendMessage(I18n.get(guild).getString("playQueueEmpty")).queue();
+            context.reply(I18n.get(context, "playQueueEmpty"));
         } else if (player.isPlaying()) {
-            channel.sendMessage(I18n.get(guild).getString("playAlreadyPlaying")).queue();
+            context.reply(I18n.get(context, "playAlreadyPlaying"));
         } else if (player.getHumanUsersInCurrentVC().isEmpty() && LavalinkManager.ins.getConnectedChannel(guild) != null) {
-            channel.sendMessage(I18n.get(guild).getString("playVCEmpty")).queue();
+            context.reply(I18n.get(context, "playVCEmpty"));
         } else if(LavalinkManager.ins.getConnectedChannel(guild) == null) {
             // When we just want to continue playing, but the user is not in a VC
-            JOIN_COMMAND.onInvoke(guild, channel, invoker, message, new String[0]);
+            JOIN_COMMAND.onInvoke(context);
             if(LavalinkManager.ins.getConnectedChannel(guild) != null || guild.getAudioManager().isAttemptingToConnect()) {
                 player.play();
-                channel.sendMessage(I18n.get(guild).getString("playWillNowPlay")).queue();
+                context.reply(I18n.get(context, "playWillNowPlay"));
             }
         } else {
             player.play();
-            channel.sendMessage(I18n.get(guild).getString("playWillNowPlay")).queue();
+            context.reply(I18n.get(context, "playWillNowPlay"));
         }
     }
 
-    private void searchForVideos(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        Matcher m = Pattern.compile("\\S+\\s+(.*)").matcher(message.getRawContent());
+    private void searchForVideos(CommandContext context) {
+        Matcher m = Pattern.compile("\\S+\\s+(.*)").matcher(context.msg.getRawContent());
         m.find();
         String query = m.group(1);
         
@@ -148,32 +149,35 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         query = query.replaceAll(SearchUtil.PUNCTUATION_REGEX, "");
 
         String finalQuery = query;
-        channel.sendMessage(I18n.get(guild).getString("playSearching").replace("{q}", query)).queue(outMsg -> {
+        context.reply(I18n.get(context, "playSearching").replace("{q}", query), outMsg -> {
             AudioPlaylist list;
             try {
                 list = SearchUtil.searchForTracks(finalQuery, searchProviders);
             } catch (SearchUtil.SearchingException e) {
-                channel.sendMessage(I18n.get(guild).getString("playYoutubeSearchError")).queue();
+                context.reply(I18n.get(context, "playYoutubeSearchError"));
                 log.error("YouTube search exception", e);
                 return;
             }
 
             if (list == null || list.getTracks().isEmpty()) {
-                outMsg.editMessage(I18n.get(guild).getString("playSearchNoResults").replace("{q}", finalQuery)).queue();
+                CentralMessaging.editMessage(outMsg,
+                        I18n.get(context, "playSearchNoResults").replace("{q}", finalQuery)
+                );
+
             } else {
                 //Clean up any last search by this user
-                GuildPlayer player = PlayerRegistry.get(guild);
+                GuildPlayer player = PlayerRegistry.get(context.guild);
 
                 //Get at most 5 tracks
                 List<AudioTrack> selectable = list.getTracks().subList(0, Math.min(SearchUtil.MAX_RESULTS, list.getTracks().size()));
 
-                VideoSelection oldSelection = player.selections.get(invoker.getUser().getId());
+                VideoSelection oldSelection = player.selections.get(context.invoker.getUser().getId());
                 if(oldSelection != null) {
-                    channel.deleteMessageById(oldSelection.getOutMsgId()).queue();
+                    CentralMessaging.deleteMessageById(context.channel, oldSelection.getOutMsgId());
                 }
 
-                MessageBuilder builder = new MessageBuilder();
-                builder.append(MessageFormat.format(I18n.get(guild).getString("playSelectVideo"), Config.CONFIG.getPrefix()));
+                MessageBuilder builder = CentralMessaging.getClearThreadLocalMessageBuilder();
+                builder.append(MessageFormat.format(I18n.get(context, "playSelectVideo"), Config.CONFIG.getPrefix()));
 
                 int i = 1;
                 for (AudioTrack track : selectable) {
@@ -188,11 +192,9 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
                     i++;
                 }
 
-                outMsg.editMessage(builder.build().getRawContent()).queue();
-
-                player.setCurrentTC(channel);
-
-                player.selections.put(invoker.getUser().getId(), new VideoSelection(selectable, outMsg));
+                CentralMessaging.editMessage(outMsg, builder.build());
+                player.setCurrentTC(context.channel);
+                player.selections.put(context.invoker.getUser().getId(), new VideoSelection(selectable, outMsg));
             }
         });
     }

@@ -26,17 +26,20 @@
 package fredboat.event;
 
 import fredboat.FredBoat;
+import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
 
 import java.util.HashMap;
-import java.util.regex.Pattern;
 
 public abstract class AbstractEventListener extends ListenerAdapter {
 
-    static final Pattern COMMAND_NAME_PREFIX = Pattern.compile("(\\w+)");
     private final HashMap<String, UserListener> userListener = new HashMap<>();
 
     AbstractEventListener() {
@@ -55,7 +58,27 @@ public abstract class AbstractEventListener extends ListenerAdapter {
             try{
             listener.onGuildMessageReceived(event);
             } catch(Exception ex){
-                TextUtils.handleException(ex, event.getChannel(), event.getMember());
+                TextUtils.handleException(ex, new Context() {
+                    @Override
+                    public TextChannel getTextChannel() {
+                        return event.getChannel();
+                    }
+
+                    @Override
+                    public Guild getGuild() {
+                        return event.getGuild();
+                    }
+
+                    @Override
+                    public Member getMember() {
+                        return event.getMember();
+                    }
+
+                    @Override
+                    public User getUser() {
+                        return event.getAuthor();
+                    }
+                });
             }
         }
     }

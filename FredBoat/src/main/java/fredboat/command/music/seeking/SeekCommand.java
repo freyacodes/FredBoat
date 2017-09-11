@@ -25,47 +25,42 @@
 
 package fredboat.command.music.seeking;
 
-import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 
 public class SeekCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        GuildPlayer player = PlayerRegistry.getExisting(guild);
+    public void onInvoke(CommandContext context) {
+        GuildPlayer player = PlayerRegistry.getExisting(context.guild);
 
         if(player == null || player.isQueueEmpty()) {
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("queueEmpty"));
+            context.replyWithName(I18n.get(context, "queueEmpty"));
             return;
         }
 
-        if(args.length == 1) {
-            String command = args[0].substring(Config.CONFIG.getPrefix().length());
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+        if (context.args.length == 1) {
+            HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
         long t;
         try {
-            t = TextUtils.parseTimeString(args[1]);
+            t = TextUtils.parseTimeString(context.args[1]);
         } catch (IllegalStateException e){
-            String command = args[0].substring(Config.CONFIG.getPrefix().length());
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+            HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
@@ -76,7 +71,7 @@ public class SeekCommand extends Command implements IMusicCommand, ICommandRestr
         t = Math.min(atc.getEffectiveDuration(), t);
 
         player.seekTo(atc.getStartPosition() + t);
-        channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("seekSuccess"), atc.getEffectiveTitle(), TextUtils.formatTime(t))).queue();
+        context.reply(MessageFormat.format(I18n.get(context, "seekSuccess"), atc.getEffectiveTitle(), TextUtils.formatTime(t)));
     }
 
     @Override

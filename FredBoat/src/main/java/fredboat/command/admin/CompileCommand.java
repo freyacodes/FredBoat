@@ -26,42 +26,48 @@
 package fredboat.command.admin;
 
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommand;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.log.SLF4JInputStreamErrorLogger;
 import fredboat.util.log.SLF4JInputStreamLogger;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-public class CompileCommand extends Command implements ICommand, ICommandRestricted {
+public class CompileCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(CompileCommand.class);
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
+        context.reply("*Now updating...*\n\nRunning `git clone`... ",
+                status -> cloneAndCompile(context, status),
+                throwable -> {
+                    throw new RuntimeException(throwable);
+                }
+        );
+    }
+
+    private void cloneAndCompile(CommandContext context, Message status) {
         try {
             Runtime rt = Runtime.getRuntime();
-            Message msg;
-
-            msg = channel.sendMessage("*Now updating...*\n\nRunning `git clone`... ").complete(true);
 
             String branch = "master";
-            if (args.length > 1) {
-                branch = args[1];
+            if (context.args.length > 1) {
+                branch = context.args[1];
             }
             String githubUser = "Frederikam";
-            if (args.length > 2) {
-                githubUser = args[2];
+            if (context.args.length > 2) {
+                githubUser = context.args[2];
             }
 
             //Clear any old update folder if it is still present
@@ -77,14 +83,18 @@ public class CompileCommand extends Command implements ICommand, ICommandRestric
             new SLF4JInputStreamErrorLogger(log, gitClone.getInputStream()).start();
 
             if (!gitClone.waitFor(120, TimeUnit.SECONDS)) {
-                msg = msg.editMessage(msg.getRawContent() + "[:anger: timed out]\n\n").complete(true);
+                CentralMessaging.editMessage(status, status.getRawContent() + "[:anger: timed out]\n\n");
                 throw new RuntimeException("Operation timed out: git clone");
             } else if (gitClone.exitValue() != 0) {
-                msg = msg.editMessage(msg.getRawContent() + "[:anger: returned code " + gitClone.exitValue() + "]\n\n").complete(true);
+                CentralMessaging.editMessage(status, status.getRawContent() + "[:anger: returned code " + gitClone.exitValue() + "]\n\n");
                 throw new RuntimeException("Bad response code");
             }
+            try {
+                CentralMessaging.editMessage(status, status.getRawContent() + "👌🏽\n\nRunning `mvn package shade:shade`... ")
+                        .getWithDefaultTimeout();
+            } catch (TimeoutException | ExecutionException ignored) {
+            }
 
-            msg = msg.editMessage(msg.getRawContent() + "👌🏽\n\nRunning `mvn package shade:shade`... ").complete(true);
             File updateDir = new File("update/FredBoat");
 
             Process mvnBuild = rt.exec("mvn -f " + updateDir.getAbsolutePath() + "/pom.xml package shade:shade");
@@ -92,19 +102,20 @@ public class CompileCommand extends Command implements ICommand, ICommandRestric
             new SLF4JInputStreamErrorLogger(log, mvnBuild.getInputStream()).start();
 
             if (!mvnBuild.waitFor(600, TimeUnit.SECONDS)) {
-                msg = msg.editMessage(msg.getRawContent() + "[:anger: timed out]\n\n").complete(true);
+                CentralMessaging.editMessage(status, status.getRawContent() + "[:anger: timed out]\n\n");
                 throw new RuntimeException("Operation timed out: mvn package shade:shade");
             } else if (mvnBuild.exitValue() != 0) {
-                msg = msg.editMessage(msg.getRawContent() + "[:anger: returned code " + mvnBuild.exitValue() + "]\n\n").complete(true);
+                CentralMessaging.editMessage(status,
+                        status.getRawContent() + "[:anger: returned code " + mvnBuild.exitValue() + "]\n\n");
                 throw new RuntimeException("Bad response code");
             }
 
-            msg.editMessage(msg.getRawContent() + "👌🏽").queue();
+            CentralMessaging.editMessage(status, status.getRawContent() + "👌🏽");
 
-            if(!new File("./update/FredBoat/target/FredBoat-1.0.jar").renameTo(new File(System.getProperty("user.home") + "/FredBoat-1.0.jar"))){
+            if (!new File("./update/FredBoat/target/FredBoat-1.0.jar").renameTo(new File(System.getProperty("user.home") + "/FredBoat-1.0.jar"))) {
                 throw new RuntimeException("Failed to move jar to home");
             }
-        } catch (InterruptedException | IOException | RateLimitedException ex) {
+        } catch (InterruptedException | IOException ex) {
             throw new RuntimeException(ex);
         }
     }

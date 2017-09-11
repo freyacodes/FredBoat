@@ -27,50 +27,49 @@ package fredboat.command.admin;
 
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommand;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.ExitCodes;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
-public class UpdateCommand extends Command implements ICommand, ICommandRestricted {
+public class UpdateCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(UpdateCommand.class);
     private static final CompileCommand COMPILE_COMMAND = new CompileCommand();
     private static final long MAX_JAR_AGE = 10 * 60 * 1000;
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         try {
             File homeJar = new File(System.getProperty("user.home") + "/FredBoat-1.0.jar");
 
             //Must exist and not be too old
             if(homeJar.exists()
                     && (System.currentTimeMillis() - homeJar.lastModified()) < MAX_JAR_AGE){
-                update(channel);
+                update(context);
                 return;
             } else {
                 log.info("");
             }
 
-            COMPILE_COMMAND.onInvoke(guild, channel, invoker, message, args);
+            COMPILE_COMMAND.onInvoke(context);
 
-            update(channel);
+            update(context);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void update(TextChannel channel) throws IOException {
+    private void update(CommandContext context) throws IOException {
         File homeJar = new File(System.getProperty("user.home") + "/FredBoat-1.0.jar");
         File targetJar = new File("./update/target/FredBoat-1.0.jar");
 
@@ -79,7 +78,10 @@ public class UpdateCommand extends Command implements ICommand, ICommandRestrict
         FileUtils.copyFile(homeJar, targetJar);
 
         //Shutdown for update
-        channel.sendMessage("Now restarting...").queue();
+        try {
+            context.reply("Now restarting...").getWithDefaultTimeout();
+        } catch (TimeoutException | InterruptedException | ExecutionException ignored) {
+        }
         FredBoat.shutdown(ExitCodes.EXIT_CODE_UPDATE);
     }
 

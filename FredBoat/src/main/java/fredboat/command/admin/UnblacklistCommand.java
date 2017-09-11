@@ -24,19 +24,15 @@
 
 package fredboat.command.admin;
 
-import fredboat.Config;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.perms.PermissionLevel;
-import fredboat.util.TextUtils;
 import fredboat.util.ratelimit.Ratelimiter;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.User;
 
 import java.text.MessageFormat;
@@ -48,29 +44,28 @@ import java.text.MessageFormat;
  */
 public class UnblacklistCommand extends Command implements ICommandRestricted {
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         if (!FeatureFlags.RATE_LIMITER.isActive()) {
-            channel.sendMessage("The rate limiter feature has not been turned on.").queue();
+            context.replyWithName("The rate limiter feature has not been turned on.");
             return;
         }
 
-        String command = args[0].substring(Config.CONFIG.getPrefix().length());
-        if (message.getMentionedUsers().isEmpty()) {
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+        if (context.msg.getMentionedUsers().isEmpty()) {
+            HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
-        User user = message.getMentionedUsers().get(0);
+        User user = context.msg.getMentionedUsers().get(0);
         String userId = user.getId();
 
         if (userId == null || "".equals(userId)) {
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+            HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
         Ratelimiter.getRatelimiter().liftLimitAndBlacklist(user.getIdLong());
-        channel.sendMessage(TextUtils.replyWithName(channel, invoker,
-                MessageFormat.format(I18n.get(guild).getString("unblacklisted"), user.getAsMention())));
+        String content = MessageFormat.format(I18n.get(context, "unblacklisted"), user.getAsMention());
+        context.replyWithName(content);
     }
 
     @Override

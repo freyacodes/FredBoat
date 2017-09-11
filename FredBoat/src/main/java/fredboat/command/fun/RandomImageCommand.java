@@ -31,16 +31,15 @@ import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.util.rest.CacheUtil;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,17 +80,18 @@ public class RandomImageCommand extends Command implements IFunCommand {
     }
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        sendRandomFileWithMessage(channel, null);
+    public void onInvoke(CommandContext context) {
+        context.replyFile(getRandomFile(), null);
     }
 
-    public void sendRandomFileWithMessage(TextChannel channel, Message message) {
+    public File getRandomFile() {
         //Get a random file and send it
         String randomUrl;
         synchronized (this) {
             randomUrl = getRandomImageUrl();
         }
-        channel.sendFile(CacheUtil.getImageFromURL(randomUrl), message).queue();
+
+        return CacheUtil.getImageFromURL(randomUrl);
     }
 
     public String getRandomImageUrl() {

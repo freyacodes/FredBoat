@@ -28,26 +28,24 @@ package fredboat.command.music.control;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 public class ShuffleCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        GuildPlayer player = PlayerRegistry.get(guild);
+    public void onInvoke(CommandContext context) {
+        GuildPlayer player = PlayerRegistry.get(context.guild);
         player.setShuffle(!player.isShuffle());
 
         if (player.isShuffle()) {
-            channel.sendMessage(I18n.get(guild).getString("shuffleOn")).queue();
+            context.reply(I18n.get(context, "shuffleOn"));
         } else {
-            channel.sendMessage(I18n.get(guild).getString("shuffleOff")).queue();
+            context.reply(I18n.get(context, "shuffleOff"));
         }
     }
 

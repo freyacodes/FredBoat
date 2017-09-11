@@ -29,19 +29,16 @@ import fredboat.audio.player.AudioLossCounter;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 public class AudioDebugCommand extends Command implements IMaintenanceCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         String msg = "";
-        GuildPlayer guildPlayer = PlayerRegistry.getExisting(guild);
+        GuildPlayer guildPlayer = PlayerRegistry.getExisting(context.guild);
 
         if(guildPlayer == null) {
             msg = msg + "No GuildPlayer found.\n";
@@ -54,7 +51,7 @@ public class AudioDebugCommand extends Command implements IMaintenanceCommand {
                 + "Packet deficit: " + deficit + "\n```";
         }
 
-        TextUtils.replyWithName(channel, invoker, msg);
+        context.replyWithName(msg);
 
     }
 

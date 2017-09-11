@@ -30,15 +30,12 @@ import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
-import fredboat.util.rest.RestActionScheduler;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 import java.util.concurrent.TimeUnit;
@@ -46,27 +43,24 @@ import java.util.concurrent.TimeUnit;
 public class VolumeCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
 
         if(Config.CONFIG.getDistribution().volumeSupported()) {
 
-            GuildPlayer player = PlayerRegistry.get(guild);
+            GuildPlayer player = PlayerRegistry.get(context.guild);
             try {
-                float volume = Float.parseFloat(args[1]) / 100;
+                float volume = Float.parseFloat(context.args[1]) / 100;
                 volume = Math.max(0, Math.min(1.5f, volume));
 
-                channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("volumeSuccess"), Math.floor(player.getVolume() * 100), Math.floor(volume * 100))).queue();
+                context.reply(MessageFormat.format(I18n.get(context, "volumeSuccess"), Math.floor(player.getVolume() * 100), Math.floor(volume * 100)));
 
                 player.setVolume(volume);
             } catch (NumberFormatException | ArrayIndexOutOfBoundsException ex) {
-                throw new MessagingException(MessageFormat.format(I18n.get(guild).getString("volumeSyntax"), 100 * PlayerRegistry.DEFAULT_VOLUME, Math.floor(player.getVolume() * 100)));
+                throw new MessagingException(MessageFormat.format(I18n.get(context, "volumeSyntax"), 100 * PlayerRegistry.DEFAULT_VOLUME, Math.floor(player.getVolume() * 100)));
             }
         } else {
-            channel.sendMessage(I18n.get(guild).getString("volumeApology")).queue(message1 -> RestActionScheduler.schedule(
-                            message1.delete(),
-                            2,
-                            TimeUnit.MINUTES
-                    ));
+            context.reply(I18n.get(context, "volumeApology"),
+                    msg -> msg.delete().queueAfter(2, TimeUnit.MINUTES));
         }
     }
 

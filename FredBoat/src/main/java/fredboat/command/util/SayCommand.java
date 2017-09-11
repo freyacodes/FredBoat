@@ -24,15 +24,12 @@
  */
 package fredboat.command.util;
 
-import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.event.EventListenerBoat;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 /**
  *
@@ -41,15 +38,14 @@ import net.dv8tion.jda.core.entities.TextChannel;
 public class SayCommand extends Command implements IUtilCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        if (args.length < 2) {
-            String command = args[0].substring(Config.CONFIG.getPrefix().length());
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+    public void onInvoke(CommandContext context) {
+        if (context.args.length < 2) {
+            HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
-        String res = message.getRawContent().substring(args[0].length() + 1);
-        channel.sendMessage('\u200b' + res).queue(
-                message1 -> EventListenerBoat.messagesToDeleteIfIdDeleted.put(message.getId(), message1.getId())
+        String res = context.msg.getRawContent().substring(context.args[0].length() + 1);
+        context.reply('\u200b' + res,
+                message1 -> EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), message1.getIdLong())
         );
 
     }

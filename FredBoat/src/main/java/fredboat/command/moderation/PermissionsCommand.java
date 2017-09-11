@@ -27,26 +27,25 @@ package fredboat.command.moderation;
 
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
 import fredboat.db.entity.GuildPermissions;
 import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
 import fredboat.util.ArgumentUtil;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.IMentionable;
 import net.dv8tion.jda.core.entities.ISnowflake;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.Role;
-import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.utils.PermissionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,14 +65,14 @@ public class PermissionsCommand extends Command implements IModerationCommand {
     }
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         if (!FeatureFlags.PERMISSIONS.isActive()) {
-            channel.sendMessage("Permissions are currently disabled.").queue();
+            context.reply("Permissions are currently disabled.");
             return;
         }
-
+        String[] args = context.args;
         if (args.length < 2) {
-            HelpCommand.sendFormattedCommandHelp(message);
+            HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
@@ -83,37 +82,39 @@ public class PermissionsCommand extends Command implements IModerationCommand {
             case "remove":
             case "rem":
             case "rm":
-                if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, invoker, channel)) return;
+                if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, context)) return;
 
                 if (args.length < 3) {
-                    HelpCommand.sendFormattedCommandHelp(message);
+                    HelpCommand.sendFormattedCommandHelp(context);
                     return;
                 }
 
-                remove(guild, channel, invoker, message, args);
+                remove(context);
                 break;
             case "add":
-                if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, invoker, channel)) return;
+                if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, context)) return;
 
                 if (args.length < 3) {
-                    HelpCommand.sendFormattedCommandHelp(message);
+                    HelpCommand.sendFormattedCommandHelp(context);
                     return;
                 }
 
-                add(guild, channel, invoker, message, args);
+                add(context);
                 break;
             case "list":
             case "ls":
-                list(guild, channel, invoker, message, args);
+                list(context);
                 break;
             default:
-                HelpCommand.sendFormattedCommandHelp(message);
+                HelpCommand.sendFormattedCommandHelp(context);
                 break;
         }
     }
 
-    public void remove(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        String term = ArgumentUtil.getSearchTerm(message, args, 2);
+    public void remove(CommandContext context) {
+        Guild guild = context.guild;
+        Member invoker = context.invoker;
+        String term = ArgumentUtil.getSearchTerm(context.msg, context.args, 2);
 
         List<IMentionable> curList = new ArrayList<>();
         List<IMentionable> search = new ArrayList<>();
@@ -128,7 +129,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
             if (search.contains(mentionable)) itemsInBothLists.add(mentionable);
         });
 
-        IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(itemsInBothLists, channel, term);
+        IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(itemsInBothLists, context, term);
         if (selected == null) return;
 
         List<String> newList = new ArrayList<>(gp.getFromEnum(permissionLevel));
@@ -138,18 +139,19 @@ public class PermissionsCommand extends Command implements IModerationCommand {
                 && PermissionLevel.BOT_ADMIN.getLevel() > PermsUtil.getPerms(invoker).getLevel()
                 && !PermissionUtil.checkPermission(invoker, Permission.ADMINISTRATOR)
                 && !PermsUtil.checkList(newList, invoker)) {
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("permsFailSelfDemotion"));
+            context.replyWithName(I18n.get(context, "permsFailSelfDemotion"));
             return;
         }
 
         gp.setFromEnum(permissionLevel, newList);
         EntityWriter.mergeGuildPermissions(gp);
 
-        TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("permsRemoved"), mentionableToName(selected), permissionLevel));
+        context.replyWithName(MessageFormat.format(I18n.get(context, "permsRemoved"), mentionableToName(selected), permissionLevel));
     }
 
-    public void add(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        String term = ArgumentUtil.getSearchTerm(message, args, 2);
+    public void add(CommandContext context) {
+        Guild guild = context.guild;
+        String term = ArgumentUtil.getSearchTerm(context.msg, context.args, 2);
 
         List<IMentionable> list = new ArrayList<>();
         list.addAll(ArgumentUtil.fuzzyRoleSearch(guild, term));
@@ -157,7 +159,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         GuildPermissions gp = EntityReader.getGuildPermissions(guild);
         list.removeAll(idsToMentionables(guild, gp.getFromEnum(permissionLevel)));
 
-        IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(list, channel, term);
+        IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(list, context, term);
         if (selected == null) return;
 
         List<String> newList = new ArrayList<>(gp.getFromEnum(permissionLevel));
@@ -165,11 +167,12 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         gp.setFromEnum(permissionLevel, newList);
         EntityWriter.mergeGuildPermissions(gp);
 
-        TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("permsAdded"), mentionableToName(selected), permissionLevel));
+        context.replyWithName(MessageFormat.format(I18n.get(guild).getString("permsAdded"), mentionableToName(selected), permissionLevel));
     }
 
-    public void list(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        EmbedBuilder builder = new EmbedBuilder();
+    public void list(CommandContext context) {
+        Guild guild = context.guild;
+        Member invoker = context.invoker;
         GuildPermissions gp = EntityReader.getGuildPermissions(guild);
 
         List<IMentionable> mentionables = idsToMentionables(guild, gp.getFromEnum(permissionLevel));
@@ -195,15 +198,14 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         if (roleMentions.isEmpty()) roleMentions = "<none>";
         if (memberMentions.isEmpty()) memberMentions = "<none>";
 
-        builder.setColor(BotConstants.FREDBOAT_COLOR)
+        EmbedBuilder eb = CentralMessaging.getClearThreadLocalEmbedBuilder()
+                .setColor(BotConstants.FREDBOAT_COLOR)
                 .setTitle(MessageFormat.format(I18n.get(guild).getString("permsListTitle"), permissionLevel))
                 .setAuthor(invoker.getEffectiveName(), null, invoker.getUser().getAvatarUrl())
-                .setFooter(channel.getJDA().getSelfUser().getName(), channel.getJDA().getSelfUser().getAvatarUrl())
                 .addField("Roles", roleMentions, true)
                 .addField("Members", memberMentions, true)
                 .addField(invoker.getEffectiveName(), (invokerHas ? ":white_check_mark:" : ":x:") + " (" + invokerPerms + ")", false);
-
-        channel.sendMessage(builder.build()).queue();
+        context.reply(CentralMessaging.addFooter(eb, guild.getSelfMember()).build());
     }
 
     private static String mentionableToId(IMentionable mentionable) {

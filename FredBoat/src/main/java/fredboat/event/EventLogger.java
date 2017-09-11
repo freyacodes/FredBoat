@@ -26,7 +26,7 @@
 package fredboat.event;
 
 import fredboat.FredBoat;
-import net.dv8tion.jda.core.MessageBuilder;
+import fredboat.messaging.CentralMessaging;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.events.guild.GuildJoinEvent;
@@ -64,7 +64,7 @@ public class EventLogger extends ListenerAdapter {
     @Override
     public void onReady(ReadyEvent event) {
         FredBoat.getInstance(event.getJDA());
-        send(new MessageBuilder()
+        send(CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append("[:rocket:] Received ready event.")
                 .build()
         );

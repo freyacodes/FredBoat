@@ -26,14 +26,12 @@ package fredboat.command.maintenance;
 
 import fredboat.command.fun.RandomImageCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
+import fredboat.messaging.CentralMessaging;
 import fredboat.util.GitRepoState;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.awt.*;
 import java.text.ParseException;
@@ -55,11 +53,11 @@ public class GitInfoCommand extends Command implements IMaintenanceCommand {
     private static final Pattern GITHUB_URL_PATTERN = Pattern.compile("^(git@|https?://)(.+)[:/](.+)/(.+).git$");
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
 
         GitRepoState gitRepoState = GitRepoState.getGitRepositoryState();
         if (gitRepoState == null) {
-            TextUtils.replyWithName(channel, invoker, "This build has does not contain any git meta information");
+            context.replyWithName("This build has does not contain any git meta information");
             return;
         }
 
@@ -67,7 +65,7 @@ public class GitInfoCommand extends Command implements IMaintenanceCommand {
         //times look like this: 31.05.2017 @ 01:17:17 CEST
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy @ hh:mm:ss z");
 
-        EmbedBuilder embedBuilder = new EmbedBuilder();
+        EmbedBuilder embedBuilder = CentralMessaging.getClearThreadLocalEmbedBuilder();
         embedBuilder.setTitle("Build & git info");
         embedBuilder.addField("Commit info", gitRepoState.describe + "\n\n" + gitRepoState.commitMessageFull, false);
         embedBuilder.addField("Commit timestamp", gitRepoState.commitTime, false);
@@ -87,7 +85,7 @@ public class GitInfoCommand extends Command implements IMaintenanceCommand {
         } catch (ParseException ignored) {
         }
 
-        channel.sendMessage(embedBuilder.build()).queue();
+        context.reply(embedBuilder.build());
     }
 
     private String getGithubCommitLink() {
