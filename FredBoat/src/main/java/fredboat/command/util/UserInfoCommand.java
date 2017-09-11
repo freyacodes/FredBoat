@@ -56,7 +56,7 @@ public class UserInfoCommand extends Command implements IUtilCommand {
         if(args.length == 1) {
             target = invoker;
         } else {
-            target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(channel,args[1]);
+            target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(channel,args[1],true);
         }
         if (target == null) return;
         for(Guild g: FredBoat.getAllGuilds()) {

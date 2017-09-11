@@ -25,11 +25,9 @@
 
 package fredboat.command.music.seeking;
 
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.audio.queue.AudioTrackContext;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandRestricted;
@@ -70,14 +68,12 @@ public class RewindCommand extends Command implements IMusicCommand, ICommandRes
             return;
         }
 
-        AudioTrackContext atc = player.getPlayingTrack();
-        AudioTrack at = atc.getTrack();
-
+        long currentPosition = player.getPosition();
         //Ensure bounds
         t = Math.max(0, t);
-        t = Math.min(atc.getEffectivePosition(), t);
+        t = Math.min(currentPosition, t);
 
-        player.seekTo(player.getPosition() - t);
+        player.seekTo(currentPosition - t);
         channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("rewSuccess"), player.getPlayingTrack().getEffectiveTitle(), TextUtils.formatTime(t))).queue();
     }
 

@@ -26,6 +26,7 @@
 package fredboat.command.music.control;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.player.VideoSelection;
@@ -41,6 +42,7 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.exceptions.PermissionException;
+import org.apache.commons.lang3.StringUtils;
 
 import java.text.MessageFormat;
 
@@ -57,7 +59,17 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
         if (player.selections.containsKey(invoker.getUser().getId())) {
             VideoSelection selection = player.selections.get(invoker.getUser().getId());
             try {
-                int i = Integer.valueOf(args[1]);
+                int i = 1;
+
+                if (args.length >= 1) {
+                    String contentWithoutPrefix = args[0].substring(Config.CONFIG.getPrefix().length());
+                    if (StringUtils.isNumeric(contentWithoutPrefix)) {
+                        i = Integer.valueOf(contentWithoutPrefix);
+                    } else {
+                        i = Integer.valueOf(args[1]);
+                    }
+                }
+
                 if (selection.getChoices().size() < i || i < 1) {
                     throw new NumberFormatException();
                 } else {

@@ -29,6 +29,9 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import fredboat.Config;
 import fredboat.FredBoat;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.config.CacheConfiguration;
+import net.sf.ehcache.config.PersistenceConfiguration;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,10 +106,12 @@ public class DatabaseManager {
             //caution: only add new columns, don't remove or alter old ones, otherwise manual db table migration needed
             properties.put("hibernate.hbm2ddl.auto", "update");
 
-            //disable autocommit, it is not recommended for our usecases.
-            //see https://vladmihalcea.com/2017/05/17/why-you-should-always-use-hibernate-connection-provider_disables_autocommit-for-resource-local-jpa-transactions/
-            properties.put("hibernate.connection.autocommit", "false");
-            properties.put("hibernate.connection.provider_disables_autocommit", "true");
+            //disable autocommit, it is not recommended for our usecases, and interferes with some of them
+            // see https://vladmihalcea.com/2017/05/17/why-you-should-always-use-hibernate-connection-provider_disables_autocommit-for-resource-local-jpa-transactions/
+            // this also means all EntityManager interactions need to be wrapped into em.getTransaction.begin() and
+            // em.getTransaction.commit() to prevent a rollback spam at the database
+            properties.put("hibernate.connection.autocommit", "true");
+            properties.put("hibernate.connection.provider_disables_autocommit", "false");
 
             properties.put("hibernate.hikari.maximumPoolSize", Integer.toString(poolSize));
 
@@ -131,6 +136,20 @@ public class DatabaseManager {
             closeEntityManagerFactory();
 
             emf = emfb.getObject();
+
+            //adjusting the ehcache config
+            if (!Config.CONFIG.isUseSshTunnel()) {
+                //local database: turn off overflow to disk of the cache
+                for (CacheManager cacheManager : CacheManager.ALL_CACHE_MANAGERS) {
+                    for (String cacheName : cacheManager.getCacheNames()) {
+                        CacheConfiguration cacheConfig = cacheManager.getCache(cacheName).getCacheConfiguration();
+                        cacheConfig.getPersistenceConfiguration().strategy(PersistenceConfiguration.Strategy.NONE);
+                    }
+                }
+            }
+            for (CacheManager cacheManager : CacheManager.ALL_CACHE_MANAGERS) {
+                log.debug(cacheManager.getActiveConfigurationText());
+            }
 
             log.info("Started Hibernate");
             state = DatabaseState.READY;

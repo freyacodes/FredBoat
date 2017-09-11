@@ -157,7 +157,7 @@ public class FredBoatBot extends FredBoat {
                     PlayerRegistry.getPlayingPlayers().stream()
                             .filter(guildPlayer -> guildPlayer.getJda().getShardInfo().getShardId() == shardId)
                             .forEach(guildPlayer -> {
-                                VoiceChannel channel = guildPlayer.getChannel();
+                                VoiceChannel channel = guildPlayer.getCurrentVoiceChannel();
                                 if (channel != null) channelsToRejoin.add(channel.getId());
                             });
                 } catch (Exception ex) {

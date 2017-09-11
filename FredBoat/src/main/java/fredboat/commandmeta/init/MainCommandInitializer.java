@@ -53,6 +53,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("eval", new EvalCommand());
         CommandRegistry.registerCommand("shards", new ShardsCommand());
         CommandRegistry.registerCommand("revive", new ReviveCommand());
+        CommandRegistry.registerCommand("sentrydsn", new SentryDsnCommand());
         CommandRegistry.registerCommand("test", new TestCommand());
         CommandRegistry.registerCommand("gitinfo", new GitInfoCommand(), "git");
         CommandRegistry.registerCommand("exit", new ExitCommand());

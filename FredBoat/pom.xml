@@ -53,7 +53,7 @@
             <!-- discord api -->
             <groupId>net.dv8tion</groupId>
             <artifactId>JDA</artifactId>
-            <version>3.2.0_255</version>
+            <version>3.3.0_264</version>
         </dependency>
         <dependency>
             <!-- because JDA's gradle doesn't make a good pom and the scope isn't set correctly -->
@@ -94,7 +94,7 @@
             <!-- Audio player node client -->
             <groupId>com.github.Frederikam</groupId>
             <artifactId>Lavalink</artifactId>
-            <version>cbeb20794be56b7a133aadf7586049d73f8e0486</version>
+            <version>fa4f9d83329aeea9fa88fae3153137220f81b2b6</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.github.Frederikam.Lavalink</groupId>
@@ -144,6 +144,12 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.7.25</version>
+        </dependency>
+        <dependency>
+            <!-- log aggregation service -->
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry-logback</artifactId>
+            <version>1.5.3</version>
         </dependency>
         <dependency>
             <!-- runs the fredboat rest api -->

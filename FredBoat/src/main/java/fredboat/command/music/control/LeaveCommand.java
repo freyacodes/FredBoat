@@ -49,6 +49,7 @@ public class LeaveCommand extends Command implements IMusicCommand, ICommandRest
         try {
             GuildPlayer player = PlayerRegistry.get(guild);
             player.setCurrentTC(channel);
+            player.pause();
             player.leaveVoiceChannelRequest(channel, false);
         } catch (Exception e) {
             log.error("Something caused us to not properly leave a voice channel!", e);

@@ -27,6 +27,9 @@ package fredboat.audio.queue;
 
 import java.util.List;
 
+/**
+ * Shuffle and repeat mode methods for track providers
+ */
 public abstract class AbstractTrackProvider implements ITrackProvider {
 
     private RepeatMode repeatMode = RepeatMode.OFF;
@@ -48,8 +51,11 @@ public abstract class AbstractTrackProvider implements ITrackProvider {
         this.shuffle = shuffle;
     }
 
-    public List<AudioTrackContext> getAsListOrdered() {
-        return getAsList();
-    }
-    
+    /**
+     * @return the shuffled play list if shuffle is true, otherwise the regular one
+     */
+    public abstract List<AudioTrackContext> getAsListOrdered();
+
+    public abstract void reshuffle();
+
 }

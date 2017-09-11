@@ -101,7 +101,7 @@ public class MusicPersistenceHandler {
                 data.put("shuffle", player.isShuffle());
 
                 if (player.getPlayingTrack() != null) {
-                    data.put("position", player.getPlayingTrack().getEffectivePosition());
+                    data.put("position", player.getPosition());
                 }
 
                 ArrayList<JSONObject> identifiers = new ArrayList<>();
@@ -112,7 +112,7 @@ public class MusicPersistenceHandler {
 
                     JSONObject ident = new JSONObject()
                             .put("message", Base64.encodeBase64String(baos.toByteArray()))
-                            .put("user", atc.getMember().getUser().getId());
+                            .put("user", atc.getUserId());
 
                     if(atc instanceof SplitAudioTrackContext) {
                         JSONObject split = new JSONObject();

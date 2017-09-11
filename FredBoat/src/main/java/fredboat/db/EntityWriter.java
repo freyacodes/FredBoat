@@ -84,7 +84,9 @@ public class EntityWriter {
 
         EntityManager em = dbManager.getEntityManager();
         try {
+            em.getTransaction().begin();
             BlacklistEntry ble = em.find(BlacklistEntry.class, id);
+            em.getTransaction().commit();
 
             if (ble != null) {
                 em.getTransaction().begin();

@@ -34,10 +34,10 @@ import fredboat.agent.DBConnectionWatchdogAgent;
 import fredboat.agent.ShardWatchdogAgent;
 import fredboat.api.API;
 import fredboat.api.OAuthManager;
-import fredboat.audio.queue.MusicPersistenceHandler;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
+import fredboat.audio.queue.MusicPersistenceHandler;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.init.MainCommandInitializer;
 import fredboat.commandmeta.init.MusicCommandInitializer;
@@ -331,7 +331,7 @@ public abstract class FredBoat {
 
         //Rejoin old channels if revived
         channelsToRejoin.forEach(vcid -> {
-            VoiceChannel channel = jda.getVoiceChannelById(vcid);
+            VoiceChannel channel = readyEvent.getJDA().getVoiceChannelById(vcid);
             if (channel == null) return;
             GuildPlayer player = PlayerRegistry.get(channel.getGuild());
             if (player == null) return;
@@ -361,7 +361,7 @@ public abstract class FredBoat {
         }
 
         for (FredBoat fb : shards) {
-            fb.getJda().shutdown(false);
+            fb.getJda().shutdown();
         }
 
         try {
@@ -455,6 +455,15 @@ public abstract class FredBoat {
         return null;
     }
 
+    public static Guild getGuildById(long id) {
+        for (FredBoat fb : shards) {
+            Guild g = fb.getJda().getGuildById(id);
+            if (g != null) return g;
+        }
+
+        return null;
+    }
+
     public static FredBoatClient getClient() {
         return fbClient;
     }
@@ -507,7 +516,7 @@ public abstract class FredBoat {
     }
 
     @SuppressWarnings("WeakerAccess")
-    public class ShardInfo {
+    public static class ShardInfo {
 
         int shardId;
         int shardTotal;

@@ -32,7 +32,6 @@ import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandRestricted;
-import fredboat.commandmeta.abs.IMusicBackupCommand;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
@@ -46,7 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 
-public class HelpCommand extends Command implements IMusicBackupCommand, IUtilCommand {
+public class HelpCommand extends Command implements IUtilCommand {
 
     //This can be set using eval in case we need to change it in the future ~Fre_d
     public static String inviteLink = "https://discord.gg/cgPFW4q";

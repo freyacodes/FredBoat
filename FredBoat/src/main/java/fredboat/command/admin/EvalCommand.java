@@ -42,7 +42,11 @@ import org.slf4j.LoggerFactory;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class EvalCommand extends Command implements ICommand, ICommandRestricted {
 
@@ -72,7 +76,7 @@ public class EvalCommand extends Command implements ICommand, ICommandRestricted
         engine.put("jda", jda);
         engine.put("api", jda);
         engine.put("channel", channel);
-        engine.put("vc", PlayerRegistry.getExisting(guild) != null ? PlayerRegistry.getExisting(guild).getChannel() : null);
+        engine.put("vc", PlayerRegistry.getExisting(guild) != null ? PlayerRegistry.getExisting(guild).getCurrentVoiceChannel() : null);
         engine.put("author", author);
         engine.put("bot", jda.getSelfUser());
         engine.put("member", guild.getSelfMember());

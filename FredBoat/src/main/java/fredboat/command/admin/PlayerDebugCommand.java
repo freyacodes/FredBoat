@@ -53,10 +53,10 @@ public class PlayerDebugCommand extends Command implements ICommand, ICommandRes
             JSONObject data = new JSONObject();
             data.put("name", gp.getGuild().getName());
             data.put("id", gp.getGuild().getId());
-            data.put("users", gp.getChannel().getMembers().toString());
+            data.put("users", gp.getCurrentVoiceChannel().getMembers().toString());
             data.put("isPlaying", gp.isPlaying());
             data.put("isPaused", gp.isPaused());
-            data.put("songCount", gp.getSongCount());
+            data.put("songCount", gp.getTrackCount());
             
             a.put(data);
         }

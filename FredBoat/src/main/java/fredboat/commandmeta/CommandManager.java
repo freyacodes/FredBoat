@@ -27,9 +27,9 @@ package fredboat.commandmeta;
 
 
 import fredboat.Config;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandRestricted;
-import fredboat.commandmeta.abs.IMusicBackupCommand;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.feature.PatronageChecker;
@@ -63,10 +63,10 @@ public class CommandManager {
         String[] args = commandToArguments(message.getRawContent());
         commandsExecuted.getAndIncrement();
 
-        if (invoked instanceof IMusicBackupCommand
-                && guild.getJDA().getSelfUser().getId().equals(BotConstants.MUSIC_BOT_ID)
-                && DiscordUtil.isMainBotPresent(guild)) {
-            log.info("Ignored command because main bot is present and I am the public music FredBoat");
+        if (Config.CONFIG.getDistribution() == DistributionEnum.MAIN
+                && invoked instanceof HelpCommand
+                && DiscordUtil.isMusicBotPresent(guild)) {
+            log.info("Ignored help command because music bot is present and I am the 'main' FredBoat");
             return;
         }
 
@@ -106,17 +106,6 @@ public class CommandManager {
             return;
         }
 
-        if (invoked instanceof ICommandRestricted) {
-            //Check if invoker actually has perms
-            PermissionLevel minPerms = ((ICommandRestricted) invoked).getMinimumPerms();
-            PermissionLevel actual = PermsUtil.getPerms(invoker);
-
-            if(actual.getLevel() < minPerms.getLevel()) {
-                TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("cmdPermsTooLow"), minPerms, actual));
-                return;
-            }
-        }
-
         //Hardcode music commands in FredBoatHangout. Blacklist any channel that isn't #general or #staff, but whitelist Frederikam
         if (invoked instanceof IMusicCommand
                 && guild.getId().equals(BotConstants.FREDBOAT_HANGOUT_ID)
@@ -134,6 +123,17 @@ public class CommandManager {
                     );
                 });
 
+                return;
+            }
+        }
+
+        if (invoked instanceof ICommandRestricted) {
+            //Check if invoker actually has perms
+            PermissionLevel minPerms = ((ICommandRestricted) invoked).getMinimumPerms();
+            PermissionLevel actual = PermsUtil.getPerms(invoker);
+
+            if(actual.getLevel() < minPerms.getLevel()) {
+                TextUtils.replyWithName(channel, invoker, MessageFormat.format(I18n.get(guild).getString("cmdPermsTooLow"), minPerms, actual));
                 return;
             }
         }

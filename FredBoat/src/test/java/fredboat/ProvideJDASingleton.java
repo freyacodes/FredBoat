@@ -125,7 +125,7 @@ public abstract class ProvideJDASingleton {
 
             testChannel.sendMessage(eb.build()).complete();
 
-            jda.shutdown(true);
+            jda.shutdown();
         }
     };
 

@@ -50,7 +50,7 @@ public class ExportCommand extends Command implements IMusicCommand {
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
         GuildPlayer player = PlayerRegistry.get(guild);
         
-        if(player.getRemainingTracks().isEmpty()){
+        if (player.isQueueEmpty()) {
             throw new MessagingException(I18n.get(guild).getString("exportEmpty"));
         }
         

@@ -65,7 +65,9 @@ public class EntityReader {
         EntityManager em = dbManager.getEntityManager();
         E config = null;
         try {
+            em.getTransaction().begin();
             config = em.find(clazz, id);
+            em.getTransaction().commit();
         } catch (PersistenceException e) {
             log.error("Error while trying to find entity of class {} from DB for id {}", clazz.getName(), id, e);
             throw new DatabaseNotReadyException(e);
@@ -95,7 +97,9 @@ public class EntityReader {
         EntityManager em = dbManager.getEntityManager();
         List<BlacklistEntry> result;
         try {
+            em.getTransaction().begin();
             result = em.createQuery("SELECT b FROM BlacklistEntry b", BlacklistEntry.class).getResultList();
+            em.getTransaction().commit();
         } finally {
             em.close();
         }

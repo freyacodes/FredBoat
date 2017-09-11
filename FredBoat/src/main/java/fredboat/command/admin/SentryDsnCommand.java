@@ -1,4 +1,5 @@
 /*
+ *
  * MIT License
  *
  * Copyright (c) 2017 Frederik Ar. Mikkelsen
@@ -20,71 +21,54 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-package fredboat.command.music.control;
+package fredboat.command.admin;
 
 import fredboat.Config;
-import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.LavalinkManager;
-import fredboat.audio.player.PlayerLimitManager;
-import fredboat.audio.player.PlayerRegistry;
-import fredboat.audio.queue.IdentifierContext;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.ICommandRestricted;
-import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
+import fredboat.util.TextUtils;
+import io.sentry.Sentry;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 
-public class PlaySplitCommand extends Command implements IMusicCommand, ICommandRestricted {
-
-
+/**
+ * Created by napster on 07.09.17.
+ * <p>
+ * Override the DSN for sentry. Pass stop or clear to turn it off.
+ */
+public class SentryDsnCommand extends Command implements ICommandRestricted {
     @Override
     public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        if (LavalinkManager.ins.isEnabled()) {
-            channel.sendMessage("Human Fred MIGHT have broken this command." +
-                    "Maybe it will be fixed in a later update." +
-                    "Who knows ¯\\_(ツ)_/¯").queue();
-            return;
-        }
-
         if (args.length < 2) {
             String command = args[0].substring(Config.CONFIG.getPrefix().length());
             HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
             return;
         }
+        String dsn = args[1];
 
-        if (!PlayerLimitManager.checkLimitResponsive(channel)) return;
-
-        IdentifierContext ic = new IdentifierContext(args[1], channel, invoker);
-        ic.setSplit(true);
-
-        GuildPlayer player = PlayerRegistry.get(guild);
-        player.setCurrentTC(channel);
-        player.queue(ic);
-        player.setPause(false);
-
-        try {
-            message.delete().queue();
-        } catch (Exception ignored) {
-
+        if (dsn.equals("stop") || dsn.equals("clear")) {
+            Sentry.close();
+            TextUtils.replyWithName(channel, invoker, "Sentry service has been stopped");
+        } else {
+            Sentry.init(dsn);
+            TextUtils.replyWithName(channel, invoker, "New Sentry DSN has been set!");
         }
     }
 
     @Override
     public String help(Guild guild) {
-        String usage = "{0}{1} <url>\n#";
-        return usage + I18n.get(guild).getString("helpPlaySplitCommand");
+        return "{0}{1} <sentry DSN> OR {0}{1} stop\n#Set a temporary sentry DSN overriding the one from the config until" +
+                " the next restart, or stop the sentry service.";
     }
 
     @Override
     public PermissionLevel getMinimumPerms() {
-        return PermissionLevel.USER;
+        return PermissionLevel.BOT_ADMIN;
     }
 }

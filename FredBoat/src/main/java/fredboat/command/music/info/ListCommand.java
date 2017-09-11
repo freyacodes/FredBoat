@@ -70,20 +70,19 @@ public class ListCommand extends Command implements IMusicCommand {
             }
         }
 
-        List<AudioTrackContext> tracks = player.getRemainingTracksOrdered();
-
-        int maxPages = (int) Math.ceil(((double) tracks.size() - 1d)) / PAGE_SIZE + 1;
+        int tracksCount = player.getTrackCount();
+        int maxPages = (int) Math.ceil(((double) tracksCount - 1d)) / PAGE_SIZE + 1;
 
         page = Math.max(page, 1);
         page = Math.min(page, maxPages);
 
         int i = (page - 1) * PAGE_SIZE;
         int listEnd = (page - 1) * PAGE_SIZE + PAGE_SIZE;
-        listEnd = Math.min(listEnd, player.getRemainingTracksOrdered().size());
+        listEnd = Math.min(listEnd, tracksCount);
 
         int numberLength = Integer.toString(listEnd).length();
 
-        List<AudioTrackContext> sublist = tracks.subList(i, listEnd);
+        List<AudioTrackContext> sublist = player.getTracksInRange(i, listEnd);
 
         if (player.isShuffle()) {
             mb.append(I18n.get(guild).getString("listShowShuffled"));
@@ -108,11 +107,13 @@ public class ListCommand extends Command implements IMusicCommand {
             if (i == 0) {
                 status = player.isPlaying() ? " \\▶" : " \\\u23F8"; //Escaped play and pause emojis
             }
+            Member member = guild.getMemberById(atc.getUserId());
+            String username = member != null ? member.getEffectiveName() : guild.getSelfMember().getEffectiveName();
             mb.append("[" +
                     TextUtils.forceNDigits(i + 1, numberLength)
                     + "]", MessageBuilder.Formatting.BLOCK)
                     .append(status)
-                    .append(MessageFormat.format(I18n.get(guild).getString("listAddedBy"), atc.getEffectiveTitle(), atc.getMember().getEffectiveName(), TextUtils.formatTime(atc.getEffectiveDuration())))
+                    .append(MessageFormat.format(I18n.get(guild).getString("listAddedBy"), atc.getEffectiveTitle(), username, TextUtils.formatTime(atc.getEffectiveDuration())))
                     .append("\n");
 
             if (i == listEnd) {
@@ -123,11 +124,10 @@ public class ListCommand extends Command implements IMusicCommand {
         }
 
         //Now add a timestamp for how much is remaining
-        long t = player.getTotalRemainingMusicTimeSeconds();
-        String timestamp = TextUtils.formatTime(t * 1000L);
+        String timestamp = TextUtils.formatTime(player.getTotalRemainingMusicTimeMillis());
 
-        int numTracks = player.getRemainingTracks().size() - player.getLiveTracks().size();
-        int streams = player.getLiveTracks().size();
+        long streams = player.getStreamsCount();
+        long numTracks = tracksCount - streams;
 
         String desc;
 
