@@ -62,6 +62,11 @@ public class CommandManager {
     public static final Counter totalCommandsExecuted = Counter.build()
             .name("fredboat_commands_executed_total")
             .help("Total executed commands")
+            .register();
+
+    public static final Counter commandsExecuted = Counter.build()
+            .name("fredboat_commands_executed_by_class_total")
+            .help("Total executed commands by class")
             .labelNames("class") // use the simple name of the command class
             .register();
 
@@ -71,7 +76,8 @@ public class CommandManager {
         TextChannel channel = context.channel;
         Member invoker = context.invoker;
 
-        totalCommandsExecuted.labels(invoked.getClass().getSimpleName()).inc();
+        totalCommandsExecuted.inc();
+        commandsExecuted.labels(invoked.getClass().getSimpleName()).inc();
 
         if (guild.getJDA().getSelfUser().getId().equals(BotConstants.PATRON_BOT_ID)
                 && Config.CONFIG.getDistribution() == DistributionEnum.PATRON
