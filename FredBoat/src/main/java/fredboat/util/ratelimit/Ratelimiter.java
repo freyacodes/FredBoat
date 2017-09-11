@@ -34,6 +34,7 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.messaging.internal.Context;
 import fredboat.util.DiscordUtil;
 import fredboat.util.Tuple2;
+import io.prometheus.client.Counter;
 import net.dv8tion.jda.core.JDA;
 import org.eclipse.jetty.util.ConcurrentHashSet;
 
@@ -49,6 +50,12 @@ import java.util.Set;
  * http://i.imgur.com/ha0R3XZ.gif
  */
 public class Ratelimiter {
+
+    private static final Counter totalCommandsRatelimited = Counter.build()
+            .name("fredboat_commands_ratelimited_total")
+            .help("Total ratelimited commands")
+            .labelNames("class") // use the simple name of the command class
+            .register();
 
     private static final int RATE_LIMIT_HITS_BEFORE_BLACKLIST = 10;
 
@@ -118,7 +125,10 @@ public class Ratelimiter {
                 } else {
                     allowed = ratelimit.isAllowed(context, weight, autoBlacklist);
                 }
-                if (!allowed) return new Tuple2<>(false, ratelimit.getClazz());
+                if (!allowed) {
+                    totalCommandsRatelimited.labels(command.getClass().getSimpleName()).inc();
+                    return new Tuple2<>(false, ratelimit.getClazz());
+                }
             }
         }
         return new Tuple2<>(true, null);

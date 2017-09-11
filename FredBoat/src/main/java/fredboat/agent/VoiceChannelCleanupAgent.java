@@ -30,6 +30,7 @@ import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.command.music.control.VoteSkipCommand;
+import io.prometheus.client.Counter;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import org.slf4j.Logger;
@@ -42,6 +43,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class VoiceChannelCleanupAgent extends FredBoatAgent {
+
+    private static final Counter voiceChannelsCleanedUp = Counter.build()
+            .name("fredboat_music_voicechannels_cleanedup_total")
+            .help("Total voice channels that were cleaned up")
+            .register();
 
     private static final Logger log = LoggerFactory.getLogger(VoiceChannelCleanupAgent.class);
     private static final HashMap<String, Long> VC_LAST_USED = new HashMap<>();
@@ -108,6 +114,7 @@ public class VoiceChannelCleanupAgent extends FredBoatAgent {
 
         log.info("Checked {} guilds for stale voice connections.", totalGuilds.get());
         log.info("Closed {} of {} voice connections.", closedVcs.get(), totalVcs.get());
+        voiceChannelsCleanedUp.inc(closedVcs.get());
     }
 
     private List<Member> getHumanMembersInVC(VoiceChannel vc){

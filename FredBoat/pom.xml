@@ -40,6 +40,7 @@
 
     <properties>
         <start-class>fredboat.FredBoat</start-class>
+        <prometheus.version>0.0.26</prometheus.version>
     </properties>
 
     <dependencies>
@@ -151,6 +152,34 @@
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <version>3.0.2</version>
+        </dependency>
+
+        <!-- Metrics stuff -->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient</artifactId>
+            <version>${prometheus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_hotspot</artifactId>
+            <version>${prometheus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_logback</artifactId>
+            <version>${prometheus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_hibernate</artifactId>
+            <version>${prometheus.version}</version>
+        </dependency>
+        <dependency>
+            <!-- expose prometheus with jetty-->
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_servlet</artifactId>
+            <version>${prometheus.version}</version>
         </dependency>
 
         <!-- Database stuff -->

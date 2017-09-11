@@ -39,6 +39,7 @@ import fredboat.commandmeta.init.MusicCommandInitializer;
 import fredboat.db.DatabaseManager;
 import fredboat.event.EventListenerBoat;
 import fredboat.feature.I18n;
+import fredboat.feature.Metrics;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.AppInfo;
 import fredboat.util.ConnectQueue;
@@ -103,6 +104,7 @@ public abstract class FredBoat {
             System.out.println("Version info printed, exiting.");
             return;
         }
+        Metrics.setup();
 
         Runtime.getRuntime().addShutdownHook(new Thread(ON_SHUTDOWN, "FredBoat main shutdownhook"));
         log.info(getVersionInfo());

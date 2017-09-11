@@ -27,6 +27,7 @@ package fredboat.messaging;
 
 import fredboat.feature.I18n;
 import fredboat.shared.constant.BotConstants;
+import io.prometheus.client.Counter;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -67,6 +68,33 @@ public class CentralMessaging {
     // because if we pass null for a failure handler to JDA it uses a default handler that results in a warning/error level log
     private static final Consumer<Throwable> NOOP_EXCEPTION_HANDLER = __ -> {
     };
+
+    //these metrics are meant to cover all queue() calls we do in here
+    private static final Counter messagesSent = Counter.build()
+            .name("fredboat_messaging_messages_sent_total")
+            .help("Total amount of messages sent by FredBoat")
+            .labelNames("type") //message, file
+            .register();
+
+    private static final Counter messagesEdited = Counter.build()
+            .name("fredboat_messaging_messages_edited_total")
+            .help("Total amount of messages edited by FredBoat")
+            .register();
+
+    private static final Counter messagesDeleted = Counter.build()
+            .name("fredboat_messaging_messages_deleted_total")
+            .help("Total amount of messages deleted by FredBoat")
+            .register();
+
+    private static final Counter messagesRetrieved = Counter.build()
+            .name("fredboat_messaging_messages_retrieved_total")
+            .help("Total amount of messages retrieved by FredBoat")
+            .register();
+
+    private static final Counter typing = Counter.build()
+            .name("fredboat_messaging_typing_total")
+            .help("Total amount of typing events sent by FredBoat")
+            .register();
 
 
     // ********************************************************************************
@@ -239,7 +267,7 @@ public class CentralMessaging {
                 else
                     request.onFailure(response);
             }
-        }.queue();
+        }.queue(__ -> messagesSent.labels("shardless").inc());
     }
 
     // ********************************************************************************
@@ -406,7 +434,7 @@ public class CentralMessaging {
     public static void sendTyping(MessageChannel channel) {
         try {
             channel.sendTyping().queue(
-                    null,
+                    __ -> typing.inc(),
                     t -> log.warn("Could not send typing event", t)
             );
         } catch (InsufficientPermissionException e) {
@@ -419,7 +447,7 @@ public class CentralMessaging {
         if (!messages.isEmpty()) {
             try {
                 channel.deleteMessages(messages).queue(
-                        null,
+                        __ -> messagesDeleted.inc(messages.size()),
                         t -> log.warn("Could not bulk delete messages", t)
                 );
             } catch (InsufficientPermissionException e) {
@@ -431,8 +459,11 @@ public class CentralMessaging {
     public static void deleteMessageById(@Nonnull MessageChannel channel, long messageId) {
         try {
             channel.getMessageById(messageId).queue(
-                    CentralMessaging::deleteMessage,
-                    NOOP_EXCEPTION_HANDLER //do nothing if that message could not be found in the first place
+                    message -> {
+                        messagesRetrieved.inc();
+                        CentralMessaging.deleteMessage(message);
+                    },
+                    NOOP_EXCEPTION_HANDLER //prevent logging an error if that message could not be found in the first place
             );
         } catch (InsufficientPermissionException e) {
             handleInsufficientPermissionsException(channel, e);
@@ -442,7 +473,7 @@ public class CentralMessaging {
     public static void deleteMessage(@Nonnull Message message) {
         try {
             message.delete().queue(
-                    null,
+                    __ -> messagesDeleted.inc(),
                     t -> log.warn("Could not delete message", t)
             );
         } catch (InsufficientPermissionException e) {
@@ -472,6 +503,7 @@ public class CentralMessaging {
         MessageFuture result = new MessageFuture();
         Consumer<Message> successWrapper = m -> {
             result.complete(m);
+            messagesSent.labels("message").inc();
             if (onSuccess != null) {
                 onSuccess.accept(m);
             }
@@ -510,6 +542,7 @@ public class CentralMessaging {
         MessageFuture result = new MessageFuture();
         Consumer<Message> successWrapper = m -> {
             result.complete(m);
+            messagesSent.labels("file").inc();
             if (onSuccess != null) {
                 onSuccess.accept(m);
             }
@@ -548,6 +581,7 @@ public class CentralMessaging {
         MessageFuture result = new MessageFuture();
         Consumer<Message> successWrapper = m -> {
             result.complete(m);
+            messagesEdited.inc();
             if (onSuccess != null) {
                 onSuccess.accept(m);
             }

@@ -42,6 +42,8 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.util.DiscordUtil;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
+import io.prometheus.client.Counter;
+import io.prometheus.client.Histogram;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -72,20 +74,67 @@ public class EventListenerBoat extends AbstractEventListener {
             .build();
 
 
+    // ***********************************************************************************
+    //                      Metrics objects (yes there are a ton)
+    // ***********************************************************************************
+
+    private static final Counter totalMessagesReceived = Counter.build()
+            .name("fredboat_messages_received_total")
+            .help("Total messages received")
+            .register();
+    private static final Counter totalBlacklistedMessagesReceived = Counter.build()
+            .name("fredboat_messages_received_blacklisted_total")
+            .help("Total messages by users that are blacklisted")
+            .register();
+    private static final Counter totalPrivateMessagesReceived = Counter.build()
+            .name("fredboat_messages_received_private_total")
+            .help("Total private messages received")
+            .register();
+
+    private static final Counter totalMessagesWithPrefixReceived = Counter.build()
+            .name("fredboat_messages_received_prefix_total")
+            .help("Total received messages with our prefix")
+            .register();
+
+    private static final Counter totalCommandsReceived = Counter.build()
+            .name("fredboat_commands_received_total")
+            .help("Total received commands")
+            .labelNames("class") // use the simple name of the command class
+            .register();
+
+    //includes commands that get ratelimited
+    private static final Histogram processingTime = Histogram.build()
+            .name("fredboat_command_processing_duration_seconds")
+            .help("Command processing time")
+            .labelNames("class") // use the simple name of the command class
+            .register();
+
+    //actual commands execution
+    private static final Histogram executionTime = Histogram.build()
+            .name("fredboat_command_execution_duration_seconds")
+            .help("Command execution time")
+            .labelNames("class") // use the simple name of the command class
+            .register();
+
+
+
     public EventListenerBoat() {
     }
 
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
+        totalMessagesReceived.inc();
 
         if (FeatureFlags.RATE_LIMITER.isActive()) {
             if (Ratelimiter.getRatelimiter().isBlacklisted(event.getAuthor().getIdLong())) {
+                totalBlacklistedMessagesReceived.inc();
                 return;
             }
         }
 
         if (event.getPrivateChannel() != null) {
             log.info("PRIVATE" + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
+            totalPrivateMessagesReceived.inc();
             return;
         }
 
@@ -105,6 +154,7 @@ public class EventListenerBoat extends AbstractEventListener {
 
         if (content.startsWith(Config.CONFIG.getPrefix())) {
             log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
+            totalMessagesWithPrefixReceived.inc();
 
             CommandContext context = CommandContext.parse(event);
 
@@ -118,7 +168,16 @@ public class EventListenerBoat extends AbstractEventListener {
                 return;
             }
 
-            limitOrExecuteCommand(context);
+            String commandClassName = context.command.getClass().getSimpleName();
+            totalCommandsReceived.labels(commandClassName).inc();
+
+            Histogram.Timer processingTimer = processingTime.labels(commandClassName).startTimer();
+            try {
+                limitOrExecuteCommand(context);
+            } finally {
+                //NOTE: Some commands, like ;;mal, run async and will not reflect the real performance of FredBoat
+                processingTimer.observeDuration();
+            }
         }
     }
 
@@ -132,9 +191,14 @@ public class EventListenerBoat extends AbstractEventListener {
             ratelimiterResult = Ratelimiter.getRatelimiter().isAllowed(context, context.command, 1);
 
         }
-        if (ratelimiterResult.a)
-            CommandManager.prefixCalled(context);
-        else {
+        if (ratelimiterResult.a) {
+            Histogram.Timer executionTimer = executionTime.labels(context.command.getClass().getSimpleName()).startTimer();
+            try {
+                CommandManager.prefixCalled(context);
+            } finally {
+                executionTimer.observeDuration();
+            }
+        } else {
             String out = context.i18n("ratelimitedGeneralInfo");
             if (ratelimiterResult.b == SkipCommand.class) { //we can compare classes with == as long as we are using the same classloader (which we are)
                 //add a nice reminder on how to skip more than 1 song

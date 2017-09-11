@@ -27,6 +27,7 @@ package fredboat.util.ratelimit;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
 import fredboat.db.entity.BlacklistEntry;
+import io.prometheus.client.Counter;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import java.util.ArrayList;
@@ -44,6 +45,12 @@ import java.util.Set;
  * through an agent in regular periods
  */
 public class Blacklist {
+
+    private static final Counter autoBlacklistsIssued = Counter.build()
+            .name("fredboat_commands_autoblacklists_issued_total")
+            .help("How many user were blacklisted on a particular level")
+            .labelNames("level")
+            .register();
 
     //this holds progressively increasing lengths of blacklisting in milliseconds
     private static final List<Long> blacklistLevels;
@@ -126,6 +133,7 @@ public class Blacklist {
             if (blEntry.rateLimitReached >= rateLimitHitsBeforeBlacklist) {
                 //issue blacklist incident
                 blEntry.level++;
+                autoBlacklistsIssued.labels(Integer.toString(blEntry.level)).inc();
                 if (blEntry.level < 0) blEntry.level = 0;
                 blEntry.blacklistedTimestamp = now;
                 blEntry.rateLimitReached = 0; //reset these for the next time

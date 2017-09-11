@@ -27,11 +27,16 @@ package fredboat.db;
 
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
+import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.metrics.prometheus.PrometheusMetricsTrackerFactory;
 import fredboat.Config;
 import fredboat.FredBoat;
+import io.prometheus.client.hibernate.HibernateStatisticsCollector;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.config.CacheConfiguration;
 import net.sf.ehcache.config.PersistenceConfiguration;
+import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
+import org.hibernate.internal.SessionFactoryImpl;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +50,8 @@ import java.util.Properties;
 public class DatabaseManager {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseManager.class);
+
+    private static final String DEFAULT_PERSISTENCE_UNIT_NAME = "fredboat.default";
 
     private EntityManagerFactory emf;
     private Session sshTunnel;
@@ -128,7 +135,7 @@ public class DatabaseManager {
             emfb.setPackagesToScan("fredboat.db.entity");
             emfb.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
             emfb.setJpaProperties(properties);
-            emfb.setPersistenceUnitName("fredboat.test");
+            emfb.setPersistenceUnitName(DEFAULT_PERSISTENCE_UNIT_NAME);
             emfb.setPersistenceProviderClass(HibernatePersistenceProvider.class);
             emfb.afterPropertiesSet();
 
@@ -136,6 +143,13 @@ public class DatabaseManager {
             closeEntityManagerFactory();
 
             emf = emfb.getObject();
+
+            //add metrics to hikari and hibernate
+            SessionFactoryImpl sessionFactory = emf.unwrap(SessionFactoryImpl.class);
+            sessionFactory.getServiceRegistry().getService(ConnectionProvider.class)
+                    .unwrap(HikariDataSource.class)
+                    .setMetricsTrackerFactory(new PrometheusMetricsTrackerFactory());
+            new HibernateStatisticsCollector(sessionFactory, DEFAULT_PERSISTENCE_UNIT_NAME).register();
 
             //adjusting the ehcache config
             if (!Config.CONFIG.isUseSshTunnel()) {
