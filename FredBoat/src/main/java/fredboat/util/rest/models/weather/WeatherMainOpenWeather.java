@@ -14,6 +14,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
         "temp_max"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
+
+/*
+ * Open weather data model.
+ */
 public class WeatherMainOpenWeather {
 
     @JsonProperty("temp")

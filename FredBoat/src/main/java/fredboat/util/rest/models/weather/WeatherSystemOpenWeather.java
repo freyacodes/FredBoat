@@ -15,6 +15,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
         "sunset"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
+
+/*
+ * Open weather data model.
+ */
 public class WeatherSystemOpenWeather {
 
     @JsonProperty("type")

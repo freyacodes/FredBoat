@@ -179,7 +179,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
                 for (AudioTrack track : selectable) {
                     builder.append("\n**")
                             .append(String.valueOf(i))
-               c             .append(":** ")
+                            .append(":** ")
                             .append(track.getInfo().title)
                             .append(" (")
                             .append(TextUtils.formatTime(track.getInfo().length))

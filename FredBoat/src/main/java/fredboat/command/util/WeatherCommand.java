@@ -69,7 +69,6 @@ public class WeatherCommand extends Command implements IUtilCommand {
                     MessageFormat.format(I18n.get(guild).getString("weatherUsageError"), Config.CONFIG.getPrefix()))
                     .queue();
         });
-
     }
 
     @Override

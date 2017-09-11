@@ -10,6 +10,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
         "all"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
+
+/*
+ * Open weather data model.
+ */
 public class CloudsOpenWeather {
 
     @JsonProperty("all")

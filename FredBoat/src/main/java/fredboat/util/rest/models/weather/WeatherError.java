@@ -1,5 +1,8 @@
 package fredboat.util.rest.models.weather;
 
+/*
+ * Weather data model for error.
+ */
 public class WeatherError implements RetrievedWeather {
     @Override
     public boolean IsError() {

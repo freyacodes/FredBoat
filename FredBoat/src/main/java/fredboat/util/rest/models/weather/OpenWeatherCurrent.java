@@ -25,6 +25,10 @@ import java.util.List;
         "cod"
 })
 @JsonIgnoreProperties(ignoreUnknown = true)
+
+/*
+ * Open weather data model.
+ */
 public class OpenWeatherCurrent implements RetrievedWeather {
 
     @JsonProperty("weather")
@@ -105,16 +109,25 @@ public class OpenWeatherCurrent implements RetrievedWeather {
         return statusCode;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean IsError() {
         return statusCode != 200;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getLocation() {
         return name;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getWeatherDescription() {
         if (weather.size() > 0) {
@@ -123,11 +136,17 @@ public class OpenWeatherCurrent implements RetrievedWeather {
         return "";
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getFormattedDate() {
         return simpleDateFormat.format(new Date((long) getDatetime() * 1000));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getTemperature() {
         return String.format("%.2f C / %.2f F", getCelsius(), getFahrenheit());
