@@ -81,9 +81,9 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
         } else if (args.length == 2 && StringUtils.isNumeric(args[1])) {
             skipGivenIndex(player, context);
         } else if (args.length == 2 && trackRangePattern.matcher(args[1]).matches()) {
-            skipInRange(player, channel, invoker, args);
-        } else if (args.length >= 2 && message.getMentionedUsers().size() > 0) {
-            skipUser(player, channel, invoker, message.getMentionedUsers());
+            skipInRange(player, context);
+        } else if (args.length >= 2 && context.msg.getMentionedUsers().size() > 0) {
+            skipUser(player, context, context.msg.getMentionedUsers());
         } else {
             HelpCommand.sendFormattedCommandHelp(context);
         }
@@ -159,20 +159,20 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
         player.skipTracksForMemberPerms(context, trackIds, successMessage);
     }
 
-    private void skipUser(GuildPlayer player, TextChannel channel, Member invoker, List<User> users) {
+    private void skipUser(GuildPlayer player, CommandContext context, List<User> users) {
 
-        if (!PermsUtil.checkPerms(PermissionLevel.DJ, invoker)) {
+        if (!PermsUtil.checkPerms(PermissionLevel.DJ, context.invoker)) {
 
             if (users.size() == 1) {
                 User user = users.get(0);
 
-                if (invoker.getUser().getIdLong() != user.getIdLong()) {
-                    channel.sendMessage(I18n.get(player.getGuild()).getString("skipDeniedTooManyTracks")).queue();
+                if (context.invoker.getUser().getIdLong() != user.getIdLong()) {
+                    context.reply(I18n.get(context, "skipDeniedTooManyTracks"));
                     return;
                 }
 
             } else {
-                channel.sendMessage(I18n.get(player.getGuild()).getString("skipDeniedTooManyTracks")).queue();
+                context.reply(I18n.get(context, "skipDeniedTooManyTracks"));
                 return;
             }
         }
@@ -198,19 +198,19 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
             player.skipTracks(userAtcIds);
 
             if (affectedUsers.size() > 1) {
-                channel.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserMultiple"), "`" + userAtcIds.size() + "`", I18n.get(player.getGuild()).getString("trackPlural"), ("**" + affectedUsers.size() + "**"))).queue();
+                context.reply(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserMultiple"), "`" + userAtcIds.size() + "`", I18n.get(player.getGuild()).getString("trackPlural"), ("**" + affectedUsers.size() + "**")));
             } else {
                 User user = affectedUsers.get(0);
-                channel.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserSingle"), "`" + userAtcIds.size() + "`", userAtcIds.size() > 1 ? I18n.get(player.getGuild()).getString("trackPlural") : I18n.get(player.getGuild()).getString("trackSingular"), ("**" + user.getName() + "#" + user.getDiscriminator() + "**"))).queue();
+                context.reply(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserSingle"), "`" + userAtcIds.size() + "`", userAtcIds.size() > 1 ? I18n.get(player.getGuild()).getString("trackPlural") : I18n.get(player.getGuild()).getString("trackSingular"), ("**" + user.getName() + "#" + user.getDiscriminator() + "**")));
             }
 
         } else {
-            channel.sendMessage(I18n.get(player.getGuild()).getString("skipUserNoTracks")).queue();
+            context.reply(I18n.get(context, "skipUserNoTracks" ));
         }
     }
 
-    private void skipNext(Guild guild, TextChannel channel, Member invoker) {
-        GuildPlayer player = PlayerRegistry.get(guild);
+    private void skipNext(CommandContext context) {
+        GuildPlayer player = PlayerRegistry.get(context.guild);
         AudioTrackContext atc = player.getPlayingTrack();
         if (atc == null) {
             context.reply(I18n.get(context, "skipTrackNotFound"));
