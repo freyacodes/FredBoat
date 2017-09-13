@@ -113,7 +113,7 @@ public class OpenWeatherCurrent implements RetrievedWeather {
      * {@inheritDoc}
      */
     @Override
-    public boolean IsError() {
+    public boolean isError() {
         return statusCode != 200;
     }
 

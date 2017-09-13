@@ -11,7 +11,6 @@ import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
 
 import java.text.MessageFormat;
 
@@ -39,7 +38,7 @@ public class WeatherCommand extends Command implements IUtilCommand {
 
                 RetrievedWeather currentWeather = weather.getCurrentWeatherByCity(alphanumericalQuery);
 
-                if (currentWeather.IsError()) {
+                if (currentWeather.isError()) {
                     outMsg.editMessage(
                             MessageFormat.format(I18n.get(guild).getString("weatherError"),
                                     query.toUpperCase())).queue();

@@ -10,7 +10,7 @@ public interface RetrievedWeather {
      *
      * @return True if there is an error, false if successful.
      */
-    boolean IsError();
+    boolean isError();
 
     /**
      * Get the location of the search result.
