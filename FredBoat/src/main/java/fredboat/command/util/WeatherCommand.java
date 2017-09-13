@@ -2,8 +2,10 @@ package fredboat.command.util;
 
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
 import fredboat.util.rest.Weather;
 import fredboat.util.rest.models.weather.RetrievedWeather;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -23,13 +25,13 @@ public class WeatherCommand extends Command implements IUtilCommand {
     }
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
 
-        channel.sendMessage(I18n.get(guild).getString("weatherLoading")).queue(outMsg -> {
-            if (args.length > 1) {
+        context.reply(I18n.get(context.guild).getString("weatherLoading"), outMsg -> {
+            if (context.args.length > 1) {
                 StringBuilder sb = new StringBuilder();
-                for (int i = 1; i < args.length; i++) {
-                    sb.append(args[i]);
+                for (int i = 1; i < context.args.length; i++) {
+                    sb.append(context.args[i]);
                     sb.append(" ");
                 }
 
@@ -39,34 +41,34 @@ public class WeatherCommand extends Command implements IUtilCommand {
                 RetrievedWeather currentWeather = weather.getCurrentWeatherByCity(alphanumericalQuery);
 
                 if (currentWeather.isError()) {
-                    outMsg.editMessage(
-                            MessageFormat.format(I18n.get(guild).getString("weatherError"),
-                                    query.toUpperCase())).queue();
+                    CentralMessaging.editMessage(outMsg,
+                            MessageFormat.format(I18n.get(context.guild).getString("weatherError"),
+                                    query.toUpperCase()));
 
                 } else {
-                    MessageBuilder messageBuilder = new MessageBuilder();
+                    MessageBuilder messageBuilder = CentralMessaging.getClearThreadLocalMessageBuilder();
                     messageBuilder.append(
-                            MessageFormat.format(I18n.get(guild).getString("weatherLocation"),
+                            MessageFormat.format(I18n.get(context.guild).getString("weatherLocation"),
                                     currentWeather.getLocation()));
                     messageBuilder.append("\n");
 
                     messageBuilder.append(
-                            MessageFormat.format(I18n.get(guild).getString("weatherDescription"),
+                            MessageFormat.format(I18n.get(context.guild).getString("weatherDescription"),
                                     currentWeather.getWeatherDescription()));
                     messageBuilder.append("\n");
 
                     messageBuilder.append(
-                            MessageFormat.format(I18n.get(guild).getString("weatherTemperature"),
+                            MessageFormat.format(I18n.get(context.guild).getString("weatherTemperature"),
                                     currentWeather.getTemperature()));
 
-                    outMsg.editMessage(messageBuilder.build()).queue();
+                    CentralMessaging.editMessage(outMsg, messageBuilder.build());
                 }
                 return;
             }
 
-            outMsg.editMessage(
-                    MessageFormat.format(I18n.get(guild).getString("weatherUsageError"), Config.CONFIG.getPrefix()))
-                    .queue();
+            CentralMessaging.editMessage(outMsg,
+                    MessageFormat.format(I18n.get(context.guild).getString("weatherUsageError"),
+                            Config.CONFIG.getPrefix()));
         });
     }
 
