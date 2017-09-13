@@ -30,22 +30,19 @@ import fredboat.FredBoat;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.feature.I18n;
 import fredboat.util.DiscordUtil;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDAInfo;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 
 public class StatsCommand extends Command implements IMaintenanceCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         long totalSecs = (System.currentTimeMillis() - FredBoat.START_TIME) / 1000;
         int days = (int) (totalSecs / (60 * 60 * 24));
         int hours = (int) ((totalSecs / (60 * 60)) % 24);
@@ -53,11 +50,12 @@ public class StatsCommand extends Command implements IMaintenanceCommand {
         int secs = (int) (totalSecs % 60);
         
         String str = MessageFormat.format(
-                I18n.get(guild).getString("statsParagraph"),
+                I18n.get(context, "statsParagraph"),
                 days, hours, mins, secs, CommandManager.commandsExecuted.get() - 1)
                 + "\n";
 
-        str = MessageFormat.format(I18n.get(guild).getString("statsRate"), str, (float) (CommandManager.commandsExecuted.get() - 1) / ((float) totalSecs / (float) (60 * 60)));
+        str = MessageFormat.format(I18n.get(context, "statsRate"), str,
+                (float) (CommandManager.commandsExecuted.get() - 1) / ((float) totalSecs / (float) (60 * 60)));
 
         str = str + "\n\n```";
 
@@ -68,19 +66,19 @@ public class StatsCommand extends Command implements IMaintenanceCommand {
 
         str = str + "\n----------\n\n";
 
-        str = str + "Sharding:                       " + FredBoat.getInstance(guild.getJDA()).getShardInfo().getShardString() + "\n";
+        str = str + "Sharding:                       " + FredBoat.getInstance(context.guild.getJDA()).getShardInfo().getShardString() + "\n";
         if (DiscordUtil.isMusicBot()) {
             str = str + "Players playing:                " + PlayerRegistry.getPlayingPlayers().size() + "\n";
         }
         str = str + "Known servers:                  " + FredBoat.countAllGuilds() + "\n";
         str = str + "Known users in servers:         " + FredBoat.countAllUniqueUsers() + "\n";
         str = str + "Distribution:                   " + Config.CONFIG.getDistribution() + "\n";
-        str = str + "JDA responses total:            " + guild.getJDA().getResponseTotal() + "\n";
+        str = str + "JDA responses total:            " + context.guild.getJDA().getResponseTotal() + "\n";
         str = str + "JDA version:                    " + JDAInfo.VERSION;
 
         str = str + "```";
 
-        channel.sendMessage(TextUtils.prefaceWithName(invoker, str)).queue();
+        context.replyWithName(str);
     }
 
     @Override

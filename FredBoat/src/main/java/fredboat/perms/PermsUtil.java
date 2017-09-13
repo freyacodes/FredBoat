@@ -26,15 +26,14 @@
 package fredboat.perms;
 
 import fredboat.Config;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityReader;
 import fredboat.db.entity.GuildPermissions;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.util.DiscordUtil;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Role;
-import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.utils.PermissionUtil;
 
@@ -69,13 +68,18 @@ public class PermsUtil {
         return getPerms(member).getLevel() >= minLevel.getLevel();
     }
 
-    public static boolean checkPermsWithFeedback(PermissionLevel minLevel, Member member, TextChannel channel) {
-        PermissionLevel actual = getPerms(member);
+    /**
+     * Check whether the invoker has at least the provided minimum permissions level
+     */
+    public static boolean checkPermsWithFeedback(PermissionLevel minLevel, CommandContext context) {
+        PermissionLevel actual = getPerms(context.invoker);
 
         if (actual.getLevel() >= minLevel.getLevel()) {
             return true;
         } else {
-            TextUtils.replyWithName(channel, member, MessageFormat.format("You don''t have permission to run this command! This command requires `{0}` but you only have `{1}`", minLevel, actual));
+            context.replyWithName(MessageFormat.format(
+                    "You don''t have permission to run this command! This command requires `{0}` but you only have `{1}`",
+                    minLevel, actual)); //TODO i18n
             return false;
         }
     }

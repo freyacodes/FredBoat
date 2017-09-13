@@ -33,18 +33,18 @@ import java.util.List;
 public class VideoSelection {
 
     private final List<AudioTrack> choices;
-    private final String outMsgId;
+    private final long outMsgId;
 
     public VideoSelection(List<AudioTrack> choices, Message outMsg) {
         this.choices = choices;
-        this.outMsgId = outMsg.getId();
+        this.outMsgId = outMsg.getIdLong();
     }
 
     public List<AudioTrack> getChoices() {
         return choices;
     }
 
-    public String getOutMsgId() {
+    public long getOutMsgId() {
         return outMsgId;
     }
 

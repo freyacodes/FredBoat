@@ -25,10 +25,9 @@
 package fredboat.util.ratelimit;
 
 import fredboat.FredBoat;
+import fredboat.messaging.internal.Context;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.util.Collections;
 import java.util.Set;
@@ -80,8 +79,8 @@ public class Ratelimit {
         this.clazz = clazz;
     }
 
-    public boolean isAllowed(Member invoker, int weight) {
-        return isAllowed(invoker, weight, null, null);
+    public boolean isAllowed(Context context, int weight) {
+        return isAllowed(context, weight, null);
     }
 
     /**
@@ -90,17 +89,17 @@ public class Ratelimit {
      * Caveat: This allows requests to overstep the ratelimit with single high weight requests.
      * The clearing of timestamps ensures it will take longer for them to get available again though.
      */
-    public boolean isAllowed(Member invoker, int weight, Blacklist blacklist, TextChannel blacklistOutput) {
+    public boolean isAllowed(Context context, int weight, Blacklist blacklist) {
         //This gets called real often, right before every command execution. Keep it light, don't do any blocking stuff,
         //ensure whatever you do in here is threadsafe, but minimize usage of synchronized as it adds overhead
-
+        long userId = context.getUser().getIdLong();
         //first of all, ppl that can never get limited or blacklisted, no matter what
-        if (userWhiteList.contains(invoker.getUser().getIdLong())) return true;
+        if (userWhiteList.contains(userId)) return true;
 
         //user or guild scope?
         long id;
-        if (scope == Scope.GUILD) id = invoker.getGuild().getIdLong();
-        else id = invoker.getUser().getIdLong();
+        if (scope == Scope.GUILD) id = userId;
+        else id = userId;
 
         Rate rate = limits.get(id);
         if (rate == null)
@@ -133,7 +132,7 @@ public class Ratelimit {
         //the following code has to handle that
 
         if (blacklist != null && scope == Scope.USER)
-            FredBoat.executor.submit(() -> bannerinoUserino(invoker, blacklist, blacklistOutput));
+            FredBoat.executor.submit(() -> bannerinoUserino(context, blacklist));
         return false;
     }
 
@@ -141,15 +140,15 @@ public class Ratelimit {
      * Notifies the autoblacklist that a user has hit a limit, and handles the response of the blacklist
      * Best run async as the blacklist might be hitting a database
      */
-    private void bannerinoUserino(Member invoker, Blacklist blacklist, TextChannel channel) {
-        long length = blacklist.hitRateLimit(invoker.getUser().getIdLong());
+    private void bannerinoUserino(Context context, Blacklist blacklist) {
+        long length = blacklist.hitRateLimit(context.getUser().getIdLong());
         if (length <= 0) {
             return; //nothing to do here
         }
         long s = length / 1000;
         String duration = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
         String out = "\uD83D\uDD28 _**BLACKLISTED**_ \uD83D\uDD28 for **" + duration + "**";
-        channel.sendMessage(invoker.getAsMention() + ": " + out).queue();
+        context.replyWithMention(out);
     }
 
 

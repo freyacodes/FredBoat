@@ -27,28 +27,25 @@ package fredboat.command.admin;
 
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommand;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.ExitCodes;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import org.slf4j.LoggerFactory;
 
-public class BotRestartCommand extends Command implements ICommand, ICommandRestricted {
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
+public class BotRestartCommand extends Command implements ICommandRestricted {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(BotRestartCommand.class);
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         try {
-            channel.sendMessage(TextUtils.prefaceWithName(invoker, " Restarting..")).complete(true);
-        } catch (RateLimitedException e) {
-            log.warn("Rate limited", e);
+            context.replyWithName(" Restarting...").getWithDefaultTimeout();
+        } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
         }
 
         FredBoat.shutdown(ExitCodes.EXIT_CODE_RESTART);

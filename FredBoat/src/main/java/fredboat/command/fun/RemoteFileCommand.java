@@ -26,24 +26,22 @@
 package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.util.rest.CacheUtil;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 public class RemoteFileCommand extends Command implements IFunCommand {
 
-    public String msg;
+    public String url;
 
-    public RemoteFileCommand(String msg) {
-        this.msg = msg;
+    public RemoteFileCommand(String url) {
+        this.url = url;
     }
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        channel.sendFile(CacheUtil.getImageFromURL(msg), null).queue();
+    public void onInvoke(CommandContext context) {
+        context.replyFile(CacheUtil.getImageFromURL(url), null);
     }
 
     @Override

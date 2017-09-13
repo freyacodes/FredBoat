@@ -29,7 +29,8 @@ import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.FredBoat;
 import fredboat.event.UserListener;
-import net.dv8tion.jda.core.JDA;
+import fredboat.messaging.internal.Context;
+import fredboat.messaging.internal.LeakSafeContext;
 import net.dv8tion.jda.core.entities.Channel;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -50,7 +51,7 @@ public final class AkinatorListener extends UserListener {
     private final String CHOICE_URL = "http://api-en4.akinator.com/ws/choice";
     private final String EXCLUSION_URL = "http://api-en4.akinator.com/ws/exclusion";
 
-    private final FredBoat shard;
+    private final LeakSafeContext context;
     private final String channelId;
     private final String userId;
     private StepInfo stepInfo;
@@ -64,12 +65,12 @@ public final class AkinatorListener extends UserListener {
     private Future timeoutTask;
 
 
-    public AkinatorListener(JDA jda, String channelId, String userId) throws UnirestException {
-        this.shard = FredBoat.getInstance(jda);
-        this.channelId = channelId;
-        this.userId = userId;
+    public AkinatorListener(Context context) throws UnirestException {
+        this.context = new LeakSafeContext(context);
+        this.userId = context.getMember().getUser().getId();
+        this.channelId = context.getTextChannel().getId();
 
-        jda.getTextChannelById(channelId).sendTyping().queue();
+        context.sendTyping();
 
         //Start new session
         JSONObject json = Unirest.get(NEW_SESSION_URL)
@@ -92,17 +93,17 @@ public final class AkinatorListener extends UserListener {
     }
 
     private void sendNextQuestion() {
-        String name = getJda().getTextChannelById(channelId).getGuild().getMemberById(userId).getEffectiveName();
+        String name = context.getMember().getEffectiveName();
         String out = "**" + name + ": Question " + (stepInfo.getStepNum() + 1) + "**\n"
                 + stepInfo.getQuestion() + "\n [yes/no/idk/probably/probably not]";
-        getJda().getTextChannelById(channelId).sendMessage(out).queue();
+        context.reply(out);
         lastQuestionWasGuess = false;
     }
 
     private void sendGuess() throws UnirestException {
         guess = new Guess();
         String out = "Is this your character?\n" + guess.toString() + "\n[yes/no]";
-        getJda().getTextChannelById(channelId).sendMessage(out).queue();
+        context.reply(out);
         lastQuestionWasGuess = true;
     }
 
@@ -117,9 +118,9 @@ public final class AkinatorListener extends UserListener {
             stepInfo = new StepInfo(json);
 
             if (stepInfo.gameOver) {
-                getJda().getTextChannelById(channelId).sendMessage("Bravo !\n"
+                context.reply("Bravo !\n"
                         + "You have defeated me !\n"
-                        + "<http://akinator.com>").queue();
+                        + "<http://akinator.com>");
                 FredBoat.getListenerBot().removeListener(userId);
                 return;
             }
@@ -143,9 +144,9 @@ public final class AkinatorListener extends UserListener {
                         .queryString("step", stepInfo.getStepNum())
                         .queryString("element", guess.getId())
                         .asString();
-                getJda().getTextChannelById(channelId).sendMessage("Great ! Guessed right one more time.\n"
+                context.reply("Great ! Guessed right one more time.\n"
                         + "I love playing with you!\n"
-                        + "<http://akinator.com>").queue();
+                        + "<http://akinator.com>");
                 FredBoat.getListenerBot().removeListener(userId);
             } else if (answer == 1) {
                 Unirest.get(EXCLUSION_URL)
@@ -218,16 +219,12 @@ public final class AkinatorListener extends UserListener {
                 return;
             }
 
-            getJda().getTextChannelById(channelId).sendTyping().queue();
+            context.sendTyping();
             answerGuess(answer);
         } else {
-            getJda().getTextChannelById(channelId).sendTyping().queue();
+            context.sendTyping();
             answerQuestion(answer);
         }
-    }
-
-    public JDA getJda() {
-        return shard.getJda();
     }
 
     private class StepInfo {

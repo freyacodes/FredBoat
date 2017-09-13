@@ -25,16 +25,12 @@
 
 package fredboat.command.util;
 
-import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.util.BrainfuckException;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
@@ -115,27 +111,26 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
     }
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
 
-        if (args.length == 1) {
-            String command = args[0].substring(Config.CONFIG.getPrefix().length());
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+        if (context.args.length == 1) {
+            HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
-        code = message.getContent().replaceFirst(args[0], "").toCharArray();
+        code = context.msg.getContent().replaceFirst(context.args[0], "").toCharArray();
         bytes = ByteBuffer.allocateDirect(1024 * 1024 * 8);
         String inputArg = "";
 
         try {
-            inputArg = args[2];
+            inputArg = context.args[2];
         } catch (Exception e) {
 
         }
 
         inputArg = inputArg.replaceAll("ZERO", String.valueOf((char) 0));
 
-        String out = process(inputArg, guild);
+        String out = process(inputArg, context.guild);
         //TextUtils.replyWithMention(channel, invoker, " " + out);
         String out2 = "";
         for (char c : out.toCharArray()) {
@@ -143,9 +138,9 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
             out2 = out2 + "," + sh;
         }
         try {
-            TextUtils.replyWithName(channel, invoker, " " + out + "\n-------\n" + out2.substring(1));
+            context.replyWithName(" " + out + "\n-------\n" + out2.substring(1));
         } catch (IndexOutOfBoundsException ex) {
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("brainfuckNoOutput"));
+            context.replyWithName(I18n.get(context, "brainfuckNoOutput"));
         }
     }
 

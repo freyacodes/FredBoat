@@ -27,15 +27,12 @@ package fredboat.command.admin;
 
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommand;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.db.DatabaseManager;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +41,7 @@ import javax.persistence.EntityManager;
 /**
  * Stress tests the database
  */
-public class TestCommand extends Command implements ICommand, ICommandRestricted {
+public class TestCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(TestCommand.class);
 
@@ -56,11 +53,11 @@ public class TestCommand extends Command implements ICommand, ICommandRestricted
     private final String INSERT_TEST_TABLE = "INSERT INTO test (val) VALUES (:val) ";
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        FredBoat.executor.submit(() -> invoke(FredBoat.getDbManager(), channel, invoker, args));
+    public void onInvoke(CommandContext context) {
+        FredBoat.executor.submit(() -> invoke(FredBoat.getDbManager(), context, context.args));
     }
 
-    boolean invoke(DatabaseManager dbm, TextChannel channel, Member invoker, String[] args) {
+    boolean invoke(DatabaseManager dbm, Context context, String args[]) {
 
         boolean result = false;
 
@@ -72,8 +69,8 @@ public class TestCommand extends Command implements ICommand, ICommandRestricted
         }
         final int threads = t;
         final int operations = o;
-        if (channel != null && invoker != null) {
-            TextUtils.replyWithName(channel, invoker, "Beginning stress test with " + threads + " threads each doing " + operations + " operations");
+        if (context.getTextChannel() != null && context.getMember() != null) {
+            context.replyWithName("Beginning stress test with " + threads + " threads each doing " + operations + " operations");
         }
 
         prepareStressTest(dbm);
@@ -117,8 +114,8 @@ public class TestCommand extends Command implements ICommand, ICommandRestricted
         }
         out += "\n Time taken: " + ((System.currentTimeMillis() - started)) + "ms for " + (threads * operations) + " requested operations.`";
         log.info(out);
-        if (channel != null && invoker != null) {
-            TextUtils.replyWithName(channel, invoker, out);
+        if (context.getTextChannel() != null && context.getMember() != null) {
+            context.replyWithName(out);
         }
 
         return result;

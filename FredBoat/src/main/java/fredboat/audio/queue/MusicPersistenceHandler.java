@@ -34,6 +34,7 @@ import fredboat.audio.player.AbstractPlayer;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.shared.constant.ExitCodes;
 import net.dv8tion.jda.core.entities.Member;
@@ -90,7 +91,7 @@ public class MusicPersistenceHandler {
                     msg = I18n.get(player.getGuild()).getString("shutdownIndef");
                 }
 
-                player.getActiveTextChannel().sendMessage(msg).queue();
+                CentralMessaging.sendMessage(player.getActiveTextChannel(), msg);
 
                 JSONObject data = new JSONObject();
                 data.put("vc", player.getUserCurrentVoiceChannel(player.getGuild().getSelfMember()).getId());
@@ -132,7 +133,9 @@ public class MusicPersistenceHandler {
                 try {
                     FileUtils.writeStringToFile(new File(dir, gId), data.toString(), Charset.forName("UTF-8"));
                 } catch (IOException ex) {
-                    player.getActiveTextChannel().sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("shutdownPersistenceFail"), ex.getMessage())).queue();
+                    CentralMessaging.sendMessage(player.getActiveTextChannel(),
+                            MessageFormat.format(I18n.get(player.getGuild()).getString("shutdownPersistenceFail"),
+                                    ex.getMessage()));
                 }
             } catch (Exception ex) {
                 log.error("Error when saving persistence file", ex);
@@ -242,7 +245,7 @@ public class MusicPersistenceHandler {
                 });
 
                 player.setPause(isPaused);
-                tc.sendMessage(MessageFormat.format(I18n.get(player.getGuild()).getString("reloadSuccess"), sources.length())).queue();
+                CentralMessaging.sendMessage(tc, MessageFormat.format(I18n.get(player.getGuild()).getString("reloadSuccess"), sources.length()));
             } catch (Exception ex) {
                 log.error("Error when loading persistence file", ex);
             }

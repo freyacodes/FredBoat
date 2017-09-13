@@ -27,14 +27,14 @@ package fredboat.command.util;
 
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
 import fredboat.util.ArgumentUtil;
-import net.dv8tion.jda.core.EmbedBuilder;
+import fredboat.util.ratelimit.Ratelimiter;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 import java.time.format.DateTimeFormatter;
@@ -47,16 +47,16 @@ import java.util.ResourceBundle;
  */
 public class UserInfoCommand extends Command implements IUtilCommand {
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        ResourceBundle rb =I18n.get(guild);
+    public void onInvoke(CommandContext context) {
+        ResourceBundle i18n = I18n.get(context.guild);
         Member target;
         StringBuilder knownServers = new StringBuilder();
         List<Guild> matchguild = new ArrayList<>();
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
-        if(args.length == 1) {
-            target = invoker;
+        if (context.args.length == 1) {
+            target = context.invoker;
         } else {
-            target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(channel,args[1],true);
+            target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(context, context.args[1], true);
         }
         if (target == null) return;
         for(Guild g: FredBoat.getAllGuilds()) {
@@ -78,20 +78,20 @@ public class UserInfoCommand extends Command implements IUtilCommand {
             }
         }
         //DMify if I can
-        EmbedBuilder eb = new EmbedBuilder();
-        eb.setColor(target.getColor());
-        eb.setImage(target.getUser().getAvatarUrl());
-        eb.setTitle(MessageFormat.format(rb.getString("userinfoTitle"),target.getUser().getName()), null);
-        eb.addField(rb.getString("userinfoUsername"),target.getUser().getName() + "#" + target.getUser().getDiscriminator(),true);
-        eb.addField(rb.getString("userinfoId"),target.getUser().getId(),true);
-        eb.addField(rb.getString("userinfoNick"),target.getEffectiveName(),true); //Known Nickname
-        eb.addField(rb.getString("userinfoKnownServer"),knownServers.toString(),true); //Known Server
-        eb.addField(rb.getString("userinfoJoinDate"),target.getJoinDate().format(dtf),true);
-        eb.addField(rb.getString("userinfoCreationTime"),target.getUser().getCreationTime().format(dtf),true);
-        //eb.addField(rb.getString("userinfoAvatarUrl"),target.getUser().getAvatarUrl(),true);
-
-        channel.sendMessage(eb.build()).queue();
-
+        context.reply(CentralMessaging.getClearThreadLocalEmbedBuilder()
+                .setColor(target.getColor())
+                .setImage(target.getUser().getAvatarUrl())
+                .setTitle(MessageFormat.format(i18n.getString("userinfoTitle"), target.getUser().getName()), null)
+                .addField(i18n.getString("userinfoUsername"), target.getUser().getName() + "#" + target.getUser().getDiscriminator(), true)
+                .addField(i18n.getString("userinfoId"), target.getUser().getId(), true)
+                .addField(i18n.getString("userinfoNick"), target.getEffectiveName(), true) //Known Nickname
+                .addField(i18n.getString("userinfoKnownServer"), knownServers.toString(), true) //Known Server
+                .addField(i18n.getString("userinfoJoinDate"), target.getJoinDate().format(dtf), true)
+                .addField(i18n.getString("userinfoCreationTime"), target.getUser().getCreationTime().format(dtf), true)
+                .addField("Blacklisted", "" + Ratelimiter.getRatelimiter().isBlacklisted(context.invoker.getUser().getIdLong()), true) //TODO i18n
+                .addField(i18n.getString("userinfoAvatarUrl"), target.getUser().getAvatarUrl(), true)
+                .build()
+        );
     }
 
     @Override

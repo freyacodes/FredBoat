@@ -28,39 +28,37 @@ package fredboat.command.music.control;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 
 public class StopCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        GuildPlayer player = PlayerRegistry.get(guild);
-        player.setCurrentTC(channel);
+    public void onInvoke(CommandContext context) {
+        GuildPlayer player = PlayerRegistry.get(context.guild);
+        player.setCurrentTC(context.channel);
         int tracksCount = player.getTrackCount();
 
         player.pause();
         player.stop();
         switch (tracksCount) {
             case 0:
-                channel.sendMessage(I18n.get(guild).getString("stopAlreadyEmpty")).queue();
+                context.reply(I18n.get(context, "stopAlreadyEmpty"));
                 break;
             case 1:
-                channel.sendMessage(I18n.get(guild).getString("stopEmptyOne")).queue();
+                context.reply(I18n.get(context, "stopEmptyOne"));
                 break;
             default:
-                channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("stopEmptySeveral"), tracksCount)).queue();
+                context.reply(MessageFormat.format(I18n.get(context, "stopEmptySeveral"), tracksCount));
                 break;
         }
-        player.leaveVoiceChannelRequest(channel, true);
+        player.leaveVoiceChannelRequest(context, true);
     }
 
     @Override

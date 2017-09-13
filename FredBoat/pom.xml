@@ -182,6 +182,12 @@
             <artifactId>fastutil</artifactId>
             <version>8.1.0</version>
         </dependency>
+        <dependency>
+            <!-- annotation sugar -->
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.2</version>
+        </dependency>
 
         <!-- Database stuff -->
         <dependency>

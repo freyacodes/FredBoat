@@ -26,13 +26,10 @@
 package fredboat.commandmeta.abs;
 
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 public interface ICommand {
 
-    public abstract void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args);
+    void onInvoke(CommandContext context);
 
     /**
      * @param guild Guild where the help is going to be posted to for i18n the help string; null value should be fine for a default language

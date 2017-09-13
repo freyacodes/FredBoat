@@ -28,20 +28,19 @@ package fredboat.command.fun;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.AkinatorListener;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 public class AkinatorCommand extends Command implements IFunCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         try {
-            AkinatorListener akinator = new AkinatorListener(guild.getJDA(), channel.getId(), invoker.getUser().getId());
-            FredBoat.getListenerBot().putListener(invoker.getUser().getId(), akinator);
+            String userId = context.invoker.getUser().getId();
+            AkinatorListener akinator = new AkinatorListener(context);
+            FredBoat.getListenerBot().putListener(userId, akinator);
         } catch (UnirestException ex) {
             throw new RuntimeException(ex);
         }

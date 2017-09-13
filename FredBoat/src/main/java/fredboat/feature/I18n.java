@@ -29,6 +29,7 @@ import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
 import fredboat.db.entity.GuildConfig;
+import fredboat.messaging.internal.Context;
 import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +78,11 @@ public class I18n {
         LANGS.put("en_TS", new FredBoatLocale(new Locale("en", "TS"), "en_TS", "Tsundere English"));
 
         log.info("Loaded " + LANGS.size() + " languages: " + LANGS);
+    }
+
+    //TODO introduce this
+    public static String get(Context context, String key) {
+        return get(context.getGuild()).getString(key);
     }
 
     public static ResourceBundle get(Guild guild) {

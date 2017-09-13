@@ -28,31 +28,31 @@ package fredboat.command.music.control;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.*;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.VoiceChannel;
 
 import java.text.MessageFormat;
 
 public class JoinCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        GuildPlayer player = PlayerRegistry.get(guild);
-        VoiceChannel vc = player.getUserCurrentVoiceChannel(invoker);
-        player.setCurrentTC(channel);
+    public void onInvoke(CommandContext context) {
+        GuildPlayer player = PlayerRegistry.get(context.guild);
+        VoiceChannel vc = player.getUserCurrentVoiceChannel(context.invoker);
+        player.setCurrentTC(context.channel);
         try {
             player.joinChannel(vc);
             if (vc != null) {
-                channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("joinJoining"), vc.getName()))
-                        .queue();
+                context.reply(MessageFormat.format(I18n.get(context, "joinJoining"), vc.getName()));
             }
         } catch (IllegalStateException ex) {
             if(vc != null) {
-                channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("joinErrorAlreadyJoining"), vc.getName()))
-                        .queue();
+                context.reply(MessageFormat.format(I18n.get(context, "joinErrorAlreadyJoining"), vc.getName()));
             } else {
                 throw ex;
             }

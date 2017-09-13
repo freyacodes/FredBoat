@@ -29,39 +29,38 @@ import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 public class UnpauseCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     private static final JoinCommand JOIN_COMMAND = new JoinCommand();
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
+        Guild guild = context.guild;
         GuildPlayer player = PlayerRegistry.get(guild);
-        player.setCurrentTC(channel);
+        player.setCurrentTC(context.channel);
         if (player.isQueueEmpty()) {
-            channel.sendMessage(I18n.get(guild).getString("unpauseQueueEmpty")).queue();
+            context.reply(I18n.get(context, "unpauseQueueEmpty"));
         } else if (!player.isPaused()) {
-            channel.sendMessage(I18n.get(guild).getString("unpausePlayerNotPaused")).queue();
+            context.reply(I18n.get(context, "unpausePlayerNotPaused"));
         } else if (player.getHumanUsersInCurrentVC().isEmpty() && player.isPaused() && LavalinkManager.ins.getConnectedChannel(guild) != null) {
-            channel.sendMessage(I18n.get(guild).getString("unpauseNoUsers")).queue();
-        } else if(LavalinkManager.ins.getConnectedChannel(guild) == null) {
+            context.reply(I18n.get(context, "unpauseNoUsers"));
+        } else if (LavalinkManager.ins.getConnectedChannel(context.guild) == null) {
             // When we just want to continue playing, but the user is not in a VC
-            JOIN_COMMAND.onInvoke(guild, channel, invoker, message, new String[0]);
+            JOIN_COMMAND.onInvoke(context);
             if(LavalinkManager.ins.getConnectedChannel(guild) != null || guild.getAudioManager().isAttemptingToConnect()) {
                 player.play();
-                channel.sendMessage(I18n.get(guild).getString("unpauseSuccess")).queue();
+                context.reply(I18n.get(context, "unpauseSuccess"));
             }
         } else {
             player.play();
-            channel.sendMessage(I18n.get(guild).getString("unpauseSuccess")).queue();
+            context.reply(I18n.get(context, "unpauseSuccess"));
         }
     }
 

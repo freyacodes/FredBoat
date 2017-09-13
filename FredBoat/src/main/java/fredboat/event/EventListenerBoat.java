@@ -31,11 +31,12 @@ import fredboat.command.fun.TalkCommand;
 import fredboat.command.music.control.SkipCommand;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.CommandManager;
-import fredboat.commandmeta.CommandRegistry;
-import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityReader;
 import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
+import fredboat.messaging.CentralMessaging;
+import fredboat.util.TextUtils;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
 import net.dv8tion.jda.core.entities.Guild;
@@ -55,7 +56,6 @@ import org.slf4j.LoggerFactory;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
 
 public class EventListenerBoat extends AbstractEventListener {
 
@@ -63,7 +63,8 @@ public class EventListenerBoat extends AbstractEventListener {
 
     //first string is the users message ID, second string the id of fredboat's message that should be deleted if the
     // user's message is deleted
-    public static Map<String, String> messagesToDeleteIfIdDeleted = new HashMap<>();
+    //todo this is, while not a super crazy one, but still a source of memory leaks. find a better way
+    public static Map<Long, Long> messagesToDeleteIfIdDeleted = new HashMap<>();
     private User lastUserToReceiveHelp;
 
     public EventListenerBoat() {
@@ -92,69 +93,61 @@ public class EventListenerBoat extends AbstractEventListener {
             return;
         }
 
-        if (event.getMessage().getContent().length() < Config.CONFIG.getPrefix().length()) {
+        String content = event.getMessage().getContent();
+        if (content.length() <= Config.CONFIG.getPrefix().length()) {
             return;
         }
 
-        if (event.getMessage().getContent().substring(0, Config.CONFIG.getPrefix().length()).equals(Config.CONFIG.getPrefix())) {
-            Command invoked = null;
+        if (content.startsWith(Config.CONFIG.getPrefix())) {
             log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
-            Matcher matcher = COMMAND_NAME_PREFIX.matcher(event.getMessage().getContent());
 
-            if (matcher.find()) {
-                String cmdName = matcher.group();
+            CommandContext context = CommandContext.parse(event);
 
-                CommandRegistry.CommandEntry entry = CommandRegistry.getCommand(cmdName.toLowerCase());
-                if (entry != null) {
-                    invoked = entry.command;
-                } else {
-                    log.info("Unknown command:\t" + cmdName);
-                }
-            }
-
-            if (invoked == null) {
+            if (context == null) {
                 return;
             }
 
-            limitOrExecuteCommand(invoked, event);
+            limitOrExecuteCommand(context);
         } else if (event.getMessage().getMentionedUsers().contains(event.getJDA().getSelfUser())) {
             log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
             CommandManager.commandsExecuted.getAndIncrement();
             //regex101.com/r/9aw6ai/1/
             String message = event.getMessage().getRawContent().replaceAll("<@!?[0-9]*>", "");
-            TalkCommand.talk(event.getMember(), event.getTextChannel(), message);
+            String response = TalkCommand.talk(message);
+            if (response != null && !response.isEmpty()) {
+                CentralMessaging.sendMessage(event.getChannel(), TextUtils.prefaceWithName(event.getMember(), response));
+            }
         }
     }
 
     /**
      * Check the rate limit of the user and execute the command if everything is fine.
-     * @param invoked Command to be invoked.
-     * @param event Message received from the chat.
+     * @param context Command context of the command to be invoked.
      */
-    private void limitOrExecuteCommand(Command invoked, MessageReceivedEvent event) {
+    private void limitOrExecuteCommand(CommandContext context) {
         Tuple2<Boolean, Class> ratelimiterResult = new Tuple2<>(true, null);
         if (FeatureFlags.RATE_LIMITER.isActive()) {
-            ratelimiterResult = Ratelimiter.getRatelimiter().isAllowed(event.getMember(), invoked, 1, event.getTextChannel());
+            ratelimiterResult = Ratelimiter.getRatelimiter().isAllowed(context, context.command, 1);
 
         }
         if (ratelimiterResult.a)
-            CommandManager.prefixCalled(invoked, event.getGuild(), event.getTextChannel(), event.getMember(), event.getMessage());
+            CommandManager.prefixCalled(context);
         else {
-            String out = event.getMember().getAsMention() + ": " + I18n.get(event.getGuild()).getString("ratelimitedGeneralInfo");
+            String out = I18n.get(context, "ratelimitedGeneralInfo");
             if (ratelimiterResult.b == SkipCommand.class) { //we can compare classes with == as long as we are using the same classloader (which we are)
                 //add a nice reminder on how to skip more than 1 song
-                out += "\n" + MessageFormat.format(I18n.get(event.getGuild()).getString("ratelimitedSkipCommand"), "`" + Config.CONFIG.getPrefix() + "skip n-m`");
+                out += "\n" + MessageFormat.format(I18n.get(context, "ratelimitedSkipCommand"),
+                        "`" + Config.CONFIG.getPrefix() + "skip n-m`");
             }
-            event.getTextChannel().sendMessage(out).queue();
+            context.replyWithMention(out);
         }
-
     }
 
     @Override
     public void onMessageDelete(MessageDeleteEvent event) {
-        if (messagesToDeleteIfIdDeleted.containsKey(event.getMessageId())) {
-            String msgId = messagesToDeleteIfIdDeleted.remove(event.getMessageId());
-            event.getChannel().deleteMessageById(msgId).queue();
+        if (messagesToDeleteIfIdDeleted.containsKey(event.getMessageIdLong())) {
+            long msgId = messagesToDeleteIfIdDeleted.remove(event.getMessageIdLong());
+            CentralMessaging.deleteMessageById(event.getChannel(), msgId);
         }
     }
 
@@ -177,7 +170,7 @@ public class EventListenerBoat extends AbstractEventListener {
             return;
         }
 
-        event.getChannel().sendMessage(HelpCommand.getHelpDmMsg(null)).queue();
+        CentralMessaging.sendMessage(event.getChannel(), HelpCommand.getHelpDmMsg(null));
         lastUserToReceiveHelp = event.getAuthor();
     }
 
@@ -218,7 +211,7 @@ public class EventListenerBoat extends AbstractEventListener {
                 && player.getHumanUsersInCurrentVC().size() > 0
                 && EntityReader.getGuildConfig(guild.getId()).isAutoResume()
                 ) {
-            player.getActiveTextChannel().sendMessage(I18n.get(guild).getString("eventAutoResumed")).queue();
+            CentralMessaging.sendMessage(player.getActiveTextChannel(), I18n.get(guild).getString("eventAutoResumed"));
             player.setPause(false);
         }
     }
@@ -247,7 +240,7 @@ public class EventListenerBoat extends AbstractEventListener {
 
         if (player.getHumanUsersInCurrentVC().isEmpty() && !player.isPaused()) {
             player.pause();
-            player.getActiveTextChannel().sendMessage(I18n.get(guild).getString("eventUsersLeftVC")).queue();
+            CentralMessaging.sendMessage(player.getActiveTextChannel(), I18n.get(guild).getString("eventUsersLeftVC"));
         }
     }
 

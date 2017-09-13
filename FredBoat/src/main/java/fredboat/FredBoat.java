@@ -43,7 +43,6 @@ import fredboat.commandmeta.init.MainCommandInitializer;
 import fredboat.commandmeta.init.MusicCommandInitializer;
 import fredboat.db.DatabaseManager;
 import fredboat.event.EventListenerBoat;
-import fredboat.event.EventListenerSelf;
 import fredboat.event.ShardWatchdogListener;
 import fredboat.feature.I18n;
 import fredboat.shared.constant.DistributionEnum;
@@ -86,7 +85,6 @@ public abstract class FredBoat {
     public static final int UNKNOWN_SHUTDOWN_CODE = -991023;
     public static int shutdownCode = UNKNOWN_SHUTDOWN_CODE;//Used when specifying the intended code for shutdown hooks
     static EventListenerBoat listenerBot;
-    static EventListenerSelf listenerSelf;
     ShardWatchdogListener shardWatchdogListener = null;
     private static AtomicInteger numShardsReady = new AtomicInteger(0);
 
@@ -98,7 +96,6 @@ public abstract class FredBoat {
     public final static ExecutorService executor = Executors.newCachedThreadPool();
 
     JDA jda;
-    private static FredBoatClient fbClient;
 
     private static ShardWatchdogAgent shardWatchdogAgent;
     private static DBConnectionWatchdogAgent dbConnectionWatchdogAgent;
@@ -174,7 +171,6 @@ public abstract class FredBoat {
 
         //Initialise event listeners
         listenerBot = new EventListenerBoat();
-        listenerSelf = new EventListenerSelf();
         LavalinkManager.ins.start();
 
         //Commands
@@ -206,7 +202,6 @@ public abstract class FredBoat {
 
         if ((Config.CONFIG.getScope() & 0x001) != 0) {
             log.error("Selfbot support has been removed.");
-            //fbClient = new FredBoatClient();
         }
 
         if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && Config.CONFIG.getCarbonKey() != null) {
@@ -384,10 +379,6 @@ public abstract class FredBoat {
         return listenerBot;
     }
 
-    public static EventListenerSelf getListenerSelf() {
-        return listenerSelf;
-    }
-
     /* Sharding */
 
     public JDA getJda() {
@@ -464,23 +455,14 @@ public abstract class FredBoat {
         return null;
     }
 
-    public static FredBoatClient getClient() {
-        return fbClient;
-    }
-
     public static FredBoat getInstance(JDA jda) {
-        if (jda.getAccountType() == AccountType.CLIENT) {
-            return fbClient;
-        } else {
-            int sId = jda.getShardInfo() == null ? 0 : jda.getShardInfo().getShardId();
-
-            for (FredBoat fb : shards) {
-                if (((FredBoatBot) fb).getShardId() == sId) {
-                    return fb;
-                }
+        int sId = jda.getShardInfo() == null ? 0 : jda.getShardInfo().getShardId();
+        for (FredBoat fb : shards) {
+            if (((FredBoatBot) fb).getShardId() == sId) {
+                return fb;
             }
-            throw new IllegalStateException("Attempted to get instance for JDA shard that is not indexed, shardId: " + sId);
         }
+        throw new IllegalStateException("Attempted to get instance for JDA shard that is not indexed, shardId: " + sId);
     }
 
     public static FredBoat getInstance(int id) {

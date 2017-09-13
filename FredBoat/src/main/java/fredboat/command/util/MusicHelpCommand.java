@@ -36,24 +36,23 @@ import fredboat.command.music.seeking.RewindCommand;
 import fredboat.command.music.seeking.SeekCommand;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.util.*;
 
 public class MusicHelpCommand extends Command implements IUtilCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        getFormattedCommandHelp(guild,channel,invoker);
+    public void onInvoke(CommandContext context) {
+        getFormattedCommandHelp(context);
     }
 
+    //TODO this does a lot of i18n calls, music comms are static tho (except for the language), so they should be cached per language
     private static List<String> getMusicComms(Guild guild) {
         //aggregate all commands and the aliases they may be called with
         Map<Class<? extends Command>, List<String>> commandToAliases = new HashMap<>();
@@ -89,30 +88,29 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
         return musicComms;
     }
 
-    private static void getFormattedCommandHelp(Guild guild, TextChannel channel, Member invoker) {
-        final List<String> musicComms = getMusicComms(guild);
+    private static void getFormattedCommandHelp(CommandContext context) {
+        final List<String> musicComms = getMusicComms(context.guild);
 
         // Start building string:
-        String out = "< " + I18n.get(guild).getString("helpMusicCommandsHeader") + " >\n";
+        String out = "< " + I18n.get(context, "helpMusicCommandsHeader") + " >\n";
         for (String s : musicComms) {
             if (out.length() + s.length() >= 1990) {
-                sendCommandsHelpInDM(guild, channel, invoker, out);
+                sendCommandsHelpInDM(context, out);
                 out = "";
             }
             out += s + "\n";
         }
-        sendCommandsHelpInDM(guild, channel, invoker, out);
+        sendCommandsHelpInDM(context, out);
     }
 
-    private static void sendCommandsHelpInDM(Guild guild, TextChannel channel, Member invoker, String dmMsg) {
-        invoker.getUser().openPrivateChannel().queue(privateChannel ->
-                privateChannel.sendMessage(TextUtils.asMarkdown(dmMsg)).queue( success -> {
-                    String out = I18n.get(guild).getString("helpSent");
-                    TextUtils.replyWithName(channel, invoker, out);
-                }, failure -> {
+    private static void sendCommandsHelpInDM(CommandContext context, String dmMsg) {
+        context.replyPrivate(TextUtils.asMarkdown(dmMsg),
+                success -> context.replyWithName(I18n.get(context, "helpSent")),
+                failure -> {
                     String out = ":exclamation:I couldn't send commands help to your DMs! Do you have them turned off?"; // TODO: I18n
-                    TextUtils.replyWithName(channel, invoker, out);
-                }));
+                    context.replyWithName(out);
+                }
+        );
     }
 
     @Override

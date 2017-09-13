@@ -25,7 +25,6 @@
 
 package fredboat.command.music.control;
 
-import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerLimitManager;
@@ -33,47 +32,43 @@ import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.IdentifierContext;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 public class PlaySplitCommand extends Command implements IMusicCommand, ICommandRestricted {
 
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         if (LavalinkManager.ins.isEnabled()) {
-            channel.sendMessage("Human Fred MIGHT have broken this command." +
+            context.reply("Human Fred MIGHT have broken this command." +
                     "Maybe it will be fixed in a later update." +
-                    "Who knows ¯\\_(ツ)_/¯").queue();
+                    "Who knows ¯\\_(ツ)_/¯");
             return;
         }
 
-        if (args.length < 2) {
-            String command = args[0].substring(Config.CONFIG.getPrefix().length());
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+        if (context.args.length < 2) {
+            HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
-        if (!PlayerLimitManager.checkLimitResponsive(channel)) return;
+        if (!PlayerLimitManager.checkLimitResponsive(context)) return;
 
-        IdentifierContext ic = new IdentifierContext(args[1], channel, invoker);
+        IdentifierContext ic = new IdentifierContext(context.args[1], context.channel, context.invoker);
         ic.setSplit(true);
 
-        GuildPlayer player = PlayerRegistry.get(guild);
-        player.setCurrentTC(channel);
+        GuildPlayer player = PlayerRegistry.get(context.guild);
+        player.setCurrentTC(context.channel);
         player.queue(ic);
         player.setPause(false);
 
         try {
-            message.delete().queue();
+            context.deleteMessage();
         } catch (Exception ignored) {
-
         }
     }
 

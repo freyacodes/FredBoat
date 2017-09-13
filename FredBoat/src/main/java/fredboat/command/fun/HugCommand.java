@@ -24,13 +24,13 @@
 
 package fredboat.command.fun;
 
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 
@@ -50,21 +50,21 @@ public class HugCommand extends RandomImageCommand implements IFunCommand {
     }
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
+        Message msg = context.msg;
 
-        Message hugMessage = null;
-        if (message.getMentionedUsers().size() > 0) {
-            if (message.getMentionedUsers().get(0) == guild.getJDA().getSelfUser()) {
-                hugMessage = new MessageBuilder().append(I18n.get(guild).getString("hugBot")).build();
+        MessageBuilder hugMessage = CentralMessaging.getClearThreadLocalMessageBuilder();
+        if (msg.getMentionedUsers().size() > 0) {
+            if (msg.getMentionedUsers().get(0).getIdLong() == msg.getJDA().getSelfUser().getIdLong()) {
+                hugMessage.append(I18n.get(context, "hugBot")).build();
             } else {
-                hugMessage = new MessageBuilder()
-                        .append("_")
-                        .append(MessageFormat.format(I18n.get(guild).getString("hugSuccess"), message.getMentionedUsers().get(0).getAsMention()))
+                hugMessage.append("_")
+                        .append(MessageFormat.format(I18n.get(context, "hugSuccess"), msg.getMentionedUsers().get(0).getAsMention()))
                         .append("_")
                         .build();
             }
         }
-        super.sendRandomFileWithMessage(channel, hugMessage);
+        context.replyFile(super.getRandomFile(), hugMessage.build());
     }
 
     @Override

@@ -24,19 +24,16 @@
 
 package fredboat.command.moderation;
 
-import fredboat.Config;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.I18n;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.DiscordUtil;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.requests.RestAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,24 +53,25 @@ public class HardbanCommand extends Command implements IModerationCommand {
     private static final Logger log = LoggerFactory.getLogger(HardbanCommand.class);
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
+        String[] args = context.args;
+        Guild guild = context.guild;
         //Ensure we have a search term
         if (args.length == 1) {
-            String command = args[0].substring(Config.CONFIG.getPrefix().length());
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+            HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
         //was there a target provided?
-        Member target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(channel, args[1]);
+        Member target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(context, args[1]);
         if (target == null) return;
 
         //are we allowed to do that?
-        if (!checkHardBanAuthorization(channel, invoker, target)) return;
+        if (!checkHardBanAuthorization(context, target)) return;
 
         //putting together a reason
-        String plainReason = DiscordUtil.getReasonForModAction(args, guild);
-        String auditLogReason = DiscordUtil.formatReasonForAuditLog(plainReason, guild, invoker);
+        String plainReason = DiscordUtil.getReasonForModAction(context);
+        String auditLogReason = DiscordUtil.formatReasonForAuditLog(plainReason, context.invoker);
 
         //putting together the action
         RestAction<Void> modAction = guild.getController().ban(target, 7, auditLogReason);
@@ -82,52 +80,53 @@ public class HardbanCommand extends Command implements IModerationCommand {
         String successOutput = MessageFormat.format(I18n.get(guild).getString("hardbanSuccess"),
                 target.getUser().getName(), target.getUser().getDiscriminator(), target.getUser().getId())
                 + "\n" + plainReason;
-        Consumer<Void> onSuccess = aVoid -> TextUtils.replyWithName(channel, invoker, successOutput);
+        Consumer<Void> onSuccess = aVoid -> context.replyWithName(successOutput);
 
         //on fail
         String failOutput = MessageFormat.format(I18n.get(guild).getString("modBanFail"), target.getUser());
         Consumer<Throwable> onFail = t -> {
             log.error("Failed to ban user {} in guild {}", target.getUser().getIdLong(), guild.getIdLong(), t);
-            TextUtils.replyWithName(channel, invoker, failOutput);
+            context.replyWithName(failOutput);
         };
 
         //issue the mod action
         modAction.queue(onSuccess, onFail);
     }
 
-    private boolean checkHardBanAuthorization(TextChannel channel, Member mod, Member target) {
+    private boolean checkHardBanAuthorization(CommandContext context, Member target) {
+        Member mod = context.invoker;
         if (mod == target) {
-            TextUtils.replyWithName(channel, mod, I18n.get(channel.getGuild()).getString("hardbanFailSelf"));
+            context.replyWithName(I18n.get(context, "hardbanFailSelf"));
             return false;
         }
 
         if (target.isOwner()) {
-            TextUtils.replyWithName(channel, mod, I18n.get(channel.getGuild()).getString("hardbanFailOwner"));
+            context.replyWithName(I18n.get(context, "hardbanFailOwner"));
             return false;
         }
 
         if (target == target.getGuild().getSelfMember()) {
-            TextUtils.replyWithName(channel, mod, I18n.get(channel.getGuild()).getString("hardbanFailMyself"));
+            context.replyWithName(I18n.get(context, "hardbanFailMyself"));
             return false;
         }
 
         if (!mod.hasPermission(Permission.BAN_MEMBERS, Permission.KICK_MEMBERS) && !mod.isOwner()) {
-            TextUtils.replyWithName(channel, mod, I18n.get(channel.getGuild()).getString("modKickBanFailUserPerms"));
+            context.replyWithName(I18n.get(context, "modKickBanFailUserPerms"));
             return false;
         }
 
         if (DiscordUtil.getHighestRolePosition(mod) <= DiscordUtil.getHighestRolePosition(target) && !mod.isOwner()) {
-            TextUtils.replyWithName(channel, mod, MessageFormat.format(I18n.get(channel.getGuild()).getString("modFailUserHierarchy"), target.getEffectiveName()));
+            context.replyWithName(MessageFormat.format(I18n.get(context, "modFailUserHierarchy"), target.getEffectiveName()));
             return false;
         }
 
         if (!mod.getGuild().getSelfMember().hasPermission(Permission.BAN_MEMBERS)) {
-            TextUtils.replyWithName(channel, mod, I18n.get(channel.getGuild()).getString("modBanBotPerms"));
+            context.replyWithName(I18n.get(context, "modBanBotPerms"));
             return false;
         }
 
         if (DiscordUtil.getHighestRolePosition(mod.getGuild().getSelfMember()) <= DiscordUtil.getHighestRolePosition(target)) {
-            TextUtils.replyWithName(channel, mod, MessageFormat.format(I18n.get(channel.getGuild()).getString("modFailBotHierarchy"), target.getEffectiveName()));
+            context.replyWithName(MessageFormat.format(I18n.get(context, "modFailBotHierarchy"), target.getEffectiveName()));
             return false;
         }
 

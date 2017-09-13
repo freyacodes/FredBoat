@@ -26,15 +26,15 @@
 package fredboat.command.util;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
 import fredboat.shared.constant.BotConstants;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.OnlineStatus;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 import java.time.format.DateTimeFormatter;
@@ -45,13 +45,14 @@ import java.util.ResourceBundle;
  */
 public class ServerInfoCommand extends Command implements IUtilCommand {
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
+        Guild guild = context.guild;
         ResourceBundle rb = I18n.get(guild);
         int i = 0;
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
-        EmbedBuilder eb = new EmbedBuilder();
+        EmbedBuilder eb = CentralMessaging.getClearThreadLocalEmbedBuilder();
         eb.setColor(BotConstants.FREDBOAT_COLOR);
-        eb.setTitle(MessageFormat.format(I18n.get(guild).getString("serverinfoTitle"),guild.getName()), null);
+        eb.setTitle(MessageFormat.format(rb.getString("serverinfoTitle"), guild.getName()), null);
         eb.setThumbnail(guild.getIconUrl());
         for (Member u : guild.getMembers()) {
             if(u.getOnlineStatus() != OnlineStatus.OFFLINE) {
@@ -69,7 +70,7 @@ public class ServerInfoCommand extends Command implements IUtilCommand {
         eb.addField(rb.getString("serverinfoVLv"), guild.getVerificationLevel().name(),true);
         eb.addField(rb.getString("serverinfoOwner"), guild.getOwner().getAsMention(),true);
 
-        channel.sendMessage(eb.build()).queue();
+        context.reply(eb.build());
     }
 
     @Override

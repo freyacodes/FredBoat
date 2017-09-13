@@ -28,30 +28,35 @@ package fredboat.command.fun;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.togglz.FeatureFlags;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 import org.apache.commons.lang3.StringEscapeUtils;
+
+import javax.annotation.CheckReturnValue;
 
 //TODO fix JCA and reintroduce this command
 public class TalkCommand extends Command implements IFunCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        String question = message.getRawContent().substring(Config.CONFIG.getPrefix().length() + 5);
+    public void onInvoke(CommandContext context) {
+        String question = context.msg.getRawContent().substring(Config.CONFIG.getPrefix().length() + 5);
 
-        talk(invoker, channel, question);
+        String response = talk(question);
+        if (response != null && !response.isEmpty()) {
+            context.replyWithName(response);
+        }
     }
 
-    public static void talk(Member member, TextChannel channel, String question) {
+    @CheckReturnValue
+    public static String talk(String question) {
         //Cleverbot integration
         if (FeatureFlags.CHATBOT.isActive()) {
             String response = FredBoat.jca.getResponse(question);
-            response = member.getEffectiveName() + ": " + StringEscapeUtils.unescapeHtml4(response);
-            channel.sendMessage(response).queue();
+            return StringEscapeUtils.unescapeHtml4(response);
+        } else {
+            return "";
         }
     }
 

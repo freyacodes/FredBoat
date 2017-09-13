@@ -25,13 +25,12 @@
 
 package fredboat.command.fun;
 
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.I18n;
-import net.dv8tion.jda.core.MessageBuilder;
+import fredboat.messaging.CentralMessaging;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 
@@ -46,13 +45,13 @@ public class RollCommand extends RandomImageCommand implements IFunCommand {
     }
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        Message ourMessage = new MessageBuilder()
+    public void onInvoke(CommandContext context) {
+        Message ourMessage = CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append("_")
-                .append(MessageFormat.format(I18n.get(guild).getString("rollSuccess"), invoker.getAsMention()))
+                .append(MessageFormat.format(I18n.get(context, "rollSuccess"), context.invoker.getAsMention()))
                 .append("_")
                 .build();
-        super.sendRandomFileWithMessage(channel, ourMessage);
+        context.replyFile(super.getRandomFile(), ourMessage);
     }
 
     @Override

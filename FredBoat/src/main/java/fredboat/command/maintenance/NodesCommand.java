@@ -30,48 +30,45 @@ import com.sedmelluq.discord.lavaplayer.remote.RemoteNode;
 import fredboat.audio.player.AbstractPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
-import fredboat.util.TextUtils;
 import lavalink.client.io.Lavalink;
 import lavalink.client.io.LavalinkLoadBalancer;
 import lavalink.client.io.LavalinkSocket;
 import lavalink.client.io.RemoteStats;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.util.List;
 
 public class NodesCommand extends Command implements IMaintenanceCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         if (LavalinkManager.ins.isEnabled()) {
-            handleLavalink(guild, channel, invoker, message, args);
+            handleLavalink(context);
         } else {
-            handleLavaplayer(guild, channel, invoker, message, args);
+            handleLavaplayer(context);
         }
 
     }
 
     @SuppressWarnings("StringConcatenationInLoop")
-    private void handleLavalink(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    private void handleLavalink(CommandContext context) {
         Lavalink lavalink = LavalinkManager.ins.getLavalink();
-        if (args.length >= 2 && !args[1].equals("host")) {
-            LavalinkSocket socket = lavalink.getNodes().get(Integer.parseInt(args[1]));
+        if (context.args.length >= 2 && !context.args[1].equals("host")) {
+            LavalinkSocket socket = lavalink.getNodes().get(Integer.parseInt(context.args[1]));
 
-
-            channel.sendMessage("```json\n" + socket.getStats().getAsJson().toString(4) + "\n```").queue();
+            context.reply("```json\n" + socket.getStats().getAsJson().toString(4) + "\n```");
             return;
         }
 
         boolean showHosts = false;
-        if (args.length >= 2 && args[1].equals("host")) {
-            if (PermsUtil.checkPermsWithFeedback(PermissionLevel.BOT_ADMIN, invoker, channel)) {
+        if (context.args.length >= 2 && context.args[1].equals("host")) {
+            if (PermsUtil.checkPermsWithFeedback(PermissionLevel.BOT_ADMIN, context)) {
                 showHosts = true;
             } else {
                 return;
@@ -119,23 +116,23 @@ public class NodesCommand extends Command implements IMaintenanceCommand {
         }
 
         str += "```";
-        channel.sendMessage(str).queue();
+        context.reply(str);
     }
 
-    private void handleLavaplayer(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    private void handleLavaplayer(CommandContext context) {
         AudioPlayerManager pm = AbstractPlayer.getPlayerManager();
         List<RemoteNode> nodes = pm.getRemoteNodeRegistry().getNodes();
         boolean showHost = false;
 
-        if (args.length == 2 && args[1].equals("host")) {
-            if (PermsUtil.isUserBotOwner(invoker.getUser())) {
+        if (context.args.length == 2 && context.args[1].equals("host")) {
+            if (PermsUtil.isUserBotOwner(context.invoker.getUser())) {
                 showHost = true;
             } else {
-                TextUtils.replyWithName(channel, invoker, "You do not have permission to view the hosts!");
+                context.replyWithName("You do not have permission to view the hosts!");
             }
         }
 
-        MessageBuilder mb = new MessageBuilder();
+        MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder();
         mb.append("```\n");
         int i = 0;
         for (RemoteNode node : nodes) {
@@ -160,7 +157,7 @@ public class NodesCommand extends Command implements IMaintenanceCommand {
         }
 
         mb.append("```");
-        channel.sendMessage(mb.build()).queue();
+        context.reply(mb.build());
     }
 
     @Override

@@ -33,13 +33,14 @@ import fredboat.audio.queue.IdentifierContext;
 import fredboat.audio.queue.RepeatMode;
 import fredboat.audio.queue.SimpleTrackProvider;
 import fredboat.commandmeta.MessagingException;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.EntityReader;
 import fredboat.db.entity.GuildConfig;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
@@ -66,7 +67,7 @@ public class GuildPlayer extends AbstractPlayer {
 
     private final FredBoat shard;
     private final long guildId;
-    public final Map<String, VideoSelection> selections = new HashMap<>();
+    public final Map<String, VideoSelection> selections = new HashMap<>(); //TODO possible source of leaks (holds audio tracks which aren't that lightweight)
     private long currentTCId;
 
     private final AudioLoader audioLoader;
@@ -92,14 +93,17 @@ public class GuildPlayer extends AbstractPlayer {
 
     private void announceTrack(AudioTrackContext atc) {
         if (getRepeatMode() != RepeatMode.SINGLE && isTrackAnnounceEnabled() && !isPaused()) {
-            getActiveTextChannel().sendMessage(MessageFormat.format(I18n.get(getGuild()).getString("trackAnnounce"), atc.getEffectiveTitle())).queue();
+            CentralMessaging.sendMessage(getActiveTextChannel(),
+                    MessageFormat.format(I18n.get(getGuild()).getString("trackAnnounce"), atc.getEffectiveTitle()));
         }
     }
 
     private void handleError(Throwable t) {
         log.error("Guild player error", t);
         TextChannel tc = getActiveTextChannel();
-        if (tc != null) tc.sendMessageFormat("Something went wrong!\n%s", t.getMessage()).queue();
+        if (tc != null) {
+            CentralMessaging.sendMessage(tc, "Something went wrong!\n" + t.getMessage());
+        }
     }
 
     public void joinChannel(Member usr) throws MessagingException {
@@ -132,12 +136,13 @@ public class GuildPlayer extends AbstractPlayer {
         log.info("Connected to voice channel " + targetChannel);
     }
 
-    public void leaveVoiceChannelRequest(TextChannel channel, boolean silent) {
+    public void leaveVoiceChannelRequest(CommandContext commandContext, boolean silent) {
         if (!silent) {
-            if (LavalinkManager.ins.getConnectedChannel(channel.getGuild()) == null) {
-                channel.sendMessage(I18n.get(getGuild()).getString("playerNotInChannel")).queue();
+            if (LavalinkManager.ins.getConnectedChannel(commandContext.guild) == null) {
+                commandContext.reply(I18n.get(getGuild()).getString("playerNotInChannel"));
             } else {
-                channel.sendMessage(MessageFormat.format(I18n.get(getGuild()).getString("playerLeftChannel"), getCurrentVoiceChannel(channel.getJDA()).getName())).queue();
+                commandContext.reply(MessageFormat.format(I18n.get(getGuild()).getString("playerLeftChannel"),
+                        getCurrentVoiceChannel(commandContext.guild.getJDA()).getName()));
             }
         }
         LavalinkManager.ins.closeConnection(getGuild());
@@ -150,11 +155,11 @@ public class GuildPlayer extends AbstractPlayer {
         return member.getVoiceState().getChannel();
     }
 
-    public void queue(String identifier, TextChannel channel, Member invoker) {
-        IdentifierContext ic = new IdentifierContext(identifier, channel, invoker);
+    public void queue(String identifier, CommandContext context) {
+        IdentifierContext ic = new IdentifierContext(identifier, context.channel, context.invoker);
 
-        if (invoker != null) {
-            joinChannel(invoker);
+        if (context.invoker != null) {
+            joinChannel(context.invoker);
         }
 
         audioLoader.loadAsync(ic);
@@ -374,14 +379,14 @@ public class GuildPlayer extends AbstractPlayer {
         }
     }
 
-    public void skipTracksForMemberPerms(TextChannel channel, Member member, Collection<Long> trackIds, String successMessage) {
-        Pair<Boolean, String> pair = canMemberSkipTracks(member, trackIds);
+    public void skipTracksForMemberPerms(CommandContext context, Collection<Long> trackIds, String successMessage) {
+        Pair<Boolean, String> pair = canMemberSkipTracks(context.invoker, trackIds);
 
         if (pair.getLeft()) {
-            channel.sendMessage(successMessage).queue();
+            context.reply(successMessage);
             skipTracks(trackIds);
         } else {
-            TextUtils.replyWithName(channel, member, pair.getRight());
+            context.replyWithName(pair.getRight());
         }
     }
 

@@ -28,58 +28,56 @@ package fredboat.command.admin;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
 public class NodeAdminCommand extends Command implements ICommandRestricted {
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         if (!LavalinkManager.ins.isEnabled()) {
-            channel.sendMessage("Lavalink is disabled").queue();
+            context.reply("Lavalink is disabled");
         }
 
-        switch (args[1]) {
+        switch (context.args[1]) {
             case "del":
             case "delete":
             case "remove":
             case "rem":
             case "rm":
-                remove(channel, args);
+                remove(context);
                 break;
             case "add":
-                add(channel, args);
+                add(context);
                 break;
             case "list":
             default:
-                HelpCommand.sendFormattedCommandHelp(message);
+                HelpCommand.sendFormattedCommandHelp(context);
                 break;
         }
     }
 
-    private void remove(TextChannel channel, String[] args) {
-        int key = Integer.valueOf(args[2]);
+    private void remove(CommandContext context) {
+        int key = Integer.valueOf(context.args[2]);
         LavalinkManager.ins.getLavalink().removeNode(key);
-        channel.sendMessage("Removed node #" + key).queue();
+        context.reply("Removed node #" + key);
     }
 
-    private void add(TextChannel channel, String[] args) {
+    private void add(CommandContext context) {
         URI uri;
         try {
-            uri = new URI(args[2]);
+            uri = new URI(context.args[2]);
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
-        String password = args[3];
+        String password = context.args[3];
         LavalinkManager.ins.getLavalink().addNode(uri, password);
-        channel.sendMessage("Added node: " + uri.toString()).queue();
+        context.reply("Added node: " + uri.toString());
     }
 
     @Override

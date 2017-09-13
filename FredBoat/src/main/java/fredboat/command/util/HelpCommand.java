@@ -28,18 +28,15 @@ package fredboat.command.util;
 import fredboat.Config;
 import fredboat.command.fun.TalkCommand;
 import fredboat.command.music.control.SelectCommand;
-import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,13 +50,12 @@ public class HelpCommand extends Command implements IUtilCommand {
     private static final Logger log = LoggerFactory.getLogger(HelpCommand.class);
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
 
-        if (args.length > 1) {
-            String commandOrAlias = args[1];
-            sendFormattedCommandHelp(guild, channel, invoker, commandOrAlias);
+        if (context.args.length > 1) {
+            sendFormattedCommandHelp(context);
         } else {
-            sendGeneralHelp(guild, channel, invoker);
+            sendGeneralHelp(context);
         }
     }
 
@@ -69,17 +65,19 @@ public class HelpCommand extends Command implements IUtilCommand {
         return usage + I18n.get(guild).getString("helpHelpCommand");
     }
 
-    public static void sendGeneralHelp(Guild guild, TextChannel channel, Member invoker) {
-        invoker.getUser().openPrivateChannel().queue(privateChannel ->
-                privateChannel.sendMessage(getHelpDmMsg(guild)).queue(success -> {
-                    String out = I18n.get(guild).getString("helpSent");
-                    out += "\n" + MessageFormat.format(I18n.get(guild).getString("helpCommandsPromotion"),
+    public static void sendGeneralHelp(CommandContext context) {
+        context.replyPrivate(getHelpDmMsg(context.guild),
+                success -> {
+                    String out = I18n.get(context, "helpSent");
+                    out += "\n" + MessageFormat.format(I18n.get(context, "helpCommandsPromotion"),
                             "`" + Config.CONFIG.getPrefix() + "commands`");
-                    TextUtils.replyWithName(channel, invoker, out);
-                }, failure -> {
+                    context.replyWithName(out);
+                },
+                failure -> {
                     String out = ":exclamation:Couldn't send documentation to your DMs! Check you don't have them disabled!"; //TODO: i18n
-                    TextUtils.replyWithName(channel, invoker, out);
-                }));
+                    context.replyWithName(out);
+                }
+        );
     }
 
     public static String getFormattedCommandHelp(Guild guild, Command command, String commandOrAlias) {
@@ -95,32 +93,26 @@ public class HelpCommand extends Command implements IUtilCommand {
         return MessageFormat.format(helpStr, Config.CONFIG.getPrefix(), commandOrAlias, thirdParam);
     }
 
-    public static void sendFormattedCommandHelp(Message message) {
-        String[] args = CommandManager.commandToArguments(message.getRawContent());
-        String command = args[0].substring(Config.CONFIG.getPrefix().length());
-        sendFormattedCommandHelp(message.getGuild(), message.getTextChannel(), message.getMember(), command);
-    }
-
-    public static void sendFormattedCommandHelp(Guild guild, TextChannel channel, Member invoker, String commandOrAlias) {
-
-        CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(commandOrAlias);
+    public static void sendFormattedCommandHelp(CommandContext context) {
+        CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(context.trigger);
         if (commandEntry == null) {
-            String out = Config.CONFIG.getPrefix() + commandOrAlias + ": " + I18n.get(guild).getString("helpUnknownCommand");
-            out += "\n" + MessageFormat.format(I18n.get(guild).getString("helpCommandsPromotion"), "`" + Config.CONFIG.getPrefix() + "commands`");
-            TextUtils.replyWithName(channel, invoker, out);
+            String out = Config.CONFIG.getPrefix() + context.trigger + ": " + I18n.get(context, "helpUnknownCommand");
+            out += "\n" + MessageFormat.format(I18n.get(context, "helpCommandsPromotion"),
+                    "`" + Config.CONFIG.getPrefix() + "commands`");
+            context.replyWithName(out);
             return;
         }
 
         Command command = commandEntry.command;
 
-        String out = getFormattedCommandHelp(guild, command, commandOrAlias);
+        String out = getFormattedCommandHelp(context.guild, command, context.trigger);
 
         if (command instanceof ICommandRestricted
                 && ((ICommandRestricted) command).getMinimumPerms() == PermissionLevel.BOT_OWNER)
-            out += "\n#" + I18n.get(guild).getString("helpCommandOwnerRestricted");
+            out += "\n#" + I18n.get(context, "helpCommandOwnerRestricted");
         out = TextUtils.asMarkdown(out);
-        out = I18n.get(guild).getString("helpProperUsage") + out;
-        TextUtils.replyWithName(channel, invoker, out);
+        out = I18n.get(context, "helpProperUsage") + out;
+        context.replyWithName(out);
     }
 
     public static String getHelpDmMsg(Guild guild) {

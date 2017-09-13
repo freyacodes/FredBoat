@@ -28,14 +28,11 @@ package fredboat.command.admin;
 import fredboat.audio.player.AbstractPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.ICommand;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +45,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class EvalCommand extends Command implements ICommand, ICommandRestricted {
+public class EvalCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(EvalCommand.class);
 
@@ -66,21 +63,21 @@ public class EvalCommand extends Command implements ICommand, ICommandRestricted
     }
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member author, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
+        Guild guild = context.guild;
         JDA jda = guild.getJDA();
+        context.sendTyping();
 
-        channel.sendTyping().queue();
-
-        final String source = message.getRawContent().substring(args[0].length() + 1);
+        final String source = context.msg.getRawContent().substring(context.args[0].length() + 1);
 
         engine.put("jda", jda);
         engine.put("api", jda);
-        engine.put("channel", channel);
+        engine.put("channel", context.channel);
         engine.put("vc", PlayerRegistry.getExisting(guild) != null ? PlayerRegistry.getExisting(guild).getCurrentVoiceChannel() : null);
-        engine.put("author", author);
+        engine.put("author", context.invoker);
         engine.put("bot", jda.getSelfUser());
         engine.put("member", guild.getSelfMember());
-        engine.put("message", message);
+        engine.put("message", context.msg);
         engine.put("guild", guild);
         engine.put("player", PlayerRegistry.getExisting(guild));
         engine.put("pm", AbstractPlayer.getPlayerManager());
@@ -88,7 +85,7 @@ public class EvalCommand extends Command implements ICommand, ICommandRestricted
         ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
         ScheduledFuture<?> future = service.schedule(() -> {
 
-            Object out = null;
+            Object out;
             try {
                 out = engine.eval(
                         "(function() {"
@@ -96,7 +93,7 @@ public class EvalCommand extends Command implements ICommand, ICommandRestricted
                         + "})();");
 
             } catch (Exception ex) {
-                channel.sendMessage("`"+ex.getMessage()+"`").queue();
+                context.reply("`" + ex.getMessage() + "`");
                 log.error("Error occurred in eval", ex);
                 return;
             }
@@ -110,7 +107,7 @@ public class EvalCommand extends Command implements ICommand, ICommandRestricted
                 outputS = "\nEval: `" + out.toString() + "`";
             }
 
-            channel.sendMessage("```java\n"+source+"```" + "\n" + outputS).queue();
+            context.reply("```java\n" + source + "```" + "\n" + outputS);
 
         }, 0, TimeUnit.MILLISECONDS);
 
@@ -122,9 +119,9 @@ public class EvalCommand extends Command implements ICommand, ICommandRestricted
 
                 } catch (TimeoutException ex) {
                     future.cancel(true);
-                    channel.sendMessage("Task exceeded time limit.").queue();
+                    context.reply("Task exceeded time limit.");
                 } catch (Exception ex) {
-                    channel.sendMessage("`"+ex.getMessage()+"`").queue();
+                    context.reply("`" + ex.getMessage() + "`");
                 }
             }
         };

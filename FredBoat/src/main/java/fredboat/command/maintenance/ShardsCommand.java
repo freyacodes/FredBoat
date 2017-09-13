@@ -28,10 +28,13 @@ package fredboat.command.maintenance;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
+import fredboat.messaging.CentralMessaging;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.*;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.impl.JDAImpl;
 
 import java.util.ArrayList;
@@ -43,12 +46,13 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
 
     @SuppressWarnings("ConstantConditions")
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
+    public void onInvoke(CommandContext context) {
         MessageBuilder mb = null;
-        List<MessageBuilder> builders = new ArrayList<>();
+        List<Message> messages = new ArrayList<>();
 
         //do a full report? or just a summary
         boolean full = false;
+        String[] args = context.args;
         if (args.length > 1 && ("full".equals(args[1]) || "all".equals(args[1]))) {
             full = true;
         }
@@ -65,9 +69,11 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
                 healthyUsers += ((JDAImpl) fb.getJda()).getUserMap().size();
             } else {
                 if (borkenShards % SHARDS_PER_MESSAGE == 0) {
-                    mb = new MessageBuilder()
-                            .append("```diff\n");
-                    builders.add(mb);
+                    if (mb != null) {
+                        mb.append("```");
+                        messages.add(mb.build());
+                    }
+                    mb = CentralMessaging.getClearThreadLocalMessageBuilder().append("```diff\n");
                 }
                 mb.append(fb.getJda().getStatus() == JDA.Status.CONNECTED ? "+" : "-")
                         .append(" ")
@@ -82,18 +88,21 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
                 borkenShards++;
             }
         }
+        if (mb != null && borkenShards % SHARDS_PER_MESSAGE != 0) {
+            mb.append("```");
+            messages.add(mb.build());
+        }
 
         //healthy shards summary, contains sensible data only if we aren't doing a full report
         if (!full) {
-            channel.sendMessage("```diff\n+ "
+            context.reply("```diff\n+ "
                     + (shards.size() - borkenShards) + "/" + Config.CONFIG.getNumShards() + " shards are " + JDA.Status.CONNECTED
-                    + " -- Guilds: " + healthyGuilds + " -- Users: " + healthyUsers + "\n```").queue();
+                    + " -- Guilds: " + healthyGuilds + " -- Users: " + healthyUsers + "\n```");
         }
 
         //detailed shards
-        for(MessageBuilder builder : builders){
-            builder.append("```");
-            channel.sendMessage(builder.build()).queue();
+        for (Message message : messages) {
+            context.reply(message);
         }
     }
 

@@ -25,32 +25,28 @@
 
 package fredboat.command.maintenance;
 
-import fredboat.Config;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.feature.I18n;
 import fredboat.util.ArgumentUtil;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.util.List;
 
 public class FuzzyUserSearchCommand extends Command implements IMaintenanceCommand {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        if(args.length == 1){
-            String command = args[0].substring(Config.CONFIG.getPrefix().length());
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+    public void onInvoke(CommandContext context) {
+        if (context.args.length == 1) {
+            HelpCommand.sendFormattedCommandHelp(context);
         } else {
-            List<Member> list = ArgumentUtil.fuzzyMemberSearch(guild, args[1], true);
+            List<Member> list = ArgumentUtil.fuzzyMemberSearch(context.guild, context.args[1], true);
 
             if(list.isEmpty()){
-                TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("fuzzyNoResults"));
+                context.replyWithName(I18n.get(context, "fuzzyNoResults"));
                 return;
             }
 
@@ -61,7 +57,7 @@ public class FuzzyUserSearchCommand extends Command implements IMaintenanceComma
 
             msg = msg.substring(0, msg.length() - 2) + "```";
 
-            TextUtils.replyWithName(channel, invoker, msg);
+            context.replyWithName(msg);
         }
     }
 

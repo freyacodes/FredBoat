@@ -1,8 +1,8 @@
 package fredboat.audio.player;
 
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 
@@ -22,13 +22,13 @@ public class PlayerLimitManager {
 
     }
 
-    public static boolean checkLimitResponsive(TextChannel channel) {
-        boolean b =  checkLimit(channel.getGuild());
+    public static boolean checkLimitResponsive(CommandContext context) {
+        boolean b = checkLimit(context.guild);
 
         if (!b) {
             String patronUrl = "<https://fredboat.com/docs/donate>";
-            String msg = MessageFormat.format(I18n.get(channel.getGuild()).getString("playersLimited"), limit, patronUrl);
-            channel.sendMessage(msg).queue();
+            String msg = MessageFormat.format(I18n.get(context, "playersLimited"), limit, patronUrl);
+            context.reply(msg);
         }
 
         return b;

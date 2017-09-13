@@ -25,13 +25,13 @@
 
 package fredboat.util;
 
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.IMentionable;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.Role;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -75,21 +75,21 @@ public class ArgumentUtil {
         return list;
     }
 
-    public static Member checkSingleFuzzyMemberSearchResult(TextChannel tc, String term) {
-        return checkSingleFuzzyMemberSearchResult(tc, term, false);
+    public static Member checkSingleFuzzyMemberSearchResult(CommandContext context, String term) {
+        return checkSingleFuzzyMemberSearchResult(context, term, false);
     }
 
-    public static Member checkSingleFuzzyMemberSearchResult(TextChannel tc, String term, boolean includeBots) {
-        List<Member> list = fuzzyMemberSearch(tc.getGuild(), term, includeBots);
+    public static Member checkSingleFuzzyMemberSearchResult(CommandContext context, String term, boolean includeBots) {
+        List<Member> list = fuzzyMemberSearch(context.guild, term, includeBots);
 
         switch (list.size()) {
             case 0:
-                tc.sendMessage(MessageFormat.format(I18n.get(tc.getGuild()).getString("fuzzyNothingFound"), term)).queue();
+                context.reply(MessageFormat.format(I18n.get(context, "fuzzyNothingFound"), term));
                 return null;
             case 1:
                 return list.get(0);
             default:
-                String msg = I18n.get(tc.getGuild()).getString("fuzzyMultiple") + "\n```";
+                String msg = I18n.get(context, "fuzzyMultiple") + "\n```";
 
                 for (int i = 0; i < 5; i++) {
                     if (list.size() == i) break;
@@ -99,20 +99,20 @@ public class ArgumentUtil {
                 msg = list.size() > 5 ? msg + "\n[...]" : msg;
                 msg = msg + "```";
 
-                tc.sendMessage(msg).queue();
+                context.reply(msg);
                 return null;
         }
     }
 
-    public static IMentionable checkSingleFuzzySearchResult(List<IMentionable> list, TextChannel tc, String term) {
+    public static IMentionable checkSingleFuzzySearchResult(List<IMentionable> list, CommandContext context, String term) {
         switch (list.size()) {
             case 0:
-                tc.sendMessage(MessageFormat.format(I18n.get(tc.getGuild()).getString("fuzzyNothingFound"), term)).queue();
+                context.reply(MessageFormat.format(I18n.get(context, "fuzzyNothingFound"), term));
                 return null;
             case 1:
                 return list.get(0);
             default:
-                String msg = I18n.get(tc.getGuild()).getString("fuzzyMultiple") + "\n```";
+                String msg = I18n.get(context, "fuzzyMultiple") + "\n```";
 
                 int i = 0;
                 for (IMentionable mentionable : list) {
@@ -133,7 +133,7 @@ public class ArgumentUtil {
                 msg = list.size() > 5 ? msg + "\n[...]" : msg;
                 msg = msg + "```";
 
-                tc.sendMessage(msg).queue();
+                context.reply(msg);
                 return null;
         }
     }

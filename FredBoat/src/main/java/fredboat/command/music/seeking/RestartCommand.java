@@ -28,32 +28,29 @@ package fredboat.command.music.seeking;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
-import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 
 public class RestartCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        GuildPlayer player = PlayerRegistry.getExisting(guild);
+    public void onInvoke(CommandContext context) {
+        GuildPlayer player = PlayerRegistry.getExisting(context.guild);
 
         if (player != null && !player.isQueueEmpty()) {
             if (player.getPlayingTrack() == null) {
                 player.play();
             }
             player.seekTo(player.getPlayingTrack().getStartPosition());
-            channel.sendMessage(MessageFormat.format(I18n.get(guild).getString("restartSuccess"), player.getPlayingTrack().getEffectiveTitle())).queue();
+            context.reply(MessageFormat.format(I18n.get(context, "restartSuccess"), player.getPlayingTrack().getEffectiveTitle()));
         } else {
-            TextUtils.replyWithName(channel, invoker, I18n.get(guild).getString("queueEmpty"));
+            context.replyWithName(I18n.get(context, "queueEmpty"));
         }
     }
 
