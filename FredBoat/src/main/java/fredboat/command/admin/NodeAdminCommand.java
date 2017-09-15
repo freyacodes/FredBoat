@@ -42,7 +42,10 @@ public class NodeAdminCommand extends Command implements ICommandRestricted {
         if (!LavalinkManager.ins.isEnabled()) {
             context.reply("Lavalink is disabled");
         }
-
+        if (context.args.length == 1) {
+            HelpCommand.sendFormattedCommandHelp(context);
+            return;
+        }
         switch (context.args[1]) {
             case "del":
             case "delete":
