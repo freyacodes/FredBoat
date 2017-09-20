@@ -6,6 +6,7 @@ import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
@@ -27,41 +28,40 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
     private static final float MIN_SKIP_PERCENTAGE = 0.5f;
 
     @Override
-    public void onInvoke(Guild guild, TextChannel channel, Member invoker, Message message, String[] args) {
-        GuildPlayer player = PlayerRegistry.get(guild);
-        player.setCurrentTC(channel);
+    public void onInvoke(CommandContext context) {
+        GuildPlayer player = PlayerRegistry.get(context.guild);
+        player.setCurrentTC(context.channel);
 
         if (player.isQueueEmpty()) {
-            channel.sendMessage(I18n.get(guild).getString("skipEmpty")).queue();
+            context.reply(I18n.get(context, "skipEmpty"));
             return;
         }
 
-        if (isOnCooldown(guild)) {
+        if (isOnCooldown(context.guild)) {
             return;
         } else {
-            guildIdToLastSkip.put(guild.getId(), System.currentTimeMillis());
+            guildIdToLastSkip.put(context.guild.getId(), System.currentTimeMillis());
         }
 
         //TODO: Add some UX to show current users who voted for skip
-        if (args.length == 1) {
-            addVoteWithResponse(guild, channel, invoker);
+        if (context.args.length == 1) {
+            addVoteWithResponse(context);
 
-            float skipPercentage = getSkipPercentage(guild);
+            float skipPercentage = getSkipPercentage(context.guild);
             if (skipPercentage >= MIN_SKIP_PERCENTAGE) {
                 AudioTrackContext atc = player.getPlayingTrack();
 
                 if (atc == null) {
-                    channel.sendMessage(I18n.get(guild).getString("skipTrackNotFound")).queue();
+                    context.reply(I18n.get(context, "skipTrackNotFound"));
                 } else {
-                    channel.sendMessage(MessageFormat.format("DEBUG: `{0}%` have voted to skip. Skipped track #{1}: **{2}**", (skipPercentage * 100), 1, atc.getEffectiveTitle())).queue();
+                    context.reply(MessageFormat.format("DEBUG: `{0}%` have voted to skip. Skipped track #{1}: **{2}**", (skipPercentage * 100), 1, atc.getEffectiveTitle()));
                     player.skip();
                 }
             } else {
-                channel.sendMessage(MessageFormat.format("DEBUG: `{0}`% voted to skip. `{1}`% needed", (skipPercentage * 100), (MIN_SKIP_PERCENTAGE * 100))).queue();
+                context.reply(MessageFormat.format("DEBUG: `{0}`% voted to skip. `{1}`% needed", (skipPercentage * 100), (MIN_SKIP_PERCENTAGE * 100)));
             }
         } else {
-            String command = args[0].substring(Config.CONFIG.getPrefix().length());
-            HelpCommand.sendFormattedCommandHelp(guild, channel, invoker, command);
+            HelpCommand.sendFormattedCommandHelp(context);
         }
     }
 
@@ -70,24 +70,25 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
         return currentTIme - guildIdToLastSkip.getOrDefault(guild.getId(), 0L) <= SKIP_COOLDOWN;
     }
 
-    private void addVoteWithResponse(Guild guild, TextChannel channel, Member invoker) {
-        User user = invoker.getUser();
-        List<Long> voters = guildSkipVotes.get(guild.getIdLong());
+    private void addVoteWithResponse(CommandContext context) {
+
+        User user = context.getUser();
+        List<Long> voters = guildSkipVotes.get(context.guild.getIdLong());
 
         if (voters == null) {
             voters = new ArrayList<>();
             voters.add(user.getIdLong());
-            guildSkipVotes.put(guild.getIdLong(), voters);
-            channel.sendMessage("DEBUG: Your vote has been added").queue();
+            guildSkipVotes.put(context.guild.getIdLong(), voters);
+            context.reply("DEBUG: Your vote has been added");
             return;
         }
 
         if (voters.contains(user.getIdLong())) {
-            channel.sendMessage("DEBUG: You already voted!").queue();
+            context.reply("DEBUG: You already voted!");
         } else {
             voters.add(user.getIdLong());
-            guildSkipVotes.put(guild.getIdLong(), voters);
-            channel.sendMessage("DEBUG: Your vote has been added").queue();
+            guildSkipVotes.put(context.guild.getIdLong(), voters);
+            context.reply("DEBUG: Your vote has been added");
         }
     }
 
