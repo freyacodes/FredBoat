@@ -195,13 +195,20 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
 
 
         if (userAtcIds.size() > 0) {
+
+            String title = player.getPlayingTrack().getEffectiveTitle();
             player.skipTracks(userAtcIds);
 
             if (affectedUsers.size() > 1) {
-                context.reply(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserMultiple"), "`" + userAtcIds.size() + "`", I18n.get(player.getGuild()).getString("trackPlural"), ("**" + affectedUsers.size() + "**")));
+                context.reply(MessageFormat.format(I18n.get(context, "skipUsersMultiple"), ("`" + userAtcIds.size() + "`"), ("**" + affectedUsers.size() + "**")));
             } else {
+
                 User user = affectedUsers.get(0);
-                context.reply(MessageFormat.format(I18n.get(player.getGuild()).getString("skipUserSingle"), "`" + userAtcIds.size() + "`", userAtcIds.size() > 1 ? I18n.get(player.getGuild()).getString("trackPlural") : I18n.get(player.getGuild()).getString("trackSingular"), ("**" + user.getName() + "#" + user.getDiscriminator() + "**")));
+                if (userAtcIds.size() == 1) {
+                    context.reply(MessageFormat.format(I18n.get(context, "skipUserSingle"), "**" + title + "**", ("**" + user.getName() + "#" + user.getDiscriminator() + "**")));
+                } else {
+                    context.reply(MessageFormat.format(I18n.get(context, "skipUserMultiple"), ("`" + userAtcIds.size() + "`"), ("**" + user.getName() + "#" + user.getDiscriminator() + "**")));
+                }
             }
 
         } else {
