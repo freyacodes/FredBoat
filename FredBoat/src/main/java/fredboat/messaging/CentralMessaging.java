@@ -25,6 +25,7 @@
 
 package fredboat.messaging;
 
+import fredboat.feature.I18n;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -46,6 +47,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.util.Collection;
+import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
 /**
@@ -389,8 +391,7 @@ public class CentralMessaging {
         try {
             channel.sendTyping().queue();
         } catch (InsufficientPermissionException e) {
-            sendMessage(channel,
-                    "I am missing the following permission in this channel: `" + e.getPermission().getName() + "`"); //todo i18n?
+            handleInsufficientPermissionsException(channel, e);
         }
     }
 
@@ -402,8 +403,7 @@ public class CentralMessaging {
                 try {
                     ((TextChannel) channel).deleteMessages(messages).queue();
                 } catch (InsufficientPermissionException e) {
-                    sendMessage(channel,
-                            "I am missing the following permission in this channel: `" + e.getPermission().getName() + "`"); //todo i18n?
+                    handleInsufficientPermissionsException(channel, e);
                 }
             } else {
                 messages.forEach(m -> deleteMessageById(channel, m.getIdLong()));
@@ -419,8 +419,7 @@ public class CentralMessaging {
         try {
             channel.deleteMessageById(messageId).queue();
         } catch (InsufficientPermissionException e) {
-            sendMessage(channel,
-                    "I am missing the following permission in this channel: `" + e.getPermission().getName() + "`"); //todo i18n?
+            handleInsufficientPermissionsException(channel, e);
         }
     }
 
@@ -461,6 +460,7 @@ public class CentralMessaging {
             channel.sendMessage(message).queue(successWrapper, failureWrapper);
         } catch (InsufficientPermissionException e) {
             failureWrapper.accept(e);
+            //do not call CentralMessaging#handleInsufficientPermissionsException() from here as that will result in a loop
             log.warn("Could not send message to channel {} due to missing permission {}", channel.getIdLong(), e.getPermission().getName(), e);
         }
         return result;
@@ -494,8 +494,7 @@ public class CentralMessaging {
             channel.sendFile(file, message).queue(successWrapper, failureWrapper);
         } catch (InsufficientPermissionException e) {
             failureWrapper.accept(e);
-            sendMessage(channel,
-                    "I am missing the following permission in this channel: `" + e.getPermission().getName() + "`"); //todo i18n?
+            handleInsufficientPermissionsException(channel, e);
         }
         return result;
     }
@@ -528,10 +527,19 @@ public class CentralMessaging {
             channel.editMessageById(oldMessageId, newMessage).queue(successWrapper, failureWrapper);
         } catch (InsufficientPermissionException e) {
             failureWrapper.accept(e);
-            sendMessage(channel,
-                    "I am missing the following permission in this channel: `" + e.getPermission().getName() + "`"); //todo i18n?
+            handleInsufficientPermissionsException(channel, e);
         }
         return result;
+    }
+
+    private static void handleInsufficientPermissionsException(MessageChannel channel, InsufficientPermissionException e) {
+        final ResourceBundle i18n;
+        if (channel instanceof TextChannel) {
+            i18n = I18n.get(((TextChannel) channel).getGuild());
+        } else {
+            i18n = I18n.DEFAULT.getProps();
+        }
+        sendMessage(channel, i18n.getString("permissionMissingBot") + " " + e.getPermission().getName());
     }
 
 }
