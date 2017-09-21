@@ -36,6 +36,7 @@ import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,11 +72,15 @@ public class HelpCommand extends Command implements IUtilCommand {
                     String out = I18n.get(context, "helpSent");
                     out += "\n" + MessageFormat.format(I18n.get(context, "helpCommandsPromotion"),
                             "`" + Config.CONFIG.getPrefix() + "commands`");
-                    context.replyWithName(out);
+                    if (context.hasPermissions(Permission.MESSAGE_WRITE)) {
+                        context.replyWithName(out);
+                    }
                 },
                 failure -> {
-                    String out = ":exclamation:Couldn't send documentation to your DMs! Check you don't have them disabled!"; //TODO: i18n
-                    context.replyWithName(out);
+                    if (context.hasPermissions(Permission.MESSAGE_WRITE)) {
+                        String out = ":exclamation:Couldn't send documentation to your DMs! Check you don't have them disabled!"; //TODO: i18n
+                        context.replyWithName(out);
+                    }
                 }
         );
     }

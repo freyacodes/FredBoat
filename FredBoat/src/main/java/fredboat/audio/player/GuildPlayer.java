@@ -99,7 +99,9 @@ public class GuildPlayer extends AbstractPlayer {
     }
 
     private void handleError(Throwable t) {
-        log.error("Guild player error", t);
+        if (!(t instanceof MessagingException)) {
+            log.error("Guild player error", t);
+        }
         TextChannel tc = getActiveTextChannel();
         if (tc != null) {
             CentralMessaging.sendMessage(tc, "Something went wrong!\n" + t.getMessage());

@@ -39,6 +39,7 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.util.TextUtils;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.User;
@@ -104,6 +105,12 @@ public class EventListenerBoat extends AbstractEventListener {
             CommandContext context = CommandContext.parse(event);
 
             if (context == null) {
+                return;
+            }
+
+            //ignore all commands in channels where we can't write, except for the help command
+            if (!context.hasPermissions(Permission.MESSAGE_WRITE) && !(context.command instanceof HelpCommand)) {
+                log.debug("Ignored command because this bot cannot write in that channel");
                 return;
             }
 

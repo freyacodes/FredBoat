@@ -28,6 +28,7 @@ package fredboat.messaging.internal;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.MessageFuture;
 import fredboat.util.TextUtils;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -120,5 +121,10 @@ public abstract class Context {
         getMember().getUser().openPrivateChannel().queue(
                 privateChannel -> CentralMessaging.sendMessage(privateChannel, message, onSuccess, onFail)
         );
+    }
+
+    //checks whether we have the provided permissions for the channel of this context
+    public boolean hasPermissions(Permission... permissions) {
+        return getGuild().getSelfMember().hasPermission(getTextChannel(), permissions);
     }
 }

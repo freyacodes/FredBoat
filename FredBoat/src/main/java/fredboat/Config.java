@@ -29,6 +29,7 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.audio.player.PlayerLimitManager;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.DiscordUtil;
+import fredboat.util.GitRepoState;
 import io.sentry.Sentry;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -215,7 +216,7 @@ public class Config {
             }
             sentryDsn = (String) creds.getOrDefault("sentryDsn", "");
             if (!sentryDsn.isEmpty()) {
-                Sentry.init(sentryDsn);
+                Sentry.init(sentryDsn).setRelease(GitRepoState.getGitRepositoryState().commitId);
             }
 
             if(getDistribution() == DistributionEnum.DEVELOPMENT) {

@@ -44,10 +44,13 @@ import org.apache.http.client.config.RequestConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class SearchUtil {
 
@@ -209,25 +212,27 @@ public class SearchUtil {
 
         Exception exception;
         AudioPlaylist result;
-        final Object toBeNotified = new Object();
 
         /**
          * @return The result of the search (which may be empty but not null).
          */
+        @Nonnull
         AudioPlaylist searchSync(SearchProvider provider, String query, int timeoutMillis) throws SearchingException {
             if (FeatureFlags.FORCE_SOUNDCLOUD_SEARCH.isActive()) {
                 provider = SearchProvider.SOUNDCLOUD;
             }
 
             log.debug("Searching {} for {}", provider, query);
-
             try {
-                synchronized (toBeNotified) {
-                    PLAYER_MANAGER.loadItem(provider.getPrefix() + query, this);
-                    toBeNotified.wait(timeoutMillis);
-                }
+                PLAYER_MANAGER.loadItem(provider.getPrefix() + query, this)
+                        .get(timeoutMillis, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+            } catch (ExecutionException e) {
+                exception = e;
+            } catch (TimeoutException e) {
+                throw new SearchingException(String.format("Searching provider %s for %s timed out after %sms",
+                        provider.name(), query, timeoutMillis));
             }
 
             if (exception != null) {
@@ -253,34 +258,21 @@ public class SearchUtil {
         @Override
         public void trackLoaded(AudioTrack audioTrack) {
             exception = new UnsupportedOperationException("Can't load a single track when we are expecting a playlist!");
-            synchronized (toBeNotified) {
-                toBeNotified.notify();
-            }
         }
 
         @Override
         public void playlistLoaded(AudioPlaylist audioPlaylist) {
             result = audioPlaylist;
-            synchronized (toBeNotified) {
-                toBeNotified.notify();
-            }
-
         }
 
         @Override
         public void noMatches() {
             result = new BasicAudioPlaylist("No matches", Collections.emptyList(), null, true);
-            synchronized (toBeNotified) {
-                toBeNotified.notify();
-            }
         }
 
         @Override
         public void loadFailed(FriendlyException e) {
             exception = e;
-            synchronized (toBeNotified) {
-                toBeNotified.notify();
-            }
         }
     }
 }

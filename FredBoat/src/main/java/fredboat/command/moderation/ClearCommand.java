@@ -75,7 +75,7 @@ public class ClearCommand extends Command implements IModerationCommand {
                 CentralMessaging.deleteMessage(myMessages.get(0));
             } else {
 
-                if (!context.guild.getSelfMember().hasPermission(channel, Permission.MESSAGE_MANAGE)) {
+                if (!context.hasPermissions(Permission.MESSAGE_MANAGE)) {
                     throw new MessagingException("I must have the `Manage Messages` permission to delete my own messages in bulk.");
                 }
 

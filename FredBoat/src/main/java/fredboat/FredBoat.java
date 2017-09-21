@@ -77,7 +77,7 @@ public abstract class FredBoat {
 
     private static final Logger log = LoggerFactory.getLogger(FredBoat.class);
 
-    static final int SHARD_CREATION_SLEEP_INTERVAL = 5100;
+    static final int SHARD_CREATION_SLEEP_INTERVAL = 5500;
 
     private static final ArrayList<FredBoat> shards = new ArrayList<>();
     public static JCA jca;
@@ -198,10 +198,6 @@ public abstract class FredBoat {
 
         if ((Config.CONFIG.getScope() & 0x110) != 0) {
             initBotShards(listenerBot);
-        }
-
-        if ((Config.CONFIG.getScope() & 0x001) != 0) {
-            log.error("Selfbot support has been removed.");
         }
 
         if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && Config.CONFIG.getCarbonKey() != null) {
@@ -540,7 +536,6 @@ public abstract class FredBoat {
             log.info("Coin for shard {}", shardId);
             return true;
         }
-        log.info("No coin for shard {}", shardId);
         return false;
     }
 }

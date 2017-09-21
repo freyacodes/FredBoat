@@ -30,6 +30,7 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.perms.PermissionLevel;
+import fredboat.util.GitRepoState;
 import io.sentry.Sentry;
 import net.dv8tion.jda.core.entities.Guild;
 
@@ -51,7 +52,7 @@ public class SentryDsnCommand extends Command implements ICommandRestricted {
             Sentry.close();
             context.replyWithName("Sentry service has been stopped");
         } else {
-            Sentry.init(dsn);
+            Sentry.init(dsn).setRelease(GitRepoState.getGitRepositoryState().commitId);
             context.replyWithName("New Sentry DSN has been set!");
         }
     }

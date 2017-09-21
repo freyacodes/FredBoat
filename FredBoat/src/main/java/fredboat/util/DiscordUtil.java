@@ -67,20 +67,12 @@ public class DiscordUtil {
         return isMusicBot(Config.CONFIG);
     }
 
-    public static boolean isSelfBot() {
-        return isSelfBot(Config.CONFIG);
-    }
-
     public static boolean isMainBot(Config conf) {
         return (conf.getScope() & 0x100) != 0;
     }
 
     public static boolean isMusicBot(Config conf) {
         return (conf.getScope() & 0x010) != 0;
-    }
-
-    public static boolean isSelfBot(Config conf) {
-        return (conf.getScope() & 0x001) != 0;
     }
 
     public static String getOwnerId(JDA jda) {

@@ -101,7 +101,13 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
     }
 
     private void skipGivenIndex(GuildPlayer player, CommandContext context) {
-        int givenIndex = Integer.parseInt(context.args[1]);
+        int givenIndex;
+        try {
+            givenIndex = Integer.parseInt(context.args[1]);
+        } catch (NumberFormatException e) {
+            context.reply(MessageFormat.format(I18n.get(context, "skipOutOfBounds"), context.args[1], player.getTrackCount()));
+            return;
+        }
 
         if (givenIndex == 1) {
             skipNext(context);

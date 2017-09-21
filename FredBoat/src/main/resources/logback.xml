@@ -95,9 +95,23 @@
         </filter>
     </appender>
 
+    <appender name="FB_STDOUT_DEBUG" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>DEBUG</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <pattern>[%date{HH:mm:ss}] [ %-5level] [%logger{0}] %msg%n</pattern>
+        </encoder>
+    </appender>
+
     <logger name="fredboat" level="DEBUG" additivity="true">
         <appender-ref ref="DEBUG"/>
         <appender-ref ref="ERROR"/>
+        <!-- enable this appender to see fredboats debug logs in your console / IDE
+             if you enable it in the root logger further below you will see the debug logs of all the other libraries too -->
+        <!--<appender-ref ref="FB_STDOUT_DEBUG"/>-->
     </logger>
 
     <!-- Gives us a nice JDA log with only JDA output -->

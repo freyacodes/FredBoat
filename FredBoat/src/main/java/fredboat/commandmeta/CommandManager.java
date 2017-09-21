@@ -105,12 +105,6 @@ public class CommandManager {
             return;
         }
 
-        if (invoked instanceof IMusicCommand
-                && !guild.getSelfMember().hasPermission(channel, Permission.MESSAGE_WRITE)) {
-            log.debug("Ignored command because it was a music command, and this bot cannot write in that channel");
-            return;
-        }
-
         //Hardcode music commands in FredBoatHangout. Blacklist any channel that isn't #general or #staff, but whitelist Frederikam
         if ((invoked instanceof IMusicCommand || invoked instanceof AkinatorCommand) // the hate is real
                 && guild.getId().equals(BotConstants.FREDBOAT_HANGOUT_ID)
