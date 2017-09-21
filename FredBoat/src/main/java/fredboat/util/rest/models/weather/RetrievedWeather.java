@@ -39,4 +39,11 @@ public interface RetrievedWeather {
      * @return String representation of temperature or empty string if there is an error.
      */
     String getTemperature();
+
+    /**
+     * Get thumbnail url (if available).
+     *
+     * @return String representation of thumbnail url or empty string if there is an error.
+     */
+    String getThumbnailUrl();
 }

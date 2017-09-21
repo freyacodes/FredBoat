@@ -28,4 +28,9 @@ public class WeatherError implements RetrievedWeather {
     public String getTemperature() {
         return "";
     }
+
+    @Override
+    public String getThumbnailUrl() {
+        return "";
+    }
 }

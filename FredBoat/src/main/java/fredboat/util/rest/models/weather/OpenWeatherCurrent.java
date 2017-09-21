@@ -31,6 +31,9 @@ import java.util.List;
  */
 public class OpenWeatherCurrent implements RetrievedWeather {
 
+    // Url for retrieving thumbnails.
+    private static final String THUMBNAIL_ICON_URL = "https://openweathermap.org/img/w/%s.png";
+
     @JsonProperty("weather")
     private List<WeatherOpenWeather> weather;
     @JsonProperty("base")
@@ -150,6 +153,23 @@ public class OpenWeatherCurrent implements RetrievedWeather {
     @Override
     public String getTemperature() {
         return String.format("%.2f C / %.2f F", getCelsius(), getFahrenheit());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getThumbnailUrl() {
+
+        String iconName = "";
+        String url = "";
+        if (weather != null && weather.size() > 0) {
+            iconName = weather.get(0).getIcon();
+        }
+        if (iconName.length() != 0) {
+            url = String.format(THUMBNAIL_ICON_URL, iconName);
+        }
+        return url;
     }
 
     private double getFahrenheit() {

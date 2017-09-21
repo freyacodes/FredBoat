@@ -8,6 +8,7 @@ import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
 import fredboat.util.rest.Weather;
 import fredboat.util.rest.models.weather.RetrievedWeather;
+import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -29,13 +30,13 @@ public class WeatherCommand extends Command implements IUtilCommand {
 
         context.reply(I18n.get(context.guild).getString("weatherLoading"), outMsg -> {
             if (context.args.length > 1) {
-                StringBuilder sb = new StringBuilder();
+                StringBuilder argStringBuilder = new StringBuilder();
                 for (int i = 1; i < context.args.length; i++) {
-                    sb.append(context.args[i]);
-                    sb.append(" ");
+                    argStringBuilder.append(context.args[i]);
+                    argStringBuilder.append(" ");
                 }
 
-                String query = sb.toString().trim();
+                String query = argStringBuilder.toString().trim();
                 String alphanumericalQuery = query.replaceAll("[^A-Za-z0-9 ]", "");
 
                 RetrievedWeather currentWeather = weather.getCurrentWeatherByCity(alphanumericalQuery);
@@ -44,24 +45,21 @@ public class WeatherCommand extends Command implements IUtilCommand {
                     CentralMessaging.editMessage(outMsg,
                             MessageFormat.format(I18n.get(context.guild).getString("weatherError"),
                                     query.toUpperCase()));
-
                 } else {
-                    MessageBuilder messageBuilder = CentralMessaging.getClearThreadLocalMessageBuilder();
-                    messageBuilder.append(
-                            MessageFormat.format(I18n.get(context.guild).getString("weatherLocation"),
-                                    currentWeather.getLocation()));
-                    messageBuilder.append("\n");
 
-                    messageBuilder.append(
-                            MessageFormat.format(I18n.get(context.guild).getString("weatherDescription"),
-                                    currentWeather.getWeatherDescription()));
-                    messageBuilder.append("\n");
+                    String title = MessageFormat.format(I18n.get(context.guild).getString("weatherLocation"),
+                            currentWeather.getLocation(), currentWeather.getTemperature());
 
-                    messageBuilder.append(
-                            MessageFormat.format(I18n.get(context.guild).getString("weatherTemperature"),
-                                    currentWeather.getTemperature()));
+                    EmbedBuilder embedBuilder = CentralMessaging.getClearThreadLocalEmbedBuilder()
+                            .setTitle(title)
+                            .setDescription(currentWeather.getWeatherDescription());
 
-                    CentralMessaging.editMessage(outMsg, messageBuilder.build());
+                    if (currentWeather.getThumbnailUrl().length() > 0) {
+                        embedBuilder.setThumbnail(currentWeather.getThumbnailUrl());
+                    }
+
+                    CentralMessaging.deleteMessage(outMsg);
+                    context.reply(embedBuilder.build());
                 }
                 return;
             }
@@ -74,6 +72,8 @@ public class WeatherCommand extends Command implements IUtilCommand {
 
     @Override
     public String help(Guild guild) {
-        return I18n.get(guild).getString("helpWeatherCommand");
+
+        String usage = "{0}{1} <location>\n#";
+        return usage + I18n.get(guild).getString("helpWeatherCommand");
     }
 }
