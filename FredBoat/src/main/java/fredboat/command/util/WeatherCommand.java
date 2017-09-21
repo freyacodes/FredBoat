@@ -64,9 +64,7 @@ public class WeatherCommand extends Command implements IUtilCommand {
                 return;
             }
 
-            CentralMessaging.editMessage(outMsg,
-                    MessageFormat.format(I18n.get(context.guild).getString("weatherUsageError"),
-                            Config.CONFIG.getPrefix()));
+            HelpCommand.sendFormattedCommandHelp(context);
         });
     }
 
