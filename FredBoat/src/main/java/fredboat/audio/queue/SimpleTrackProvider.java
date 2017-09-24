@@ -107,9 +107,6 @@ public class SimpleTrackProvider extends AbstractTrackProvider {
         return getAsListOrdered().get(index);
     }
 
-    /**
-     * Returns all songs inclusively from one index till the another in a non-bitching way.
-     */
     @Override
     public List<AudioTrackContext> getTracksInRange(int indexA, int indexB) {
 

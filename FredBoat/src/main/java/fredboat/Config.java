@@ -60,6 +60,8 @@ public class Config {
     public static String DEFAULT_PREFIX = ";;";
     //see https://github.com/brettwooldridge/HikariCP connectionTimeout
     public static int HIKARI_TIMEOUT_MILLISECONDS = 1000;
+    //be a bit more lenient with the single connection sqlite db
+    public static int SQLITE_TIMEOUT_MILLISECONDS = 30000;
 
     private final DistributionEnum distribution;
     private final String botToken;
@@ -243,7 +245,7 @@ public class Config {
             if (jdbcUrl == null || "".equals(jdbcUrl) || distribution == DistributionEnum.DEVELOPMENT)
                 //more than one connection for the fallback sqlite db is problematic as there is currently (2017-04-16)
                 // no supported way in the custom driver and/or dialect to set lock timeouts
-                hikariPoolSize = 1;
+                hikariPoolSize = 2;
             else hikariPoolSize = Runtime.getRuntime().availableProcessors() * 2;
             log.info("Hikari max pool size set to " + hikariPoolSize);
 

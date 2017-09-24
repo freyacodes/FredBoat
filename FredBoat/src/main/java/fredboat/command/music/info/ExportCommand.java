@@ -38,11 +38,15 @@ import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 import java.util.List;
 
 public class ExportCommand extends Command implements IMusicCommand {
+
+    private static final Logger log = LoggerFactory.getLogger(ExportCommand.class);
 
     @Override
     public void onInvoke(CommandContext context) {
@@ -53,21 +57,22 @@ public class ExportCommand extends Command implements IMusicCommand {
         }
         
         List<AudioTrackContext> tracks = player.getRemainingTracks();
-        String out = "";
+        StringBuilder out = new StringBuilder();
         
         for(AudioTrackContext atc : tracks){
             AudioTrack at = atc.getTrack();
             if(at instanceof YoutubeAudioTrack){
-                out = out + "https://www.youtube.com/watch?v=" + at.getIdentifier() + "\n";
+                out.append("https://www.youtube.com/watch?v=").append(at.getIdentifier()).append("\n");
             } else {
-                out = out + at.getIdentifier() + "\n";
+                out.append(at.getIdentifier()).append("\n");
             }
         }
         
         try {
-            String url = TextUtils.postToPasteService(out) + ".fredboat";
+            String url = TextUtils.postToPasteService(out.toString()) + ".fredboat";
             context.reply(MessageFormat.format(I18n.get(context, "exportPlaylistResulted"), url));
         } catch (UnirestException ex) {
+            log.error("Exception when uploading exported playlist to hastebin", ex);
             throw new MessagingException(I18n.get(context, "exportPlaylistFail"));
         }
         

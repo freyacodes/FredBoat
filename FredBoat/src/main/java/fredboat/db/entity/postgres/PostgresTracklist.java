@@ -1,4 +1,5 @@
 /*
+ *
  * MIT License
  *
  * Copyright (c) 2017 Frederik Ar. Mikkelsen
@@ -20,70 +21,46 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-package fredboat.db.entity;
+package fredboat.db.entity.postgres;
 
+import fredboat.db.entity.common.Tracklist;
+import fredboat.db.entity.common.TracklistId;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import org.hibernate.annotations.Type;
+
+import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.Id;
 import javax.persistence.Table;
 
+/**
+ * Created by napster on 12.08.17.
+ */
 @Entity
-@Table(name = "user_config")
-public class UConfig implements IEntity {
+@Table(name = "tracklists")
+public class PostgresTracklist extends Tracklist {
 
-    @Id
-    private String userId;
-    private String bearer;
-    private String refresh;
-    private long bearerexpiration;
+    @Column(name = "track_ids", columnDefinition = "bigint[]")
+    @Type(type = "long-array-list")
+    protected LongArrayList trackIds = new LongArrayList();
 
-    public String getBearer() {
-        return bearer;
-    }
-
-    public String getRefresh() {
-        return refresh;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public long getBearerExpiration() {
-        return bearerexpiration;
-    }
-
-    public UConfig(String id) {
-        this.userId = id;
+    @Override
+    protected LongArrayList getTracklist() {
+        return trackIds;
     }
 
     @Override
-    public void setId(String id) {
-        this.userId = id;
+    protected void setTracklist(LongArrayList tracklist) {
+        trackIds = tracklist;
     }
 
-    public UConfig() {
+    //for jpa and IEntity
+    public PostgresTracklist() {
     }
 
-    public UConfig setBearer(String bearer) {
-        this.bearer = bearer;
-        return this;
-    }
-
-    public UConfig setRefresh(String refresh) {
-        this.refresh = refresh;
-        return this;
-    }
-
-    public UConfig setUserId(String userId) {
-        this.userId = userId;
-        return this;
-    }
-
-    public UConfig setBearerExpiration(long bearerExpiration) {
-        this.bearerexpiration = bearerExpiration;
-        return this;
+    public PostgresTracklist(long ownerId, String name, long[] trackIds) {
+        this.id = new TracklistId(ownerId, name);
+        this.trackIds = new LongArrayList(trackIds);
     }
 }

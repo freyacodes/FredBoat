@@ -25,19 +25,25 @@
 
 package fredboat.audio.player;
 
+import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.audio.queue.AbstractTrackProvider;
 import fredboat.audio.queue.AudioLoader;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.audio.queue.IdentifierContext;
+import fredboat.audio.queue.PersistentGuildTrackProvider;
 import fredboat.audio.queue.RepeatMode;
 import fredboat.audio.queue.SimpleTrackProvider;
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.EntityReader;
-import fredboat.db.entity.GuildConfig;
+import fredboat.db.EntityWriter;
+import fredboat.db.entity.common.AtcData;
+import fredboat.db.entity.common.GuildConfig;
+import fredboat.db.entity.common.GuildPlayerData;
 import fredboat.feature.I18n;
+import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
@@ -50,12 +56,15 @@ import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.managers.AudioManager;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -65,7 +74,7 @@ import java.util.stream.Collectors;
 
 public class GuildPlayer extends AbstractPlayer {
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(GuildPlayer.class);
+    private static final Logger log = LoggerFactory.getLogger(GuildPlayer.class);
 
     private final FredBoat shard;
     private final long guildId;
@@ -73,6 +82,9 @@ public class GuildPlayer extends AbstractPlayer {
     private long currentTCId;
 
     private final AudioLoader audioLoader;
+
+    //dont save() while we are loading
+    private boolean loading = true;
 
     @SuppressWarnings("LeakingThisInConstructor")
     public GuildPlayer(Guild guild) {
@@ -89,8 +101,125 @@ public class GuildPlayer extends AbstractPlayer {
             AudioManager manager = guild.getAudioManager();
             manager.setSendingHandler(this);
         }
-        audioTrackProvider = new SimpleTrackProvider();
+
+        if (FeatureFlags.PERSISTENT_TRACK_PROVIDER.isActive()) {
+            audioTrackProvider = new PersistentGuildTrackProvider(guild.getIdLong());
+        } else {
+            audioTrackProvider = new SimpleTrackProvider();
+        }
+
         audioLoader = new AudioLoader(audioTrackProvider, getPlayerManager(), this);
+
+        restoreGuildPlayer();
+        loading = false;
+    }
+
+    /**
+     * Recreates the state of the GuildPlayer from the database
+     */
+    private void restoreGuildPlayer() {
+        log.debug("restoreGuildPlayer()");
+
+        GuildPlayerData playerData;
+
+        playerData = EntityReader.getEntity(guildId, GuildPlayerData.class);
+        if (playerData == null) return;
+
+        RepeatMode repeatMode = playerData.getRepeatMode();
+        boolean shuffle = playerData.isShuffled();
+        float volume = playerData.getVolume();
+
+        this.setRepeatMode(repeatMode);
+        if (Config.CONFIG.getDistribution().volumeSupported()) {
+            this.setVolume(volume);
+        }
+
+        TextChannel tc = shard.getJda().getTextChannelById(playerData.getActiveTextChannelId());
+        VoiceChannel vc = shard.getJda().getVoiceChannelById(playerData.getVoiceChannelId());
+        if (tc != null) {
+            this.currentTCId = tc.getIdLong();
+        }
+        boolean humansInVC = false;
+        if (vc != null) {
+            this.joinChannel(vc);
+            humansInVC = !getHumanUsersInVC(vc).isEmpty();
+        }
+
+        AtcData atcData = EntityReader.getEntity(playerData.getPlayingTrackId(), AtcData.class);
+        if (atcData != null) {
+            try {
+                AudioTrackContext trackContext = atcData.restoreTrack();
+                audioTrackProvider.setLastTrack(trackContext);
+                boolean silent = playerData.isPaused() || !humansInVC;
+                playTrack(trackContext, silent);//dont announce the track if the player will be paused anyways
+                trackContext.getTrack().setPosition(playerData.getPlayingTrackPosition());//this works just fine with live streams
+            } catch (Exception ignored) {
+            }
+        }
+        this.setShuffle(shuffle);
+
+        //pause needs to be set after restoring the track, otherwise a different track may be loaded through the track provider
+        if (!humansInVC) {
+            this.setPause(true);
+        } else {
+            this.setPause(playerData.isPaused());
+        }
+
+        if (tc != null) {
+            int trackCount = getTrackCount();
+            if (trackCount > 0) {
+                CentralMessaging.sendMessage(tc, MessageFormat.format(I18n.get(getGuild()).getString("reloadSuccess"), trackCount));
+            }
+        }
+    }
+
+    //call this whenever the state of this object changes
+    //saving the track should only happen when you are planning to reconstruct this guild player again, for example when shutting down
+    public void save(boolean... saveTrack) {
+        if (loading) return;
+        log.debug("GuildPlayer#save({}) called", saveTrack.length > 0 ? saveTrack[0] : "");
+
+        Guild g = getGuild();
+        if (g == null) return;
+
+        Member self = g.getSelfMember();
+        if (self == null) return;
+
+        //NOTE: to save an updated voicechannel, save() needs to be called from the JDA event of us joining the
+        // voicechannel, not from the request methods to do so
+        VoiceChannel currentVC = self.getVoiceState().getChannel();
+        log.debug("Current VoiceChannel is {}", currentVC == null ? "null" : currentVC.getIdLong());
+
+        AudioTrackContext atc = null;
+        if (saveTrack.length > 0 && saveTrack[0]) {
+            atc = getPlayingTrack();
+        }
+        AtcData atcData = null;
+        if (atc != null) try {
+            atcData = new AtcData(atc);
+        } catch (IOException ignored) {
+        }
+
+        GuildPlayerData gpd = new GuildPlayerData(guildId,
+                currentVC != null ? currentVC.getIdLong() : 0,
+                currentTCId,
+                isPaused(),
+                getVolume(),
+                getRepeatMode(),
+                isShuffle(),
+                atcData != null ? atcData.getTrackId() : 0,
+                atcData != null ? atc.getTrack().getPosition() : 0
+        );
+
+        GuildPlayerData old = EntityReader.getEntity(g.getIdLong(), GuildPlayerData.class);
+        if (old == null || old.isDifferent(gpd)) {
+            log.debug("Actually saving the guild player data due to differences");
+            if (atcData != null) {
+                EntityWriter.mergeAll(Arrays.asList(gpd, atcData));
+            } else {
+                EntityWriter.merge(gpd);
+            }
+        }
     }
 
     private void announceTrack(AudioTrackContext atc) {
@@ -220,12 +349,36 @@ public class GuildPlayer extends AbstractPlayer {
         return result;
     }
 
-    //similar to getTracksInRange, but only gets the trackIds
+    //similar to getTracksInRange, but gets the trackIds only
     public List<Long> getTrackIdsInRange(int start, int end) {
         log.debug("getTrackIdsInRange({} {})", start, end);
 
         List<Long> result = new ArrayList<>();
-        result.addAll(getTracksInRange(start, end).stream().map(AudioTrackContext::getTrackId).collect(Collectors.toList()));
+
+        //adjust args for whether there is a track playing or not
+        if (player.getPlayingTrack() != null) {
+            if (start <= 0) {
+                result.add(context.getTrackId());
+                end--;//shorten the requested range by 1, but still start at 0, since that's the way the trackprovider counts its tracks
+            } else {
+                //dont add the currently playing track, drop the args by one since the "first" track is currently playing
+                start--;
+                end--;
+            }
+        } else {
+            //nothing to do here, args are fine to pass on
+        }
+
+        // optimization for the persistent track provider
+        if (audioTrackProvider instanceof PersistentGuildTrackProvider) {
+            PersistentGuildTrackProvider trackProvider = (PersistentGuildTrackProvider) audioTrackProvider;
+            result.addAll(trackProvider.getTrackIdsInRange(start, end));
+        } else {
+            result.addAll(audioTrackProvider.getTracksInRange(start, end).stream()
+                    .map(AudioTrackContext::getTrackId)
+                    .collect(Collectors.toList()));
+        }
+
         return result;
     }
 
@@ -327,6 +480,7 @@ public class GuildPlayer extends AbstractPlayer {
         } else {
             throw new UnsupportedOperationException("Can't repeat " + audioTrackProvider.getClass());
         }
+        save();
     }
 
     public void setShuffle(boolean shuffle) {
@@ -335,6 +489,7 @@ public class GuildPlayer extends AbstractPlayer {
         } else {
             throw new UnsupportedOperationException("Can't shuffle " + audioTrackProvider.getClass());
         }
+        save();
     }
 
     public void reshuffle() {
@@ -348,7 +503,21 @@ public class GuildPlayer extends AbstractPlayer {
     public void setCurrentTC(TextChannel tc) {
         if (this.currentTCId != tc.getIdLong()) {
             this.currentTCId = tc.getIdLong();
+            save();
         }
+
+    }
+
+    @Override
+    public void setPause(boolean pause) {
+        super.setPause(pause);
+        save();
+    }
+
+    @Override
+    public void setVolume(float vol) {
+        super.setVolume(vol);
+        save();
     }
 
     /**
@@ -425,7 +594,7 @@ public class GuildPlayer extends AbstractPlayer {
     private boolean isTrackAnnounceEnabled() {
         boolean enabled = false;
         try {
-            GuildConfig config = EntityReader.getGuildConfig(Long.toString(guildId));
+            GuildConfig config = EntityReader.getOrCreateEntity(Long.toString(guildId), GuildConfig.class);
             enabled = config.isTrackAnnounce();
         } catch (DatabaseNotReadyException ignored) {}
 
@@ -438,7 +607,7 @@ public class GuildPlayer extends AbstractPlayer {
 
     @Override
     void destroy() {
-        audioTrackProvider.clear();
+        EntityWriter.deleteObject(guildId, GuildPlayerData.class);
         super.destroy();
         log.info("Player for " + guildId + " was destroyed.");
     }

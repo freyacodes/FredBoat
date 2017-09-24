@@ -24,6 +24,8 @@
 
 package fredboat.db.entity;
 
+import java.io.Serializable;
+
 /**
  * Created by napster on 02.05.17.
  * <p>
@@ -31,7 +33,9 @@ package fredboat.db.entity;
  * Implement this in all entities to retrieve them easily over a shared function
  * in EntityReader while having some type safety
  */
-public interface IEntity {
+public interface IEntity<I extends Serializable> {
 
-    void setId(String id);
+    void setId(I id);
+
+    I getId();
 }

@@ -33,6 +33,7 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityReader;
+import fredboat.db.entity.common.GuildConfig;
 import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
@@ -187,6 +188,12 @@ public class EventListenerBoat extends AbstractEventListener {
     @Override
     public void onGuildVoiceLeave(GuildVoiceLeaveEvent event) {
         checkForAutoPause(event.getChannelLeft());
+
+        if (event.getMember().getUser().getIdLong() == event.getJDA().getSelfUser().getIdLong()) {
+            //save the left voicechannel
+            GuildPlayer player = PlayerRegistry.getExisting(event.getGuild());
+            if (player != null) player.save();
+        }
     }
 
     @Override
@@ -197,17 +204,27 @@ public class EventListenerBoat extends AbstractEventListener {
         //were we moved?
         if (event.getMember().getUser().getIdLong() == event.getJDA().getSelfUser().getIdLong()) {
             checkForAutoPause(event.getChannelJoined());
+
+            //save the newly joined voicechannel
+            GuildPlayer player = PlayerRegistry.getExisting(event.getGuild());
+            if (player != null) player.save();
         }
     }
 
     @Override
     public void onGuildVoiceJoin(GuildVoiceJoinEvent event) {
         checkForAutoResume(event.getChannelJoined(), event.getMember());
+
+        if (event.getMember().getUser().getIdLong() == event.getJDA().getSelfUser().getIdLong()) {
+            //save the newly joined voicechannel
+            GuildPlayer player = PlayerRegistry.getExisting(event.getGuild());
+            if (player != null) player.save();
+        }
     }
 
     private void checkForAutoResume(VoiceChannel joinedChannel, Member joined) {
         Guild guild = joinedChannel.getGuild();
-        //ignore bot users taht arent us joining / moving
+        //ignore bot users that arent us joining / moving
         if (joined.getUser().isBot()
                 && guild.getSelfMember().getUser().getIdLong() != joined.getUser().getIdLong()) return;
 
@@ -218,7 +235,7 @@ public class EventListenerBoat extends AbstractEventListener {
                 && player.getPlayingTrack() != null
                 && joinedChannel.getMembers().contains(guild.getSelfMember())
                 && player.getHumanUsersInCurrentVC().size() > 0
-                && EntityReader.getGuildConfig(guild.getId()).isAutoResume()
+                && EntityReader.getOrCreateEntity(guild.getId(), GuildConfig.class).isAutoResume()
                 ) {
             player.setPause(false);
             TextChannel activeTextChannel = player.getActiveTextChannel();

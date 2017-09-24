@@ -44,6 +44,8 @@ import java.util.Properties;
 
 public class DatabaseManager {
 
+    public static final String SQLITE_DIALECT = "org.hibernate.dialect.SQLiteDialect";
+
     private static final Logger log = LoggerFactory.getLogger(DatabaseManager.class);
 
     private EntityManagerFactory emf;
@@ -116,7 +118,11 @@ public class DatabaseManager {
             properties.put("hibernate.hikari.maximumPoolSize", Integer.toString(poolSize));
 
             //how long to wait for a connection becoming available, also the timeout when a DB fails
-            properties.put("hibernate.hikari.connectionTimeout", Integer.toString(Config.HIKARI_TIMEOUT_MILLISECONDS));
+            if (isSQLiteDB()) {
+                properties.put("hibernate.hikari.connectionTimeout", Integer.toString(Config.SQLITE_TIMEOUT_MILLISECONDS));
+            } else {
+                properties.put("hibernate.hikari.connectionTimeout", Integer.toString(Config.HIKARI_TIMEOUT_MILLISECONDS));
+            }
             //this helps with sorting out connections in pgAdmin
             properties.put("hibernate.hikari.dataSource.ApplicationName", "FredBoat_" + Config.CONFIG.getDistribution());
 
@@ -125,7 +131,11 @@ public class DatabaseManager {
 
 
             LocalContainerEntityManagerFactoryBean emfb = new LocalContainerEntityManagerFactoryBean();
-            emfb.setPackagesToScan("fredboat.db.entity");
+            if (isSQLiteDB()) {
+                emfb.setPackagesToScan("fredboat.db.entity.common", "fredboat.db.entity.sqlite");
+            } else {
+                emfb.setPackagesToScan("fredboat.db.entity.common", "fredboat.db.entity.postgres");
+            }
             emfb.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
             emfb.setJpaProperties(properties);
             emfb.setPersistenceUnitName("fredboat.test");
@@ -289,6 +299,10 @@ public class DatabaseManager {
 
         if (sshTunnel != null)
             sshTunnel.disconnect();
+    }
+
+    public boolean isSQLiteDB() {
+        return SQLITE_DIALECT.equalsIgnoreCase(dialect);
     }
 
     private static class JSchLogger implements com.jcraft.jsch.Logger {

@@ -29,7 +29,7 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.FredBoat;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
-import fredboat.db.entity.UConfig;
+import fredboat.db.entity.common.UConfig;
 import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.entities.User;
 import org.slf4j.LoggerFactory;
@@ -87,7 +87,7 @@ public class OAuthManager {
         //NOTE: the returned user might be fake, which means opening a private channel might throw an exception
         User user = DiscordUtil.getUserFromBearer(FredBoat.getFirstJDA(), token.getBearer());
 
-        UConfig uconfig = EntityReader.getUConfig(user.getId());
+        UConfig uconfig = EntityReader.getOrCreateEntity(user.getId(), UConfig.class);
 
         uconfig = uconfig == null ? new UConfig() : uconfig;
 
@@ -97,7 +97,7 @@ public class OAuthManager {
                 .setUserId(user.getId());
 
         //Save to database
-        EntityWriter.mergeUConfig(uconfig);
+        uconfig = EntityWriter.merge(uconfig);
 
         return uconfig;
     }

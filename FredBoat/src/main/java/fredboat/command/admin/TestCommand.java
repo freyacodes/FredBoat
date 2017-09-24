@@ -54,7 +54,7 @@ public class TestCommand extends Command implements ICommandRestricted {
 
     @Override
     public void onInvoke(CommandContext context) {
-        FredBoat.executor.submit(() -> invoke(FredBoat.getDbManager(), context, context.args));
+        FredBoat.executor.submit(() -> invoke(FredBoat.obtainAvailableDbManager(), context, context.args));
     }
 
     boolean invoke(DatabaseManager dbm, Context context, String args[]) {

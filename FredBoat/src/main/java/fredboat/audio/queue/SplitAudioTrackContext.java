@@ -47,6 +47,13 @@ public class SplitAudioTrackContext extends AudioTrackContext {
         this.title = title;
     }
 
+    public static SplitAudioTrackContext restore(AudioTrack at, long userId, long guildId, long added, long trackId, long startPos, long endPos, String title) {
+        SplitAudioTrackContext result = new SplitAudioTrackContext(at, userId, guildId, startPos, endPos, title);
+        result.added = added;
+        result.trackId = trackId;
+        return result;
+    }
+
     @Override
     public long getEffectiveDuration() {
         return endPos - startPos;

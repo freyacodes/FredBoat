@@ -55,6 +55,10 @@ public enum FeatureFlags implements Feature {
 
     @Label("Force soundcloud search instead of youtube")
     FORCE_SOUNDCLOUD_SEARCH,
+
+    @Label("Persistent audio queues")
+    @EnabledByDefault
+    PERSISTENT_TRACK_PROVIDER,
     ;
 
     public boolean isActive() {

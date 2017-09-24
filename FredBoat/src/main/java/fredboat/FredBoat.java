@@ -42,6 +42,7 @@ import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.init.MainCommandInitializer;
 import fredboat.commandmeta.init.MusicCommandInitializer;
 import fredboat.db.DatabaseManager;
+import fredboat.db.DatabaseNotReadyException;
 import fredboat.event.EventListenerBoat;
 import fredboat.event.ShardWatchdogListener;
 import fredboat.feature.I18n;
@@ -84,10 +85,10 @@ public abstract class FredBoat {
     public static int shutdownCode = UNKNOWN_SHUTDOWN_CODE;//Used when specifying the intended code for shutdown hooks
     static EventListenerBoat listenerBot;
     ShardWatchdogListener shardWatchdogListener = null;
-    private static AtomicInteger numShardsReady = new AtomicInteger(0);
 
     //For when we need to join a revived shard with it's old GuildPlayers
-    final ArrayList<String> channelsToRejoin = new ArrayList<>();
+    protected boolean reviving = false;
+    protected final ArrayList<Long> channelsToRejoin = new ArrayList<>();
 
     //unlimited threads = http://i.imgur.com/H3b7H1S.gif
     //use this executor for various small async tasks
@@ -145,7 +146,7 @@ public abstract class FredBoat {
             log.warn("No JDBC URL and more than 2 shard found! Initializing the SQLi DB is potentially dangerous too. Skipping...");
         } else {
             log.warn("No JDBC URL found, skipped database connection, falling back to internal SQLite db.");
-            dbManager = new DatabaseManager("jdbc:sqlite:fredboat.db", "org.hibernate.dialect.SQLiteDialect",
+            dbManager = new DatabaseManager("jdbc:sqlite:fredboat.db", DatabaseManager.SQLITE_DIALECT,
                     Config.CONFIG.getHikariPoolSize());
             dbManager.startup();
         }
@@ -285,7 +286,6 @@ public abstract class FredBoat {
                 shards.add(i, new FredBoatBot(i, listener));
             } catch (Exception e) {
                 log.error("Caught an exception while starting shard " + i + "!", e);
-                numShardsReady.getAndIncrement();
             }
             try {
                 Thread.sleep(SHARD_CREATION_SLEEP_INTERVAL);
@@ -301,33 +301,29 @@ public abstract class FredBoat {
     public void onInit(ReadyEvent readyEvent) {
         log.info("Received ready event for " + FredBoat.getInstance(readyEvent.getJDA()).getShardInfo().getShardString());
 
-        int ready = numShardsReady.get();
-        if (ready == Config.CONFIG.getNumShards()) {
-            log.info("All " + ready + " shards are ready.");
+        if (!reviving) {
+            //restore GuildPlayers from database for the guilds that readied
+            MusicPersistenceHandler.restoreGuildPlayers(this);
+        } else {
+            //Rejoin old channels if revived
+            for (long voiceChannelId : channelsToRejoin) {
+                VoiceChannel channel = readyEvent.getJDA().getVoiceChannelById(voiceChannelId);
+                if (channel == null) return;
+                GuildPlayer player = PlayerRegistry.get(channel.getGuild());
+                if (player == null) return;
 
-            if (Config.CONFIG.getNumShards() <= 10) {
-                MusicPersistenceHandler.reloadPlaylists();
-            } else {
-                log.warn("Skipped music persistence loading! We are using more than 10 shards, so probably not a good idea to run that.");
+                VoiceChannel currentVoiceState = channel.getGuild().getSelfMember().getVoiceState().getChannel();
+                log.debug("Currently connected to: " + (currentVoiceState == null ? "null" : currentVoiceState.getName()));
+
+                LavalinkManager.ins.openConnection(channel);
+
+                if (!LavalinkManager.ins.isEnabled()) {
+                    AudioManager am = channel.getGuild().getAudioManager();
+                    am.setSendingHandler(player);
+                }
             }
+            channelsToRejoin.clear();
         }
-
-        //Rejoin old channels if revived
-        channelsToRejoin.forEach(vcid -> {
-            VoiceChannel channel = readyEvent.getJDA().getVoiceChannelById(vcid);
-            if (channel == null) return;
-            GuildPlayer player = PlayerRegistry.get(channel.getGuild());
-            if (player == null) return;
-
-            LavalinkManager.ins.openConnection(channel);
-
-            if (!LavalinkManager.ins.isEnabled()) {
-                AudioManager am = channel.getGuild().getAudioManager();
-                am.setSendingHandler(player);
-            }
-        });
-
-        channelsToRejoin.clear();
     }
 
     //Shutdown hook
@@ -414,17 +410,16 @@ public abstract class FredBoat {
         return JDAUtil.countAllUniqueUsers(shards, biggestUserCount);
     }
 
-    public static TextChannel getTextChannelById(String id) {
+    public static TextChannel getTextChannelById(long id) {
         for (FredBoat fb : shards) {
-            for (TextChannel channel : fb.getJda().getTextChannels()) {
-                if (channel.getId().equals(id)) return channel;
-            }
+            TextChannel tc = fb.getJda().getTextChannelById(id);
+            if (tc != null) return tc;
         }
 
         return null;
     }
 
-    public static VoiceChannel getVoiceChannelById(String id) {
+    public static VoiceChannel getVoiceChannelById(long id) {
         for (FredBoat fb : shards) {
             for (VoiceChannel channel : fb.getJda().getVoiceChannels()) {
                 if (channel.getId().equals(id)) return channel;
@@ -514,7 +509,11 @@ public abstract class FredBoat {
         }
     }
 
-    public static DatabaseManager getDbManager() {
+    public static DatabaseManager obtainAvailableDbManager() throws DatabaseNotReadyException {
+
+        if (dbManager == null || !dbManager.isAvailable()) {
+            throw new DatabaseNotReadyException("The database is not available currently. Please try again later.");
+        }
         return dbManager;
     }
 

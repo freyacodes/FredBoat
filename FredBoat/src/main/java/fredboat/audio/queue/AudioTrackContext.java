@@ -37,9 +37,9 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
     protected final AudioTrack track;
     private final long userId;
     private final long guildId;
-    private final long added;
-    private int rand;
-    private final long trackId; //used to identify this track even when the track gets cloned and the rand reranded
+    protected long added;
+    protected int rand;
+    protected long trackId; //used to identify this track even when the track gets cloned and the rand reranded
 
     public AudioTrackContext(AudioTrack at, Member member) {
         this(at, member.getUser().getIdLong(), member.getGuild().getIdLong());
@@ -52,6 +52,14 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
         this.added = System.currentTimeMillis();
         this.rand = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         this.trackId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE);
+    }
+
+
+    public static AudioTrackContext restore(AudioTrack at, long userId, long guildId, long added, long trackId) {
+        AudioTrackContext result = new AudioTrackContext(at, userId, guildId);
+        result.added = added;
+        result.trackId = trackId;
+        return result;
     }
 
     public AudioTrack getTrack() {

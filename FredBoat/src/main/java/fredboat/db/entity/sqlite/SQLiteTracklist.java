@@ -1,4 +1,5 @@
 /*
+ *
  * MIT License
  *
  * Copyright (c) 2017 Frederik Ar. Mikkelsen
@@ -20,34 +21,46 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-package fredboat.command.admin;
+package fredboat.db.entity.sqlite;
 
-import fredboat.audio.player.LavalinkManager;
-import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.CommandContext;
-import fredboat.commandmeta.abs.ICommandRestricted;
-import fredboat.perms.PermissionLevel;
-import lavalink.client.io.LavalinkSocket;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.db.entity.common.Tracklist;
+import fredboat.db.entity.common.TracklistId;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import org.hibernate.annotations.Type;
 
-public class GetNodeCommand extends Command implements ICommandRestricted {
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+
+/**
+ * Created by napster on 12.08.17.
+ */
+@Entity
+@Table(name = "tracklists")
+public class SQLiteTracklist extends Tracklist {
+
+    @Column(name = "track_ids", columnDefinition = "BLOB")
+    @Type(type = "long-array-list-sqlite")
+    protected LongArrayList trackIds = new LongArrayList();
 
     @Override
-    public void onInvoke(CommandContext context) {
-        LavalinkSocket node = LavalinkManager.ins.getLavalink().getNodeForGuild(context.getGuild());
-        context.reply(String.valueOf(node));
+    protected LongArrayList getTracklist() {
+        return trackIds;
     }
 
     @Override
-    public String help(Guild guild) {
-        return "{0}{1}\n#Restarts the bot.";
+    protected void setTracklist(LongArrayList tracklist) {
+        trackIds = tracklist;
     }
 
-    @Override
-    public PermissionLevel getMinimumPerms() {
-        return PermissionLevel.BOT_ADMIN;
+    //for jpa and IEntity
+    public SQLiteTracklist() {
+    }
+
+    public SQLiteTracklist(long ownerId, String name, long[] trackIds) {
+        this.id = new TracklistId(ownerId, name);
+        this.trackIds = new LongArrayList(trackIds);
     }
 }

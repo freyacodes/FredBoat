@@ -28,7 +28,7 @@ package fredboat.perms;
 import fredboat.Config;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityReader;
-import fredboat.db.entity.GuildPermissions;
+import fredboat.db.entity.common.GuildPermissions;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.Permission;
@@ -55,7 +55,7 @@ public class PermsUtil {
             return PermissionUtil.checkPermission(member, Permission.MESSAGE_MANAGE) ? PermissionLevel.DJ : PermissionLevel.USER;
         }
 
-        GuildPermissions gp = EntityReader.getGuildPermissions(member.getGuild());
+        GuildPermissions gp = EntityReader.getOrCreateEntity(member.getGuild().getId(), GuildPermissions.class);
 
         if (checkList(gp.getAdminList(), member)) return PermissionLevel.ADMIN;
         if (checkList(gp.getDjList(), member)) return PermissionLevel.DJ;

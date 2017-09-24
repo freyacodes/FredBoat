@@ -31,24 +31,20 @@ import com.sedmelluq.discord.lavaplayer.tools.io.MessageOutput;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
-import fredboat.FredBoat;
-import fredboat.db.DatabaseManager;
 import fredboat.db.DatabaseNotReadyException;
+import fredboat.db.EntityReader;
+import fredboat.db.EntityWriter;
 import fredboat.util.rest.SearchUtil;
 import org.apache.commons.lang3.SerializationUtils;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.Entity;
-import javax.persistence.EntityManager;
 import javax.persistence.Id;
 import javax.persistence.Lob;
-import javax.persistence.PersistenceException;
 import javax.persistence.Table;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -67,14 +63,9 @@ import java.util.Objects;
 @Table(name = "search_results")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region = "search_results")
-//todo after introducing the db refactoring in the persistent tracklists PR:
-//- refactor load() and save() as calls to EntityReader and EntityWriter
-//- make this class implement IEntity<SearchResultId>
-public class SearchResult implements Serializable {
+public class SearchResult implements IEntity<SearchResult.SearchResultId>, Serializable {
 
     private static final long serialVersionUID = -6903579675867836509L;
-
-    private static final Logger log = LoggerFactory.getLogger(SearchResult.class);
 
     @Id
     private SearchResultId searchResultId;
@@ -106,27 +97,12 @@ public class SearchResult implements Serializable {
      */
     public static AudioPlaylist load(AudioPlayerManager playerManager, SearchUtil.SearchProvider provider,
                                      String searchTerm, long maxAgeMillis) throws DatabaseNotReadyException {
-        DatabaseManager dbManager = FredBoat.getDbManager();
-        if (!dbManager.isAvailable()) {
-            throw new DatabaseNotReadyException();
-        }
 
-        EntityManager em = dbManager.getEntityManager();
-        SearchResult sr;
-        SearchResultId sId = new SearchResultId(provider, searchTerm);
-        try {
-            em.getTransaction().begin();
-            sr = em.find(SearchResult.class, sId);
-            em.getTransaction().commit();
-        } catch (PersistenceException e) {
-            log.error("Unexpected error while trying to look up a search result for provider {} and search term {}", provider.name(), searchTerm, e);
-            throw new DatabaseNotReadyException(e);
-        } finally {
-            em.close();
-        }
+        SearchResultId searchId = new SearchResultId(provider, searchTerm);
+        SearchResult searchResult = EntityReader.getEntity(searchId, SearchResult.class);
 
-        if (sr != null && (maxAgeMillis < 0 || System.currentTimeMillis() < sr.timestamp + maxAgeMillis)) {
-            return sr.getSearchResult(playerManager);
+        if (searchResult != null && (maxAgeMillis < 0 || System.currentTimeMillis() < searchResult.timestamp + maxAgeMillis)) {
+            return searchResult.getSearchResult(playerManager);
         } else {
             return null;
         }
@@ -138,28 +114,17 @@ public class SearchResult implements Serializable {
      * @return the merged SearchResult object
      */
     public SearchResult save() {
-        DatabaseManager dbManager = FredBoat.getDbManager();
-        if (!dbManager.isAvailable()) {
-            throw new DatabaseNotReadyException();
-        }
-
-        EntityManager em = dbManager.getEntityManager();
-        try {
-            em.getTransaction().begin();
-            SearchResult managed = em.merge(this);
-            em.getTransaction().commit();
-            return managed;
-        } catch (PersistenceException e) {
-            log.error("Unexpected error while saving a search result for provider {} and search term {}",
-                    searchResultId.provider, searchResultId.searchTerm, e);
-            throw new DatabaseNotReadyException(e);
-        } finally {
-            em.close();
-        }
+        return EntityWriter.merge(this);
     }
 
+    @Override
     public SearchResultId getId() {
         return searchResultId;
+    }
+
+    @Override
+    public void setId(SearchResultId id) {
+        this.searchResultId = id;
     }
 
     public SearchUtil.SearchProvider getProvider() {

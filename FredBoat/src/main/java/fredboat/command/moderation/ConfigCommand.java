@@ -32,7 +32,7 @@ import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
-import fredboat.db.entity.GuildConfig;
+import fredboat.db.entity.common.GuildConfig;
 import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
@@ -55,7 +55,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
     }
 
     private void printConfig(CommandContext context) {
-        GuildConfig gc = EntityReader.getGuildConfig(context.guild.getId());
+        GuildConfig gc = EntityReader.getOrCreateEntity(context.guild.getId(), GuildConfig.class);
 
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append(MessageFormat.format(I18n.get(context, "configNoArgs") + "\n", context.guild.getName()))
@@ -78,7 +78,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
             return;
         }
 
-        GuildConfig gc = EntityReader.getGuildConfig(context.guild.getId());
+        GuildConfig gc = EntityReader.getOrCreateEntity(context.guild.getId(), GuildConfig.class);
         String key = args[1];
         String val = args[2];
 
@@ -86,7 +86,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
             case "track_announce":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
                     gc.setTrackAnnounce(Boolean.valueOf(val));
-                    EntityWriter.mergeGuildConfig(gc);
+                    gc = EntityWriter.merge(gc);
                     context.replyWithName("`track_announce` " + MessageFormat.format(I18n.get(context, "configSetTo"), val));
                 } else {
                     context.reply(MessageFormat.format(I18n.get(context, "configMustBeBoolean"), invoker.getEffectiveName()));
@@ -95,7 +95,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
             case "auto_resume":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
                     gc.setAutoResume(Boolean.valueOf(val));
-                    EntityWriter.mergeGuildConfig(gc);
+                    gc = EntityWriter.merge(gc);
                     context.replyWithName("`auto_resume` " + MessageFormat.format(I18n.get(context, "configSetTo"), val));
                 } else {
                     context.reply(MessageFormat.format(I18n.get(context, "configMustBeBoolean"), invoker.getEffectiveName()));

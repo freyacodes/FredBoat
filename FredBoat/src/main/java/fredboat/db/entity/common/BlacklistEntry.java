@@ -22,8 +22,9 @@
  * SOFTWARE.
  */
 
-package fredboat.db.entity;
+package fredboat.db.entity.common;
 
+import fredboat.db.entity.IEntity;
 import org.hibernate.annotations.ColumnDefault;
 
 import javax.persistence.Column;
@@ -38,7 +39,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name = "blacklist")
-public class BlacklistEntry implements IEntity {
+public class BlacklistEntry implements IEntity<Long> {
 
     //id of the user or guild that this blacklist entry belongs to
     @Id
@@ -70,8 +71,8 @@ public class BlacklistEntry implements IEntity {
     }
 
     @Override
-    public void setId(String id) {
-        this.id = Long.valueOf(id);
+    public void setId(Long id) {
+        this.id = id;
     }
 
     @Override
@@ -84,7 +85,8 @@ public class BlacklistEntry implements IEntity {
     public BlacklistEntry() {
     }
 
-    public long getId() {
+    @Override
+    public Long getId() {
         return id;
     }
 
