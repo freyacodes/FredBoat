@@ -426,6 +426,12 @@ public class GuildPlayer extends AbstractPlayer {
         }
     }
 
+    @Override
+    public void onTrackStart(AudioPlayer player, AudioTrack track) {
+        voteSkipCleanup();
+        super.onTrackStart(player, track);
+    }
+
     private boolean isTrackAnnounceEnabled() {
         boolean enabled = false;
         try {
@@ -445,12 +451,6 @@ public class GuildPlayer extends AbstractPlayer {
         audioTrackProvider.clear();
         super.destroy();
         log.info("Player for " + guildId + " was destroyed.");
-    }
-
-    @Override
-    public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
-        voteSkipCleanup();
-        super.onTrackEnd(player, track, endReason);
     }
 
     private void voteSkipCleanup() {

@@ -10,7 +10,9 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
+import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.*;
 
 import java.text.MessageFormat;
@@ -54,12 +56,14 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
                 if (atc == null) {
                     context.reply(I18n.get(context, "skipTrackNotFound"));
                 } else {
-                    context.reply(MessageFormat.format("DEBUG: `{0}%` have voted to skip. Skipped track #{1}: **{2}**", (skipPercentage * 100), 1, atc.getEffectiveTitle()));
+                    context.reply(MessageFormat.format(I18n.get(context, "voteSkipSkipping"), (skipPercentage * 100), atc.getEffectiveTitle()));
                     player.skip();
                 }
             } else {
-                context.reply(MessageFormat.format("DEBUG: `{0}`% voted to skip. `{1}`% needed", (skipPercentage * 100), (MIN_SKIP_PERCENTAGE * 100)));
+                context.reply(MessageFormat.format(I18n.get(context, "voteSkipNotEnough"), (skipPercentage * 100), (MIN_SKIP_PERCENTAGE * 100)));
             }
+        } else if (context.args.length == 2 && context.args[1].toLowerCase().equals("list")) {
+            displayVoteList(context);
         } else {
             HelpCommand.sendFormattedCommandHelp(context);
         }
@@ -79,16 +83,16 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
             voters = new ArrayList<>();
             voters.add(user.getIdLong());
             guildSkipVotes.put(context.guild.getIdLong(), voters);
-            context.reply("DEBUG: Your vote has been added");
+            context.reply(I18n.get(context, "voteSkipAdded"));
             return;
         }
 
         if (voters.contains(user.getIdLong())) {
-            context.reply("DEBUG: You already voted!");
+            context.reply(I18n.get(context, "voteSkipAlreadyVoted"));
         } else {
             voters.add(user.getIdLong());
             guildSkipVotes.put(context.guild.getIdLong(), voters);
-            context.reply("DEBUG: Your vote has been added");
+            context.reply(I18n.get(context, "voteSkipAdded"));
         }
     }
 
@@ -117,9 +121,15 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
         return voters.contains(member.getUser().getIdLong());
     }
 
+    private void displayVoteList(CommandContext context) {
+        EmbedBuilder embed = CentralMessaging.getClearThreadLocalEmbedBuilder();
+        embed.setTitle("WIP");
+        context.reply(embed.build());
+    }
+
     @Override
     public String help(Guild guild) {
-        return "WIP";
+        return I18n.get(guild).getString("helpVoteSkip");
     }
 
     @Override
