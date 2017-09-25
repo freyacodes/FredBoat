@@ -26,7 +26,6 @@
 package fredboat.command.music.control;
 
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerLimitManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.IdentifierContext;
@@ -44,12 +43,6 @@ public class PlaySplitCommand extends Command implements IMusicCommand, ICommand
 
     @Override
     public void onInvoke(CommandContext context) {
-        if (LavalinkManager.ins.isEnabled()) {
-            context.reply("Human Fred MIGHT have broken this command." +
-                    "Maybe it will be fixed in a later update." +
-                    "Who knows ¯\\_(ツ)_/¯");
-            return;
-        }
 
         if (context.args.length < 2) {
             HelpCommand.sendFormattedCommandHelp(context);
