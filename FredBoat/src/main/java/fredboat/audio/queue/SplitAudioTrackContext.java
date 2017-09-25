@@ -50,7 +50,7 @@ public class SplitAudioTrackContext extends AudioTrackContext {
 
         // TODO introduce TrackData to FredBoat instead of the AudioTrackContext and SplitAudioTrackContext?
         // TODO doing that would mean Yet Another Rewrite:tm: of the persistent tracklists
-        at.setUserData(new TrackData(startPos, endPos, title));
+        at.setUserData(new TrackData(startPos, endPos));
     }
 
     @Override
