@@ -49,8 +49,8 @@ public class GitInfoCommand extends Command implements IMaintenanceCommand {
 
     private RandomImageCommand octocats = new RandomImageCommand("https://imgur.com/a/sBkTj");
 
-    //https://regex101.com/r/wqfWBI/4/tests
-    private static final Pattern GITHUB_URL_PATTERN = Pattern.compile("^(git@|https?://)(.+)[:/](.+)/(.+).git$");
+    //https://regex101.com/r/wqfWBI/6/tests
+    private static final Pattern GITHUB_URL_PATTERN = Pattern.compile("^(git@|https?://)(.+)[:/](.+)/(.+)(\\.git)?$");
 
     @Override
     public void onInvoke(CommandContext context) {

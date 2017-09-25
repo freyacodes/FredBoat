@@ -53,7 +53,7 @@ public class TextUtils {
     public static Message prefaceWithName(Member member, String msg) {
         msg = ensureSpace(msg);
         return CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(member.getAsMention())
+                .append(member.getEffectiveName())
                 .append(": ")
                 .append(msg)
                 .build();
@@ -62,7 +62,7 @@ public class TextUtils {
     public static Message prefaceWithMention(Member member, String msg) {
         msg = ensureSpace(msg);
         return CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(member.getEffectiveName())
+                .append(member.getAsMention())
                 .append(": ")
                 .append(msg)
                 .build();

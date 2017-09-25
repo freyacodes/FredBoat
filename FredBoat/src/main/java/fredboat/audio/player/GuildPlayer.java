@@ -52,6 +52,8 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -93,13 +95,18 @@ public class GuildPlayer extends AbstractPlayer {
 
     private void announceTrack(AudioTrackContext atc) {
         if (getRepeatMode() != RepeatMode.SINGLE && isTrackAnnounceEnabled() && !isPaused()) {
-            CentralMessaging.sendMessage(getActiveTextChannel(),
-                    MessageFormat.format(I18n.get(getGuild()).getString("trackAnnounce"), atc.getEffectiveTitle()));
+            TextChannel activeTextChannel = getActiveTextChannel();
+            if (activeTextChannel != null) {
+                CentralMessaging.sendMessage(activeTextChannel,
+                        MessageFormat.format(I18n.get(getGuild()).getString("trackAnnounce"), atc.getEffectiveTitle()));
+            }
         }
     }
 
     private void handleError(Throwable t) {
-        log.error("Guild player error", t);
+        if (!(t instanceof MessagingException)) {
+            log.error("Guild player error", t);
+        }
         TextChannel tc = getActiveTextChannel();
         if (tc != null) {
             CentralMessaging.sendMessage(tc, "Something went wrong!\n" + t.getMessage());
@@ -138,11 +145,12 @@ public class GuildPlayer extends AbstractPlayer {
 
     public void leaveVoiceChannelRequest(CommandContext commandContext, boolean silent) {
         if (!silent) {
-            if (LavalinkManager.ins.getConnectedChannel(commandContext.guild) == null) {
+            VoiceChannel currentVc = LavalinkManager.ins.getConnectedChannel(commandContext.guild);
+            if (currentVc == null) {
                 commandContext.reply(I18n.get(getGuild()).getString("playerNotInChannel"));
             } else {
                 commandContext.reply(MessageFormat.format(I18n.get(getGuild()).getString("playerLeftChannel"),
-                        getCurrentVoiceChannel(commandContext.guild.getJDA()).getName()));
+                        currentVc.getName()));
             }
         }
         LavalinkManager.ins.closeConnection(getGuild());
@@ -151,6 +159,7 @@ public class GuildPlayer extends AbstractPlayer {
     /**
      * May return null if the member is currently not in a channel
      */
+    @Nullable
     public VoiceChannel getUserCurrentVoiceChannel(Member member) {
         return member.getVoiceState().getChannel();
     }
@@ -240,8 +249,8 @@ public class GuildPlayer extends AbstractPlayer {
     }
 
 
-    //may return null
     //optionally pass a jda object to use for the lookup
+    @Nullable
     public VoiceChannel getCurrentVoiceChannel(JDA... jda) {
         JDA j;
         if (jda.length == 0) {
@@ -251,26 +260,28 @@ public class GuildPlayer extends AbstractPlayer {
         }
         Guild guild = j.getGuildById(guildId);
         if (guild != null)
-            return getUserCurrentVoiceChannel(guild.getSelfMember());
+            return LavalinkManager.ins.getConnectedChannel(guild);
         else
             return null;
     }
 
     /**
-     * @return the text channel currently used for music commands, if there is none return #general
+     * @return the text channel currently used for music commands, if there is none return the default channel
      */
+    @Nullable
     public TextChannel getActiveTextChannel() {
         TextChannel currentTc = getCurrentTC();
         if (currentTc != null) {
             return currentTc;
         } else {
-            log.warn("No currentTC in " + getGuild() + "! Returning public channel...");
-            return getGuild().getPublicChannel();
+            log.warn("No currentTC in " + getGuild() + "! Returning default channel...");
+            return getGuild().getDefaultChannel();
         }
 
     }
 
-    public List<Member> getHumanUsersInVC(VoiceChannel vc) {
+    @Nonnull
+    public List<Member> getHumanUsersInVC(@Nullable VoiceChannel vc) {
         if (vc == null) {
             return Collections.emptyList();
         }
@@ -390,7 +401,7 @@ public class GuildPlayer extends AbstractPlayer {
         }
     }
 
-    private void skipTracks(Collection<Long> trackIds) {
+    public void skipTracks(Collection<Long> trackIds) {
         boolean skipCurrentTrack = false;
 
         List<Long> toRemove = new ArrayList<>();

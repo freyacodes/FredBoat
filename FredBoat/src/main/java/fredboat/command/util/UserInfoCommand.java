@@ -80,7 +80,7 @@ public class UserInfoCommand extends Command implements IUtilCommand {
         //DMify if I can
         context.reply(CentralMessaging.getClearThreadLocalEmbedBuilder()
                 .setColor(target.getColor())
-                .setImage(target.getUser().getAvatarUrl())
+                .setThumbnail(target.getUser().getAvatarUrl())
                 .setTitle(MessageFormat.format(i18n.getString("userinfoTitle"), target.getUser().getName()), null)
                 .addField(i18n.getString("userinfoUsername"), target.getUser().getName() + "#" + target.getUser().getDiscriminator(), true)
                 .addField(i18n.getString("userinfoId"), target.getUser().getId(), true)
@@ -89,7 +89,6 @@ public class UserInfoCommand extends Command implements IUtilCommand {
                 .addField(i18n.getString("userinfoJoinDate"), target.getJoinDate().format(dtf), true)
                 .addField(i18n.getString("userinfoCreationTime"), target.getUser().getCreationTime().format(dtf), true)
                 .addField("Blacklisted", "" + Ratelimiter.getRatelimiter().isBlacklisted(context.invoker.getUser().getIdLong()), true) //TODO i18n
-                .addField(i18n.getString("userinfoAvatarUrl"), target.getUser().getAvatarUrl(), true)
                 .build()
         );
     }

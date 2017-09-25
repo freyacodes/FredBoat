@@ -23,46 +23,31 @@
  *
  */
 
-package fredboat.util.log;
+package fredboat.command.admin;
 
-import net.dv8tion.jda.core.JDA;
-import net.dv8tion.jda.core.utils.SimpleLog;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import fredboat.audio.player.LavalinkManager;
+import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
+import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.perms.PermissionLevel;
+import lavalink.client.io.LavalinkSocket;
+import net.dv8tion.jda.core.entities.Guild;
 
-/**
- * @author sedmelluq
- */
-public class SimpleLogToSLF4JAdapter implements SimpleLog.LogListener {
-  private static final Logger log = LoggerFactory.getLogger(JDA.class);
+public class GetNodeCommand extends Command implements ICommandRestricted {
 
-  @Override
-  public void onLog(SimpleLog simpleLog, SimpleLog.Level logLevel, Object message) {
-    switch (logLevel) {
-      case TRACE:
-        if (log.isTraceEnabled()) {
-          log.trace(message.toString());
-        }
-        break;
-      case DEBUG:
-        if (log.isDebugEnabled()) {
-          log.debug(message.toString());
-        }
-        break;
-      case INFO:
-        log.info(message.toString());
-        break;
-      case WARNING:
-        log.warn(message.toString());
-        break;
-      case FATAL:
-        log.error(message.toString());
-        break;
+    @Override
+    public void onInvoke(CommandContext context) {
+        LavalinkSocket node = LavalinkManager.ins.getLavalink().getNodeForGuild(context.getGuild());
+        context.channel.sendMessage(String.valueOf(node)).queue();
     }
-  }
 
-  @Override
-  public void onError(SimpleLog simpleLog, Throwable err) {
-    log.error("An exception occurred", err);
-  }
+    @Override
+    public String help(Guild guild) {
+        return "{0}{1}\n#Restarts the bot.";
+    }
+
+    @Override
+    public PermissionLevel getMinimumPerms() {
+        return PermissionLevel.BOT_ADMIN;
+    }
 }

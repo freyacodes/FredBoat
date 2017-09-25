@@ -27,8 +27,6 @@ package fredboat.command.fun;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.I18n;
-import fredboat.messaging.CentralMessaging;
-import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message;
 
@@ -52,19 +50,17 @@ public class HugCommand extends RandomImageCommand implements IFunCommand {
     @Override
     public void onInvoke(CommandContext context) {
         Message msg = context.msg;
-
-        MessageBuilder hugMessage = CentralMessaging.getClearThreadLocalMessageBuilder();
+        String hugMessage = null;
         if (msg.getMentionedUsers().size() > 0) {
             if (msg.getMentionedUsers().get(0).getIdLong() == msg.getJDA().getSelfUser().getIdLong()) {
-                hugMessage.append(I18n.get(context, "hugBot")).build();
+                hugMessage = I18n.get(context, "hugBot");
             } else {
-                hugMessage.append("_")
-                        .append(MessageFormat.format(I18n.get(context, "hugSuccess"), msg.getMentionedUsers().get(0).getAsMention()))
-                        .append("_")
-                        .build();
+                hugMessage = "_"
+                        + MessageFormat.format(I18n.get(context, "hugSuccess"), msg.getMentionedUsers().get(0).getAsMention())
+                        + "_";
             }
         }
-        context.replyFile(super.getRandomFile(), hugMessage.build());
+        context.replyImage(super.getRandomImageUrl(), hugMessage);
     }
 
     @Override

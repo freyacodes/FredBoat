@@ -39,14 +39,17 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.util.TextUtils;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceJoinEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceLeaveEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceMoveEvent;
+import net.dv8tion.jda.core.events.http.HttpRequestEvent;
 import net.dv8tion.jda.core.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
@@ -104,6 +107,12 @@ public class EventListenerBoat extends AbstractEventListener {
             CommandContext context = CommandContext.parse(event);
 
             if (context == null) {
+                return;
+            }
+
+            //ignore all commands in channels where we can't write, except for the help command
+            if (!context.hasPermissions(Permission.MESSAGE_WRITE) && !(context.command instanceof HelpCommand)) {
+                log.debug("Ignored command because this bot cannot write in that channel");
                 return;
             }
 
@@ -211,8 +220,11 @@ public class EventListenerBoat extends AbstractEventListener {
                 && player.getHumanUsersInCurrentVC().size() > 0
                 && EntityReader.getGuildConfig(guild.getId()).isAutoResume()
                 ) {
-            CentralMessaging.sendMessage(player.getActiveTextChannel(), I18n.get(guild).getString("eventAutoResumed"));
             player.setPause(false);
+            TextChannel activeTextChannel = player.getActiveTextChannel();
+            if (activeTextChannel != null) {
+                CentralMessaging.sendMessage(activeTextChannel, I18n.get(guild).getString("eventAutoResumed"));
+            }
         }
     }
 
@@ -240,7 +252,10 @@ public class EventListenerBoat extends AbstractEventListener {
 
         if (player.getHumanUsersInCurrentVC().isEmpty() && !player.isPaused()) {
             player.pause();
-            CentralMessaging.sendMessage(player.getActiveTextChannel(), I18n.get(guild).getString("eventUsersLeftVC"));
+            TextChannel activeTextChannel = player.getActiveTextChannel();
+            if (activeTextChannel != null) {
+                CentralMessaging.sendMessage(activeTextChannel, I18n.get(guild).getString("eventUsersLeftVC"));
+            }
         }
     }
 
@@ -249,4 +264,11 @@ public class EventListenerBoat extends AbstractEventListener {
         PlayerRegistry.destroyPlayer(event.getGuild());
     }
 
+    @Override
+    public void onHttpRequest(HttpRequestEvent event) {
+        if (event.getResponse().code >= 300) {
+            log.warn("Unsuccessful JDA HTTP Request:\n{}\nResponse:{}\n",
+                    event.getRequestRaw(), event.getResponseRaw());
+        }
+    }
 }

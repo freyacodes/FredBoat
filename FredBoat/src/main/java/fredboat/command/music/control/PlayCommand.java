@@ -110,11 +110,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         player.queue(args[1], context);
         player.setPause(false);
 
-        try {
-            context.deleteMessage();
-        } catch (Exception ignored) {
-
-        }
+        context.deleteMessage();
     }
 
     private void handleNoArguments(CommandContext context) {

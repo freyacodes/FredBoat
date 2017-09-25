@@ -28,6 +28,7 @@ package fredboat.messaging.internal;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.MessageFuture;
 import fredboat.util.TextUtils;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -112,6 +113,20 @@ public abstract class Context {
         return CentralMessaging.sendFile(getTextChannel(), file, message);
     }
 
+    @SuppressWarnings("UnusedReturnValue")
+    public MessageFuture replyImage(@Nonnull String url, @Nullable String message) {
+        return CentralMessaging.sendMessage(getTextChannel(),
+                CentralMessaging.getClearThreadLocalMessageBuilder()
+                        .setEmbed(embedImage(url))
+                        .append(message != null ? message : "")
+                        .build());
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    public MessageFuture replyImage(@Nonnull String url) {
+        return replyImage(url, null);
+    }
+
     public void sendTyping() {
         CentralMessaging.sendTyping(getTextChannel());
     }
@@ -120,5 +135,16 @@ public abstract class Context {
         getMember().getUser().openPrivateChannel().queue(
                 privateChannel -> CentralMessaging.sendMessage(privateChannel, message, onSuccess, onFail)
         );
+    }
+
+    //checks whether we have the provided permissions for the channel of this context
+    public boolean hasPermissions(Permission... permissions) {
+        return getGuild().getSelfMember().hasPermission(getTextChannel(), permissions);
+    }
+
+    private static MessageEmbed embedImage(String url) {
+        return CentralMessaging.getClearThreadLocalEmbedBuilder()
+                .setImage(url)
+                .build();
     }
 }

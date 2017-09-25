@@ -41,7 +41,6 @@ import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.exceptions.PermissionException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.text.MessageFormat;
@@ -78,14 +77,10 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                     AudioTrack selected = selection.getChoices().get(i - 1);
                     player.selections.remove(invoker.getUser().getId());
                     String msg = MessageFormat.format(I18n.get(context, "selectSuccess"), i, selected.getInfo().title, TextUtils.formatTime(selected.getInfo().length));
-                    CentralMessaging.editMessageById(context.channel, selection.getOutMsgId(), CentralMessaging.from(msg));
+                    CentralMessaging.editMessage(context.channel, selection.getOutMsgId(), CentralMessaging.from(msg));
                     player.queue(new AudioTrackContext(selected, invoker));
                     player.setPause(false);
-                    try {
-                        context.deleteMessage();
-                    } catch (PermissionException ignored) {
-
-                    }
+                    context.deleteMessage();
                 }
             } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
                 context.reply(MessageFormat.format(I18n.get(context, "selectInterval"), selection.getChoices().size()));

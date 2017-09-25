@@ -81,11 +81,11 @@ public class RandomImageCommand extends Command implements IFunCommand {
 
     @Override
     public void onInvoke(CommandContext context) {
-        context.replyFile(getRandomFile(), null);
+        context.replyImage(getRandomImageUrl());
     }
 
     public File getRandomFile() {
-        //Get a random file and send it
+        //Get a random image as a cached file
         String randomUrl;
         synchronized (this) {
             randomUrl = getRandomImageUrl();

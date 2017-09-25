@@ -47,7 +47,6 @@ import fredboat.event.ShardWatchdogListener;
 import fredboat.feature.I18n;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.JDAUtil;
-import fredboat.util.log.SimpleLogToSLF4JAdapter;
 import frederikam.jca.JCA;
 import frederikam.jca.JCABuilder;
 import net.dv8tion.jda.core.AccountType;
@@ -59,7 +58,6 @@ import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.managers.AudioManager;
-import net.dv8tion.jda.core.utils.SimpleLog;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +75,7 @@ public abstract class FredBoat {
 
     private static final Logger log = LoggerFactory.getLogger(FredBoat.class);
 
-    static final int SHARD_CREATION_SLEEP_INTERVAL = 5100;
+    static final int SHARD_CREATION_SLEEP_INTERVAL = 5500;
 
     private static final ArrayList<FredBoat> shards = new ArrayList<>();
     public static JCA jca;
@@ -114,12 +112,6 @@ public abstract class FredBoat {
                 " |_|  |_|  \\___|\\__,_|____/ \\___/ \\__,_|\\__|\n\n");
 
         I18n.start();
-
-        //Attach log adapter
-        SimpleLog.addListener(new SimpleLogToSLF4JAdapter());
-
-        //Make JDA not print to console, we have Logback for that
-        SimpleLog.LEVEL = SimpleLog.Level.OFF;
 
         int scope;
         try {
@@ -198,10 +190,6 @@ public abstract class FredBoat {
 
         if ((Config.CONFIG.getScope() & 0x110) != 0) {
             initBotShards(listenerBot);
-        }
-
-        if ((Config.CONFIG.getScope() & 0x001) != 0) {
-            log.error("Selfbot support has been removed.");
         }
 
         if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && Config.CONFIG.getCarbonKey() != null) {
@@ -540,7 +528,6 @@ public abstract class FredBoat {
             log.info("Coin for shard {}", shardId);
             return true;
         }
-        log.info("No coin for shard {}", shardId);
         return false;
     }
 }

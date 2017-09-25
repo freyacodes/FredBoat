@@ -25,24 +25,32 @@
 
 package fredboat.messaging;
 
+import fredboat.feature.I18n;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.exceptions.InsufficientPermissionException;
 import net.dv8tion.jda.core.requests.Request;
 import net.dv8tion.jda.core.requests.Response;
 import net.dv8tion.jda.core.requests.RestAction;
 import net.dv8tion.jda.core.requests.Route;
+import org.apache.commons.io.FileUtils;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
+import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
 /**
@@ -51,6 +59,8 @@ import java.util.function.Consumer;
  * Everything related to sending things out from FredBoat
  */
 public class CentralMessaging {
+
+    private static final Logger log = LoggerFactory.getLogger(CentralMessaging.class);
 
 
     // ********************************************************************************
@@ -81,6 +91,7 @@ public class CentralMessaging {
                 .setImage(null);
     }
 
+    //May not be an empty string, as MessageBuilder#build() will throw an exception
     public static Message from(String string) {
         return getClearThreadLocalMessageBuilder().append(string).build();
     }
@@ -316,7 +327,8 @@ public class CentralMessaging {
     public static MessageFuture editMessage(@Nonnull Message oldMessage, @Nonnull Message newMessage,
                                             @Nullable Consumer<Message> onSuccess, @Nullable Consumer<Throwable> onFail) {
         return editMessage0(
-                oldMessage,
+                oldMessage.getChannel(),
+                oldMessage.getIdLong(),
                 newMessage,
                 onSuccess,
                 onFail
@@ -325,7 +337,8 @@ public class CentralMessaging {
 
     public static MessageFuture editMessage(@Nonnull Message oldMessage, @Nonnull Message newMessage) {
         return editMessage0(
-                oldMessage,
+                oldMessage.getChannel(),
+                oldMessage.getIdLong(),
                 newMessage,
                 null,
                 null
@@ -334,15 +347,44 @@ public class CentralMessaging {
 
     public static MessageFuture editMessage(@Nonnull Message oldMessage, @Nonnull String newContent) {
         return editMessage0(
-                oldMessage,
+                oldMessage.getChannel(),
+                oldMessage.getIdLong(),
                 from(newContent),
                 null,
                 null
         );
     }
 
-    public static void editMessageById(MessageChannel channel, long oldMessageId, Message newMessage) {
-        channel.editMessageById(oldMessageId, newMessage).queue();
+
+    public static MessageFuture editMessage(@Nonnull MessageChannel channel, long oldMessageId, @Nonnull Message newMessage,
+                                            @Nullable Consumer<Message> onSuccess, @Nullable Consumer<Throwable> onFail) {
+        return editMessage0(
+                channel,
+                oldMessageId,
+                newMessage,
+                onSuccess,
+                onFail
+        );
+    }
+
+    public static MessageFuture editMessage(@Nonnull MessageChannel channel, long oldMessageId, @Nonnull Message newMessage) {
+        return editMessage0(
+                channel,
+                oldMessageId,
+                newMessage,
+                null,
+                null
+        );
+    }
+
+    public static MessageFuture editMessage(@Nonnull MessageChannel channel, long oldMessageId, @Nonnull String newContent) {
+        return editMessage0(
+                channel,
+                oldMessageId,
+                from(newContent),
+                null,
+                null
+        );
     }
 
     // ********************************************************************************
@@ -350,7 +392,11 @@ public class CentralMessaging {
     // ********************************************************************************
 
     public static void sendTyping(MessageChannel channel) {
-        channel.sendTyping().queue();
+        try {
+            channel.sendTyping().queue();
+        } catch (InsufficientPermissionException e) {
+            handleInsufficientPermissionsException(channel, e);
+        }
     }
 
     //messages must all be from the same channel
@@ -358,19 +404,27 @@ public class CentralMessaging {
         if (!messages.isEmpty()) {
             MessageChannel channel = messages.iterator().next().getChannel();
             if (channel instanceof TextChannel) {
-                ((TextChannel) channel).deleteMessages(messages).queue();
+                try {
+                    ((TextChannel) channel).deleteMessages(messages).queue();
+                } catch (InsufficientPermissionException e) {
+                    handleInsufficientPermissionsException(channel, e);
+                }
             } else {
-                messages.forEach(m -> channel.deleteMessageById(m.getIdLong()).queue());
+                messages.forEach(m -> deleteMessageById(channel, m.getIdLong()));
             }
         }
     }
 
     public static void deleteMessage(Message message) {
-        message.delete().queue();
+        deleteMessageById(message.getChannel(), message.getIdLong());
     }
 
     public static void deleteMessageById(MessageChannel channel, long messageId) {
-        channel.deleteMessageById(messageId).queue();
+        try {
+            channel.deleteMessageById(messageId).queue();
+        } catch (InsufficientPermissionException e) {
+            handleInsufficientPermissionsException(channel, e);
+        }
     }
 
     public static EmbedBuilder addFooter(EmbedBuilder eb, Member author) {
@@ -406,7 +460,17 @@ public class CentralMessaging {
             }
         };
 
-        channel.sendMessage(message).queue(successWrapper, failureWrapper);
+        try {
+            channel.sendMessage(message).queue(successWrapper, failureWrapper);
+        } catch (InsufficientPermissionException e) {
+            failureWrapper.accept(e);
+            if (e.getPermission() == Permission.MESSAGE_EMBED_LINKS) {
+                handleInsufficientPermissionsException(channel, e);
+            } else {
+                //do not call CentralMessaging#handleInsufficientPermissionsException() from here as that will result in a loop
+                log.warn("Could not send message to channel {} due to missing permission {}", channel.getIdLong(), e.getPermission().getName(), e);
+            }
+        }
         return result;
     }
 
@@ -434,15 +498,25 @@ public class CentralMessaging {
             }
         };
 
-        channel.sendFile(file, message).queue(successWrapper, failureWrapper);
+        try {
+            // ATTENTION: Do not use JDA's MessageChannel#sendFile(File file, Message message)
+            // as it will skip permission checks, since TextChannel does not override that method
+            // this is scheduled to be fixed through JDA's message-rw branch
+            channel.sendFile(FileUtils.readFileToByteArray(file), file.getName(), message).queue(successWrapper, failureWrapper);
+        } catch (InsufficientPermissionException e) {
+            failureWrapper.accept(e);
+            handleInsufficientPermissionsException(channel, e);
+        } catch (IOException e) {
+            log.error("Could not send file {}, it appears to be borked", file.getAbsolutePath(), e);
+        }
         return result;
     }
 
     //class internal editing method
-    private static MessageFuture editMessage0(@Nonnull Message oldMessage, @Nonnull Message newMessage,
+    private static MessageFuture editMessage0(@Nonnull MessageChannel channel, long oldMessageId, @Nonnull Message newMessage,
                                               @Nullable Consumer<Message> onSuccess, @Nullable Consumer<Throwable> onFail) {
-        if (oldMessage == null) {
-            throw new IllegalArgumentException("Old message is null");
+        if (channel == null) {
+            throw new IllegalArgumentException("Channel is null");
         }
         if (newMessage == null) {
             throw new IllegalArgumentException("New message is null");
@@ -462,8 +536,24 @@ public class CentralMessaging {
             }
         };
 
-        oldMessage.editMessage(newMessage).queue(successWrapper, failureWrapper);
+        try {
+            channel.editMessageById(oldMessageId, newMessage).queue(successWrapper, failureWrapper);
+        } catch (InsufficientPermissionException e) {
+            failureWrapper.accept(e);
+            handleInsufficientPermissionsException(channel, e);
+        }
         return result;
+    }
+
+    private static void handleInsufficientPermissionsException(MessageChannel channel, InsufficientPermissionException e) {
+        final ResourceBundle i18n;
+        if (channel instanceof TextChannel) {
+            i18n = I18n.get(((TextChannel) channel).getGuild());
+        } else {
+            i18n = I18n.DEFAULT.getProps();
+        }
+        //only ever try sending a simple string from here so we don't end up handling a loop of insufficient permissions
+        sendMessage(channel, i18n.getString("permissionMissingBot") + " **" + e.getPermission().getName() + "**");
     }
 
 }

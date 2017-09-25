@@ -60,6 +60,7 @@ public class CatgirlCommand extends Command implements IFunCommand {
         }
 
         File tmp = CacheUtil.getImageFromURL(BASE_URL + m.group(1));
+        //NOTE: we cannot send this as a URL because discord cant access it (cloudflare etc)
         context.replyFile(tmp, null);
     }
 

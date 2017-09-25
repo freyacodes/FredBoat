@@ -95,7 +95,9 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
                 quality = AudioConfiguration.ResamplingQuality.MEDIUM;
 
             playerManager.getConfiguration().setResamplingQuality(quality);
-            playerManager.enableGcMonitoring();
+            if (!LavalinkManager.ins.isEnabled()) {
+                playerManager.enableGcMonitoring(); //we are playing tracks locally
+            }
             playerManager.setFrameBufferDuration(1000);
 
             if (Config.CONFIG.getDistribution() != DistributionEnum.DEVELOPMENT && Config.CONFIG.isLavaplayerNodesEnabled()) {

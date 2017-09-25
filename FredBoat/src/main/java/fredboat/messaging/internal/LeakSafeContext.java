@@ -31,6 +31,8 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.User;
 
+import javax.annotation.Nullable;
+
 /**
  * Created by napster on 11.09.17.
  * <p>
@@ -54,22 +56,26 @@ public class LeakSafeContext extends Context {
     }
 
     @Override
+    @Nullable
     public TextChannel getTextChannel() {
         return FredBoat.getTextChannelById(Long.toString(channelId));
     }
 
     @Override
+    @Nullable
     public Guild getGuild() {
         return FredBoat.getGuildById(guildId);
     }
 
     @Override
+    @Nullable
     public Member getMember() {
         Guild guild = getGuild();
         return guild != null ? guild.getMemberById(userId) : null;
     }
 
     @Override
+    @Nullable
     public User getUser() {
         Member member = getMember();
         return member != null ? member.getUser() : null;

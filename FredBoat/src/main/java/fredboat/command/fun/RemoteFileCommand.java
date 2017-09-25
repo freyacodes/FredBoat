@@ -41,6 +41,7 @@ public class RemoteFileCommand extends Command implements IFunCommand {
 
     @Override
     public void onInvoke(CommandContext context) {
+        //NOTE: moving this to Context#replyImage breaks the ;;gif one
         context.replyFile(CacheUtil.getImageFromURL(url), null);
     }
 

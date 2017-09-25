@@ -66,10 +66,7 @@ public class PlaySplitCommand extends Command implements IMusicCommand, ICommand
         player.queue(ic);
         player.setPause(false);
 
-        try {
-            context.deleteMessage();
-        } catch (Exception ignored) {
-        }
+        context.deleteMessage();
     }
 
     @Override

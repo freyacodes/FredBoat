@@ -36,6 +36,7 @@ import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +54,7 @@ public class HelpCommand extends Command implements IUtilCommand {
     public void onInvoke(CommandContext context) {
 
         if (context.args.length > 1) {
-            sendFormattedCommandHelp(context);
+            sendFormattedCommandHelp(context, context.args[1]);
         } else {
             sendGeneralHelp(context);
         }
@@ -71,11 +72,15 @@ public class HelpCommand extends Command implements IUtilCommand {
                     String out = I18n.get(context, "helpSent");
                     out += "\n" + MessageFormat.format(I18n.get(context, "helpCommandsPromotion"),
                             "`" + Config.CONFIG.getPrefix() + "commands`");
-                    context.replyWithName(out);
+                    if (context.hasPermissions(Permission.MESSAGE_WRITE)) {
+                        context.replyWithName(out);
+                    }
                 },
                 failure -> {
-                    String out = ":exclamation:Couldn't send documentation to your DMs! Check you don't have them disabled!"; //TODO: i18n
-                    context.replyWithName(out);
+                    if (context.hasPermissions(Permission.MESSAGE_WRITE)) {
+                        String out = ":exclamation:Couldn't send documentation to your DMs! Check you don't have them disabled!"; //TODO: i18n
+                        context.replyWithName(out);
+                    }
                 }
         );
     }
@@ -94,9 +99,13 @@ public class HelpCommand extends Command implements IUtilCommand {
     }
 
     public static void sendFormattedCommandHelp(CommandContext context) {
-        CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(context.trigger);
+        sendFormattedCommandHelp(context, context.trigger);
+    }
+
+    private static void sendFormattedCommandHelp(CommandContext context, String trigger) {
+        CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(trigger);
         if (commandEntry == null) {
-            String out = Config.CONFIG.getPrefix() + context.trigger + ": " + I18n.get(context, "helpUnknownCommand");
+            String out = "`" + Config.CONFIG.getPrefix() + trigger + "`: " + I18n.get(context, "helpUnknownCommand");
             out += "\n" + MessageFormat.format(I18n.get(context, "helpCommandsPromotion"),
                     "`" + Config.CONFIG.getPrefix() + "commands`");
             context.replyWithName(out);
@@ -105,7 +114,7 @@ public class HelpCommand extends Command implements IUtilCommand {
 
         Command command = commandEntry.command;
 
-        String out = getFormattedCommandHelp(context.guild, command, context.trigger);
+        String out = getFormattedCommandHelp(context.guild, command, trigger);
 
         if (command instanceof ICommandRestricted
                 && ((ICommandRestricted) command).getMinimumPerms() == PermissionLevel.BOT_OWNER)

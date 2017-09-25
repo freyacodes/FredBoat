@@ -30,6 +30,7 @@ import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -99,8 +100,13 @@ public class CommandContext extends Context {
         this.msg = message;
     }
 
+    /**
+     * Deletes the users message that triggered this command, if we have the permissions to do so
+     */
     public void deleteMessage() {
-        CentralMessaging.deleteMessage(msg);
+        if (hasPermissions(Permission.MESSAGE_MANAGE)) {
+            CentralMessaging.deleteMessage(msg);
+        }
     }
 
     @Override

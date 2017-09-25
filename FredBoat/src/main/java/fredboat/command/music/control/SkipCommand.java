@@ -35,15 +35,13 @@ import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
+import fredboat.perms.PermsUtil;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.*;
 import org.apache.commons.lang3.StringUtils;
 
 import java.text.MessageFormat;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -84,6 +82,8 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
             skipGivenIndex(player, context);
         } else if (args.length == 2 && trackRangePattern.matcher(args[1]).matches()) {
             skipInRange(player, context);
+        } else if (args.length >= 2 && context.msg.getMentionedUsers().size() > 0) {
+            skipUser(player, context, context.msg.getMentionedUsers());
         } else {
             HelpCommand.sendFormattedCommandHelp(context);
         }
@@ -91,6 +91,7 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
 
     /**
      * Specifies whether the <B>skip command </B>is on cooldown.
+     *
      * @param guild The guild where the <B>skip command</B> was called.
      * @return {@code true} if the elapsed time since the <B>skip command</B> is less than or equal to
      * {@link #SKIP_COOLDOWN}; otherwise, {@code false}.
@@ -101,7 +102,13 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
     }
 
     private void skipGivenIndex(GuildPlayer player, CommandContext context) {
-        int givenIndex = Integer.parseInt(context.args[1]);
+        int givenIndex;
+        try {
+            givenIndex = Integer.parseInt(context.args[1]);
+        } catch (NumberFormatException e) {
+            context.reply(MessageFormat.format(I18n.get(context, "skipOutOfBounds"), context.args[1], player.getTrackCount()));
+            return;
+        }
 
         if (givenIndex == 1) {
             skipNext(context);
@@ -158,6 +165,63 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
         player.skipTracksForMemberPerms(context, trackIds, successMessage);
     }
 
+    private void skipUser(GuildPlayer player, CommandContext context, List<User> users) {
+
+        if (!PermsUtil.checkPerms(PermissionLevel.DJ, context.invoker)) {
+
+            if (users.size() == 1) {
+                User user = users.get(0);
+
+                if (context.invoker.getUser().getIdLong() != user.getIdLong()) {
+                    context.reply(I18n.get(context, "skipDeniedTooManyTracks"));
+                    return;
+                }
+
+            } else {
+                context.reply(I18n.get(context, "skipDeniedTooManyTracks"));
+                return;
+            }
+        }
+
+        List<AudioTrackContext> listAtc = player.getTracksInRange(0, player.getTrackCount());
+        List<Long> userAtcIds = new ArrayList<>();
+        List<User> affectedUsers = new ArrayList<>();
+
+        for (User user : users) {
+            for (AudioTrackContext atc : listAtc) {
+                if (atc.getUserId() == user.getIdLong()) {
+                    userAtcIds.add(atc.getTrackId());
+
+                    if (!affectedUsers.contains(user)) {
+                        affectedUsers.add(user);
+                    }
+                }
+            }
+        }
+
+
+        if (userAtcIds.size() > 0) {
+
+            String title = player.getPlayingTrack().getEffectiveTitle();
+            player.skipTracks(userAtcIds);
+
+            if (affectedUsers.size() > 1) {
+                context.reply(MessageFormat.format(I18n.get(context, "skipUsersMultiple"), ("`" + userAtcIds.size() + "`"), ("**" + affectedUsers.size() + "**")));
+            } else {
+
+                User user = affectedUsers.get(0);
+                if (userAtcIds.size() == 1) {
+                    context.reply(MessageFormat.format(I18n.get(context, "skipUserSingle"), "**" + title + "**", ("**" + user.getName() + "#" + user.getDiscriminator() + "**")));
+                } else {
+                    context.reply(MessageFormat.format(I18n.get(context, "skipUserMultiple"), ("`" + userAtcIds.size() + "`"), ("**" + user.getName() + "#" + user.getDiscriminator() + "**")));
+                }
+            }
+
+        } else {
+            context.reply(I18n.get(context, "skipUserNoTracks" ));
+        }
+    }
+
     private void skipNext(CommandContext context) {
         GuildPlayer player = PlayerRegistry.get(context.guild);
         AudioTrackContext atc = player.getPlayingTrack();
@@ -171,7 +235,7 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
 
     @Override
     public String help(Guild guild) {
-        String usage = "{0}{1} OR {0}{1} n OR {0}{1} n-m\n#";
+        String usage = "{0}{1} OR {0}{1} n OR {0}{1} n-m OR {0}{1} @Users...\n#";
         return usage + I18n.get(guild).getString("helpSkipCommand");
     }
 

@@ -35,6 +35,7 @@ import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,9 +71,14 @@ public class AnnounceCommand extends Command implements ICommandRestricted {
                     Phaser phaser = new Phaser(players.size());
 
                     for (GuildPlayer player : players) {
-                        CentralMessaging.sendMessage(player.getActiveTextChannel(), msg,
-                                __ -> phaser.arrive(),
-                                __ -> phaser.arriveAndDeregister());
+                        TextChannel activeTextChannel = player.getActiveTextChannel();
+                        if (activeTextChannel != null) {
+                            CentralMessaging.sendMessage(activeTextChannel, msg,
+                                    __ -> phaser.arrive(),
+                                    __ -> phaser.arriveAndDeregister());
+                        } else {
+                            phaser.arriveAndDeregister();
+                        }
                     }
 
                     new Thread(() -> {

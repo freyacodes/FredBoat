@@ -35,6 +35,7 @@ import lavalink.client.player.LavaplayerPlayerWrapper;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
 public class LavalinkManager {
@@ -93,7 +94,7 @@ public class LavalinkManager {
         }
     }
 
-    public VoiceChannel getConnectedChannel(Guild guild) {
+    public VoiceChannel getConnectedChannel(@Nonnull Guild guild) {
         if (isEnabled()) {
             return lavalink.getConnectedChannel(guild);
         } else {

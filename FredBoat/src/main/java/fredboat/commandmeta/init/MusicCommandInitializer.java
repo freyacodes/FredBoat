@@ -68,7 +68,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("select", new SelectCommand(), buildNumericalSelectAllias("sel"));
         CommandRegistry.registerCommand("stop", new StopCommand(), "st");
         CommandRegistry.registerCommand("pause", new PauseCommand(), "pa", "ps");
-        CommandRegistry.registerCommand("shuffle", new ShuffleCommand(), "sh");
+        CommandRegistry.registerCommand("shuffle", new ShuffleCommand(), "sh","random");
         CommandRegistry.registerCommand("reshuffle", new ReshuffleCommand(), "resh");
         CommandRegistry.registerCommand("repeat", new RepeatCommand(), "rep");
         CommandRegistry.registerCommand("volume", new VolumeCommand(), "vol");
@@ -109,6 +109,8 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("announce", new AnnounceCommand());
         CommandRegistry.registerCommand("mping", new PingCommand());
         CommandRegistry.registerCommand("node", new NodeAdminCommand());
+
+        CommandRegistry.registerCommand("getnode", new GetNodeCommand());
         
         /* Bot configuration */
         CommandRegistry.registerCommand("config", new ConfigCommand(), "cfg");

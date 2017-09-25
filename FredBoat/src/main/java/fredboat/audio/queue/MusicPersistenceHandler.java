@@ -91,11 +91,14 @@ public class MusicPersistenceHandler {
                     msg = I18n.get(player.getGuild()).getString("shutdownIndef");
                 }
 
-                CentralMessaging.sendMessage(player.getActiveTextChannel(), msg);
+                TextChannel activeTextChannel = player.getActiveTextChannel();
+                if (activeTextChannel != null) {
+                    CentralMessaging.sendMessage(activeTextChannel, msg);
+                }
 
                 JSONObject data = new JSONObject();
                 data.put("vc", player.getUserCurrentVoiceChannel(player.getGuild().getSelfMember()).getId());
-                data.put("tc", player.getActiveTextChannel().getId());
+                data.put("tc", activeTextChannel != null ? activeTextChannel.getId() : "");
                 data.put("isPaused", player.isPaused());
                 data.put("volume", Float.toString(player.getVolume()));
                 data.put("repeatMode", player.getRepeatMode());
@@ -133,9 +136,11 @@ public class MusicPersistenceHandler {
                 try {
                     FileUtils.writeStringToFile(new File(dir, gId), data.toString(), Charset.forName("UTF-8"));
                 } catch (IOException ex) {
-                    CentralMessaging.sendMessage(player.getActiveTextChannel(),
-                            MessageFormat.format(I18n.get(player.getGuild()).getString("shutdownPersistenceFail"),
-                                    ex.getMessage()));
+                    if (activeTextChannel != null) {
+                        CentralMessaging.sendMessage(activeTextChannel,
+                                MessageFormat.format(I18n.get(player.getGuild()).getString("shutdownPersistenceFail"),
+                                        ex.getMessage()));
+                    }
                 }
             } catch (Exception ex) {
                 log.error("Error when saving persistence file", ex);
@@ -184,7 +189,9 @@ public class MusicPersistenceHandler {
                 GuildPlayer player = PlayerRegistry.get(vc.getJDA(), gId);
 
                 player.joinChannel(vc);
-                player.setCurrentTC(tc);
+                if (tc != null) {
+                    player.setCurrentTC(tc);
+                }
                 if(Config.CONFIG.getDistribution().volumeSupported()) {
                     player.setVolume(volume);
                 }

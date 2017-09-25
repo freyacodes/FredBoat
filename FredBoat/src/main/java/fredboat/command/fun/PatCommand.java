@@ -28,8 +28,6 @@ package fredboat.command.fun;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.I18n;
-import fredboat.messaging.CentralMessaging;
-import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message;
 
@@ -48,18 +46,17 @@ public class PatCommand extends RandomImageCommand implements IFunCommand {
     @Override
     public void onInvoke(CommandContext context) {
         Message msg = context.msg;
-        MessageBuilder patMessage = CentralMessaging.getClearThreadLocalMessageBuilder();
+        String patMessage = null;
         if (msg.getMentionedUsers().size() > 0) {
             if (msg.getMentionedUsers().get(0).getIdLong() == msg.getJDA().getSelfUser().getIdLong()) {
-                patMessage.append(I18n.get(context, "patBot")).build();
+                patMessage = I18n.get(context, "patBot");
             } else {
-                patMessage.append("_")
-                        .append(MessageFormat.format(I18n.get(context, "patSuccess"), msg.getMentionedUsers().get(0).getAsMention()))
-                        .append("_")
-                        .build();
+                patMessage = "_"
+                        + MessageFormat.format(I18n.get(context, "patSuccess"), msg.getMentionedUsers().get(0).getAsMention())
+                        + "_";
             }
         }
-        context.replyFile(super.getRandomFile(), patMessage.build());
+        context.replyImage(super.getRandomImageUrl(), patMessage);
     }
 
     @Override
