@@ -25,6 +25,7 @@
 
 package fredboat;
 
+import com.google.common.base.CharMatcher;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.audio.player.PlayerLimitManager;
 import fredboat.command.admin.SentryDsnCommand;
@@ -116,8 +117,8 @@ public class Config {
             String credsFileStr = FileUtils.readFileToString(credentialsFile, "UTF-8");
             String configFileStr = FileUtils.readFileToString(configFile, "UTF-8");
             //remove those pesky tab characters so a potential json file is YAML conform
-            credsFileStr = credsFileStr.replaceAll("\t", "");
-            configFileStr = configFileStr.replaceAll("\t", "");
+            credsFileStr = cleanTabs(credsFileStr, "credentials.yaml");
+            configFileStr = cleanTabs(configFileStr, "config.yaml");
             Map<String, Object> creds;
             Map<String, Object> config;
             try {
@@ -308,7 +309,7 @@ public class Config {
                 Yaml yaml = new Yaml();
                 String fileStr = FileUtils.readFileToString(json, "UTF-8");
                 //remove tab character from json file to make it a valid YAML file
-                fileStr = fileStr.replaceAll("\t", "");
+                fileStr = cleanTabs(fileStr, name);
                 @SuppressWarnings("unchecked")
                 Map<String, Object> configFile = (Map) yaml.load(fileStr);
                 yaml.dump(configFile, new FileWriter(yamlFile));
@@ -318,6 +319,16 @@ public class Config {
         }
 
         return yamlFile;
+    }
+
+    private static String cleanTabs(String content, String file) {
+        CharMatcher tab = CharMatcher.is('\t');
+        if (tab.matchesAnyOf(content)) {
+            log.warn("{} contains tab characters! Trying a fix-up.", file);
+            return tab.removeFrom(content);
+        } else {
+            return content;
+        }
     }
 
     public String getRandomGoogleKey() {
