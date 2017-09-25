@@ -325,7 +325,7 @@ public class Config {
         CharMatcher tab = CharMatcher.is('\t');
         if (tab.matchesAnyOf(content)) {
             log.warn("{} contains tab characters! Trying a fix-up.", file);
-            return tab.removeFrom(content);
+            return tab.replaceFrom(content, "  ");
         } else {
             return content;
         }
