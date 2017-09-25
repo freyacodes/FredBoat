@@ -1,6 +1,5 @@
 package fredboat.command.util;
 
-import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
@@ -9,17 +8,15 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.util.rest.Weather;
 import fredboat.util.rest.models.weather.RetrievedWeather;
 import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.TextChannel;
 
 import java.text.MessageFormat;
 
 public class WeatherCommand extends Command implements IUtilCommand {
 
     private Weather weather;
+    private static final String LOCATION_WEATHER_STRING_FORMAT = "{0} - {1}";
+    private static final String HELP_STRING_FORMAT = "{0}{1} <location>\n#";
 
     public WeatherCommand(Weather weatherImplementation) {
         weather = weatherImplementation;
@@ -47,7 +44,7 @@ public class WeatherCommand extends Command implements IUtilCommand {
                                     query.toUpperCase()));
                 } else {
 
-                    String title = MessageFormat.format(I18n.get(context.guild).getString("weatherLocation"),
+                    String title = MessageFormat.format(LOCATION_WEATHER_STRING_FORMAT,
                             currentWeather.getLocation(), currentWeather.getTemperature());
 
                     EmbedBuilder embedBuilder = CentralMessaging.getClearThreadLocalEmbedBuilder()
@@ -70,8 +67,6 @@ public class WeatherCommand extends Command implements IUtilCommand {
 
     @Override
     public String help(Guild guild) {
-
-        String usage = "{0}{1} <location>\n#";
-        return usage + I18n.get(guild).getString("helpWeatherCommand");
+        return HELP_STRING_FORMAT + I18n.get(guild).getString("helpWeatherCommand");
     }
 }
