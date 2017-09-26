@@ -47,6 +47,8 @@ import fredboat.event.ShardWatchdogListener;
 import fredboat.feature.I18n;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.JDAUtil;
+import fredboat.util.rest.OpenWeatherAPI;
+import fredboat.util.rest.models.weather.RetrievedWeather;
 import frederikam.jca.JCA;
 import frederikam.jca.JCABuilder;
 import net.dv8tion.jda.core.AccountType;
@@ -58,6 +60,7 @@ import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.managers.AudioManager;
+import okhttp3.OkHttpClient;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,7 +153,6 @@ public abstract class FredBoat {
             dbManager.startup();
         }
 
-
         try {
             if (!Config.CONFIG.getOauthSecret().equals("")) {
                 OAuthManager.start(Config.CONFIG.getBotToken(), Config.CONFIG.getOauthSecret());
@@ -182,6 +184,9 @@ public abstract class FredBoat {
 
         //Check imgur creds
         executor.submit(FredBoat::hasValidImgurCredentials);
+
+        //Check OpenWeather key
+        executor.submit(FredBoat::hasValidOpenWeatherKey);
 
         //Initialise JCA
         executor.submit(FredBoat::loadJCA);
@@ -253,7 +258,6 @@ public abstract class FredBoat {
                     .asJson();
             int responseStatus = response.getStatus();
 
-
             if (responseStatus == 200) {
                 JSONObject data = response.getBody().getObject().getJSONObject("data");
                 //https://api.imgur.com/#limits
@@ -277,6 +281,22 @@ public abstract class FredBoat {
             log.warn("Imgur login failed, it seems to be down.", e);
         }
         return false;
+    }
+
+    /**
+     * Method to check if there is an error to retrieve open weather data.
+     *
+     * @return True if it can retrieve data, else return false.
+     */
+    private static boolean hasValidOpenWeatherKey() {
+        if ("".equals(Config.CONFIG.getOpenWeatherKey())) {
+            return false;
+        }
+
+        OpenWeatherAPI api = new OpenWeatherAPI();
+        RetrievedWeather weather = api.getCurrentWeatherByCity("san francisco");
+
+        return !(weather == null || weather.isError());
     }
 
     private static void initBotShards(EventListener listener) {

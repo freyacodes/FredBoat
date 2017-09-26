@@ -183,7 +183,7 @@ public class Config {
             }
             jdbcUrl = (String) creds.getOrDefault("jdbcUrl", "");
 
-            openWeatherKey = (String) creds.getOrDefault("openweatherkey", "");
+            openWeatherKey = (String) creds.getOrDefault("openWeatherKey", "");
 
             Object gkeys = creds.get("googleServerKeys");
             if (gkeys instanceof List) {

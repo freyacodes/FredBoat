@@ -5,12 +5,14 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.MessageFuture;
 import fredboat.util.rest.Weather;
 import fredboat.util.rest.models.weather.RetrievedWeather;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 
 import java.text.MessageFormat;
+import java.util.concurrent.ExecutionException;
 
 public class WeatherCommand extends Command implements IUtilCommand {
 
@@ -25,7 +27,10 @@ public class WeatherCommand extends Command implements IUtilCommand {
     @Override
     public void onInvoke(CommandContext context) {
 
-        context.reply(I18n.get(context.guild).getString("weatherLoading"), outMsg -> {
+        context.sendTyping();
+        MessageFuture future = context.reply(I18n.get(context.guild).getString("weatherLoading"));
+
+        try {
             if (context.args.length > 1) {
                 StringBuilder argStringBuilder = new StringBuilder();
                 for (int i = 1; i < context.args.length; i++) {
@@ -38,11 +43,7 @@ public class WeatherCommand extends Command implements IUtilCommand {
 
                 RetrievedWeather currentWeather = weather.getCurrentWeatherByCity(alphanumericalQuery);
 
-                if (currentWeather.isError()) {
-                    CentralMessaging.editMessage(outMsg,
-                            MessageFormat.format(I18n.get(context.guild).getString("weatherError"),
-                                    query.toUpperCase()));
-                } else {
+                if (!currentWeather.isError()) {
 
                     String title = MessageFormat.format(LOCATION_WEATHER_STRING_FORMAT,
                             currentWeather.getLocation(), currentWeather.getTemperature());
@@ -55,14 +56,21 @@ public class WeatherCommand extends Command implements IUtilCommand {
                         embedBuilder.setThumbnail(currentWeather.getThumbnailUrl());
                     }
 
-                    CentralMessaging.deleteMessage(outMsg);
+                    CentralMessaging.deleteMessage(future.get());
                     context.reply(embedBuilder.build());
+                } else {
+                    CentralMessaging.editMessage(future.get(),
+                            MessageFormat.format(I18n.get(context.guild).getString("weatherError"),
+                                    query.toUpperCase()));
                 }
                 return;
             }
 
-            HelpCommand.sendFormattedCommandHelp(context);
-        });
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            context.deleteMessage();
+        }
+        HelpCommand.sendFormattedCommandHelp(context);
     }
 
     @Override

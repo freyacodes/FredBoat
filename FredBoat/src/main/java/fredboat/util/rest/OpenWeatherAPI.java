@@ -14,7 +14,7 @@ import java.io.IOException;
 
 public class OpenWeatherAPI implements Weather {
     private static final Logger log = LoggerFactory.getLogger(OpenWeatherAPI.class);
-    private static final String OPEN_WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
+    public static final String OPEN_WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
     protected OkHttpClient client;
     private ObjectMapper objectMapper;
     private HttpUrl currentWeatherBaseUrl;
@@ -57,11 +57,14 @@ public class OpenWeatherAPI implements Weather {
                         break;
 
                     default:
-                        log.debug("Open weather search error status code ", response.code());
+                        log.warn("Open weather search error status code " + response.code());
+                        if (responseBody != null) {
+                            log.warn(responseBody.string());
+                        }
                         break;
                 }
             } catch (IOException e) {
-                log.debug("Open weather search: ", e);
+                log.warn("Open weather search: ", e);
             }
         }
 
