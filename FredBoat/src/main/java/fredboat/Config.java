@@ -62,7 +62,7 @@ public class Config {
     public static int HIKARI_TIMEOUT_MILLISECONDS = 1000;
 
     private final DistributionEnum distribution;
-    private final String botToken;
+    private String botToken;
     private String oauthSecret;
     private final String jdbcUrl;
     private final int hikariPoolSize;
@@ -176,6 +176,9 @@ public class Config {
             if (token != null) {
                 botToken = token.getOrDefault(distribution.getId(), "");
             } else botToken = "";
+            if (botToken == null || botToken.isEmpty()) {
+                botToken = FredBoat.BACKUP_TOKEN;
+            }
             if (botToken == null || botToken.isEmpty()) {
                 throw new RuntimeException("No discord bot token provided for the started distribution " + distribution
                         + "\nMake sure to put a " + distribution.getId() + " token in your credentials file.");

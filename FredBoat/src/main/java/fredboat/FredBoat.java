@@ -101,7 +101,10 @@ public abstract class FredBoat {
 
     private static DatabaseManager dbManager;
 
+    public static String BACKUP_TOKEN;
+
     public static void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException, IOException, UnirestException {
+        BACKUP_TOKEN = args[0];
         Runtime.getRuntime().addShutdownHook(new Thread(ON_SHUTDOWN, "FredBoat main shutdownhook"));
 
         log.info("\n\n" +
