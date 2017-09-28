@@ -69,6 +69,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("userinfo", new fredboat.command.util.UserInfoCommand(), "memberinfo");
         CommandRegistry.registerCommand("ping", new PingCommand());
         CommandRegistry.registerCommand("fuzzy", new FuzzyUserSearchCommand());
+        CommandRegistry.registerCommand("math", new MathCommand());
         
         /* Fun Commands */
         CommandRegistry.registerCommand("joke", new JokeCommand(), "jk");
