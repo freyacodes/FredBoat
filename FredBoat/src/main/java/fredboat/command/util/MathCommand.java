@@ -68,33 +68,40 @@ public class MathCommand extends Command implements IUtilCommand {
                 BigDecimal num1 = new BigDecimal(args[2]);
                 BigDecimal num2 = new BigDecimal(args[3]);
 
-                if(args[1].equals("sum") || args[1].equals("add")) {
-                    output = mathOperationResult + num1.add(num2, MathContext.DECIMAL64).toPlainString();
-
-                } else if(args[1].equals("sub") || args[1].equals("subtract")) {
-                    output = mathOperationResult + num1.subtract(num2, MathContext.DECIMAL64).toPlainString();
-
-                } else if(args[1].equals("multiply")) {
-                    output = mathOperationResult + num1.multiply(num2, MathContext.DECIMAL64).toPlainString();
-
-                } else if(args[1].equals("div") || args[2].equals("divide")) {
-                    try {
-                        output = mathOperationResult + num1.divide(num2, MathContext.DECIMAL64).toPlainString();
-                    } catch(ArithmeticException ex){
-                        output = mathOperationDivisionByZeroError;
-                    }
-                } else if(args[1].equals("powerof")) {
-                    output = mathOperationResult + Double.toString(pow(num1.doubleValue(), num2.doubleValue()));
-
-                } else if(args[1].equals("percentage")) {
-                    output = mathOperationResult + num1.divide(num2, MathContext.DECIMAL64).multiply(HUNDRED).toPlainString() + "%";
-
-                } else if(args[1].equals("mod") || args[1].equals("modulo")) {
-                    output = mathOperationResult + num1.remainder(num2, MathContext.DECIMAL64);
-
-                } else {
-                    output = mathOperationIncorrectUsageError;
-
+                switch(args[1]) {
+                    case "sum":
+                    case "add":
+                        output = mathOperationResult + num1.add(num2, MathContext.DECIMAL64).toPlainString();
+                        break;
+                    case "sub":
+                    case "subtract":
+                        output = mathOperationResult + num1.subtract(num2, MathContext.DECIMAL64).toPlainString();
+                        break;
+                    case "mult":
+                    case "multiply":
+                        output = mathOperationResult + num1.multiply(num2, MathContext.DECIMAL64).toPlainString();
+                        break;
+                    case "div":
+                    case "divide":
+                        try {
+                            output = mathOperationResult + num1.divide(num2, MathContext.DECIMAL64).toPlainString();
+                        } catch(ArithmeticException ex){
+                            output = mathOperationDivisionByZeroError;
+                        }
+                        break;
+                    case "pow":
+                    case "power":
+                        output = mathOperationResult + Double.toString(pow(num1.doubleValue(), num2.doubleValue()));
+                        break;
+                    case "perc":
+                    case "percentage":
+                        output = mathOperationResult + num1.divide(num2, MathContext.DECIMAL64).multiply(HUNDRED).toPlainString() + "%";
+                        break;
+                    case "mod":
+                    case "modulo":
+                        output = mathOperationResult + num1.remainder(num2, MathContext.DECIMAL64);
+                        break;
+                    default: output = mathOperationIncorrectUsageError;
                 }
 
             } else if(args.length > 4){
@@ -116,21 +123,21 @@ public class MathCommand extends Command implements IUtilCommand {
     @Override
     public String help(Guild guild) {
         return String.join("\n",
-                "{0}{1} add OR sum <num1> <num2>",
+                "{0}{1} add OR {0}{1} sum <num1> <num2>",
                 mathOperationAddHelp,
-                "{0}{1} subtract OR sub <num1> <num2>",
+                "{0}{1} subtract OR {0}{1} sub <num1> <num2>",
                 mathOperationSubHelp,
-                "{0}{1} multiply <num1> <num2>",
+                "{0}{1} multiply OR {0}{1} mult <num1> <num2>",
                 mathOperationMultHelp,
-                "{0}{1} divide OR div <num1> <num2>",
+                "{0}{1} divide OR {0}{1} div <num1> <num2>",
                 mathOperationDivHelp,
-                "{0}{1} modulo OR mod <num1> <num2>",
+                "{0}{1} modulo OR {0}{1} mod <num1> <num2>",
                 mathOperationModHelp
-                "{0}{1} percentage <num1> <num2>",
+                "{0}{1} percentage OR {0}{1} perc <num1> <num2>",
                 mathOperationPercHelp,
                 "{0}{1} sqrt <num1>",
                 mathOperationSqrtHelp,
-                "{0}{1} powerof <num1> <num2>",
+                "{0}{1} power OR {0}{1} pow <num1> <num2>",
                 mathOperationPowHelp);
 
     }
