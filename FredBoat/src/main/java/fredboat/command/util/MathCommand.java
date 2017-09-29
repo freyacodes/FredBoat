@@ -135,7 +135,7 @@ public class MathCommand extends Command implements IUtilCommand {
                 mathOperationModHelp
                 "{0}{1} percentage OR {0}{1} perc <num1> <num2>",
                 mathOperationPercHelp,
-                "{0}{1} sqrt <num1>",
+                "{0}{1} sqrt <num>",
                 mathOperationSqrtHelp,
                 "{0}{1} power OR {0}{1} pow <num1> <num2>",
                 mathOperationPowHelp);
