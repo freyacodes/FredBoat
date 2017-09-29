@@ -58,7 +58,7 @@ public class MathCommand extends Command implements IUtilCommand {
 
                 if (args[1].equals("sqrt")) {
 
-                    output = mathOperationResult + Double.toString(sqrt(num1.doubleValue()));
+                    output = mathOperationResult + ""+ Double.toString(sqrt(num1.doubleValue()));
                 } else {
                     output = mathOperationIncorrectUsageError;
                 }
@@ -71,48 +71,48 @@ public class MathCommand extends Command implements IUtilCommand {
                 switch(args[1]) {
                     case "sum":
                     case "add":
-                        output = mathOperationResult + num1.add(num2, MathContext.DECIMAL64).toPlainString();
+                        output = mathOperationResult + " " + num1.add(num2, MathContext.DECIMAL64).toPlainString();
                         break;
                     case "sub":
                     case "subtract":
-                        output = mathOperationResult + num1.subtract(num2, MathContext.DECIMAL64).toPlainString();
+                        output = mathOperationResult + " " + num1.subtract(num2, MathContext.DECIMAL64).toPlainString();
                         break;
                     case "mult":
                     case "multiply":
-                        output = mathOperationResult + num1.multiply(num2, MathContext.DECIMAL64).toPlainString();
+                        output = mathOperationResult + " " + num1.multiply(num2, MathContext.DECIMAL64).toPlainString();
                         break;
                     case "div":
                     case "divide":
                         try {
-                            output = mathOperationResult + num1.divide(num2, MathContext.DECIMAL64).toPlainString();
+                            output = mathOperationResult + " " + num1.divide(num2, MathContext.DECIMAL64).toPlainString();
                         } catch(ArithmeticException ex){
                             output = mathOperationDivisionByZeroError;
                         }
                         break;
                     case "pow":
                     case "power":
-                        output = mathOperationResult + Double.toString(pow(num1.doubleValue(), num2.doubleValue()));
+                        output = mathOperationResult + " " + Double.toString(pow(num1.doubleValue(), num2.doubleValue()));
                         break;
                     case "perc":
                     case "percentage":
-                        output = mathOperationResult + num1.divide(num2, MathContext.DECIMAL64).multiply(HUNDRED).toPlainString() + "%";
+                        output = mathOperationResult + " " + num1.divide(num2, MathContext.DECIMAL64).multiply(HUNDRED).toPlainString() + "%";
                         break;
                     case "mod":
                     case "modulo":
-                        output = mathOperationResult + num1.remainder(num2, MathContext.DECIMAL64);
+                        output = mathOperationResult + " " + num1.remainder(num2, MathContext.DECIMAL64);
                         break;
                     default: output = mathOperationIncorrectUsageError;
                 }
 
             } else if(args.length > 4){
-                output = mathOperationTooManyArgsError;
+                output = mathOperationIncorrectUsageError;
             }
 
         } catch(NumberFormatException ex) {
             output = mathOperationIncorrectUsageError;
         }
 
-        if(output.equals("Infinity")) {
+        if(output.contains("Infinity")) { //TODO: Better fix for this.
             context.reply(mathOperationInfinity);
         } else {
             context.reply(output);
