@@ -1,6 +1,5 @@
 package fredboat.command.music.control;
 
-import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
@@ -15,6 +14,7 @@ import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.*;
 
+import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,11 +28,20 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
 
     public static Map<Long, List<Long>> guildSkipVotes = new HashMap<>();
     private static final float MIN_SKIP_PERCENTAGE = 0.5f;
+    private static final DecimalFormat format = new DecimalFormat("###.##");
 
     @Override
     public void onInvoke(CommandContext context) {
         GuildPlayer player = PlayerRegistry.get(context.guild);
         player.setCurrentTC(context.channel);
+
+        // No point to allow voteskip if you are not in the vc at all
+        // as votes only count as long are you are in the vc
+        // While you can join another vc and then voteskip i don't think this will be common
+        if (!context.invoker.getVoiceState().inVoiceChannel()) {
+            context.reply(I18n.get(context, "playerUserNotInChannel"));
+            return;
+        }
 
         if (player.isQueueEmpty()) {
             context.reply(I18n.get(context, "skipEmpty"));
@@ -45,9 +54,8 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
             guildIdToLastSkip.put(context.guild.getId(), System.currentTimeMillis());
         }
 
-        //TODO: Add some UX to show current users who voted for skip
         if (context.args.length == 1) {
-            addVoteWithResponse(context);
+            String response = addVoteWithResponse(context);
 
             float skipPercentage = getSkipPercentage(context.guild);
             if (skipPercentage >= MIN_SKIP_PERCENTAGE) {
@@ -56,17 +64,27 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
                 if (atc == null) {
                     context.reply(I18n.get(context, "skipTrackNotFound"));
                 } else {
-                    context.reply(MessageFormat.format(I18n.get(context, "voteSkipSkipping"), (skipPercentage * 100), atc.getEffectiveTitle()));
+                    context.reply(MessageFormat.format(response + "\n" +  I18n.get(context, "voteSkipSkipping"), "`" + roundToTwo(skipPercentage * 100) + "%`", "**" + atc.getEffectiveTitle() + "**"));
                     player.skip();
                 }
             } else {
-                context.reply(MessageFormat.format(I18n.get(context, "voteSkipNotEnough"), (skipPercentage * 100), (MIN_SKIP_PERCENTAGE * 100)));
+                context.reply(MessageFormat.format(response + "\n" +I18n.get(context, "voteSkipNotEnough"), "`" + roundToTwo(skipPercentage * 100) + "%`", "`" + roundToTwo(MIN_SKIP_PERCENTAGE * 100) + "%`"));
             }
-        } else if (context.args.length == 2 && context.args[1].toLowerCase().equals("list")) {
-            displayVoteList(context);
+
+            // After further thinking about adding a list command i don't think it seems necessary the % seems good enough
+            // Will leave this in here in case a list command should be added in the future
+        //} else if (context.args.length == 2 && context.args[1].toLowerCase().equals("list")) {
+        //    displayVoteList(context);
         } else {
             HelpCommand.sendFormattedCommandHelp(context);
         }
+    }
+
+    private static String roundToTwo(double value) {
+        long factor = (long) Math.pow(10, 2);
+        value = value * factor;
+        long tmp = Math.round(value);
+        return format.format((double) tmp / factor);
     }
 
     private boolean isOnCooldown(Guild guild) {
@@ -74,7 +92,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
         return currentTIme - guildIdToLastSkip.getOrDefault(guild.getId(), 0L) <= SKIP_COOLDOWN;
     }
 
-    private void addVoteWithResponse(CommandContext context) {
+    private String addVoteWithResponse(CommandContext context) {
 
         User user = context.getUser();
         List<Long> voters = guildSkipVotes.get(context.guild.getIdLong());
@@ -83,16 +101,15 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
             voters = new ArrayList<>();
             voters.add(user.getIdLong());
             guildSkipVotes.put(context.guild.getIdLong(), voters);
-            context.reply(I18n.get(context, "voteSkipAdded"));
-            return;
+            return I18n.get(context, "voteSkipAdded");
         }
 
         if (voters.contains(user.getIdLong())) {
-            context.reply(I18n.get(context, "voteSkipAlreadyVoted"));
+            return I18n.get(context, "voteSkipAlreadyVoted");
         } else {
             voters.add(user.getIdLong());
             guildSkipVotes.put(context.guild.getIdLong(), voters);
-            context.reply(I18n.get(context, "voteSkipAdded"));
+            return I18n.get(context, "voteSkipAdded");
         }
     }
 
