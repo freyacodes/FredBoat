@@ -35,7 +35,6 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.feature.I18n;
 import fredboat.util.AppInfo;
-import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.JDAInfo;
 import net.dv8tion.jda.core.entities.Guild;
 
@@ -69,9 +68,7 @@ public class StatsCommand extends Command implements IMaintenanceCommand {
         str = str + "\n----------\n\n";
 
         str = str + "Sharding:                       " + FredBoat.getInstance(context.guild.getJDA()).getShardInfo().getShardString() + "\n";
-        if (DiscordUtil.isMusicBot()) {
-            str = str + "Players playing:                " + PlayerRegistry.getPlayingPlayers().size() + "\n";
-        }
+        str = str + "Players playing:                " + PlayerRegistry.getPlayingPlayers().size() + "\n";
         str = str + "Known servers:                  " + FredBoat.countAllGuilds() + "\n";
         str = str + "Known users in servers:         " + FredBoat.countAllUniqueUsers() + "\n";
         str = str + "Distribution:                   " + Config.CONFIG.getDistribution() + "\n";

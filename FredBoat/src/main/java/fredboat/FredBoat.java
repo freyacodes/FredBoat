@@ -120,22 +120,9 @@ public abstract class FredBoat {
 
         I18n.start();
 
-        int scope;
-        try {
-            scope = Integer.parseInt(args[0]);
-        } catch (NumberFormatException | ArrayIndexOutOfBoundsException ignored) {
-            log.info("Invalid scope, defaulting to scopes 0x111");
-            scope = 0x111;
-        }
-
-        log.info("Starting with scopes:"
-                + "\n\tMain: " + ((scope & 0x100) == 0x100)
-                + "\n\tMusic: " + ((scope & 0x010) == 0x010)
-                + "\n\tSelf: " + ((scope & 0x001) == 0x001));
-
         log.info("JDA version:\t" + JDAInfo.VERSION);
 
-        Config.loadDefaultConfig(scope);
+        Config.loadDefaultConfig();
 
         try {
             API.start();
@@ -173,8 +160,7 @@ public abstract class FredBoat {
         LavalinkManager.ins.start();
 
         //Commands
-        if (Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT
-                || Config.CONFIG.getDistribution() == DistributionEnum.MAIN)
+        if (Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT)
             MainCommandInitializer.initCommands();
 
         if (Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT
@@ -194,10 +180,7 @@ public abstract class FredBoat {
         executor.submit(FredBoat::loadJCA);
 
         /* Init JDA */
-
-        if ((Config.CONFIG.getScope() & 0x110) != 0) {
-            initBotShards(listenerBot);
-        }
+        initBotShards(listenerBot);
 
         if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && Config.CONFIG.getCarbonKey() != null) {
             CarbonitexAgent carbonitexAgent = new CarbonitexAgent(Config.CONFIG.getCarbonKey());

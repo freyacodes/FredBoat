@@ -144,7 +144,7 @@ public abstract class ProvideJDASingleton {
             startTime = System.currentTimeMillis();
             log.info("Setting up live testing environment");
             try {
-                Config.loadDefaultConfig(0x111);
+                Config.loadDefaultConfig();
             } catch (FileNotFoundException e) {
                 log.info("Credentials and/or config files not found, live tests won't be available");
                 return;

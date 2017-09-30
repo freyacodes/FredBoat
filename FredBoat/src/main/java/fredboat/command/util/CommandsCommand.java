@@ -32,7 +32,6 @@ import fredboat.commandmeta.abs.*;
 import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
-import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 
@@ -60,13 +59,8 @@ public class CommandsCommand extends Command implements IUtilCommand {
         // http://i.imgur.com/511Hb8p.png screenshot from 1st April 2017
         //bot owner and debug commands (+ ;;music and ;;help) missing + the currently defunct config command
         //this is currently fine but might change in the future
-        if (DiscordUtil.isMusicBot()) {
-            new MusicHelpCommand().onInvoke(context);
-        }
-
-        if (DiscordUtil.isMainBot()) {
-            mainBotHelp(context);
-        }
+        new MusicHelpCommand().onInvoke(context);
+//        mainBotHelp(context); //TODO: decide how to do handle this after unification of main and music bot
     }
 
     private void mainBotHelp(CommandContext context) {

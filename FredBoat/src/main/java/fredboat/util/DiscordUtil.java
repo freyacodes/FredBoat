@@ -29,7 +29,6 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import fredboat.Config;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.feature.I18n;
 import fredboat.shared.constant.BotConstants;
@@ -58,23 +57,7 @@ public class DiscordUtil {
 
     private DiscordUtil() {
     }
-
-    public static boolean isMainBot() {
-        return isMainBot(Config.CONFIG);
-    }
-
-    public static boolean isMusicBot() {
-        return isMusicBot(Config.CONFIG);
-    }
-
-    public static boolean isMainBot(Config conf) {
-        return (conf.getScope() & 0x100) != 0;
-    }
-
-    public static boolean isMusicBot(Config conf) {
-        return (conf.getScope() & 0x010) != 0;
-    }
-
+    
     public static String getOwnerId(JDA jda) {
         if (cachedOwnerId != null) return cachedOwnerId;
 
