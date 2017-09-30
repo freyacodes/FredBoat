@@ -56,7 +56,6 @@ import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
 import java.util.concurrent.TimeUnit;
 
 public class EventListenerBoat extends AbstractEventListener {
@@ -134,10 +133,10 @@ public class EventListenerBoat extends AbstractEventListener {
         if (ratelimiterResult.a)
             CommandManager.prefixCalled(context);
         else {
-            String out = I18n.get(context, "ratelimitedGeneralInfo");
+            String out = context.i18n("ratelimitedGeneralInfo");
             if (ratelimiterResult.b == SkipCommand.class) { //we can compare classes with == as long as we are using the same classloader (which we are)
                 //add a nice reminder on how to skip more than 1 song
-                out += "\n" + MessageFormat.format(I18n.get(context, "ratelimitedSkipCommand"),
+                out += "\n" + context.i18nFormat("ratelimitedSkipCommand",
                         "`" + Config.CONFIG.getPrefix() + "skip n-m`");
             }
             context.replyWithMention(out);

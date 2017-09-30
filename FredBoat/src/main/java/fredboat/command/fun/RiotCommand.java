@@ -28,17 +28,20 @@ package fredboat.command.fun;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
+
+import javax.annotation.Nonnull;
 
 public class RiotCommand extends Command implements IFunCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         context.reply("ヽ༼ຈل͜ຈ༽ﾉ **" + context.msg.getContent().replaceFirst("\\S*\\s+", "").toUpperCase() + "** ヽ༼ຈل͜ຈ༽ﾉ");
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} <text>\n#Start a riot.";
     }
 }

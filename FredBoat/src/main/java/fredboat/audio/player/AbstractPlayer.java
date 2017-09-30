@@ -50,7 +50,6 @@ import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
 import fredboat.command.music.control.VoteSkipCommand;
 import fredboat.commandmeta.MessagingException;
-import fredboat.feature.I18n;
 import fredboat.shared.constant.DistributionEnum;
 import lavalink.client.player.IPlayer;
 import lavalink.client.player.LavalinkPlayer;
@@ -385,7 +384,7 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
         if (context.getTrack().isSeekable()) {
             player.seekTo(position);
         } else {
-            throw new MessagingException(I18n.get(context, "seekDeniedLiveTrack"));
+            throw new MessagingException(context.i18n("seekDeniedLiveTrack"));
         }
     }
 

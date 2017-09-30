@@ -33,20 +33,19 @@ import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
 import fredboat.db.entity.GuildConfig;
-import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 public class ConfigCommand extends Command implements IModerationCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         if (context.args.length == 1) {
             printConfig(context);
         } else {
@@ -58,7 +57,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
         GuildConfig gc = EntityReader.getGuildConfig(context.guild.getId());
 
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(MessageFormat.format(I18n.get(context, "configNoArgs") + "\n", context.guild.getName()))
+                .append(context.i18nFormat("configNoArgs", context.guild.getName())).append("\n")
                 .append("track_announce = ").append(gc.isTrackAnnounce()).append("\n")
                 .append("auto_resume = ").append(gc.isAutoResume()).append("\n")
                 .append("```");
@@ -87,30 +86,31 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
                     gc.setTrackAnnounce(Boolean.valueOf(val));
                     EntityWriter.mergeGuildConfig(gc);
-                    context.replyWithName("`track_announce` " + MessageFormat.format(I18n.get(context, "configSetTo"), val));
+                    context.replyWithName("`track_announce` " + context.i18nFormat("configSetTo", val));
                 } else {
-                    context.reply(MessageFormat.format(I18n.get(context, "configMustBeBoolean"), invoker.getEffectiveName()));
+                    context.reply(context.i18nFormat("configMustBeBoolean", invoker.getEffectiveName()));
                 }
                 break;
             case "auto_resume":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
                     gc.setAutoResume(Boolean.valueOf(val));
                     EntityWriter.mergeGuildConfig(gc);
-                    context.replyWithName("`auto_resume` " + MessageFormat.format(I18n.get(context, "configSetTo"), val));
+                    context.replyWithName("`auto_resume` " + context.i18nFormat("configSetTo", val));
                 } else {
-                    context.reply(MessageFormat.format(I18n.get(context, "configMustBeBoolean"), invoker.getEffectiveName()));
+                    context.reply(context.i18nFormat("configMustBeBoolean", invoker.getEffectiveName()));
                 }
                 break;
             default:
-                context.reply(MessageFormat.format(I18n.get(context, "configUnknownKey"), invoker.getEffectiveName()));
+                context.reply(context.i18nFormat("configUnknownKey", invoker.getEffectiveName()));
                 break;
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         String usage = "{0}{1} OR {0}{1} <key> <value>\n#";
-        return usage + I18n.get(guild).getString("helpConfigCommand");
+        return usage + context.i18n("helpConfigCommand");
     }
 
     @Override

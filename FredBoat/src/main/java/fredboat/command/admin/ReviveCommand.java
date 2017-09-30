@@ -31,8 +31,10 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
+
+import javax.annotation.Nonnull;
 
 /**
  *
@@ -41,7 +43,7 @@ import net.dv8tion.jda.core.entities.Guild;
 public class ReviveCommand extends Command implements ICommandRestricted {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
 
         int shardId;
         try {
@@ -68,8 +70,9 @@ public class ReviveCommand extends Command implements ICommandRestricted {
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} <shardId> OR {0}{1} guild <guildId>\n#Revive the specified shard, or the shard of the specified guild.";
     }
 

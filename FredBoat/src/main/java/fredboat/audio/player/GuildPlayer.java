@@ -59,7 +59,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -100,7 +99,7 @@ public class GuildPlayer extends AbstractPlayer {
             TextChannel activeTextChannel = getActiveTextChannel();
             if (activeTextChannel != null) {
                 CentralMessaging.sendMessage(activeTextChannel,
-                        MessageFormat.format(I18n.get(getGuild()).getString("trackAnnounce"), atc.getEffectiveTitle()));
+                        atc.i18nFormat("trackAnnounce", atc.getEffectiveTitle()));
             }
         }
     }
@@ -149,10 +148,9 @@ public class GuildPlayer extends AbstractPlayer {
         if (!silent) {
             VoiceChannel currentVc = LavalinkManager.ins.getConnectedChannel(commandContext.guild);
             if (currentVc == null) {
-                commandContext.reply(I18n.get(getGuild()).getString("playerNotInChannel"));
+                commandContext.reply(commandContext.i18n("playerNotInChannel"));
             } else {
-                commandContext.reply(MessageFormat.format(I18n.get(getGuild()).getString("playerLeftChannel"),
-                        currentVc.getName()));
+                commandContext.reply(commandContext.i18nFormat("playerLeftChannel", currentVc.getName()));
             }
         }
         LavalinkManager.ins.closeConnection(getGuild());

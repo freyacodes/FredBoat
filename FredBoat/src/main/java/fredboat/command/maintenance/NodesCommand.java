@@ -33,6 +33,7 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import lavalink.client.io.Lavalink;
@@ -40,14 +41,14 @@ import lavalink.client.io.LavalinkLoadBalancer;
 import lavalink.client.io.LavalinkSocket;
 import lavalink.client.io.RemoteStats;
 import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.Guild;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
 public class NodesCommand extends Command implements IMaintenanceCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         if (LavalinkManager.ins.isEnabled()) {
             handleLavalink(context);
         } else {
@@ -160,8 +161,9 @@ public class NodesCommand extends Command implements IMaintenanceCommand {
         context.reply(mb.build());
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} OR {0}{1} host\n#Show information about the connected lava nodes.";
     }
 }

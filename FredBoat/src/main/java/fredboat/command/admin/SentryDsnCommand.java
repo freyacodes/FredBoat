@@ -32,13 +32,15 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.GitRepoState;
 import io.sentry.Sentry;
 import io.sentry.logback.SentryAppender;
-import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
 
 /**
  * Created by napster on 07.09.17.
@@ -51,7 +53,7 @@ public class SentryDsnCommand extends Command implements ICommandRestricted {
     private static final String SENTRY_APPENDER_NAME = "SENTRY";
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         if (context.args.length < 2) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
@@ -100,8 +102,9 @@ public class SentryDsnCommand extends Command implements ICommandRestricted {
         return sentryAppender;
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} <sentry DSN> OR {0}{1} stop\n#Set a temporary sentry DSN overriding the one from the config until" +
                 " the next restart, or stop the sentry service.";
     }

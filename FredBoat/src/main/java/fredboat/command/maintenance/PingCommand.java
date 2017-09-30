@@ -3,7 +3,9 @@ package fredboat.command.maintenance;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
+
+import javax.annotation.Nonnull;
 
 /**
  * Created by epcs on 6/30/2017.
@@ -11,13 +13,14 @@ import net.dv8tion.jda.core.entities.Guild;
  */
 
 public class PingCommand extends Command implements IMaintenanceCommand {
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Return the ping to Discord.";
     }
     
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         long ping = context.guild.getJDA().getPing();
         context.reply(ping + "ms");
     }

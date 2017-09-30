@@ -34,21 +34,20 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.entities.Guild;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 public class ForwardCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         GuildPlayer player = PlayerRegistry.getExisting(context.guild);
 
         if(player == null || player.isQueueEmpty()) {
-            context.replyWithName(I18n.get(context, "unpauseQueueEmpty"));
+            context.replyWithName(context.i18n("unpauseQueueEmpty"));
             return;
         }
 
@@ -73,14 +72,15 @@ public class ForwardCommand extends Command implements IMusicCommand, ICommandRe
         t = Math.min(atc.getEffectiveDuration(), t);
 
         player.seekTo(player.getPosition() + t);
-        context.reply(MessageFormat.format(I18n.get(context, "fwdSuccess"), atc.getEffectiveTitle(), TextUtils.formatTime(t)));
+        context.reply(context.i18nFormat("fwdSuccess", atc.getEffectiveTitle(), TextUtils.formatTime(t)));
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         String usage = "{0}{1} [[hh:]mm:]ss\n#";
         String example = "  {0}{1} 2:30";
-        return usage + I18n.get(guild).getString("helpForwardCommand") + example;
+        return usage + context.i18n("helpForwardCommand") + example;
     }
 
     @Override

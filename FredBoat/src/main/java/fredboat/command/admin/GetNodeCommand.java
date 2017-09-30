@@ -29,20 +29,23 @@ import fredboat.audio.player.LavalinkManager;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import lavalink.client.io.LavalinkSocket;
-import net.dv8tion.jda.core.entities.Guild;
+
+import javax.annotation.Nonnull;
 
 public class GetNodeCommand extends Command implements ICommandRestricted {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         LavalinkSocket node = LavalinkManager.ins.getLavalink().getLink(context.getGuild()).getCurrentSocket();
         context.channel.sendMessage(String.valueOf(node)).queue();
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Restarts the bot.";
     }
 

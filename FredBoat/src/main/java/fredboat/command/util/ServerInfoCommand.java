@@ -28,31 +28,29 @@ package fredboat.command.util;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
-import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.shared.constant.BotConstants;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.OnlineStatus;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.time.format.DateTimeFormatter;
-import java.util.ResourceBundle;
 
 /**
  * Created by midgard/Chromaryu/knight-ryu12 on 17/01/18.
  */
 public class ServerInfoCommand extends Command implements IUtilCommand {
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         Guild guild = context.guild;
-        ResourceBundle rb = I18n.get(guild);
         int i = 0;
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
         EmbedBuilder eb = CentralMessaging.getClearThreadLocalEmbedBuilder();
         eb.setColor(BotConstants.FREDBOAT_COLOR);
-        eb.setTitle(MessageFormat.format(rb.getString("serverinfoTitle"), guild.getName()), null);
+        eb.setTitle(context.i18nFormat("serverinfoTitle", guild.getName()), null);
         eb.setThumbnail(guild.getIconUrl());
         for (Member u : guild.getMembers()) {
             if(u.getOnlineStatus() != OnlineStatus.OFFLINE) {
@@ -60,22 +58,22 @@ public class ServerInfoCommand extends Command implements IUtilCommand {
             }
         }
 
-        eb.addField(rb.getString("serverinfoOnlineUsers"), String.valueOf(i),true);
-        eb.addField(rb.getString("serverinfoTotalUsers"), String.valueOf(guild.getMembers().size()),true);
-        eb.addField(rb.getString("serverinfoRoles"), String.valueOf(guild.getRoles().size()),true);
-        eb.addField(rb.getString("serverinfoText"), String.valueOf(guild.getTextChannels().size()),true);
-        eb.addField(rb.getString("serverinfoVoice"), String.valueOf(guild.getVoiceChannels().size()),true);
-        eb.addField(rb.getString("serverinfoCreationDate"), guild.getCreationTime().format(dtf),true);
-        eb.addField(rb.getString("serverinfoGuildID"),guild.getId(),true);
-        eb.addField(rb.getString("serverinfoVLv"), guild.getVerificationLevel().name(),true);
-        eb.addField(rb.getString("serverinfoOwner"), guild.getOwner().getAsMention(),true);
+        eb.addField(context.i18n("serverinfoOnlineUsers"), String.valueOf(i), true);
+        eb.addField(context.i18n("serverinfoTotalUsers"), String.valueOf(guild.getMembers().size()), true);
+        eb.addField(context.i18n("serverinfoRoles"), String.valueOf(guild.getRoles().size()), true);
+        eb.addField(context.i18n("serverinfoText"), String.valueOf(guild.getTextChannels().size()), true);
+        eb.addField(context.i18n("serverinfoVoice"), String.valueOf(guild.getVoiceChannels().size()), true);
+        eb.addField(context.i18n("serverinfoCreationDate"), guild.getCreationTime().format(dtf), true);
+        eb.addField(context.i18n("serverinfoGuildID"), guild.getId(), true);
+        eb.addField(context.i18n("serverinfoVLv"), guild.getVerificationLevel().name(), true);
+        eb.addField(context.i18n("serverinfoOwner"), guild.getOwner().getAsMention(), true);
 
         context.reply(eb.build());
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpServerInfoCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpServerInfoCommand");
     }
 }

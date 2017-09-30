@@ -33,15 +33,16 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.entities.*;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.User;
 import org.apache.commons.lang3.StringUtils;
 
-import java.text.MessageFormat;
 import java.util.*;
+import javax.annotation.Nonnull;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -60,12 +61,12 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
     private static final int SKIP_COOLDOWN = 500;
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         GuildPlayer player = PlayerRegistry.get(context.guild);
         player.setCurrentTC(context.channel);
 
         if (player.isQueueEmpty()) {
-            context.reply(I18n.get(context, "skipEmpty"));
+            context.reply(context.i18n("skipEmpty"));
             return;
         }
 
@@ -106,7 +107,7 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
         try {
             givenIndex = Integer.parseInt(context.args[1]);
         } catch (NumberFormatException e) {
-            context.reply(MessageFormat.format(I18n.get(context, "skipOutOfBounds"), context.args[1], player.getTrackCount()));
+            context.reply(context.i18nFormat("skipOutOfBounds", context.args[1], player.getTrackCount()));
             return;
         }
 
@@ -116,16 +117,16 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
         }
 
         if (player.getRemainingTracks().size() < givenIndex) {
-            context.reply(MessageFormat.format(I18n.get(context, "skipOutOfBounds"), givenIndex, player.getTrackCount()));
+            context.reply(context.i18nFormat("skipOutOfBounds", givenIndex, player.getTrackCount()));
             return;
         } else if (givenIndex < 1) {
-            context.reply(I18n.get(context, "skipNumberTooLow"));
+            context.reply(context.i18n("skipNumberTooLow"));
             return;
         }
 
         AudioTrackContext atc = player.getTracksInRange(givenIndex - 1, givenIndex).get(0);
 
-        String successMessage = MessageFormat.format(I18n.get(context, "skipSuccess"), givenIndex, atc.getEffectiveTitle());
+        String successMessage = context.i18nFormat("skipSuccess", givenIndex, atc.getEffectiveTitle());
         player.skipTracksForMemberPerms(context, Collections.singletonList(atc.getTrackId()), successMessage);
     }
 
@@ -142,24 +143,24 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
             tmp = trackMatch.group(2);
             endTrackIndex = Integer.parseInt(tmp);
         } catch (NumberFormatException e) {
-            context.reply(MessageFormat.format(I18n.get(context, "skipOutOfBounds"), tmp, player.getTrackCount()));
+            context.reply(context.i18nFormat("skipOutOfBounds", tmp, player.getTrackCount()));
             return;
         }
 
         if (startTrackIndex < 1) {
-            context.reply(I18n.get(context, "skipNumberTooLow"));
+            context.reply(context.i18n("skipNumberTooLow"));
             return;
         } else if (endTrackIndex < startTrackIndex) {
-            context.reply(I18n.get(context, "skipRangeInvalid"));
+            context.reply(context.i18n("skipRangeInvalid"));
             return;
         } else if (player.getTrackCount() < endTrackIndex) {
-            context.reply(MessageFormat.format(I18n.get(context, "skipOutOfBounds"), endTrackIndex, player.getTrackCount()));
+            context.reply(context.i18nFormat("skipOutOfBounds", endTrackIndex, player.getTrackCount()));
             return;
         }
 
         List<Long> trackIds = player.getTrackIdsInRange(startTrackIndex - 1, endTrackIndex);
 
-        String successMessage = MessageFormat.format(I18n.get(context, "skipRangeSuccess"),
+        String successMessage = context.i18nFormat("skipRangeSuccess",
                 TextUtils.forceNDigits(startTrackIndex, 2),
                 TextUtils.forceNDigits(endTrackIndex, 2));
         player.skipTracksForMemberPerms(context, trackIds, successMessage);
@@ -173,12 +174,12 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
                 User user = users.get(0);
 
                 if (context.invoker.getUser().getIdLong() != user.getIdLong()) {
-                    context.reply(I18n.get(context, "skipDeniedTooManyTracks"));
+                    context.reply(context.i18n("skipDeniedTooManyTracks"));
                     return;
                 }
 
             } else {
-                context.reply(I18n.get(context, "skipDeniedTooManyTracks"));
+                context.reply(context.i18n("skipDeniedTooManyTracks"));
                 return;
             }
         }
@@ -206,19 +207,18 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
             player.skipTracks(userAtcIds);
 
             if (affectedUsers.size() > 1) {
-                context.reply(MessageFormat.format(I18n.get(context, "skipUsersMultiple"), ("`" + userAtcIds.size() + "`"), ("**" + affectedUsers.size() + "**")));
+                context.reply(context.i18nFormat("skipUsersMultiple", ("`" + userAtcIds.size() + "`"), ("**" + affectedUsers.size() + "**")));
             } else {
-
                 User user = affectedUsers.get(0);
+                String userName = "**" + user.getName() + "#" + user.getDiscriminator() + "**";
                 if (userAtcIds.size() == 1) {
-                    context.reply(MessageFormat.format(I18n.get(context, "skipUserSingle"), "**" + title + "**", ("**" + user.getName() + "#" + user.getDiscriminator() + "**")));
+                    context.reply(context.i18nFormat("skipUserSingle", "**" + title + "**", userName));
                 } else {
-                    context.reply(MessageFormat.format(I18n.get(context, "skipUserMultiple"), ("`" + userAtcIds.size() + "`"), ("**" + user.getName() + "#" + user.getDiscriminator() + "**")));
+                    context.reply(context.i18nFormat("skipUserMultiple", "`" + userAtcIds.size() + "`", userName));
                 }
             }
-
         } else {
-            context.reply(I18n.get(context, "skipUserNoTracks" ));
+            context.reply(context.i18n("skipUserNoTracks"));
         }
     }
 
@@ -226,17 +226,18 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
         GuildPlayer player = PlayerRegistry.get(context.guild);
         AudioTrackContext atc = player.getPlayingTrack();
         if (atc == null) {
-            context.reply(I18n.get(context, "skipTrackNotFound"));
+            context.reply(context.i18n("skipTrackNotFound"));
         } else {
-            String successMessage = MessageFormat.format(I18n.get(context, "skipSuccess"), 1, atc.getEffectiveTitle());
+            String successMessage = context.i18nFormat("skipSuccess", 1, atc.getEffectiveTitle());
             player.skipTracksForMemberPerms(context, Collections.singletonList(atc.getTrackId()), successMessage);
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         String usage = "{0}{1} OR {0}{1} n OR {0}{1} n-m OR {0}{1} @Users...\n#";
-        return usage + I18n.get(guild).getString("helpSkipCommand");
+        return usage + context.i18n("helpSkipCommand");
     }
 
     @Override

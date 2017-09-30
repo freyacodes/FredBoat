@@ -162,7 +162,7 @@ public class DiscordUtil {
             r = String.join(" ", Arrays.copyOfRange(context.args, 2, context.args.length));
         }
 
-        return I18n.get(context, "modReason") + ": " + (r != null ? r : "No reason provided.");
+        return context.i18n("modReason") + ": " + (r != null ? r : "No reason provided.");
     }
 
     public static String formatReasonForAuditLog(String plainReason, Member invoker) {

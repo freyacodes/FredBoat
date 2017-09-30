@@ -33,12 +33,13 @@ import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
+import fredboat.messaging.internal.Context;
 import fredboat.util.rest.CacheUtil;
-import net.dv8tion.jda.core.entities.Guild;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -80,7 +81,7 @@ public class RandomImageCommand extends Command implements IFunCommand {
     }
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         context.replyImage(getRandomImageUrl());
     }
 
@@ -146,8 +147,9 @@ public class RandomImageCommand extends Command implements IFunCommand {
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Post a random image.";
     }
 }

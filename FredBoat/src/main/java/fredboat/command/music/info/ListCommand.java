@@ -32,17 +32,15 @@ import fredboat.audio.queue.RepeatMode;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.util.List;
-import java.util.ResourceBundle;
 
 public class ListCommand extends Command implements IMusicCommand {
 
@@ -51,13 +49,12 @@ public class ListCommand extends Command implements IMusicCommand {
     private static final int PAGE_SIZE = 10;
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         GuildPlayer player = PlayerRegistry.get(context.guild);
         player.setCurrentTC(context.channel);
-        ResourceBundle i18n = I18n.get(context.guild);
 
         if(player.isQueueEmpty()) {
-            context.reply(i18n.getString("npNotPlaying"));
+            context.reply(context.i18n("npNotPlaying"));
             return;
         }
 
@@ -87,20 +84,20 @@ public class ListCommand extends Command implements IMusicCommand {
         List<AudioTrackContext> sublist = player.getTracksInRange(i, listEnd);
 
         if (player.isShuffle()) {
-            mb.append(I18n.get(context, "listShowShuffled"));
+            mb.append(context.i18n("listShowShuffled"));
             mb.append("\n");
             if (player.getRepeatMode() == RepeatMode.OFF)
                 mb.append("\n");
         }
         if (player.getRepeatMode() == RepeatMode.SINGLE) {
-            mb.append(i18n.getString("listShowRepeatSingle"));
+            mb.append(context.i18n("listShowRepeatSingle"));
             mb.append("\n");
         } else if (player.getRepeatMode() == RepeatMode.ALL) {
-            mb.append(i18n.getString("listShowRepeatAll"));
+            mb.append(context.i18n("listShowRepeatAll"));
             mb.append("\n");
         }
 
-        mb.append(MessageFormat.format(i18n.getString("listPageNum"), page, maxPages));
+        mb.append(context.i18nFormat("listPageNum", page, maxPages));
         mb.append("\n");
         mb.append("\n");
 
@@ -115,7 +112,7 @@ public class ListCommand extends Command implements IMusicCommand {
                     TextUtils.forceNDigits(i + 1, numberLength)
                     + "]", MessageBuilder.Formatting.BLOCK)
                     .append(status)
-                    .append(MessageFormat.format(i18n.getString("listAddedBy"), atc.getEffectiveTitle(), username, TextUtils.formatTime(atc.getEffectiveDuration())))
+                    .append(context.i18nFormat("listAddedBy", atc.getEffectiveTitle(), username, TextUtils.formatTime(atc.getEffectiveDuration())))
                     .append("\n");
 
             if (i == listEnd) {
@@ -135,16 +132,16 @@ public class ListCommand extends Command implements IMusicCommand {
 
         if (numTracks == 0) {
             //We are only listening to streams
-            desc = MessageFormat.format(i18n.getString(streams == 1 ? "listStreamsOnlySingle" : "listStreamsOnlyMultiple"),
+            desc = context.i18nFormat(streams == 1 ? "listStreamsOnlySingle" : "listStreamsOnlyMultiple",
                     streams, streams == 1 ?
-                            i18n.getString("streamSingular") : i18n.getString("streamPlural"));
+                            context.i18n("streamSingular") : context.i18n("streamPlural"));
         } else {
 
-            desc = MessageFormat.format(i18n.getString(numTracks == 1 ? "listStreamsOrTracksSingle" : "listStreamsOrTracksMultiple"),
+            desc = context.i18nFormat(numTracks == 1 ? "listStreamsOrTracksSingle" : "listStreamsOrTracksMultiple",
                     numTracks, numTracks == 1 ?
-                            i18n.getString("trackSingular") : i18n.getString("trackPlural"), timestamp, streams == 0
-                            ? "" : MessageFormat.format(i18n.getString("listAsWellAsLiveStreams"), streams, streams == 1
-                            ? i18n.getString("streamSingular") : i18n.getString("streamPlural")));
+                            context.i18n("trackSingular") : context.i18n("trackPlural"), timestamp, streams == 0
+                            ? "" : context.i18nFormat("listAsWellAsLiveStreams", streams, streams == 1
+                            ? context.i18n("streamSingular") : context.i18n("streamPlural")));
         }
 
         mb.append("\n").append(desc);
@@ -153,9 +150,9 @@ public class ListCommand extends Command implements IMusicCommand {
 
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpListCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpListCommand");
     }
 }

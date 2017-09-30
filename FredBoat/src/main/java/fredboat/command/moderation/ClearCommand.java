@@ -29,14 +29,15 @@ import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
-import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermsUtil;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.*;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,7 +46,7 @@ public class ClearCommand extends Command implements IModerationCommand {
     //TODO: Redo this
     //TODO: i18n this class
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         JDA jda = context.guild.getJDA();
         TextChannel channel = context.channel;
         Member invoker = context.invoker;
@@ -87,9 +88,9 @@ public class ClearCommand extends Command implements IModerationCommand {
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpClearCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpClearCommand");
     }
 }

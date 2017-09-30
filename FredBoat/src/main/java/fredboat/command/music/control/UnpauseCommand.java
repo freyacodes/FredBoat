@@ -32,42 +32,44 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.entities.Guild;
+
+import javax.annotation.Nonnull;
 
 public class UnpauseCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     private static final JoinCommand JOIN_COMMAND = new JoinCommand();
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         Guild guild = context.guild;
         GuildPlayer player = PlayerRegistry.get(guild);
         player.setCurrentTC(context.channel);
         if (player.isQueueEmpty()) {
-            context.reply(I18n.get(context, "unpauseQueueEmpty"));
+            context.reply(context.i18n("unpauseQueueEmpty"));
         } else if (!player.isPaused()) {
-            context.reply(I18n.get(context, "unpausePlayerNotPaused"));
+            context.reply(context.i18n("unpausePlayerNotPaused"));
         } else if (player.getHumanUsersInCurrentVC().isEmpty() && player.isPaused() && LavalinkManager.ins.getConnectedChannel(guild) != null) {
-            context.reply(I18n.get(context, "unpauseNoUsers"));
+            context.reply(context.i18n("unpauseNoUsers"));
         } else if (LavalinkManager.ins.getConnectedChannel(context.guild) == null) {
             // When we just want to continue playing, but the user is not in a VC
             JOIN_COMMAND.onInvoke(context);
             if(LavalinkManager.ins.getConnectedChannel(guild) != null || guild.getAudioManager().isAttemptingToConnect()) {
                 player.play();
-                context.reply(I18n.get(context, "unpauseSuccess"));
+                context.reply(context.i18n("unpauseSuccess"));
             }
         } else {
             player.play();
-            context.reply(I18n.get(context, "unpauseSuccess"));
+            context.reply(context.i18n("unpauseSuccess"));
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpUnpauseCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpUnpauseCommand");
     }
 
     @Override

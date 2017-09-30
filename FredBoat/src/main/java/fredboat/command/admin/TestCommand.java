@@ -32,10 +32,10 @@ import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.db.DatabaseManager;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.persistence.EntityManager;
 
 /**
@@ -53,7 +53,7 @@ public class TestCommand extends Command implements ICommandRestricted {
     private final String INSERT_TEST_TABLE = "INSERT INTO test (val) VALUES (:val) ";
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         FredBoat.executor.submit(() -> invoke(FredBoat.getDbManager(), context, context.args));
     }
 
@@ -191,8 +191,9 @@ public class TestCommand extends Command implements ICommandRestricted {
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} [n m]\n#Stress test the database with n threads each doing m operations. Results will be shown after max 10 minutes.";
     }
 

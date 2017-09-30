@@ -31,16 +31,15 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 public class RestartCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         GuildPlayer player = PlayerRegistry.getExisting(context.guild);
 
         if (player != null && !player.isQueueEmpty()) {
@@ -48,16 +47,16 @@ public class RestartCommand extends Command implements IMusicCommand, ICommandRe
                 player.play();
             }
             player.seekTo(player.getPlayingTrack().getStartPosition());
-            context.reply(MessageFormat.format(I18n.get(context, "restartSuccess"), player.getPlayingTrack().getEffectiveTitle()));
+            context.reply(context.i18nFormat("restartSuccess", player.getPlayingTrack().getEffectiveTitle()));
         } else {
-            context.replyWithName(I18n.get(context, "queueEmpty"));
+            context.replyWithName(context.i18n("queueEmpty"));
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpRestartCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpRestartCommand");
     }
 
     @Override

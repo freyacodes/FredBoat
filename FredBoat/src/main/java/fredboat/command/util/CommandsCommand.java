@@ -29,14 +29,12 @@ import fredboat.command.fun.RemoteFileCommand;
 import fredboat.command.fun.TextCommand;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.*;
-import fredboat.feature.I18n;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.Guild;
 
-import java.text.MessageFormat;
 import java.util.*;
+import javax.annotation.Nonnull;
 
 /**
  * Created by napster on 22.03.17.
@@ -52,7 +50,7 @@ public class CommandsCommand extends Command implements IUtilCommand {
     //design inspiration by Weiss Schnee's bot
     //https://cdn.discordapp.com/attachments/230033957998166016/296356070685671425/unknown.png
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
 
         //is this the music boat? shortcut to showing those commands
         //taking this shortcut we're missing out on showing a few commands to pure music bot users
@@ -74,13 +72,12 @@ public class CommandsCommand extends Command implements IUtilCommand {
         List<String> sortedAliases = new ArrayList<>(unsortedAliases);
         Collections.sort(sortedAliases);
 
-        ResourceBundle i18n = I18n.get(context.guild);
-        String fun = "**" + i18n.getString("commandsFun") + ":** ";
-        String memes = "**" + i18n.getString("commandsMemes") + ":**";
-        String util = "**" + i18n.getString("commandsUtility") + ":** ";
-        String mod = "**" + i18n.getString("commandsModeration") + ":** ";
-        String maint = "**" + i18n.getString("commandsMaintenance") + ":** ";
-        String owner = "**" + i18n.getString("commandsBotOwner") + ":** ";
+        String fun = "**" + context.i18n("commandsFun") + ":** ";
+        String memes = "**" + context.i18n("commandsMemes") + ":**";
+        String util = "**" + context.i18n("commandsUtility") + ":** ";
+        String mod = "**" + context.i18n("commandsModeration") + ":** ";
+        String maint = "**" + context.i18n("commandsMaintenance") + ":** ";
+        String owner = "**" + context.i18n("commandsBotOwner") + ":** ";
 
         for (String alias : sortedAliases) {
             Command c = CommandRegistry.getCommand(alias).command;
@@ -121,13 +118,13 @@ public class CommandsCommand extends Command implements IUtilCommand {
             out += "\n" + owner;
         }
 
-        out += "\n\n" + MessageFormat.format(i18n.getString("commandsMoreHelp"), "`" + Config.CONFIG.getPrefix() + "help <command>`");
+        out += "\n\n" + context.i18nFormat("commandsMoreHelp", "`" + Config.CONFIG.getPrefix() + "help <command>`");
         context.reply(out);
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpCommandsCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpCommandsCommand");
     }
 }

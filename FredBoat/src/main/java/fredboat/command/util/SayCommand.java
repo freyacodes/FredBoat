@@ -28,8 +28,9 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.event.EventListenerBoat;
-import fredboat.feature.I18n;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
+
+import javax.annotation.Nonnull;
 
 /**
  *
@@ -38,7 +39,7 @@ import net.dv8tion.jda.core.entities.Guild;
 public class SayCommand extends Command implements IUtilCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         if (context.args.length < 2) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
@@ -50,9 +51,9 @@ public class SayCommand extends Command implements IUtilCommand {
 
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} <text>\n#";
-        return usage + I18n.get(guild).getString("helpSayCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} <text>\n#" + context.i18n("helpSayCommand");
     }
 }

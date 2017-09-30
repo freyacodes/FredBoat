@@ -33,8 +33,7 @@ import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
-import fredboat.feature.I18n;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
 import org.apache.commons.text.StringEscapeUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -42,10 +41,9 @@ import org.json.JSONObject;
 import org.json.XML;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -55,7 +53,7 @@ public class MALCommand extends Command implements IUtilCommand {
     private static Pattern regex = Pattern.compile("^\\S+\\s+([\\W\\w]*)");
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         Matcher matcher = regex.matcher(context.msg.getContent());
 
         if (!matcher.find()) {
@@ -95,14 +93,13 @@ public class MALCommand extends Command implements IUtilCommand {
 
             handleUser(context, body);
         } catch (UnirestException ex) {
-            context.reply(MessageFormat.format(I18n.get(context, "malNoResults"), context.invoker.getEffectiveName()));
+            context.reply(context.i18nFormat("malNoResults", context.invoker.getEffectiveName()));
             log.warn("MAL request blew up", ex);
         }
     }
 
     private boolean handleAnime(CommandContext context, String terms, String body) {
-        ResourceBundle i18n = I18n.get(context.guild);
-        String msg = MessageFormat.format(i18n.getString("malRevealAnime"), context.invoker.getEffectiveName());
+        String msg = context.i18nFormat("malRevealAnime", context.invoker.getEffectiveName());
 
         //Read JSON
         log.info(body);
@@ -142,20 +139,20 @@ public class MALCommand extends Command implements IUtilCommand {
             return false;
         }
 
-        msg = data.has("title") ? MessageFormat.format(i18n.getString("malTitle"), msg, data.get("title")) : msg;
-        msg = data.has("english") ? MessageFormat.format(i18n.getString("malEnglishTitle"), msg, data.get("english")) : msg;
-        msg = data.has("synonyms") ? MessageFormat.format(i18n.getString("malSynonyms"), msg, data.get("synonyms")) : msg;
-        msg = data.has("episodes") ? MessageFormat.format(i18n.getString("malEpisodes"), msg, data.get("episodes")) : msg;
-        msg = data.has("score") ? MessageFormat.format(i18n.getString("malScore"), msg, data.get("score")) : msg;
-        msg = data.has("type") ? MessageFormat.format(i18n.getString("malType"), msg, data.get("type")) : msg;
-        msg = data.has("status") ? MessageFormat.format(i18n.getString("malStatus"), msg, data.get("status")) : msg;
-        msg = data.has("start_date") ? MessageFormat.format(i18n.getString("malStartDate"), msg, data.get("start_date")) : msg;
-        msg = data.has("end_date") ? MessageFormat.format(i18n.getString("malEndDate"), msg, data.get("end_date")) + "\n" : msg;
+        msg = data.has("title") ? context.i18nFormat("malTitle", msg, data.get("title")) : msg;
+        msg = data.has("english") ? context.i18nFormat("malEnglishTitle", msg, data.get("english")) : msg;
+        msg = data.has("synonyms") ? context.i18nFormat("malSynonyms", msg, data.get("synonyms")) : msg;
+        msg = data.has("episodes") ? context.i18nFormat("malEpisodes", msg, data.get("episodes")) : msg;
+        msg = data.has("score") ? context.i18nFormat("malScore", msg, data.get("score")) : msg;
+        msg = data.has("type") ? context.i18nFormat("malType", msg, data.get("type")) : msg;
+        msg = data.has("status") ? context.i18nFormat("malStatus", msg, data.get("status")) : msg;
+        msg = data.has("start_date") ? context.i18nFormat("malStartDate", msg, data.get("start_date")) : msg;
+        msg = data.has("end_date") ? context.i18nFormat("malEndDate", msg, data.get("end_date")) + "\n" : msg;
 
         if (data.has("synopsis")) {
             Matcher m = Pattern.compile("^[^\\n\\r<]+").matcher(StringEscapeUtils.unescapeHtml4(data.getString("synopsis")));
             m.find();
-            msg = data.has("synopsis") ? MessageFormat.format(i18n.getString("malSynopsis"), msg, m.group(0)) : msg;
+            msg = data.has("synopsis") ? context.i18nFormat("malSynopsis", msg, m.group(0)) : msg;
         }
 
         msg = data.has("id") ? msg + "http://myanimelist.net/anime/" + data.get("id") + "/" : msg;
@@ -165,21 +162,20 @@ public class MALCommand extends Command implements IUtilCommand {
     }
 
     private boolean handleUser(CommandContext context, String body) {
-        ResourceBundle i18n = I18n.get(context.guild);
-        String msg = MessageFormat.format(i18n.getString("malUserReveal"), context.invoker.getEffectiveName());
+        String msg = context.i18nFormat("malUserReveal", context.invoker.getEffectiveName());
 
         //Read JSON
         JSONObject root = new JSONObject(body);
         JSONArray items = root.getJSONArray("categories").getJSONObject(0).getJSONArray("items");
         if (items.length() == 0) {
-            context.reply(MessageFormat.format(i18n.getString("malNoResults"), context.invoker.getEffectiveName()));
+            context.reply(context.i18nFormat("malNoResults", context.invoker.getEffectiveName()));
             return false;
         }
 
         JSONObject data = items.getJSONObject(0);
 
-        msg = data.has("name") ? MessageFormat.format(i18n.getString("malUserName"), msg, data.get("name")) : msg;
-        msg = data.has("url") ? MessageFormat.format(i18n.getString("malUrl"), msg, data.get("url")) : msg;
+        msg = data.has("name") ? context.i18nFormat("malUserName", msg, data.get("name")) : msg;
+        msg = data.has("url") ? context.i18nFormat("malUrl", msg, data.get("url")) : msg;
         msg = data.has("image_url") ? msg + data.get("image_url") : msg;
 
         log.debug(msg);
@@ -188,9 +184,9 @@ public class MALCommand extends Command implements IUtilCommand {
         return true;
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} <search-term>\n#";
-        return usage + I18n.get(guild).getString("helpMALCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} <search-term>\n#" + context.i18n("helpMALCommand");
     }
 }

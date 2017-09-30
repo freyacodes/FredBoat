@@ -28,23 +28,24 @@ package fredboat.command.music.info;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.entities.Guild;
+
+import javax.annotation.Nonnull;
 
 public class GensokyoRadioCommand extends Command implements IMusicCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         EmbedBuilder eb = CentralMessaging.addFooter(
-                NowplayingCommand.getGensokyoRadioEmbed(I18n.get(context.guild)), context.guild.getSelfMember());
+                NowplayingCommand.getGensokyoRadioEmbed(context), context.guild.getSelfMember());
         context.reply(eb.build());
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpGensokyoRadioCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpGensokyoRadioCommand");
     }
 }

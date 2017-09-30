@@ -31,12 +31,14 @@ import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
+
+import javax.annotation.Nonnull;
 
 public class AudioDebugCommand extends Command implements IMaintenanceCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         String msg = "";
         GuildPlayer guildPlayer = PlayerRegistry.getExisting(context.guild);
 
@@ -55,8 +57,9 @@ public class AudioDebugCommand extends Command implements IMaintenanceCommand {
 
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Show audio related debug information.";
     }
 }

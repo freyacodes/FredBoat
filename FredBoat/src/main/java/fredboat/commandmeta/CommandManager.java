@@ -32,7 +32,6 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
 import fredboat.feature.PatronageChecker;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.perms.PermissionLevel;
@@ -48,7 +47,6 @@ import net.dv8tion.jda.core.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -126,7 +124,7 @@ public class CommandManager {
             PermissionLevel actual = PermsUtil.getPerms(invoker);
 
             if(actual.getLevel() < minPerms.getLevel()) {
-                context.replyWithName(MessageFormat.format(I18n.get(context, "cmdPermsTooLow"), minPerms, actual));
+                context.replyWithName(context.i18nFormat("cmdPermsTooLow", minPerms, actual));
                 return;
             }
         }

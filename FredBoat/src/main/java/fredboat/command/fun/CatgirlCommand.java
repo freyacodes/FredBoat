@@ -29,13 +29,12 @@ import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.util.rest.CacheUtil;
 import fredboat.util.rest.CloudFlareScraper;
-import net.dv8tion.jda.core.entities.Guild;
 
+import javax.annotation.Nonnull;
 import java.io.File;
-import java.text.MessageFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,7 +44,7 @@ public class CatgirlCommand extends Command implements IFunCommand {
     private static final String BASE_URL = "http://catgirls.brussell98.tk/";
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         context.sendTyping();
         FredBoat.executor.submit(() -> postCatgirl(context));
     }
@@ -55,7 +54,7 @@ public class CatgirlCommand extends Command implements IFunCommand {
         Matcher m = IMAGE_PATTERN.matcher(str);
 
         if (!m.find()) {
-            context.reply(MessageFormat.format(I18n.get(context, "catgirlFail"), BASE_URL));
+            context.reply(context.i18nFormat("catgirlFail", BASE_URL));
             return;
         }
 
@@ -64,8 +63,9 @@ public class CatgirlCommand extends Command implements IFunCommand {
         context.replyFile(tmp, null);
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Post a catgirl pic.";
     }
 }

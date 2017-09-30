@@ -36,21 +36,20 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 import org.apache.commons.lang3.StringUtils;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 public class SelectCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         select(context);
     }
 
@@ -80,7 +79,8 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                     VideoSelection.remove(invoker);
                     TextChannel tc = FredBoat.getTextChannelById(Long.toString(selection.channelId));
                     if (tc != null) {
-                        String msg = MessageFormat.format(I18n.get(context, "selectSuccess"), i, selected.getInfo().title, TextUtils.formatTime(selected.getInfo().length));
+                        String msg = context.i18nFormat("selectSuccess", i, selected.getInfo().title,
+                                TextUtils.formatTime(selected.getInfo().length));
                         CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(msg));
                     }
                     player.queue(new AudioTrackContext(selected, invoker));
@@ -88,17 +88,17 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                     context.deleteMessage();
                 }
             } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-                context.reply(MessageFormat.format(I18n.get(context, "selectInterval"), selection.choices.size()));
+                context.reply(context.i18nFormat("selectInterval", selection.choices.size()));
             }
         } else {
-            context.reply(I18n.get(context, "selectSelectionNotGiven"));
+            context.reply(context.i18n("selectSelectionNotGiven"));
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} n OR {0}{2} n\n#";
-        return usage + I18n.get(guild).getString("helpSelectCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} n OR {0}{2} n\n#" + context.i18n("helpSelectCommand");
     }
 
     @Override

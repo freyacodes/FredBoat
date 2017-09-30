@@ -34,15 +34,16 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
+
+import javax.annotation.Nonnull;
 
 public class PlaySplitCommand extends Command implements IMusicCommand, ICommandRestricted {
 
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
 
         if (context.args.length < 2) {
             HelpCommand.sendFormattedCommandHelp(context);
@@ -62,10 +63,10 @@ public class PlaySplitCommand extends Command implements IMusicCommand, ICommand
         context.deleteMessage();
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} <url>\n#";
-        return usage + I18n.get(guild).getString("helpPlaySplitCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} <url>\n#" + context.i18n("helpPlaySplitCommand");
     }
 
     @Override

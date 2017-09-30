@@ -31,12 +31,13 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -44,7 +45,7 @@ import java.util.List;
 public class LanguageCommand extends Command implements IModerationCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         String[] args = context.args;
         Guild guild = context.guild;
         if(args.length != 2) {
@@ -59,16 +60,16 @@ public class LanguageCommand extends Command implements IModerationCommand {
         try {
             I18n.set(guild, args[1]);
         } catch (I18n.LanguageNotSupportedException e) {
-            context.replyWithName(MessageFormat.format(I18n.get(context, "langInvalidCode"), args[1]));
+            context.replyWithName(context.i18nFormat("langInvalidCode", args[1]));
             return;
         }
 
-        context.replyWithName(MessageFormat.format(I18n.get(context, "langSuccess"), I18n.getLocale(guild).getNativeName()));
+        context.replyWithName(context.i18nFormat("langSuccess", I18n.getLocale(guild).getNativeName()));
     }
 
     private void handleNoArgs(CommandContext context) {
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(I18n.get(context, "langInfo").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()))
+                .append(context.i18n("langInfo").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()))
                 .append("\n\n");
 
         List<String> keys = new ArrayList<>(I18n.LANGS.keySet());
@@ -76,19 +77,19 @@ public class LanguageCommand extends Command implements IModerationCommand {
 
         for (String key : keys) {
             I18n.FredBoatLocale loc = I18n.LANGS.get(key);
-            mb.append("**`" + loc.getCode() + "`** - " + loc.getNativeName());
+            mb.append("**`").append(loc.getCode()).append("`** - ").append(loc.getNativeName());
             mb.append("\n");
         }
 
         mb.append("\n");
-        mb.append(I18n.get(context, "langDisclaimer"));
+        mb.append(context.i18n("langDisclaimer"));
 
         context.reply(mb.build());
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} OR {0}{1} <code>\n#";
-        return usage + I18n.get(guild).getString("helpLanguageCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} OR {0}{1} <code>\n#" + context.i18n("helpLanguageCommand");
     }
 }

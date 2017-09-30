@@ -30,12 +30,14 @@ import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -63,7 +65,7 @@ public class EvalCommand extends Command implements ICommandRestricted {
     }
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         Guild guild = context.guild;
         JDA jda = guild.getJDA();
         context.sendTyping();
@@ -128,8 +130,9 @@ public class EvalCommand extends Command implements ICommandRestricted {
         script.start();
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} <Java-code>\\n#Run the provided Java code.";
     }
 

@@ -29,26 +29,24 @@ import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
-import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.ratelimit.Ratelimiter;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ResourceBundle;
 
 /**
  * Created by midgard on 17/01/20.
  */
 public class UserInfoCommand extends Command implements IUtilCommand {
     @Override
-    public void onInvoke(CommandContext context) {
-        ResourceBundle i18n = I18n.get(context.guild);
+    public void onInvoke(@Nonnull CommandContext context) {
         Member target;
         StringBuilder knownServers = new StringBuilder();
         List<Guild> matchguild = new ArrayList<>();
@@ -81,22 +79,22 @@ public class UserInfoCommand extends Command implements IUtilCommand {
         context.reply(CentralMessaging.getClearThreadLocalEmbedBuilder()
                 .setColor(target.getColor())
                 .setThumbnail(target.getUser().getAvatarUrl())
-                .setTitle(MessageFormat.format(i18n.getString("userinfoTitle"), target.getUser().getName()), null)
-                .addField(i18n.getString("userinfoUsername"), target.getUser().getName() + "#" + target.getUser().getDiscriminator(), true)
-                .addField(i18n.getString("userinfoId"), target.getUser().getId(), true)
-                .addField(i18n.getString("userinfoNick"), target.getEffectiveName(), true) //Known Nickname
-                .addField(i18n.getString("userinfoKnownServer"), knownServers.toString(), true) //Known Server
-                .addField(i18n.getString("userinfoJoinDate"), target.getJoinDate().format(dtf), true)
-                .addField(i18n.getString("userinfoCreationTime"), target.getUser().getCreationTime().format(dtf), true)
-                .addField(i18n.getString("userinfoBlacklisted"),
+                .setTitle(context.i18nFormat("userinfoTitle", target.getUser().getName()), null)
+                .addField(context.i18n("userinfoUsername"), target.getUser().getName() + "#" + target.getUser().getDiscriminator(), true)
+                .addField(context.i18n("userinfoId"), target.getUser().getId(), true)
+                .addField(context.i18n("userinfoNick"), target.getEffectiveName(), true) //Known Nickname
+                .addField(context.i18n("userinfoKnownServer"), knownServers.toString(), true) //Known Server
+                .addField(context.i18n("userinfoJoinDate"), target.getJoinDate().format(dtf), true)
+                .addField(context.i18n("userinfoCreationTime"), target.getUser().getCreationTime().format(dtf), true)
+                .addField(context.i18n("userinfoBlacklisted"),
                         Boolean.toString(Ratelimiter.getRatelimiter().isBlacklisted(context.invoker.getUser().getIdLong())), true)
                 .build()
         );
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} OR {0}{1} <user>\n#";
-        return usage + I18n.get(guild).getString("helpUserInfoCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} OR {0}{1} <user>\n#" + context.i18n("helpUserInfoCommand");
     }
 }

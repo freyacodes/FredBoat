@@ -28,7 +28,7 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.Permission;
@@ -38,7 +38,7 @@ import net.dv8tion.jda.core.requests.RestAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
 /**
@@ -53,7 +53,7 @@ public class KickCommand extends Command implements IModerationCommand {
     private static final Logger log = LoggerFactory.getLogger(KickCommand.class);
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         String[] args = context.args;
         Guild guild = context.guild;
         //Ensure we have a search term
@@ -77,13 +77,13 @@ public class KickCommand extends Command implements IModerationCommand {
         RestAction<Void> modAction = guild.getController().kick(target, auditLogReason);
 
         //on success
-        String successOutput = MessageFormat.format(I18n.get(guild).getString("kickSuccess"),
+        String successOutput = context.i18nFormat("kickSuccess",
                 target.getUser().getName(), target.getUser().getDiscriminator(), target.getUser().getId())
                 + "\n" + plainReason;
         Consumer<Void> onSuccess = aVoid -> context.replyWithName(successOutput);
 
         //on fail
-        String failOutput = MessageFormat.format(I18n.get(guild).getString("kickFail"), target.getUser());
+        String failOutput = context.i18nFormat("kickFail", target.getUser());
         Consumer<Throwable> onFail = t -> {
             log.error("Failed to kick user {} in guild {}", target.getUser().getIdLong(), guild.getIdLong(), t);
             context.replyWithName(failOutput);
@@ -96,46 +96,46 @@ public class KickCommand extends Command implements IModerationCommand {
     private boolean checkKickAuthorization(CommandContext context, Member target) {
         Member mod = context.invoker;
         if (mod == target) {
-            context.replyWithName(I18n.get(context, "kickFailSelf"));
+            context.replyWithName(context.i18n("kickFailSelf"));
             return false;
         }
 
         if (target.isOwner()) {
-            context.replyWithName(I18n.get(context, "kickFailOwner"));
+            context.replyWithName(context.i18n("kickFailOwner"));
             return false;
         }
 
         if (target == target.getGuild().getSelfMember()) {
-            context.replyWithName(I18n.get(context, "kickFailMyself"));
+            context.replyWithName(context.i18n("kickFailMyself"));
             return false;
         }
 
         if (!mod.hasPermission(Permission.KICK_MEMBERS) && !mod.isOwner()) {
-            context.replyWithName(I18n.get(context, "kickFailUserPerms"));
+            context.replyWithName(context.i18n("kickFailUserPerms"));
             return false;
         }
 
         if (DiscordUtil.getHighestRolePosition(mod) <= DiscordUtil.getHighestRolePosition(target) && !mod.isOwner()) {
-            context.replyWithName(MessageFormat.format(I18n.get(context, "modFailUserHierarchy"), target.getEffectiveName()));
+            context.replyWithName(context.i18nFormat("modFailUserHierarchy", target.getEffectiveName()));
             return false;
         }
 
         if (!mod.getGuild().getSelfMember().hasPermission(Permission.KICK_MEMBERS)) {
-            context.replyWithName(I18n.get(context, "modKickBotPerms"));
+            context.replyWithName(context.i18n("modKickBotPerms"));
             return false;
         }
 
         if (DiscordUtil.getHighestRolePosition(mod.getGuild().getSelfMember()) <= DiscordUtil.getHighestRolePosition(target)) {
-            context.replyWithName(MessageFormat.format(I18n.get(context, "modFailBotHierarchy"), target.getEffectiveName()));
+            context.replyWithName(context.i18nFormat("modFailBotHierarchy", target.getEffectiveName()));
             return false;
         }
 
         return true;
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} <user> <reason>\n#";
-        return usage + I18n.get(guild).getString("helpKickCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} <user> <reason>\n#" + context.i18n("helpKickCommand");
     }
 }

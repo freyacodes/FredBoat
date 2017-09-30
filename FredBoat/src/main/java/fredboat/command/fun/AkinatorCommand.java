@@ -31,12 +31,14 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.AkinatorListener;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
+
+import javax.annotation.Nonnull;
 
 public class AkinatorCommand extends Command implements IFunCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         try {
             String userId = context.invoker.getUser().getId();
             AkinatorListener akinator = new AkinatorListener(context);
@@ -46,8 +48,9 @@ public class AkinatorCommand extends Command implements IFunCommand {
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Play a guessing game with Akinator.";
     }
 }

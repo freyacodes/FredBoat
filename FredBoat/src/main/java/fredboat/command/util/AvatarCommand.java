@@ -28,26 +28,25 @@ package fredboat.command.util;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
-import fredboat.feature.I18n;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 public class AvatarCommand extends Command implements IUtilCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         if (context.msg.getMentionedUsers().isEmpty()) {
             HelpCommand.sendFormattedCommandHelp(context);
         } else {
-            context.replyWithName(MessageFormat.format(I18n.get(context, "avatarSuccess"),
+            context.replyWithName(context.i18nFormat("avatarSuccess",
                     context.msg.getMentionedUsers().get(0).getAvatarUrl()));
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} @<username>\n#";
-        return usage + I18n.get(guild).getString("helpAvatarCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} @<username>\n#" + context.i18n("helpAvatarCommand");
     }
 }

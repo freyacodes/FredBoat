@@ -34,30 +34,28 @@ import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.util.AppInfo;
 import net.dv8tion.jda.core.JDAInfo;
-import net.dv8tion.jda.core.entities.Guild;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.util.Map;
 
 public class StatsCommand extends Command implements IMaintenanceCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         long totalSecs = (System.currentTimeMillis() - FredBoat.START_TIME) / 1000;
         int days = (int) (totalSecs / (60 * 60 * 24));
         int hours = (int) ((totalSecs / (60 * 60)) % 24);
         int mins = (int) ((totalSecs / 60) % 60);
         int secs = (int) (totalSecs % 60);
-        
-        String str = MessageFormat.format(
-                I18n.get(context, "statsParagraph"),
+
+        String str = context.i18nFormat("statsParagraph",
                 days, hours, mins, secs, CommandManager.commandsExecuted.get() - 1)
                 + "\n";
 
-        str = MessageFormat.format(I18n.get(context, "statsRate"), str,
+        str = context.i18nFormat("statsRate", str,
                 (float) (CommandManager.commandsExecuted.get() - 1) / ((float) totalSecs / (float) (60 * 60)));
 
         str = str + "\n\n```";
@@ -92,8 +90,9 @@ public class StatsCommand extends Command implements IMaintenanceCommand {
         context.replyWithName(str);
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Show some statistics about this bot.";
     }
 }

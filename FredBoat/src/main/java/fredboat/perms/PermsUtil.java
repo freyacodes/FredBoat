@@ -29,7 +29,6 @@ import fredboat.Config;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityReader;
 import fredboat.db.entity.GuildPermissions;
-import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.Permission;
@@ -38,7 +37,6 @@ import net.dv8tion.jda.core.entities.Role;
 import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.utils.PermissionUtil;
 
-import java.text.MessageFormat;
 import java.util.List;
 
 public class PermsUtil {
@@ -78,8 +76,7 @@ public class PermsUtil {
         if (actual.getLevel() >= minLevel.getLevel()) {
             return true;
         } else {
-            context.replyWithName(MessageFormat.format(I18n.get(context, "cmdPermsTooLow"),
-                    minLevel, actual));
+            context.replyWithName(context.i18nFormat("cmdPermsTooLow", minLevel, actual));
             return false;
         }
     }

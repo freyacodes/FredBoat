@@ -85,7 +85,7 @@ public class TextUtils {
         if (context.getMember() != null) {
             builder.append(context.getMember());
 
-            String filtered = MessageFormat.format(I18n.get(context, "utilErrorOccurred"), e.toString());
+            String filtered = context.i18nFormat("utilErrorOccurred", e.toString());
 
             for (String str : Config.CONFIG.getGoogleKeys()) {
                 filtered = filtered.replace(str, "GOOGLE_SERVER_KEY");
@@ -117,10 +117,9 @@ public class TextUtils {
             context.reply(out);
         } catch (UnsupportedOperationException tooLongEx) {
             try {
-                context.reply(MessageFormat.format(I18n.get(context, "errorOccurredTooLong"),
-                        postToPasteService(out.getRawContent())));
+                context.reply(context.i18nFormat("errorOccurredTooLong", postToPasteService(out.getRawContent())));
             } catch (UnirestException e1) {
-                context.reply(I18n.get(context, "errorOccurredTooLongAndUnirestException"));
+                context.reply(context.i18n("errorOccurredTooLongAndUnirestException"));
             }
         }
     }

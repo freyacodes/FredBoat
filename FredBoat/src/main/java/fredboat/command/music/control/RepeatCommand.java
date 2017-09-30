@@ -33,14 +33,15 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
+
+import javax.annotation.Nonnull;
 
 public class RepeatCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         GuildPlayer player = PlayerRegistry.get(context.guild);
 
         if (context.args.length < 2) {
@@ -75,21 +76,22 @@ public class RepeatCommand extends Command implements IMusicCommand, ICommandRes
 
         switch (desiredRepeatMode) {
             case OFF:
-                context.reply(I18n.get(context, "repeatOff"));
+                context.reply(context.i18n("repeatOff"));
                 break;
             case SINGLE:
-                context.reply(I18n.get(context, "repeatOnSingle"));
+                context.reply(context.i18n("repeatOnSingle"));
                 break;
             case ALL:
-                context.reply(I18n.get(context, "repeatOnAll"));
+                context.reply(context.i18n("repeatOnAll"));
                 break;
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         String usage = "{0}{1} single|all|off\n#";
-        return usage + I18n.get(guild).getString("helpRepeatCommand");
+        return usage + context.i18n("helpRepeatCommand");
     }
 
     @Override
