@@ -63,7 +63,6 @@ public class Config {
 
     private final DistributionEnum distribution;
     private final String botToken;
-    private String oauthSecret;
     private final String jdbcUrl;
     private final int hikariPoolSize;
     private int numShards;
@@ -182,10 +181,6 @@ public class Config {
             spotifyId = (String) creds.getOrDefault("spotifyId", "");
             spotifySecret = (String) creds.getOrDefault("spotifySecret", "");
 
-            if (creds.containsKey("oauthSecret")) {
-                Map<String, Object> oas = (Map) creds.get("oauthSecret");
-                oauthSecret = (String) oas.getOrDefault(distribution.getId(), "");
-            }
             jdbcUrl = (String) creds.getOrDefault("jdbcUrl", "");
 
             Object gkeys = creds.get("googleServerKeys");
@@ -347,10 +342,6 @@ public class Config {
 
     public String getBotToken() {
         return botToken;
-    }
-
-    String getOauthSecret() {
-        return oauthSecret;
     }
 
     public String getJdbcUrl() {

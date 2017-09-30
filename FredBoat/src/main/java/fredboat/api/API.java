@@ -28,7 +28,6 @@ package fredboat.api;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.db.entity.UConfig;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -93,19 +92,6 @@ public class API {
 
             return root;
         });
-
-        Spark.post("/callback", (request, response) -> {
-            JSONObject out = new JSONObject();
-            JSONObject body = new JSONObject(request.body());
-
-            UConfig uconfig = OAuthManager.handleCallback(body.getString("code"));
-            out.put("bearer", uconfig.getBearer())
-                    .put("refresh", uconfig.getRefresh())
-                    .put("userId", uconfig.getUserId());
-
-            return out;
-        });
-
 
         /* Exception handling */
         Spark.exception(Exception.class, (e, request, response) -> {

@@ -33,7 +33,6 @@ import fredboat.agent.CarbonitexAgent;
 import fredboat.agent.DBConnectionWatchdogAgent;
 import fredboat.agent.ShardWatchdogAgent;
 import fredboat.api.API;
-import fredboat.api.OAuthManager;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
@@ -144,16 +143,6 @@ public abstract class FredBoat {
             dbManager.startup();
         }
 
-
-        try {
-            if (!Config.CONFIG.getOauthSecret().equals("")) {
-                OAuthManager.start(Config.CONFIG.getBotToken(), Config.CONFIG.getOauthSecret());
-            } else {
-                log.warn("No oauth secret found, skipped initialization of OAuth2 client");
-            }
-        } catch (Exception e) {
-            log.info("Failed to start OAuth2 client", e);
-        }
 
         //Initialise event listeners
         listenerBot = new EventListenerBoat();
