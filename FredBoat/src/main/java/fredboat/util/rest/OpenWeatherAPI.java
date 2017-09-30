@@ -9,12 +9,12 @@ import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.validation.constraints.NotNull;
+import javax.annotation.Nonnull;
 import java.io.IOException;
 
 public class OpenWeatherAPI implements Weather {
     private static final Logger log = LoggerFactory.getLogger(OpenWeatherAPI.class);
-    public static final String OPEN_WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
+    private static final String OPEN_WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
     protected OkHttpClient client;
     private ObjectMapper objectMapper;
     private HttpUrl currentWeatherBaseUrl;
@@ -29,7 +29,7 @@ public class OpenWeatherAPI implements Weather {
         }
     }
 
-    public RetrievedWeather getCurrentWeatherByCity(@NotNull String query) {
+    public RetrievedWeather getCurrentWeatherByCity(@Nonnull String query) {
         RetrievedWeather retrievedWeather = null;
 
         if (currentWeatherBaseUrl != null) {

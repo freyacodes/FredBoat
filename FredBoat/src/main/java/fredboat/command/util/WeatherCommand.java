@@ -28,48 +28,41 @@ public class WeatherCommand extends Command implements IUtilCommand {
     public void onInvoke(CommandContext context) {
 
         context.sendTyping();
-        MessageFuture future = context.reply(I18n.get(context.guild).getString("weatherLoading"));
 
-        try {
-            if (context.args.length > 1) {
-                StringBuilder argStringBuilder = new StringBuilder();
-                for (int i = 1; i < context.args.length; i++) {
-                    argStringBuilder.append(context.args[i]);
-                    argStringBuilder.append(" ");
-                }
-
-                String query = argStringBuilder.toString().trim();
-                String alphanumericalQuery = query.replaceAll("[^A-Za-z0-9 ]", "");
-
-                RetrievedWeather currentWeather = weather.getCurrentWeatherByCity(alphanumericalQuery);
-
-                if (!currentWeather.isError()) {
-
-                    String title = MessageFormat.format(LOCATION_WEATHER_STRING_FORMAT,
-                            currentWeather.getLocation(), currentWeather.getTemperature());
-
-                    EmbedBuilder embedBuilder = CentralMessaging.getClearThreadLocalEmbedBuilder()
-                            .setTitle(title)
-                            .setDescription(currentWeather.getWeatherDescription());
-
-                    if (currentWeather.getThumbnailUrl().length() > 0) {
-                        embedBuilder.setThumbnail(currentWeather.getThumbnailUrl());
-                    }
-
-                    CentralMessaging.deleteMessage(future.get());
-                    context.reply(embedBuilder.build());
-                } else {
-                    CentralMessaging.editMessage(future.get(),
-                            MessageFormat.format(I18n.get(context.guild).getString("weatherError"),
-                                    query.toUpperCase()));
-                }
-                return;
+        if (context.args.length > 1) {
+            StringBuilder argStringBuilder = new StringBuilder();
+            for (int i = 1; i < context.args.length; i++) {
+                argStringBuilder.append(context.args[i]);
+                argStringBuilder.append(" ");
             }
 
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-            context.deleteMessage();
+            String query = argStringBuilder.toString().trim();
+            String alphanumericalQuery = query.replaceAll("[^A-Za-z0-9 ]", "");
+
+            RetrievedWeather currentWeather = weather.getCurrentWeatherByCity(alphanumericalQuery);
+
+            if (!currentWeather.isError()) {
+
+                String title = MessageFormat.format(LOCATION_WEATHER_STRING_FORMAT,
+                        currentWeather.getLocation(), currentWeather.getTemperature());
+
+                EmbedBuilder embedBuilder = CentralMessaging.getClearThreadLocalEmbedBuilder()
+                        .setTitle(title)
+                        .setDescription(currentWeather.getWeatherDescription());
+
+                if (currentWeather.getThumbnailUrl().length() > 0) {
+                    embedBuilder.setThumbnail(currentWeather.getThumbnailUrl());
+                }
+
+                context.reply(embedBuilder.build());
+            } else {
+                context.reply(
+                        MessageFormat.format(I18n.get(context.guild).getString("weatherError"),
+                                query.toUpperCase()));
+            }
+            return;
         }
+
         HelpCommand.sendFormattedCommandHelp(context);
     }
 
