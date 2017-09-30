@@ -55,6 +55,9 @@ public enum FeatureFlags implements Feature {
 
     @Label("Force soundcloud search instead of youtube")
     FORCE_SOUNDCLOUD_SEARCH,
+
+    @Label("Full instrumentation, including multidimensional per command stats")
+    FULL_METRICS,
     ;
 
     public boolean isActive() {

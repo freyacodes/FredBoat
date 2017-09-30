@@ -77,7 +77,9 @@ public class CommandManager {
         Member invoker = context.invoker;
 
         totalCommandsExecuted.inc();
-        commandsExecuted.labels(invoked.getClass().getSimpleName()).inc();
+        if (FeatureFlags.FULL_METRICS.isActive()) {
+            commandsExecuted.labels(invoked.getClass().getSimpleName()).inc();
+        }
 
         if (guild.getJDA().getSelfUser().getId().equals(BotConstants.PATRON_BOT_ID)
                 && Config.CONFIG.getDistribution() == DistributionEnum.PATRON
