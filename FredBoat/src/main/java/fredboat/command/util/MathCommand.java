@@ -53,17 +53,16 @@ public class MathCommand extends Command implements IUtilCommand {
         String output;
         ResourceBundle i18n = I18n.get(context.guild);
 
-
         try {
             if(args.length == 3) {
 
                 BigDecimal num1 = new BigDecimal(args[2]);
 
                 if (args[1].equals("sqrt")) {
-
                     output = i18n.getString("mathOperationResult") + " " + Double.toString(sqrt(num1.doubleValue()));
                 } else {
-                    output = i18n.getString("mathOperationIncorrectUsageError");
+                    HelpCommand.sendFormattedCommandHelp(context);
+                    return;
                 }
 
             } else if(args.length == 4) {
@@ -105,15 +104,19 @@ public class MathCommand extends Command implements IUtilCommand {
                     case "modulo":
                         output = resultStr + num1.remainder(num2, MathContext.DECIMAL64);
                         break;
-                    default: output = i18n.getString("mathOperationIncorrectUsageError");
+                    default:
+                        HelpCommand.sendFormattedCommandHelp(context);
+                        return;
                 }
 
-            } else if(args.length > 4){
-                output = i18n.getString("mathOperationIncorrectUsageError");
+            } else {
+                HelpCommand.sendFormattedCommandHelp(context);
+                return;
             }
 
         } catch(NumberFormatException ex) {
-            output = i18n.getString("mathOperationIncorrectUsageError");
+            HelpCommand.sendFormattedCommandHelp(context);
+            return;
         }
 
         if(output.contains("Infinity")) { //TODO: Better fix for an operation returning "Infinity".
