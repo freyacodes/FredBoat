@@ -82,12 +82,12 @@ public class MathCommand extends Command implements IUtilCommand {
                         break;
                     case "mult":
                     case "multiply":
-                        output = resultStr + num1.multiply(num2, MathContext.DECIMAL64).toPlainString();
+                        output = resultStr + num1.multiply(num2, MathContext.DECIMAL64).stripTrailingZeros().toPlainString();
                         break;
                     case "div":
                     case "divide":
                         try {
-                            output = resultStr + num1.divide(num2, MathContext.DECIMAL64).toPlainString();
+                            output = resultStr + num1.divide(num2, MathContext.DECIMAL64).stripTrailingZeros.toPlainString();
                         } catch(ArithmeticException ex){
                             output = i18n.getString("mathOperationDivisionByZeroError");
                         }
@@ -98,7 +98,7 @@ public class MathCommand extends Command implements IUtilCommand {
                         break;
                     case "perc":
                     case "percentage":
-                        output = resultStr + num1.divide(num2, MathContext.DECIMAL64).multiply(HUNDRED).toPlainString() + "%";
+                        output = resultStr + num1.divide(num2, MathContext.DECIMAL64).multiply(HUNDRED).stripTrailingZeros().toPlainString() + "%";
                         break;
                     case "mod":
                     case "modulo":
