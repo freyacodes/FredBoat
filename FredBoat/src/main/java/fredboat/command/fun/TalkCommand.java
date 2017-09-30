@@ -32,7 +32,7 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.togglz.FeatureFlags;
 import net.dv8tion.jda.core.entities.Guild;
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 
 import javax.annotation.CheckReturnValue;
 

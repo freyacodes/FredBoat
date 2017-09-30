@@ -33,7 +33,7 @@ import fredboat.messaging.internal.Context;
 import fredboat.messaging.internal.LeakSafeContext;
 import net.dv8tion.jda.core.entities.Channel;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
-import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.text.RandomStringGenerator;
 import org.json.JSONObject;
 
 import java.util.concurrent.Executors;
@@ -73,8 +73,9 @@ public final class AkinatorListener extends UserListener {
         context.sendTyping();
 
         //Start new session
+        RandomStringGenerator randomStringGenerator = new RandomStringGenerator.Builder().build();
         JSONObject json = Unirest.get(NEW_SESSION_URL)
-                .queryString("player", RandomStringUtils.random(16))
+                .queryString("player", randomStringGenerator.generate(16))
                 .asJson().getBody().getObject();
         stepInfo = new StepInfo(json);
 

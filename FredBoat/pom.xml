@@ -62,13 +62,6 @@
             <version>3.0.3</version>
         </dependency>
         <dependency>
-            <!-- used to send shardless messages -->
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-collections4</artifactId>
-            <version>4.1</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <!-- audio player for discord -->
             <groupId>com.fredboat.fork</groupId>
             <artifactId>com.sedmelluq.lavaplayer</artifactId>
@@ -121,15 +114,9 @@
         </dependency>
         <dependency>
             <!-- utility -->
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.5</version>
-        </dependency>
-        <dependency>
-            <!-- utility -->
             <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.6</version>
+            <artifactId>commons-text</artifactId>
+            <version>1.1</version>
         </dependency>
         <dependency>
             <!-- logging framework -->
