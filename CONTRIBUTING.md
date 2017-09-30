@@ -138,4 +138,4 @@ Here is a decent configuration:
 
 ## Join Developer Chat
 
-Are you planning to contribute and have burning questions not answered here? Please be invited to join [FredBoat Hangout](https://discord.gg/cgPFW4q) and request writing access to the `#coding` channel.
+Are you planning to contribute and have burning questions not answered here? Please be invited to join [FredBoat Hangout](https://discord.gg/cgPFW4q) and request an admin for writing access to the `#coding` channel.
