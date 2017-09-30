@@ -53,6 +53,7 @@ public class MathCommand extends Command implements IUtilCommand {
         String output;
         ResourceBundle i18n = I18n.get(context.guild);
 
+
         try {
             if(args.length == 3) {
 
@@ -60,7 +61,7 @@ public class MathCommand extends Command implements IUtilCommand {
 
                 if (args[1].equals("sqrt")) {
 
-                    output = i18n.getString("mathOperationResult") + " "+ Double.toString(sqrt(num1.doubleValue()));
+                    output = i18n.getString("mathOperationResult") + " " + Double.toString(sqrt(num1.doubleValue()));
                 } else {
                     output = i18n.getString("mathOperationIncorrectUsageError");
                 }
@@ -69,39 +70,40 @@ public class MathCommand extends Command implements IUtilCommand {
 
                 BigDecimal num1 = new BigDecimal(args[2]);
                 BigDecimal num2 = new BigDecimal(args[3]);
+                String resultStr = i18n.getString("mathOperationResult") + " ";
 
                 switch(args[1]) {
                     case "sum":
                     case "add":
-                        output = i18n.getString("mathOperationResult") + " " + num1.add(num2, MathContext.DECIMAL64).toPlainString();
+                        output = resultStr + num1.add(num2, MathContext.DECIMAL64).toPlainString();
                         break;
                     case "sub":
                     case "subtract":
-                        output = i18n.getString("mathOperationResult") + " " + num1.subtract(num2, MathContext.DECIMAL64).toPlainString();
+                        output = resultStr + num1.subtract(num2, MathContext.DECIMAL64).toPlainString();
                         break;
                     case "mult":
                     case "multiply":
-                        output = i18n.getString("mathOperationResult") + " " + num1.multiply(num2, MathContext.DECIMAL64).toPlainString();
+                        output = resultStr + num1.multiply(num2, MathContext.DECIMAL64).toPlainString();
                         break;
                     case "div":
                     case "divide":
                         try {
-                            output = i18n.getString("mathOperationResult") + " " + num1.divide(num2, MathContext.DECIMAL64).toPlainString();
+                            output = resultStr + num1.divide(num2, MathContext.DECIMAL64).toPlainString();
                         } catch(ArithmeticException ex){
                             output = i18n.getString("mathOperationDivisionByZeroError");
                         }
                         break;
                     case "pow":
                     case "power":
-                        output = i18n.getString("mathOperationResult") + " " + Double.toString(pow(num1.doubleValue(), num2.doubleValue()));
+                        output = resultStr + Double.toString(pow(num1.doubleValue(), num2.doubleValue()));
                         break;
                     case "perc":
                     case "percentage":
-                        output = i18n.getString("mathOperationResult") + " " + num1.divide(num2, MathContext.DECIMAL64).multiply(HUNDRED).toPlainString() + "%";
+                        output = resultStr + num1.divide(num2, MathContext.DECIMAL64).multiply(HUNDRED).toPlainString() + "%";
                         break;
                     case "mod":
                     case "modulo":
-                        output = i18n.getString("mathOperationResult") + " " + num1.remainder(num2, MathContext.DECIMAL64);
+                        output = resultStr + num1.remainder(num2, MathContext.DECIMAL64);
                         break;
                     default: output = i18n.getString("mathOperationIncorrectUsageError");
                 }
