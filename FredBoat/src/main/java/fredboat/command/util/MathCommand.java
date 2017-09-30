@@ -115,8 +115,7 @@ public class MathCommand extends Command implements IUtilCommand {
             }
 
         } catch(NumberFormatException ex) {
-            HelpCommand.sendFormattedCommandHelp(context);
-            return;
+            output = "Could not parse one of your numbers! Please check them and try again.";
         }
 
         if(output.contains("Infinity")) { //TODO: Better fix for an operation returning "Infinity".
