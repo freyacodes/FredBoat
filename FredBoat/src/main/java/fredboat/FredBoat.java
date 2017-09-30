@@ -47,8 +47,6 @@ import fredboat.feature.I18n;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.AppInfo;
 import fredboat.util.JDAUtil;
-import frederikam.jca.JCA;
-import frederikam.jca.JCABuilder;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDAInfo;
@@ -79,7 +77,6 @@ public abstract class FredBoat {
     static final int SHARD_CREATION_SLEEP_INTERVAL = 5500;
 
     private static final ArrayList<FredBoat> shards = new ArrayList<>();
-    public static JCA jca;
     public static final long START_TIME = System.currentTimeMillis();
     public static final int UNKNOWN_SHUTDOWN_CODE = -991023;
     public static int shutdownCode = UNKNOWN_SHUTDOWN_CODE;//Used when specifying the intended code for shutdown hooks
@@ -165,9 +162,6 @@ public abstract class FredBoat {
         //Check imgur creds
         executor.submit(FredBoat::hasValidImgurCredentials);
 
-        //Initialise JCA
-        executor.submit(FredBoat::loadJCA);
-
         /* Init JDA */
         initBotShards(listenerBot);
 
@@ -180,23 +174,6 @@ public abstract class FredBoat {
         shardWatchdogAgent = new ShardWatchdogAgent();
         shardWatchdogAgent.setDaemon(true);
         shardWatchdogAgent.start();
-    }
-
-    private static boolean loadJCA() {
-        boolean result = true;
-        try {
-            if (!Config.CONFIG.getCbUser().equals("") && !Config.CONFIG.getCbKey().equals("")) {
-                log.info("Starting CleverBot");
-                jca = new JCABuilder().setKey(Config.CONFIG.getCbKey()).setUser(Config.CONFIG.getCbUser()).buildBlocking();
-            } else {
-                log.warn("Credentials not found for cleverbot authentication. Skipping...");
-                result = false;
-            }
-        } catch (Exception e) {
-            log.error("Error when starting JCA", e);
-            result = false;
-        }
-        return result;
     }
 
     private static boolean hasValidMALLogin() {

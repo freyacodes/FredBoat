@@ -72,11 +72,8 @@ public class MainCommandInitializer {
         
         /* Fun Commands */
         CommandRegistry.registerCommand("joke", new JokeCommand(), "jk");
-        //TODO LeetCommand is borken. Don't throw unnecessary error reports until it's fixed or removed.
-//        CommandRegistry.registerCommand("leet", new LeetCommand(), "1337", "l33t", "1ee7");
         CommandRegistry.registerCommand("riot", new RiotCommand());
         CommandRegistry.registerCommand("dance", new DanceCommand());
-        CommandRegistry.registerCommand("talk", new TalkCommand());
         CommandRegistry.registerCommand("akinator", new AkinatorCommand());
         CommandRegistry.registerCommand("catgirl", new CatgirlCommand(), "neko", "catgrill");
         CommandRegistry.registerCommand("avatar", new AvatarCommand(), "ava");

@@ -29,7 +29,6 @@ import com.google.common.cache.CacheBuilder;
 import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.command.fun.TalkCommand;
 import fredboat.command.music.control.SkipCommand;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.CommandManager;
@@ -38,7 +37,6 @@ import fredboat.db.EntityReader;
 import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
-import fredboat.util.TextUtils;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
 import net.dv8tion.jda.core.Permission;
@@ -120,15 +118,6 @@ public class EventListenerBoat extends AbstractEventListener {
             }
 
             limitOrExecuteCommand(context);
-        } else if (event.getMessage().getMentionedUsers().contains(event.getJDA().getSelfUser())) {
-            log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
-            CommandManager.commandsExecuted.getAndIncrement();
-            //regex101.com/r/9aw6ai/1/
-            String message = event.getMessage().getRawContent().replaceAll("<@!?[0-9]*>", "");
-            String response = TalkCommand.talk(message);
-            if (response != null && !response.isEmpty()) {
-                CentralMessaging.sendMessage(event.getChannel(), TextUtils.prefaceWithName(event.getMember(), response));
-            }
         }
     }
 

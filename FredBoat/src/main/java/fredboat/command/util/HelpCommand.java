@@ -26,7 +26,6 @@
 package fredboat.command.util;
 
 import fredboat.Config;
-import fredboat.command.fun.TalkCommand;
 import fredboat.command.music.control.SelectCommand;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
@@ -90,9 +89,7 @@ public class HelpCommand extends Command implements IUtilCommand {
         //some special needs
         //to display helpful information on some commands: thirdParam = {2} in the language resources
         String thirdParam = "";
-        if (command instanceof TalkCommand)
-            thirdParam = guild.getSelfMember().getEffectiveName();
-        else if (command instanceof SelectCommand)
+        if (command instanceof SelectCommand)
             thirdParam = "play";
 
         return MessageFormat.format(helpStr, Config.CONFIG.getPrefix(), commandOrAlias, thirdParam);

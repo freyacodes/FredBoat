@@ -66,7 +66,6 @@ public class Config {
     private final String jdbcUrl;
     private final int hikariPoolSize;
     private int numShards;
-    private String mashapeKey;
     private String malUser;
     private String malPassword;
     private String imgurClientId;
@@ -74,8 +73,6 @@ public class Config {
     private final String[] lavaplayerNodes;
     private final boolean lavaplayerNodesEnabled;
     private String carbonKey;
-    private String cbUser;
-    private String cbKey;
     private String spotifyId;
     private String spotifySecret;
     private String prefix = DEFAULT_PREFIX;
@@ -163,12 +160,9 @@ public class Config {
 
             log.info("Using prefix: " + prefix);
 
-            mashapeKey = (String) creds.getOrDefault("mashapeKey", "");
             malUser = (String) creds.getOrDefault("malUser", "");
             malPassword = (String) creds.getOrDefault("malPassword", "");
             carbonKey = (String) creds.getOrDefault("carbonKey", "");
-            cbUser = (String) creds.getOrDefault("cbUser", "");
-            cbKey = (String) creds.getOrDefault("cbKey", "");
             Map<String, String> token = (Map) creds.get("token");
             if (token != null) {
                 botToken = token.getOrDefault(distribution.getId(), "");
@@ -356,10 +350,6 @@ public class Config {
         return numShards;
     }
 
-    public String getMashapeKey() {
-        return mashapeKey;
-    }
-
     public String getMalUser() {
         return malUser;
     }
@@ -386,14 +376,6 @@ public class Config {
 
     public String getCarbonKey() {
         return carbonKey;
-    }
-
-    public String getCbUser() {
-        return cbUser;
-    }
-
-    public String getCbKey() {
-        return cbKey;
     }
 
     public String getSpotifyId() {

@@ -107,10 +107,10 @@
             <version>1.0.6.1</version>
         </dependency>
         <dependency>
-            <!-- cleverbot.io api -->
-            <groupId>frederikam</groupId>
-            <artifactId>JCA</artifactId>
-            <version>1.0</version>
+            <!-- http client -->
+            <groupId>com.mashape.unirest</groupId>
+            <artifactId>unirest-java</artifactId>
+            <version>1.4.9</version>
         </dependency>
         <dependency>
             <!-- utility -->
