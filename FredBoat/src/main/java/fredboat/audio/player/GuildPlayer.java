@@ -44,6 +44,8 @@ import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
+import fredboat.util.Emojis;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
@@ -51,6 +53,8 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.managers.AudioManager;
+import net.dv8tion.jda.core.managers.ChannelManager;
+import net.dv8tion.jda.core.requests.restaction.ChannelAction;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -97,6 +101,7 @@ public class GuildPlayer extends AbstractPlayer {
         if (getRepeatMode() != RepeatMode.SINGLE && isTrackAnnounceEnabled() && !isPaused()) {
             TextChannel activeTextChannel = getActiveTextChannel();
             if (activeTextChannel != null) {
+                updateTopic();
                 CentralMessaging.sendMessage(activeTextChannel,
                         atc.i18nFormat("trackAnnounce", atc.getEffectiveTitle()));
             }
@@ -459,5 +464,22 @@ public class GuildPlayer extends AbstractPlayer {
 
     private void voteSkipCleanup() {
         VoteSkipCommand.guildSkipVotes.remove(guildId);
+    }
+
+    private void updateTopic() {
+
+        TextChannel channel = getCurrentTC();
+        if (channel != null) {
+            ChannelManager manager = channel.getManager();
+
+            AudioTrackContext playingAtc = getPlayingTrack();
+            String topic = Emojis.PLAY + " **" + playingAtc.getEffectiveTitle() + "** " + playingAtc.getUser().getAsMention() + " [" + TextUtils.formatTime(playingAtc.getEffectiveDuration()) + "]";
+
+            try {
+                manager.setTopic(topic).queue();
+            } catch (Exception ex) {
+                log.warn("Failed to set Topic");
+            }
+        }
     }
 }
