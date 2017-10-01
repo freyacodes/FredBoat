@@ -100,11 +100,6 @@ public class CommandManager {
             return;
         }
 
-        if (disabledCommands.contains(invoked)) {
-            context.reply("Sorry this command is currently disabled. Try again later");
-            return;
-        }
-
         //Hardcode music commands in FredBoatHangout. Blacklist any channel that isn't #general or #staff, but whitelist Frederikam
         if ((invoked instanceof IMusicCommand || invoked instanceof AkinatorCommand) // the hate is real
                 && guild.getId().equals(BotConstants.FREDBOAT_HANGOUT_ID)
@@ -118,6 +113,11 @@ public class CommandManager {
                         msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
                 return;
             }
+        }
+
+        if (disabledCommands.contains(invoked)) {
+            context.replyWithName("Sorry the `"+ context.cmdName +"` command is currently disabled. Please try again later");
+            return;
         }
 
         if (invoked instanceof ICommandRestricted) {
