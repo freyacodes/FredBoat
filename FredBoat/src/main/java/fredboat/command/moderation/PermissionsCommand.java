@@ -116,21 +116,18 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         Member invoker = context.invoker;
         String term = ArgumentUtil.getSearchTerm(context.msg, context.args, 2);
 
-        List<IMentionable> curList = new ArrayList<>();
         List<IMentionable> search = new ArrayList<>();
         search.addAll(ArgumentUtil.fuzzyRoleSearch(guild, term));
         search.addAll(ArgumentUtil.fuzzyMemberSearch(guild, term, false));
         GuildPermissions gp = EntityReader.getGuildPermissions(guild);
-        curList.addAll(idsToMentionables(guild, gp.getFromEnum(permissionLevel)));
 
-        List<IMentionable> itemsInBothLists = new ArrayList<>();
-
-        curList.forEach(mentionable -> {
-            if (search.contains(mentionable)) itemsInBothLists.add(mentionable);
-        });
-
-        IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(itemsInBothLists, context, term);
+        IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(search, context, term);
         if (selected == null) return;
+
+        if (!gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
+            context.replyWithName(MessageFormat.format(I18n.get(context, "permsNotAdded"), "`" + mentionableToName(selected) + "`", "`" + permissionLevel + "`"));
+            return;
+        }
 
         List<String> newList = new ArrayList<>(gp.getFromEnum(permissionLevel));
         newList.remove(mentionableToId(selected));
