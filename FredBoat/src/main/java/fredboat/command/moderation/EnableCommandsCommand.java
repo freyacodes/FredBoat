@@ -35,7 +35,7 @@ public class EnableCommandsCommand extends Command implements ICommandRestricted
 
     @Override
     public String help(Guild guild) {
-        return "{0}{1} <command>\nRe-enable a globally disabled command";
+        return "{0}{1} <command>\n#Re-enable a globally disabled command";
     }
 
     @Override
