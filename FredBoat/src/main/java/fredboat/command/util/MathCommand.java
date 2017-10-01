@@ -87,7 +87,7 @@ public class MathCommand extends Command implements IUtilCommand {
                     case "div":
                     case "divide":
                         try {
-                            output = resultStr + num1.divide(num2, MathContext.DECIMAL64).stripTrailingZeros.toPlainString();
+                            output = resultStr + num1.divide(num2, MathContext.DECIMAL64).stripTrailingZeros().toPlainString();
                         } catch(ArithmeticException ex){
                             output = i18n.getString("mathOperationDivisionByZeroError");
                         }
