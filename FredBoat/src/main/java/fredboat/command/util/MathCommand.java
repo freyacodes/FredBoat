@@ -131,21 +131,21 @@ public class MathCommand extends Command implements IUtilCommand {
         ResourceBundle i18n = I18n.get(guild);
         return String.join("\n",
                 "{0}{1} add OR {0}{1} sum <num1> <num2>",
-                i18n.getString("mathOperationAddHelp"),
+                i18n.getString("helpMathOperationAdd"),
                 "{0}{1} subtract OR {0}{1} sub <num1> <num2>",
-                i18n.getString("mathOperationSubHelp"),
+                i18n.getString("helpMathOperationSub"),
                 "{0}{1} multiply OR {0}{1} mult <num1> <num2>",
-                i18n.getString("mathOperationMultHelp"),
+                i18n.getString("helpMathOperationMult"),
                 "{0}{1} divide OR {0}{1} div <num1> <num2>",
-                i18n.getString("mathOperationDivHelp"),
+                i18n.getString("helpMathOperationDiv"),
                 "{0}{1} modulo OR {0}{1} mod <num1> <num2>",
-                i18n.getString("mathOperationModHelp"),
+                i18n.getString("helpMathOperationMod"),
                 "{0}{1} percentage OR {0}{1} perc <num1> <num2>",
-                i18n.getString("mathOperationPercHelp"),
+                i18n.getString("helpMathOperationPerc"),
                 "{0}{1} sqrt <num>",
-                i18n.getString("mathOperationSqrtHelp"),
+                i18n.getString("helpMathOperationSqrt"),
                 "{0}{1} power OR {0}{1} pow <num1> <num2>",
-                i18n.getString("mathOperationPowHelp"));
+                i18n.getString("helpMathOperationPow"));
 
     }
 
