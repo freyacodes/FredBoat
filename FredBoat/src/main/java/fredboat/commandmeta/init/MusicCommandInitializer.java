@@ -28,9 +28,7 @@ import fredboat.Config;
 import fredboat.agent.VoiceChannelCleanupAgent;
 import fredboat.command.admin.*;
 import fredboat.command.maintenance.*;
-import fredboat.command.moderation.ConfigCommand;
-import fredboat.command.moderation.LanguageCommand;
-import fredboat.command.moderation.PermissionsCommand;
+import fredboat.command.moderation.*;
 import fredboat.command.music.control.*;
 import fredboat.command.music.info.ExportCommand;
 import fredboat.command.music.info.GensokyoRadioCommand;
@@ -112,8 +110,11 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("announce", new AnnounceCommand());
         CommandRegistry.registerCommand("mping", new PingCommand());
         CommandRegistry.registerCommand("node", new NodeAdminCommand());
-
         CommandRegistry.registerCommand("getnode", new GetNodeCommand());
+        CommandRegistry.registerCommand("disable", new DisableCommandsCommand());
+        CommandRegistry.registerCommand("enable", new EnableCommandsCommand());
+
+
         
         /* Bot configuration */
         CommandRegistry.registerCommand("config", new ConfigCommand(), "cfg");

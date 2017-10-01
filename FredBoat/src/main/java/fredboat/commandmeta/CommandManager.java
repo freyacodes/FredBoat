@@ -50,6 +50,8 @@ import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -58,6 +60,7 @@ public class CommandManager {
     private static final Logger log = LoggerFactory.getLogger(CommandManager.class);
 
     public static final AtomicInteger commandsExecuted = new AtomicInteger(0);
+    public static final List<Command> disabledComamnds = new ArrayList<>(0);
 
     public static void prefixCalled(CommandContext context) {
         Guild guild = context.guild;
@@ -73,6 +76,7 @@ public class CommandManager {
             log.info("Ignored command because patron bot is not allowed in FredBoatHangout");
             return;
         }
+
 
         if (FeatureFlags.PATRON_VALIDATION.isActive()) {
             PatronageChecker.Status status = PatronageCheckerHolder.instance.getStatus(guild);
@@ -94,6 +98,11 @@ public class CommandManager {
                 && Config.CONFIG.getPrefix().equals(Config.DEFAULT_PREFIX)
                 && !guild.getId().equals(BotConstants.FREDBOAT_HANGOUT_ID)) {
             log.info("Ignored command because patron bot is able to use that channel");
+            return;
+        }
+
+        if (disabledComamnds.contains(invoked)) {
+            context.reply("Sorry this command is currently disabled. Try again later");
             return;
         }
 
