@@ -68,9 +68,9 @@ public abstract class FredBoatAgent implements Runnable {
         LAST_RUN_TIME.put(this.getClass(), System.currentTimeMillis());
         try {
             Thread.currentThread().setName(name);
-            log.info("running");
+            log.debug("running");
             doRun();
-            log.info("done");
+            log.debug("done");
         } catch (Throwable t) {
             log.warn("Whoa! Unhandled throwable!", t);
         } finally {
