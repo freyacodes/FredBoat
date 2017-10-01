@@ -56,6 +56,7 @@ public class PermsUtil {
 
         GuildPermissions gp = EntityReader.getGuildPermissions(member.getGuild());
 
+        if (checkList(gp.getBlockedList(), member)) return PermissionLevel.BASE;
         if (checkList(gp.getAdminList(), member)) return PermissionLevel.ADMIN;
         if (checkList(gp.getDjList(), member)) return PermissionLevel.DJ;
         if (checkList(gp.getUserList(), member)) return PermissionLevel.USER;

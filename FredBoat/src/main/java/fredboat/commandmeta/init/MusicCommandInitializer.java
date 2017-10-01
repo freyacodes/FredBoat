@@ -125,6 +125,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("admin", new PermissionsCommand(PermissionLevel.ADMIN));
         CommandRegistry.registerCommand("dj", new PermissionsCommand(PermissionLevel.DJ));
         CommandRegistry.registerCommand("user", new PermissionsCommand(PermissionLevel.USER));
+        CommandRegistry.registerCommand("blacklist", new PermissionsCommand(PermissionLevel.BASE));
 
         // The null check is to ensure we can run this in a test run
         if (Config.CONFIG == null || Config.CONFIG.getDistribution() != DistributionEnum.PATRON) {
