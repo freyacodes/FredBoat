@@ -50,8 +50,8 @@ import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -60,7 +60,7 @@ public class CommandManager {
     private static final Logger log = LoggerFactory.getLogger(CommandManager.class);
 
     public static final AtomicInteger commandsExecuted = new AtomicInteger(0);
-    public static final List<Command> disabledComamnds = new ArrayList<>(0);
+    public static final Set<Command> disabledCommands = new HashSet<>(0);
 
     public static void prefixCalled(CommandContext context) {
         Guild guild = context.guild;
@@ -100,7 +100,7 @@ public class CommandManager {
             return;
         }
 
-        if (disabledComamnds.contains(invoked)) {
+        if (disabledCommands.contains(invoked)) {
             context.reply("Sorry this command is currently disabled. Try again later");
             return;
         }
