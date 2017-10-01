@@ -11,22 +11,20 @@ import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
+import fredboat.shared.constant.BotConstants;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.*;
 
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class VoteSkipCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     private static Map<String, Long> guildIdToLastSkip = new HashMap<>();
     private static final int SKIP_COOLDOWN = 500;
 
-    public static Map<Long, List<Long>> guildSkipVotes = new HashMap<>();
+    public static Map<Long, Set<Long>> guildSkipVotes = new HashMap<>();
     private static final float MIN_SKIP_PERCENTAGE = 0.5f;
     private static final DecimalFormat format = new DecimalFormat("###.##");
 
@@ -71,10 +69,8 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
                 context.reply(MessageFormat.format(response + "\n" +I18n.get(context, "voteSkipNotEnough"), "`" + roundToTwo(skipPercentage * 100) + "%`", "`" + roundToTwo(MIN_SKIP_PERCENTAGE * 100) + "%`"));
             }
 
-            // After further thinking about adding a list command i don't think it seems necessary the % seems good enough
-            // Will leave this in here in case a list command should be added in the future
-        //} else if (context.args.length == 2 && context.args[1].toLowerCase().equals("list")) {
-        //    displayVoteList(context);
+        } else if (context.args.length == 2 && context.args[1].toLowerCase().equals("list")) {
+            displayVoteList(context, player);
         } else {
             HelpCommand.sendFormattedCommandHelp(context);
         }
@@ -95,10 +91,10 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
     private String addVoteWithResponse(CommandContext context) {
 
         User user = context.getUser();
-        List<Long> voters = guildSkipVotes.get(context.guild.getIdLong());
+        Set<Long> voters = guildSkipVotes.get(context.guild.getIdLong());
 
         if (voters == null) {
-            voters = new ArrayList<>();
+            voters = new HashSet<>();
             voters.add(user.getIdLong());
             guildSkipVotes.put(context.guild.getIdLong(), voters);
             return I18n.get(context, "voteSkipAdded");
@@ -134,13 +130,36 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
     }
 
     private boolean hasVoted(Guild guild, Member member) {
-        List<Long> voters = guildSkipVotes.get(guild.getIdLong());
+        Set<Long> voters = guildSkipVotes.get(guild.getIdLong());
         return voters.contains(member.getUser().getIdLong());
     }
 
-    private void displayVoteList(CommandContext context) {
+    private void displayVoteList(CommandContext context, GuildPlayer player) {
+        Set<Long> voters = guildSkipVotes.get(context.guild.getIdLong());
+
+        if (voters == null || voters.isEmpty()) {
+            context.reply(I18n.get(context, "voteSkipEmbedNoVotes"));
+            return;
+        }
+
+        //split them up into two fields which makes the info look nicely condensed in the client
+        int i = 0;
+        StringBuilder field1 = new StringBuilder();
+        StringBuilder field2 = new StringBuilder();
+        for (Long userId : voters) {
+            StringBuilder field = field1;
+            if (i++ % 2 == 1) field = field2;
+
+            Member member = context.getGuild().getMemberById(userId);
+            if (member != null) {
+                field.append("| ").append(member.getEffectiveName()).append("\n");
+            }
+        }
         EmbedBuilder embed = CentralMessaging.getClearThreadLocalEmbedBuilder();
-        embed.setTitle("WIP");
+        embed.addField("", field1.toString(), true);
+        embed.addField("", field2.toString(), true);
+        embed.setTitle(MessageFormat.format(I18n.get(context, "voteSkipEmbedVoters"), voters.size(), player.getHumanUsersInCurrentVC().size()));
+        embed.setColor(BotConstants.FREDBOAT_COLOR);
         context.reply(embed.build());
     }
 
