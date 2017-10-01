@@ -82,6 +82,7 @@ public abstract class FredBoatAgent implements Runnable {
 
     public static void start(FredBoatAgent agent) {
         AGENTS.scheduleAtFixedRate(agent, agent.millisToSleep, agent.millisToSleep, TimeUnit.MILLISECONDS);
+        LAST_RUN_TIME.put(agent.getClass(), 0L);
     }
 
     public static Map<Class<? extends FredBoatAgent>, Long> getLastRunTimes() {
