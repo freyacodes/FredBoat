@@ -77,7 +77,6 @@ public class CommandManager {
             return;
         }
 
-
         if (FeatureFlags.PATRON_VALIDATION.isActive()) {
             PatronageChecker.Status status = PatronageCheckerHolder.instance.getStatus(guild);
             if (!status.isValid()) {
