@@ -144,12 +144,16 @@ public class DatabaseManager {
 
             emf = emfb.getObject();
 
-            //add metrics to hikari and hibernate
-            SessionFactoryImpl sessionFactory = emf.unwrap(SessionFactoryImpl.class);
-            sessionFactory.getServiceRegistry().getService(ConnectionProvider.class)
-                    .unwrap(HikariDataSource.class)
-                    .setMetricsTrackerFactory(new PrometheusMetricsTrackerFactory());
-            new HibernateStatisticsCollector(sessionFactory, DEFAULT_PERSISTENCE_UNIT_NAME).register();
+            try {
+                //add metrics to hikari and hibernate
+                SessionFactoryImpl sessionFactory = emf.unwrap(SessionFactoryImpl.class);
+                sessionFactory.getServiceRegistry().getService(ConnectionProvider.class)
+                        .unwrap(HikariDataSource.class)
+                        .setMetricsTrackerFactory(new PrometheusMetricsTrackerFactory());
+                new HibernateStatisticsCollector(sessionFactory, DEFAULT_PERSISTENCE_UNIT_NAME).register();
+            } catch (Exception e) {
+                log.warn("Exception when registering database metrics. This is not expected to happen outside of tests.", e);
+            }
 
             //adjusting the ehcache config
             if (!Config.CONFIG.isUseSshTunnel()) {
