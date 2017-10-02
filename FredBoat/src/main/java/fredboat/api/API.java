@@ -35,8 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Spark;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class API {
 
@@ -68,9 +66,7 @@ public class API {
             JSONObject root = new JSONObject();
             JSONArray a = new JSONArray();
 
-            //make a copy to avoid concurrent modification errors
-            List<FredBoat> shards = new ArrayList<>(FredBoat.getShards());
-            for (FredBoat fb : shards) {
+            for (FredBoat fb : FredBoat.getShards()) {
                 JSONObject fbStats = new JSONObject();
                 fbStats.put("id", fb.getShardInfo().getShardId())
                         .put("guilds", fb.getGuildCount())
