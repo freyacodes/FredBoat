@@ -114,8 +114,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("getnode", new GetNodeCommand());
         CommandRegistry.registerCommand("disable", new DisableCommandsCommand());
         CommandRegistry.registerCommand("enable", new EnableCommandsCommand());
-
-
+        CommandRegistry.registerCommand("debug", new DebugCommand());
         
         /* Bot configuration */
         CommandRegistry.registerCommand("config", new ConfigCommand(), "cfg");
