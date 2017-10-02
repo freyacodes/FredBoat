@@ -45,7 +45,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.text.MessageFormat;
-import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
@@ -156,9 +155,10 @@ public abstract class Context {
     //return a single translated string
     @CheckReturnValue
     public String i18n(@Nonnull String key) {
-        try {
+        if (getI18n().containsKey(key)) {
             return getI18n().getString(key);
-        } catch (MissingResourceException e) { //fall back to default i18n bundle
+        } else {
+            log.warn("Missing language entry for key {} in language {}", key, I18n.getLocale(getGuild()).getCode());
             return I18n.DEFAULT.getProps().getString(key);
         }
     }
