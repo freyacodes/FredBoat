@@ -83,7 +83,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("avatar", new AvatarCommand(), "ava");
         CommandRegistry.registerCommand("say", new SayCommand());
         // TODO: Need to implement api limit before using this, OpenWeather has a harsh api limit.
-//        CommandRegistry.registerCommand("weather", new WeatherCommand(new OpenWeatherAPI()));
+        CommandRegistry.registerCommand("weather", new WeatherCommand(new OpenWeatherAPI()));
 
         /* Other Anime Discord, Sergi memes or any other memes */
         // saved in this album https://imgur.com/a/wYvDu

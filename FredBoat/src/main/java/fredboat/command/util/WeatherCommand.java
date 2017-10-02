@@ -5,14 +5,13 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
-import fredboat.messaging.MessageFuture;
+import fredboat.util.rest.APILimitException;
 import fredboat.util.rest.Weather;
 import fredboat.util.rest.models.weather.RetrievedWeather;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 
 import java.text.MessageFormat;
-import java.util.concurrent.ExecutionException;
 
 public class WeatherCommand extends Command implements IUtilCommand {
 
@@ -28,39 +27,45 @@ public class WeatherCommand extends Command implements IUtilCommand {
     public void onInvoke(CommandContext context) {
 
         context.sendTyping();
-
         if (context.args.length > 1) {
-            StringBuilder argStringBuilder = new StringBuilder();
-            for (int i = 1; i < context.args.length; i++) {
-                argStringBuilder.append(context.args[i]);
-                argStringBuilder.append(" ");
-            }
 
-            String query = argStringBuilder.toString().trim();
-            String alphanumericalQuery = query.replaceAll("[^A-Za-z0-9 ]", "");
-
-            RetrievedWeather currentWeather = weather.getCurrentWeatherByCity(alphanumericalQuery);
-
-            if (!currentWeather.isError()) {
-
-                String title = MessageFormat.format(LOCATION_WEATHER_STRING_FORMAT,
-                        currentWeather.getLocation(), currentWeather.getTemperature());
-
-                EmbedBuilder embedBuilder = CentralMessaging.getClearThreadLocalEmbedBuilder()
-                        .setTitle(title)
-                        .setDescription(currentWeather.getWeatherDescription());
-
-                if (currentWeather.getThumbnailUrl().length() > 0) {
-                    embedBuilder.setThumbnail(currentWeather.getThumbnailUrl());
+            try {
+                StringBuilder argStringBuilder = new StringBuilder();
+                for (int i = 1; i < context.args.length; i++) {
+                    argStringBuilder.append(context.args[i]);
+                    argStringBuilder.append(" ");
                 }
 
-                context.reply(embedBuilder.build());
-            } else {
-                context.reply(
-                        MessageFormat.format(I18n.get(context.guild).getString("weatherError"),
-                                query.toUpperCase()));
+                String query = argStringBuilder.toString().trim();
+                String alphanumericalQuery = query.replaceAll("[^A-Za-z0-9 ]", "");
+
+                RetrievedWeather currentWeather = weather.getCurrentWeatherByCity(alphanumericalQuery);
+
+                if (!currentWeather.isError()) {
+
+                    String title = MessageFormat.format(LOCATION_WEATHER_STRING_FORMAT,
+                            currentWeather.getLocation(), currentWeather.getTemperature());
+
+                    EmbedBuilder embedBuilder = CentralMessaging.getClearThreadLocalEmbedBuilder()
+                            .setTitle(title)
+                            .setDescription(currentWeather.getWeatherDescription());
+
+                    if (currentWeather.getThumbnailUrl().length() > 0) {
+                        embedBuilder.setThumbnail(currentWeather.getThumbnailUrl());
+                    }
+
+                    context.reply(embedBuilder.build());
+                } else {
+                    context.reply(
+                            MessageFormat.format(I18n.get(context.guild).getString("weatherError"),
+                                    query.toUpperCase()));
+                }
+                return;
+
+            } catch (APILimitException e) {
+                context.reply(I18n.get(context.guild).getString("tryLater"));
+                return;
             }
-            return;
         }
 
         HelpCommand.sendFormattedCommandHelp(context);

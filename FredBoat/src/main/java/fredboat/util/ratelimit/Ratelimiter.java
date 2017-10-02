@@ -97,7 +97,7 @@ public class Ratelimiter {
         ratelimits.add(new Ratelimit(whitelist, Ratelimit.Scope.USER, 5, 20000, SkipCommand.class));
         ratelimits.add(new Ratelimit(whitelist, Ratelimit.Scope.USER, 5, 10000, Command.class));
 
-        ratelimits.add(new Ratelimit(whitelist, Ratelimit.Scope.GUILD, 2, 120000, WeatherCommand.class));
+        ratelimits.add(new Ratelimit(whitelist, Ratelimit.Scope.GUILD, 30, 180000, WeatherCommand.class));
         ratelimits.add(new Ratelimit(whitelist, Ratelimit.Scope.GUILD, 1000, 120000, PlaylistInfo.class));
         ratelimits.add(new Ratelimit(whitelist, Ratelimit.Scope.GUILD, 10, 10000, Command.class));
     }
