@@ -28,12 +28,11 @@ package fredboat.command.util;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
-import fredboat.feature.I18n;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
 
+import javax.annotation.Nonnull;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.util.ResourceBundle;
 
 import static java.lang.Math.pow;
 import static java.lang.Math.sqrt;
@@ -48,10 +47,9 @@ public class MathCommand extends Command implements IUtilCommand {
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         String[] args = context.args;
         String output;
-        ResourceBundle i18n = I18n.get(context.guild);
 
         try {
             if(args.length == 3) {
@@ -59,7 +57,7 @@ public class MathCommand extends Command implements IUtilCommand {
                 BigDecimal num1 = new BigDecimal(args[2]);
 
                 if (args[1].equals("sqrt")) {
-                    output = i18n.getString("mathOperationResult") + " " + Double.toString(sqrt(num1.doubleValue()));
+                    output = context.i18n("mathOperationResult") + " " + Double.toString(sqrt(num1.doubleValue()));
                 } else {
                     HelpCommand.sendFormattedCommandHelp(context);
                     return;
@@ -69,7 +67,7 @@ public class MathCommand extends Command implements IUtilCommand {
 
                 BigDecimal num1 = new BigDecimal(args[2]);
                 BigDecimal num2 = new BigDecimal(args[3]);
-                String resultStr = i18n.getString("mathOperationResult") + " ";
+                String resultStr = context.i18n("mathOperationResult") + " ";
 
                 switch(args[1]) {
                     case "sum":
@@ -89,7 +87,7 @@ public class MathCommand extends Command implements IUtilCommand {
                         try {
                             output = resultStr + num1.divide(num2, MathContext.DECIMAL64).stripTrailingZeros().toPlainString();
                         } catch(ArithmeticException ex){
-                            output = i18n.getString("mathOperationDivisionByZeroError");
+                            output = context.i18n("mathOperationDivisionByZeroError");
                         }
                         break;
                     case "pow":
@@ -119,33 +117,33 @@ public class MathCommand extends Command implements IUtilCommand {
         }
 
         if(output.contains("Infinity")) { //TODO: Better fix for an operation returning "Infinity".
-            context.reply(i18n.getString("mathOperationInfinity"));
+            context.reply(context.i18n("mathOperationInfinity"));
         } else {
             context.reply(output);
         }
 
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        ResourceBundle i18n = I18n.get(guild);
+    public String help(@Nonnull Context context) {
         return String.join("\n",
                 "{0}{1} add OR {0}{1} sum <num1> <num2>",
-                i18n.getString("helpMathOperationAdd"),
+                context.i18n("helpMathOperationAdd"),
                 "{0}{1} subtract OR {0}{1} sub <num1> <num2>",
-                i18n.getString("helpMathOperationSub"),
+                context.i18n("helpMathOperationSub"),
                 "{0}{1} multiply OR {0}{1} mult <num1> <num2>",
-                i18n.getString("helpMathOperationMult"),
+                context.i18n("helpMathOperationMult"),
                 "{0}{1} divide OR {0}{1} div <num1> <num2>",
-                i18n.getString("helpMathOperationDiv"),
+                context.i18n("helpMathOperationDiv"),
                 "{0}{1} modulo OR {0}{1} mod <num1> <num2>",
-                i18n.getString("helpMathOperationMod"),
+                context.i18n("helpMathOperationMod"),
                 "{0}{1} percentage OR {0}{1} perc <num1> <num2>",
-                i18n.getString("helpMathOperationPerc"),
+                context.i18n("helpMathOperationPerc"),
                 "{0}{1} sqrt <num>",
-                i18n.getString("helpMathOperationSqrt"),
+                context.i18n("helpMathOperationSqrt"),
                 "{0}{1} power OR {0}{1} pow <num1> <num2>",
-                i18n.getString("helpMathOperationPow"));
+                context.i18n("helpMathOperationPow"));
 
     }
 

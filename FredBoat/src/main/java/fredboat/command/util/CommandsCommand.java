@@ -28,13 +28,24 @@ import fredboat.Config;
 import fredboat.command.fun.RemoteFileCommand;
 import fredboat.command.fun.TextCommand;
 import fredboat.commandmeta.CommandRegistry;
-import fredboat.commandmeta.abs.*;
+import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
+import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.commandmeta.abs.IFunCommand;
+import fredboat.commandmeta.abs.IMaintenanceCommand;
+import fredboat.commandmeta.abs.IModerationCommand;
+import fredboat.commandmeta.abs.IUtilCommand;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import net.dv8tion.jda.core.Permission;
 
-import java.util.*;
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Created by napster on 22.03.17.
