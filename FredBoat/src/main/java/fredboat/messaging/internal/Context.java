@@ -45,6 +45,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.text.MessageFormat;
+import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
@@ -155,7 +156,11 @@ public abstract class Context {
     //return a single translated string
     @CheckReturnValue
     public String i18n(@Nonnull String key) {
-        return getI18n().getString(key);
+        try {
+            return getI18n().getString(key);
+        } catch (MissingResourceException e) { //fall back to default i18n bundle
+            return I18n.DEFAULT.getProps().getString(key);
+        }
     }
 
     //return a translated string with applied formatting
@@ -165,7 +170,7 @@ public abstract class Context {
             log.warn("Context#i18nFormat() called with empty or null params, this is likely a bug.",
                     new MessagingException("a stack trace to help find the source"));
         }
-        return MessageFormat.format(getI18n().getString(key), params);
+        return MessageFormat.format(this.i18n(key), params);
     }
 
     // ********************************************************************************
