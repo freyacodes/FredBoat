@@ -9,6 +9,7 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
+import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
 import fredboat.util.Emojis;
 import net.dv8tion.jda.core.EmbedBuilder;
@@ -31,6 +32,11 @@ public class DebugCommand extends Command implements ICommandRestricted {
                 guild = context.guild;
             } else {
                 try {
+
+                    if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.BOT_ADMIN, context)) {
+                        return;
+                    }
+
                     guild = FredBoat.getGuildById(Long.valueOf(context.args[1]));
                 } catch (Exception ignored){
                     guild = null;
@@ -146,6 +152,6 @@ public class DebugCommand extends Command implements ICommandRestricted {
 
     @Override
     public PermissionLevel getMinimumPerms() {
-        return PermissionLevel.BOT_ADMIN;
+        return PermissionLevel.DJ;
     }
 }
