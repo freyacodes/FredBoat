@@ -86,7 +86,7 @@ public class OpenWeatherAPI implements Weather {
 
             // Check if rate is exceeded.
             if (limitBucket.tryConsume(1)) {
-                log.info("Retrieving " + query + " without queue.");
+                log.info("Retrieving " + query + " without cache.");
                 HttpUrl.Builder urlBuilder = currentWeatherBaseUrl.newBuilder();
 
                 urlBuilder.addQueryParameter("q", query);

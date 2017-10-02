@@ -290,13 +290,21 @@ public abstract class FredBoat {
      */
     private static boolean hasValidOpenWeatherKey() {
         if ("".equals(Config.CONFIG.getOpenWeatherKey())) {
+            log.warn("Open Weather API credentials not found. Weather related commands will not work properly.");
             return false;
         }
 
         OpenWeatherAPI api = new OpenWeatherAPI();
         RetrievedWeather weather = api.getCurrentWeatherByCity("san francisco");
 
-        return !(weather == null || weather.isError());
+        boolean isSuccess = !(weather == null || weather.isError());
+
+        if (isSuccess) {
+            log.info("Open Weather API check successful");
+        } else {
+            log.warn("Open Weather API check failed. It may be down, the provided credentials may be invalid, or temporarily blocked.");
+        }
+        return isSuccess;
     }
 
     private static void initBotShards(EventListener listener) {
