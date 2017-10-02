@@ -115,7 +115,8 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("disable", new DisableCommandsCommand());
         CommandRegistry.registerCommand("enable", new EnableCommandsCommand());
         CommandRegistry.registerCommand("debug", new DebugCommand());
-        
+        CommandRegistry.registerCommand("setavatar", new SetAvatarCommand());
+
         /* Bot configuration */
         CommandRegistry.registerCommand("config", new ConfigCommand(), "cfg");
         CommandRegistry.registerCommand("lang", new LanguageCommand(), "language");
