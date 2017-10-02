@@ -54,7 +54,7 @@ public class DebugCommand extends Command implements ICommandRestricted {
 
         StringBuilder str = new StringBuilder();
         str
-                .append(getAudioDebug(player))
+                //.append(getAudioDebug(player)) doesn't work currently
                 .append(getPlayerDebug(player))
                 .append(getVoiceChannelDebug(player))
                 .append(getAllTextChannelDebug(player.getGuild()))
