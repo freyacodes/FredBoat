@@ -419,7 +419,10 @@ public class CentralMessaging {
         deleteMessageById(message.getChannel(), message.getIdLong());
     }
 
-    public static void deleteMessageById(MessageChannel channel, long messageId) {
+    public static void deleteMessageById(@Nonnull MessageChannel channel, long messageId) {
+        if (channel == null) {
+            throw new IllegalArgumentException("Channel is null");
+        }
         try {
             channel.deleteMessageById(messageId).queue();
         } catch (InsufficientPermissionException e) {

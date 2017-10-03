@@ -27,10 +27,9 @@ package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
-import fredboat.feature.I18n;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 public class RollCommand extends RandomImageCommand implements IFunCommand {
 
@@ -43,15 +42,16 @@ public class RollCommand extends RandomImageCommand implements IFunCommand {
     }
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         String rollMessage = "_"
-                + MessageFormat.format(I18n.get(context, "rollSuccess"), context.invoker.getAsMention())
+                + context.i18nFormat("rollSuccess", context.invoker.getAsMention())
                 + "_";
         context.replyImage(super.getRandomImageUrl(), rollMessage);
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Roll around.";
     }
 }

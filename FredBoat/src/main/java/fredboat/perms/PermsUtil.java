@@ -37,7 +37,6 @@ import net.dv8tion.jda.core.entities.Role;
 import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.utils.PermissionUtil;
 
-import java.text.MessageFormat;
 import java.util.List;
 
 public class PermsUtil {
@@ -77,9 +76,7 @@ public class PermsUtil {
         if (actual.getLevel() >= minLevel.getLevel()) {
             return true;
         } else {
-            context.replyWithName(MessageFormat.format(
-                    "You don''t have permission to run this command! This command requires `{0}` but you only have `{1}`",
-                    minLevel, actual)); //TODO i18n
+            context.replyWithName(context.i18nFormat("cmdPermsTooLow", minLevel, actual));
             return false;
         }
     }

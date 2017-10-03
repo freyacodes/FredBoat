@@ -30,22 +30,23 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
+
+import javax.annotation.Nonnull;
 
 public class DestroyCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         PlayerRegistry.destroyPlayer(context.guild);
-        context.replyWithName(I18n.get(context, "destroySucc"));
+        context.replyWithName(context.i18n("destroySucc"));
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("destroyHelp");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("destroyHelp");
     }
 
     @Override

@@ -28,14 +28,13 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
-import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.ratelimit.Ratelimiter;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.User;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 /**
  * Created by napster on 17.04.17.
@@ -44,7 +43,7 @@ import java.text.MessageFormat;
  */
 public class UnblacklistCommand extends Command implements ICommandRestricted {
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         if (!FeatureFlags.RATE_LIMITER.isActive()) {
             context.replyWithName("The rate limiter feature has not been turned on.");
             return;
@@ -64,12 +63,12 @@ public class UnblacklistCommand extends Command implements ICommandRestricted {
         }
 
         Ratelimiter.getRatelimiter().liftLimitAndBlacklist(user.getIdLong());
-        String content = MessageFormat.format(I18n.get(context, "unblacklisted"), user.getAsMention());
-        context.replyWithName(content);
+        context.replyWithName(context.i18nFormat("unblacklisted", user.getAsMention()));
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} @<user>\n#Remove a user from the blacklist.";
     }
 

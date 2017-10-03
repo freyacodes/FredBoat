@@ -6,9 +6,9 @@ FredBoat is licensed under the MIT license, so feel free to copy small or large 
 [![Join FredBoat Hangout](https://discordapp.com/api/guilds/174820236481134592/embed.png?style=banner2)](https://discord.gg/cgPFW4q)
 
 ## Documentation
-Help can be found at https://docs.fredboat.com/
+Help can be found at https://fredboat.com/docs
 
-For installation instructions, go to http://docs.fredboat.com/selfhosting
+For installation instructions, go to https://fredboat.com/docs/selfhosting
 
 ## Contributing
 If you are interested, you can read about contributing to this project [here](https://github.com/Frederikam/FredBoat/blob/master/CONTRIBUTING.md).

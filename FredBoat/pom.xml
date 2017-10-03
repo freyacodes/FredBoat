@@ -35,7 +35,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>FredBoat</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -53,7 +53,7 @@
             <!-- discord api -->
             <groupId>net.dv8tion</groupId>
             <artifactId>JDA</artifactId>
-            <version>3.3.1_276</version>
+            <version>3.3.1_284</version>
         </dependency>
         <dependency>
             <!-- because JDA's gradle doesn't make a good pom and the scope isn't set correctly -->
@@ -62,74 +62,41 @@
             <version>3.0.3</version>
         </dependency>
         <dependency>
-            <!-- used to send shardless messages -->
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-collections4</artifactId>
-            <version>4.1</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <!-- audio player for discord -->
-            <groupId>com.sedmelluq</groupId>
-            <artifactId>lavaplayer</artifactId>
-            <version>1.2.43</version>
+            <groupId>com.fredboat.fork</groupId>
+            <artifactId>com.sedmelluq.lavaplayer</artifactId>
+            <version>1.2.43.3</version>
         </dependency>
         <dependency>
             <!-- gradle's pom scope is wrong, depending on it again -->
-            <groupId>com.sedmelluq</groupId>
-            <artifactId>lavaplayer-common</artifactId>
+            <groupId>com.fredboat.fork</groupId>
+            <artifactId>com.sedmelluq.lavaplayer-common</artifactId>
             <version>1.0.5</version>
-        </dependency>
-        <!-- This is just here for convenience -->
-        <!--
-        <dependency>
-            <groupId>lavalink</groupId>
-            <artifactId>Lavalink-Client</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>G:/Lavalink/LavalinkClient/target/Lavalink-Client-1.0.jar</systemPath>
-        </dependency>-->
-        <dependency>
-            <groupId>com.github.Frederikam</groupId>
-            <artifactId>Lavalink</artifactId>
-            <version>4087dd7c85c2544a8bf23b93aef6c47d80dd4da5</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.github.Frederikam.Lavalink</groupId>
-                    <artifactId>Lavalink-Server</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <!-- native audio system to avoid gc stutter in the audio -->
             <!-- we replaced the classes temporarily, but need the native parts -->
-            <groupId>com.sedmelluq</groupId>
-            <artifactId>jda-nas</artifactId>
-            <version>1.0.5</version>
+            <groupId>com.fredboat.fork</groupId>
+            <artifactId>com.sedmelluq.jda-nas</artifactId>
+            <version>1.0.5.1</version>
         </dependency>
         <dependency>
             <!-- gradle pls -->
-            <groupId>com.sedmelluq</groupId>
-            <artifactId>udp-queue</artifactId>
-            <version>1.0.5</version>
+            <groupId>com.fredboat.fork</groupId>
+            <artifactId>com.sedmelluq.udp-queue</artifactId>
+            <version>1.0.6.1</version>
         </dependency>
         <dependency>
-            <!-- cleverbot.io api -->
-            <groupId>frederikam</groupId>
-            <artifactId>JCA</artifactId>
-            <version>1.0</version>
-        </dependency>
-        <dependency>
-            <!-- utility -->
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.5</version>
+            <!-- http client -->
+            <groupId>com.mashape.unirest</groupId>
+            <artifactId>unirest-java</artifactId>
+            <version>1.4.9</version>
         </dependency>
         <dependency>
             <!-- utility -->
             <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.6</version>
+            <artifactId>commons-text</artifactId>
+            <version>1.1</version>
         </dependency>
         <dependency>
             <!-- logging framework -->
@@ -269,7 +236,76 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>default</id>
+            <activation>
+                <property>
+                    <name>dev</name>
+                    <value>!true</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.github.Frederikam</groupId>
+                    <artifactId>Lavalink</artifactId>
+                    <version>255552857b7895e2a8a89736a3b8d3dc84d11b88</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>com.github.Frederikam.Lavalink</groupId>
+                            <artifactId>Lavalink-Server</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <property>
+                    <name>dev</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>lavalink</groupId>
+                    <artifactId>Lavalink-Client</artifactId>
+                    <version>-SNAPSHOT</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <!-- sets a default value for the build number if it is missing in the environment (when building in a
+            development environment for example) -->
+            <id>buildnumber</id>
+            <activation>
+                <property>
+                    <name>!env.BUILD_NUMBER</name>
+                </property>
+            </activation>
+            <properties>
+                <env.BUILD_NUMBER>DEV</env.BUILD_NUMBER>
+            </properties>
+        </profile>
+    </profiles>
+
     <build>
+        <resources>
+            <resource>
+                <!-- include all regular resources -->
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <!-- include some filtered resources -->
+                <directory>src/main/resources-filtered</directory>
+                <includes>
+                    <!-- some meta information about this build -->
+                    <include>app.properties</include>
+                </includes>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>

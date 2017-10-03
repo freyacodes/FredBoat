@@ -28,12 +28,10 @@ package fredboat.commandmeta;
 
 import fredboat.Config;
 import fredboat.command.fun.AkinatorCommand;
-import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
 import fredboat.feature.PatronageChecker;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.perms.PermissionLevel;
@@ -49,8 +47,9 @@ import net.dv8tion.jda.core.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -59,6 +58,7 @@ public class CommandManager {
     private static final Logger log = LoggerFactory.getLogger(CommandManager.class);
 
     public static final AtomicInteger commandsExecuted = new AtomicInteger(0);
+    public static final Set<Command> disabledCommands = new HashSet<>(0);
 
     public static void prefixCalled(CommandContext context) {
         Guild guild = context.guild;
@@ -67,13 +67,6 @@ public class CommandManager {
         Member invoker = context.invoker;
 
         commandsExecuted.getAndIncrement();
-
-        if (Config.CONFIG.getDistribution() == DistributionEnum.MAIN
-                && invoked instanceof HelpCommand
-                && DiscordUtil.isMusicBotPresent(guild)) {
-            log.info("Ignored help command because music bot is present and I am the 'main' FredBoat");
-            return;
-        }
 
         if (guild.getJDA().getSelfUser().getId().equals(BotConstants.PATRON_BOT_ID)
                 && Config.CONFIG.getDistribution() == DistributionEnum.PATRON
@@ -120,13 +113,18 @@ public class CommandManager {
             }
         }
 
+        if (disabledCommands.contains(invoked)) {
+            context.replyWithName("Sorry the `"+ context.cmdName +"` command is currently disabled. Please try again later");
+            return;
+        }
+
         if (invoked instanceof ICommandRestricted) {
             //Check if invoker actually has perms
             PermissionLevel minPerms = ((ICommandRestricted) invoked).getMinimumPerms();
             PermissionLevel actual = PermsUtil.getPerms(invoker);
 
             if(actual.getLevel() < minPerms.getLevel()) {
-                context.replyWithName(MessageFormat.format(I18n.get(context, "cmdPermsTooLow"), minPerms, actual));
+                context.replyWithName(context.i18nFormat("cmdPermsTooLow", minPerms, actual));
                 return;
             }
         }

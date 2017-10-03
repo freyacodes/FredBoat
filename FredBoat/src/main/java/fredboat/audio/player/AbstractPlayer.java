@@ -46,11 +46,13 @@ import fredboat.audio.queue.AudioTrackContext;
 import fredboat.audio.queue.ITrackProvider;
 import fredboat.audio.queue.SplitAudioTrackContext;
 import fredboat.audio.queue.TrackEndMarkerHandler;
+import fredboat.audio.source.HttpSourceManager;
 import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
 import fredboat.commandmeta.MessagingException;
 import fredboat.shared.constant.DistributionEnum;
 import lavalink.client.player.IPlayer;
+import lavalink.client.player.LavalinkPlayer;
 import lavalink.client.player.LavaplayerPlayerWrapper;
 import lavalink.client.player.event.AudioEventAdapterWrapped;
 import net.dv8tion.jda.core.audio.AudioSendHandler;
@@ -140,7 +142,7 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
         if (Config.CONFIG.isHttpEnabled()) {
             //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
             //so you will never reach a source manager below it
-            mng.registerSourceManager(new HttpAudioSourceManager());
+            mng.registerSourceManager(new HttpSourceManager());
         }
         return mng;
     }
@@ -314,8 +316,11 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
 
     void destroy() {
         log.debug("destroy()");
-
         stop();
+        player.removeListener(this);
+        if (player instanceof LavalinkPlayer) {
+            ((LavalinkPlayer) player).getLink().destroy();
+        }
     }
 
     @Override
@@ -376,7 +381,11 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
     }
 
     public void seekTo(long position) {
-        player.seekTo(position);
+        if (context.getTrack().isSeekable()) {
+            player.seekTo(position);
+        } else {
+            throw new MessagingException(context.i18n("seekDeniedLiveTrack"));
+        }
     }
 
     public IPlayer getPlayer() {

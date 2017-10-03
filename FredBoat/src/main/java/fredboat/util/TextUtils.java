@@ -37,6 +37,7 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import org.slf4j.LoggerFactory;
 
+import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -85,7 +86,7 @@ public class TextUtils {
         if (context.getMember() != null) {
             builder.append(context.getMember());
 
-            String filtered = MessageFormat.format(I18n.get(context, "utilErrorOccurred"), e.toString());
+            String filtered = context.i18nFormat("utilErrorOccurred", e.toString());
 
             for (String str : Config.CONFIG.getGoogleKeys()) {
                 filtered = filtered.replace(str, "GOOGLE_SERVER_KEY");
@@ -117,10 +118,9 @@ public class TextUtils {
             context.reply(out);
         } catch (UnsupportedOperationException tooLongEx) {
             try {
-                context.reply(MessageFormat.format(I18n.get(context, "errorOccurredTooLong"),
-                        postToPasteService(out.getRawContent())));
+                context.reply(context.i18nFormat("errorOccurredTooLong", postToPasteService(out.getRawContent())));
             } catch (UnirestException e1) {
-                context.reply(I18n.get(context, "errorOccurredTooLongAndUnirestException"));
+                context.reply(context.i18n("errorOccurredTooLongAndUnirestException"));
             }
         }
     }
@@ -170,6 +170,19 @@ public class TextUtils {
 
     private static String forceTwoDigits(int i) {
         return i < 10 ? "0" + i : Integer.toString(i);
+    }
+
+    private static final DecimalFormat percentageFormat = new DecimalFormat("###.##");
+
+    public static String roundToTwo(double value) {
+        long factor = (long) Math.pow(10, 2);
+        value = value * factor;
+        long tmp = Math.round(value);
+        return percentageFormat.format((double) tmp / factor);
+    }
+
+    public static String formatPercent(float percent) {
+        return roundToTwo(percent * 100) + "%";
     }
 
     public static String substringPreserveWords(String str, int len){

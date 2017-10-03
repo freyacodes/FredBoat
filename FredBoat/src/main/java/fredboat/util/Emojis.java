@@ -1,4 +1,5 @@
 /*
+ *
  * MIT License
  *
  * Copyright (c) 2017 Frederik Ar. Mikkelsen
@@ -20,39 +21,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-package fredboat.api;
+package fredboat.util;
 
-public class TokenGrant {
+/**
+ * Created by napster on 25.09.17.
+ */
+public class Emojis {
 
-    private final String bearer;
-    private final String refresh;
-    private final String scope;
-    private final long expireEpoch;
-
-    TokenGrant(String bearer, String refresh, String scope, long expireSecs) {
-        this.bearer = bearer;
-        this.refresh = refresh;
-        this.scope = scope;
-        this.expireEpoch = (System.currentTimeMillis() / 1000) + expireSecs;
-    }
-
-    public String getBearer() {
-        return bearer;
-    }
-
-    public String getRefresh() {
-        return refresh;
-    }
-
-    public String getScope() {
-        return scope;
-    }
-
-    public long getExpirationTime() {
-        return expireEpoch;
-    }
-
+    public static final String EXCLAMATION = "❗";
 }

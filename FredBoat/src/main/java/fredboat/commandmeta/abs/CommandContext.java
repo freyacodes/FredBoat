@@ -62,6 +62,7 @@ public class CommandContext extends Context {
 
     public String prefix = Config.CONFIG.getPrefix();  // useless for now but custom prefixes anyone?
     public String trigger = "";                        // the command trigger, e.g. "play", or "p", or "pLaY", whatever the user typed
+    public String cmdName = "";                        // this is the actual command name
     public String[] args = new String[0];              // the arguments including prefix + trigger in args[0]
     public Command command = null;
 
@@ -81,6 +82,7 @@ public class CommandContext extends Context {
             context.trigger = matcher.group();
             CommandRegistry.CommandEntry entry = CommandRegistry.getCommand(context.trigger.toLowerCase());
             if (entry != null) {
+                context.cmdName = entry.name;
                 context.command = entry.command;
                 context.args = CommandManager.commandToArguments(context.msg.getRawContent());
                 return context;

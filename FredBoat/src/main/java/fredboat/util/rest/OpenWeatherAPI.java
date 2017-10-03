@@ -64,13 +64,7 @@ public class OpenWeatherAPI implements Weather {
         // Strip all the query string that is not alphanumeric.
         query = query.replaceAll("[^A-Za-z0-9 ]", "");
 
-        RetrievedWeather retrievedWeather = weatherCache.getUnchecked(query);
-
-        if (retrievedWeather == null) {
-            retrievedWeather = new WeatherError();
-        }
-
-        return retrievedWeather;
+        return weatherCache.getUnchecked(query);
     }
 
     /**
@@ -121,6 +115,10 @@ public class OpenWeatherAPI implements Weather {
             } else {
                 throw new APILimitException("OpenWeather API maximum rate exceeded.");
             }
+        }
+
+        if (retrievedWeather == null) {
+            retrievedWeather = new WeatherError();
         }
         return retrievedWeather;
     }

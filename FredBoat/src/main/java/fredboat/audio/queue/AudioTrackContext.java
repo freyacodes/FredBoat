@@ -27,28 +27,33 @@ package fredboat.audio.queue;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.FredBoat;
+import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
+import fredboat.messaging.internal.LeakSafeContext;
+import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.TextChannel;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class AudioTrackContext implements Comparable<AudioTrackContext> {
+public class AudioTrackContext extends LeakSafeContext implements Comparable<AudioTrackContext> {
 
     protected final AudioTrack track;
-    private final long userId;
-    private final long guildId;
     private final long added;
     private int rand;
     private final long trackId; //used to identify this track even when the track gets cloned and the rand reranded
 
     public AudioTrackContext(AudioTrack at, Member member) {
-        this(at, member.getUser().getIdLong(), member.getGuild().getIdLong());
+        this(at, member.getGuild().getIdLong(), member.getUser().getIdLong());
     }
 
-    public AudioTrackContext(AudioTrack at, long userId, long guildId) {
+    protected AudioTrackContext(AudioTrack at, long guildId, long userId) {
+        //It's ok to set a non-existing channelId, since inside the AudioTrackContext, the channel needs to be looked up
+        // every time. See the getTextChannel() below for doing that.
+        super(-1, guildId, userId);
         this.track = at;
-        this.userId = userId;
-        this.guildId = guildId;
         this.added = System.currentTimeMillis();
         this.rand = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         this.trackId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE);
@@ -97,8 +102,12 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
 
     //NOTE: convenience method that returns the position of the track currently playing in the guild where this track was added
     public long getEffectivePosition() {
-        //todo the looked up guild may be null. does this need to be handled?
-        return PlayerRegistry.get(FredBoat.getGuildById(guildId)).getPosition();
+        Guild guild = FredBoat.getGuildById(guildId);
+        if (guild != null) {
+            return PlayerRegistry.get(guild).getPosition();
+        } else {
+            return getStartPosition();
+        }
     }
 
     public String getEffectiveTitle() {
@@ -110,14 +119,8 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
     }
 
     @Override
-    public int compareTo(AudioTrackContext atc) {
-        if(rand > atc.getRand()) {
-            return 1;
-        } else if (rand < atc.getRand()) {
-            return -1;
-        } else {
-            return 0;
-        }
+    public int compareTo(@Nonnull AudioTrackContext atc) {
+        return Integer.compare(rand, atc.getRand());
     }
 
     @Override
@@ -140,5 +143,20 @@ public class AudioTrackContext implements Comparable<AudioTrackContext> {
         result = 31 * result + Long.hashCode(guildId);
         result = 31 * result + Long.hashCode(trackId);
         return result;
+    }
+
+    //return the currently active text channel of the associated guildplayer
+    @Override
+    @Nullable
+    public TextChannel getTextChannel() {
+        Guild guild = FredBoat.getGuildById(guildId);
+        if (guild != null) {
+            GuildPlayer guildPlayer = PlayerRegistry.getExisting(guild);
+            if (guildPlayer != null) {
+                return guildPlayer.getActiveTextChannel();
+            }
+        }
+
+        return null;
     }
 }

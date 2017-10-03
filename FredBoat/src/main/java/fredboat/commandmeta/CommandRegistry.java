@@ -27,8 +27,9 @@ package fredboat.commandmeta;
 
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
 
+import javax.annotation.Nonnull;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -60,12 +61,13 @@ public class CommandRegistry {
     public static void removeCommand(String name) {
         CommandEntry entry = new CommandEntry(new Command() {
             @Override
-            public void onInvoke(CommandContext context) {
+            public void onInvoke(@Nonnull CommandContext context) {
                 context.reply("This command is temporarily disabled");
             }
 
+            @Nonnull
             @Override
-            public String help(Guild guild) {
+            public String help(@Nonnull Context context) {
                 return "Temporarily disabled command";
             }
         }, name);

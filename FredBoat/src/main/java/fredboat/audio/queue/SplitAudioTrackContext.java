@@ -26,10 +26,9 @@
 package fredboat.audio.queue;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import lavalink.client.player.TrackData;
 import net.dv8tion.jda.core.entities.Member;
 
-// TODO: Fix
-@Deprecated
 public class SplitAudioTrackContext extends AudioTrackContext {
 
     private final long startPos;
@@ -45,6 +44,8 @@ public class SplitAudioTrackContext extends AudioTrackContext {
         this.startPos = startPos;
         this.endPos = endPos;
         this.title = title;
+
+        at.setUserData(new TrackData(startPos, endPos));
     }
 
     @Override

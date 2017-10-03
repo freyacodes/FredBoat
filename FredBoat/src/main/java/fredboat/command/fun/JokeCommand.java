@@ -30,16 +30,17 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
 import org.json.JSONObject;
 
+import javax.annotation.Nonnull;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class JokeCommand extends Command implements IFunCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         try {
             JSONObject object = Unirest.get("http://api.icndb.com/jokes/random").asJson().getBody().getObject();
 
@@ -64,8 +65,9 @@ public class JokeCommand extends Command implements IFunCommand {
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} @<username>\n#Tell a joke about a user.";
     }
 }

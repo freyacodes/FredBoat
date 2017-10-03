@@ -31,29 +31,23 @@ import fredboat.FredBoat;
 import net.dv8tion.jda.core.JDA;
 import org.slf4j.LoggerFactory;
 
-public class CarbonitexAgent extends Thread {
+import java.util.concurrent.TimeUnit;
+
+public class CarbonitexAgent extends FredBoatAgent {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(CarbonitexAgent.class);
 
     private final String key;
 
     public CarbonitexAgent(String key) {
-        super(CarbonitexAgent.class.getSimpleName());
+        super("carbonitex", 30, TimeUnit.MINUTES);
         this.key = key;
     }
 
     @Override
-    public void run() {
-        try {
-            //noinspection InfiniteLoopStatement
-            while (true) {
-                synchronized (this) {
-                    sendStats();
-                    sleep(30 * 60 * 1000);
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+    public void doRun() {
+        synchronized (this) {
+            sendStats();
         }
 
     }

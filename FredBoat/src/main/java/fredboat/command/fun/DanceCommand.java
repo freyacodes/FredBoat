@@ -30,15 +30,16 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.event.EventListenerBoat;
 import fredboat.messaging.CentralMessaging;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 public class DanceCommand extends Command implements IFunCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         Runnable func = new Runnable() {
             @Override
             public void run() {
@@ -66,8 +67,9 @@ public class DanceCommand extends Command implements IFunCommand {
         thread.start();
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Dance for a minute.";
     }
 }

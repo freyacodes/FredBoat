@@ -28,12 +28,11 @@ package fredboat.command.util;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.util.BrainfuckException;
-import net.dv8tion.jda.core.entities.Guild;
 
+import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
-import java.text.MessageFormat;
 
 public class BrainfuckCommand extends Command implements IUtilCommand {
 
@@ -41,7 +40,7 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
     char[] code;
     public static final int MAX_CYCLE_COUNT = 10000;
 
-    public String process(String input, Guild guild) {
+    public String process(String input, Context context) {
         int data = 0;
         char[] inChars = input.toCharArray();
         int inChar = 0;
@@ -50,7 +49,7 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
         for (int instruction = 0; instruction < code.length; ++instruction) {
             cycleCount++;
             if (cycleCount > MAX_CYCLE_COUNT) {
-                throw new BrainfuckException(MessageFormat.format(I18n.get(guild).getString("brainfuckCycleLimit"), MAX_CYCLE_COUNT));
+                throw new BrainfuckException(context.i18nFormat("brainfuckCycleLimit", MAX_CYCLE_COUNT));
             }
             char command = code[instruction];
             switch (command) {
@@ -60,7 +59,7 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
                 case '<':
                     --data;
                     if(data < 0){
-                        throw new BrainfuckException(MessageFormat.format(I18n.get(guild).getString("brainfuckDataPointerOutOfBounds"), data));
+                        throw new BrainfuckException(context.i18nFormat("brainfuckDataPointerOutOfBounds", data));
                     }
                     break;
                 case '+':
@@ -77,7 +76,7 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
                         bytes.put(data, (byte) inChars[inChar++]);
                         break;
                     } catch (IndexOutOfBoundsException ex) {
-                        throw new BrainfuckException(MessageFormat.format(I18n.get(guild).getString("brainfuckInputOOB"), inChar - 1), ex);
+                        throw new BrainfuckException(context.i18nFormat("brainfuckInputOOB", inChar - 1), ex);
                     }
                 case '[':
                     if (bytes.get(data) == 0) {
@@ -111,7 +110,7 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
     }
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
 
         if (context.args.length == 1) {
             HelpCommand.sendFormattedCommandHelp(context);
@@ -130,7 +129,7 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
 
         inputArg = inputArg.replaceAll("ZERO", String.valueOf((char) 0));
 
-        String out = process(inputArg, context.guild);
+        String out = process(inputArg, context);
         //TextUtils.replyWithMention(channel, invoker, " " + out);
         String out2 = "";
         for (char c : out.toCharArray()) {
@@ -140,14 +139,15 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
         try {
             context.replyWithName(" " + out + "\n-------\n" + out2.substring(1));
         } catch (IndexOutOfBoundsException ex) {
-            context.replyWithName(I18n.get(context, "brainfuckNoOutput"));
+            context.replyWithName(context.i18n("brainfuckNoOutput"));
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         String usage = "{0}{1} <code> [input]\n#";
         String example = " {0}{1} ,.+.+. a";
-        return usage + I18n.get(guild).getString("helpBrainfuckCommand") + example;
+        return usage + context.i18n("helpBrainfuckCommand") + example;
     }
 }

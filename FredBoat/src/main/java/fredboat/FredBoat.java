@@ -31,9 +31,9 @@ import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.agent.CarbonitexAgent;
 import fredboat.agent.DBConnectionWatchdogAgent;
+import fredboat.agent.FredBoatAgent;
 import fredboat.agent.ShardWatchdogAgent;
 import fredboat.api.API;
-import fredboat.api.OAuthManager;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
@@ -46,11 +46,11 @@ import fredboat.event.EventListenerBoat;
 import fredboat.event.ShardWatchdogListener;
 import fredboat.feature.I18n;
 import fredboat.shared.constant.DistributionEnum;
+import fredboat.util.AppInfo;
+import fredboat.util.GitRepoState;
 import fredboat.util.JDAUtil;
 import fredboat.util.rest.OpenWeatherAPI;
 import fredboat.util.rest.models.weather.RetrievedWeather;
-import frederikam.jca.JCA;
-import frederikam.jca.JCABuilder;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDAInfo;
@@ -60,16 +60,17 @@ import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.managers.AudioManager;
-import okhttp3.OkHttpClient;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -80,8 +81,7 @@ public abstract class FredBoat {
 
     static final int SHARD_CREATION_SLEEP_INTERVAL = 5500;
 
-    private static final ArrayList<FredBoat> shards = new ArrayList<>();
-    public static JCA jca;
+    private static final List<FredBoat> shards = new CopyOnWriteArrayList<>();
     public static final long START_TIME = System.currentTimeMillis();
     public static final int UNKNOWN_SHUTDOWN_CODE = -991023;
     public static int shutdownCode = UNKNOWN_SHUTDOWN_CODE;//Used when specifying the intended code for shutdown hooks
@@ -98,9 +98,6 @@ public abstract class FredBoat {
 
     JDA jda;
 
-    private static ShardWatchdogAgent shardWatchdogAgent;
-    private static DBConnectionWatchdogAgent dbConnectionWatchdogAgent;
-
     private static DatabaseManager dbManager;
 
     public static void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException, IOException, UnirestException {
@@ -112,26 +109,30 @@ public abstract class FredBoat {
                 " | |__ _ __ ___  __| | |_) | ___   __ _| |_ \n" +
                 " |  __| '__/ _ \\/ _` |  _ < / _ \\ / _` | __|\n" +
                 " | |  | | |  __/ (_| | |_) | (_) | (_| | |_ \n" +
-                " |_|  |_|  \\___|\\__,_|____/ \\___/ \\__,_|\\__|\n\n");
+                " |_|  |_|  \\___|\\__,_|____/ \\___/ \\__,_|\\__|\n\n"
+
+                + "\n\tVersion:       " + AppInfo.getAppInfo().VERSION
+                + "\n\tBuild:         " + AppInfo.getAppInfo().BUILD_NUMBER
+                + "\n\tCommit:        " + GitRepoState.getGitRepositoryState().commitIdAbbrev + " (" + GitRepoState.getGitRepositoryState().branch +  ")"
+                + "\n\tCommit time:   " + GitRepoState.getGitRepositoryState().commitTime
+                + "\n\tJVM:           " + System.getProperty("java.version")
+                + "\n\tJDA:           " + JDAInfo.VERSION
+                + "\n");
+
+        String javaVersionMinor = System.getProperty("java.version").split("\\.")[1];
+
+        if (!javaVersionMinor.equals("8")) {
+            log.warn("\n\t\t __      ___   ___ _  _ ___ _  _  ___ \n" +
+                    "\t\t \\ \\    / /_\\ | _ \\ \\| |_ _| \\| |/ __|\n" +
+                    "\t\t  \\ \\/\\/ / _ \\|   / .` || || .` | (_ |\n" +
+                    "\t\t   \\_/\\_/_/ \\_\\_|_\\_|\\_|___|_|\\_|\\___|\n" +
+                    "\t\t                                      ");
+            log.warn("FredBoat only supports Java 8. You are running Java " + javaVersionMinor);
+        }
 
         I18n.start();
 
-        int scope;
-        try {
-            scope = Integer.parseInt(args[0]);
-        } catch (NumberFormatException | ArrayIndexOutOfBoundsException ignored) {
-            log.info("Invalid scope, defaulting to scopes 0x111");
-            scope = 0x111;
-        }
-
-        log.info("Starting with scopes:"
-                + "\n\tMain: " + ((scope & 0x100) == 0x100)
-                + "\n\tMusic: " + ((scope & 0x010) == 0x010)
-                + "\n\tSelf: " + ((scope & 0x001) == 0x001));
-
-        log.info("JDA version:\t" + JDAInfo.VERSION);
-
-        Config.loadDefaultConfig(scope);
+        Config.loadDefaultConfig();
 
         try {
             API.start();
@@ -142,8 +143,7 @@ public abstract class FredBoat {
         if (!Config.CONFIG.getJdbcUrl().equals("")) {
             dbManager = new DatabaseManager(Config.CONFIG.getJdbcUrl(), null, Config.CONFIG.getHikariPoolSize());
             dbManager.startup();
-            dbConnectionWatchdogAgent = new DBConnectionWatchdogAgent(dbManager);
-            dbConnectionWatchdogAgent.start();
+            FredBoatAgent.start(new DBConnectionWatchdogAgent(dbManager));
         } else if (Config.CONFIG.getNumShards() > 2) {
             log.warn("No JDBC URL and more than 2 shard found! Initializing the SQLi DB is potentially dangerous too. Skipping...");
         } else {
@@ -153,23 +153,12 @@ public abstract class FredBoat {
             dbManager.startup();
         }
 
-        try {
-            if (!Config.CONFIG.getOauthSecret().equals("")) {
-                OAuthManager.start(Config.CONFIG.getBotToken(), Config.CONFIG.getOauthSecret());
-            } else {
-                log.warn("No oauth secret found, skipped initialization of OAuth2 client");
-            }
-        } catch (Exception e) {
-            log.info("Failed to start OAuth2 client", e);
-        }
-
         //Initialise event listeners
         listenerBot = new EventListenerBoat();
         LavalinkManager.ins.start();
 
         //Commands
-        if (Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT
-                || Config.CONFIG.getDistribution() == DistributionEnum.MAIN)
+        if (Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT)
             MainCommandInitializer.initCommands();
 
         if (Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT
@@ -188,41 +177,14 @@ public abstract class FredBoat {
         //Check OpenWeather key
         executor.submit(FredBoat::hasValidOpenWeatherKey);
 
-        //Initialise JCA
-        executor.submit(FredBoat::loadJCA);
-
         /* Init JDA */
-
-        if ((Config.CONFIG.getScope() & 0x110) != 0) {
-            initBotShards(listenerBot);
-        }
+        initBotShards(listenerBot);
 
         if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && Config.CONFIG.getCarbonKey() != null) {
-            CarbonitexAgent carbonitexAgent = new CarbonitexAgent(Config.CONFIG.getCarbonKey());
-            carbonitexAgent.setDaemon(true);
-            carbonitexAgent.start();
+            FredBoatAgent.start(new CarbonitexAgent(Config.CONFIG.getCarbonKey()));
         }
 
-        shardWatchdogAgent = new ShardWatchdogAgent();
-        shardWatchdogAgent.setDaemon(true);
-        shardWatchdogAgent.start();
-    }
-
-    private static boolean loadJCA() {
-        boolean result = true;
-        try {
-            if (!Config.CONFIG.getCbUser().equals("") && !Config.CONFIG.getCbKey().equals("")) {
-                log.info("Starting CleverBot");
-                jca = new JCABuilder().setKey(Config.CONFIG.getCbKey()).setUser(Config.CONFIG.getCbUser()).buildBlocking();
-            } else {
-                log.warn("Credentials not found for cleverbot authentication. Skipping...");
-                result = false;
-            }
-        } catch (Exception e) {
-            log.error("Error when starting JCA", e);
-            result = false;
-        }
-        return result;
+        FredBoatAgent.start(new ShardWatchdogAgent());
     }
 
     private static boolean hasValidMALLogin() {
@@ -362,8 +324,7 @@ public abstract class FredBoat {
     private static final Runnable ON_SHUTDOWN = () -> {
         int code = shutdownCode != UNKNOWN_SHUTDOWN_CODE ? shutdownCode : -1;
 
-        shardWatchdogAgent.shutdown();
-        if (dbConnectionWatchdogAgent != null) dbConnectionWatchdogAgent.shutdown();
+        FredBoatAgent.shutdown();
 
         try {
             MusicPersistenceHandler.handlePreShutdown(code);
@@ -442,6 +403,7 @@ public abstract class FredBoat {
         return JDAUtil.countAllUniqueUsers(shards, biggestUserCount);
     }
 
+    @Nullable
     public static TextChannel getTextChannelById(String id) {
         for (FredBoat fb : shards) {
             for (TextChannel channel : fb.getJda().getTextChannels()) {
@@ -452,6 +414,7 @@ public abstract class FredBoat {
         return null;
     }
 
+    @Nullable
     public static VoiceChannel getVoiceChannelById(String id) {
         for (FredBoat fb : shards) {
             for (VoiceChannel channel : fb.getJda().getVoiceChannels()) {
@@ -462,6 +425,7 @@ public abstract class FredBoat {
         return null;
     }
 
+    @Nullable
     public static Guild getGuildById(long id) {
         for (FredBoat fb : shards) {
             Guild g = fb.getJda().getGuildById(id);

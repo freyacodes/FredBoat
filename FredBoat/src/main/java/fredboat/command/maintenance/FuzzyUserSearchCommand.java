@@ -29,24 +29,24 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.util.ArgumentUtil;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
 public class FuzzyUserSearchCommand extends Command implements IMaintenanceCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         if (context.args.length == 1) {
             HelpCommand.sendFormattedCommandHelp(context);
         } else {
             List<Member> list = ArgumentUtil.fuzzyMemberSearch(context.guild, context.args[1], true);
 
             if(list.isEmpty()){
-                context.replyWithName(I18n.get(context, "fuzzyNoResults"));
+                context.replyWithName(context.i18n("fuzzyNoResults"));
                 return;
             }
 
@@ -61,8 +61,9 @@ public class FuzzyUserSearchCommand extends Command implements IMaintenanceComma
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} <term>\n#Fuzzy search for users in this guild.";
     }
 }

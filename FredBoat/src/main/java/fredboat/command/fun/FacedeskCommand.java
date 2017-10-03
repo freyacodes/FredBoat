@@ -27,10 +27,9 @@ package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
-import fredboat.feature.I18n;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 public class FacedeskCommand extends RandomImageCommand implements IFunCommand {
 
@@ -43,16 +42,17 @@ public class FacedeskCommand extends RandomImageCommand implements IFunCommand {
     }
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         String facedeskMessage = "_"
-                + MessageFormat.format(I18n.get(context, "facedeskSuccess"), context.invoker.getAsMention())
+                + context.i18nFormat("facedeskSuccess", context.invoker.getAsMention())
                 + "_";
 
         context.replyImage(super.getRandomImageUrl(), facedeskMessage);
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Facedesk.";
     }
 }

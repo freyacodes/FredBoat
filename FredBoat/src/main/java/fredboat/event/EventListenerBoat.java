@@ -24,10 +24,11 @@
  */
 package fredboat.event;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.command.fun.TalkCommand;
 import fredboat.command.music.control.SkipCommand;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.CommandManager;
@@ -36,7 +37,6 @@ import fredboat.db.EntityReader;
 import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
-import fredboat.util.TextUtils;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
 import net.dv8tion.jda.core.Permission;
@@ -56,9 +56,7 @@ import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class EventListenerBoat extends AbstractEventListener {
 
@@ -66,8 +64,10 @@ public class EventListenerBoat extends AbstractEventListener {
 
     //first string is the users message ID, second string the id of fredboat's message that should be deleted if the
     // user's message is deleted
-    //todo this is, while not a super crazy one, but still a source of memory leaks. find a better way
-    public static Map<Long, Long> messagesToDeleteIfIdDeleted = new HashMap<>();
+    public static final Cache<Long, Long> messagesToDeleteIfIdDeleted = CacheBuilder.newBuilder()
+            .expireAfterWrite(6, TimeUnit.HOURS)
+            .build();
+
     private User lastUserToReceiveHelp;
 
     public EventListenerBoat() {
@@ -117,15 +117,6 @@ public class EventListenerBoat extends AbstractEventListener {
             }
 
             limitOrExecuteCommand(context);
-        } else if (event.getMessage().getMentionedUsers().contains(event.getJDA().getSelfUser())) {
-            log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
-            CommandManager.commandsExecuted.getAndIncrement();
-            //regex101.com/r/9aw6ai/1/
-            String message = event.getMessage().getRawContent().replaceAll("<@!?[0-9]*>", "");
-            String response = TalkCommand.talk(message);
-            if (response != null && !response.isEmpty()) {
-                CentralMessaging.sendMessage(event.getChannel(), TextUtils.prefaceWithName(event.getMember(), response));
-            }
         }
     }
 
@@ -142,10 +133,10 @@ public class EventListenerBoat extends AbstractEventListener {
         if (ratelimiterResult.a)
             CommandManager.prefixCalled(context);
         else {
-            String out = I18n.get(context, "ratelimitedGeneralInfo");
+            String out = context.i18n("ratelimitedGeneralInfo");
             if (ratelimiterResult.b == SkipCommand.class) { //we can compare classes with == as long as we are using the same classloader (which we are)
                 //add a nice reminder on how to skip more than 1 song
-                out += "\n" + MessageFormat.format(I18n.get(context, "ratelimitedSkipCommand"),
+                out += "\n" + context.i18nFormat("ratelimitedSkipCommand",
                         "`" + Config.CONFIG.getPrefix() + "skip n-m`");
             }
             context.replyWithMention(out);
@@ -154,9 +145,10 @@ public class EventListenerBoat extends AbstractEventListener {
 
     @Override
     public void onMessageDelete(MessageDeleteEvent event) {
-        if (messagesToDeleteIfIdDeleted.containsKey(event.getMessageIdLong())) {
-            long msgId = messagesToDeleteIfIdDeleted.remove(event.getMessageIdLong());
-            CentralMessaging.deleteMessageById(event.getChannel(), msgId);
+        Long toDelete = messagesToDeleteIfIdDeleted.getIfPresent(event.getMessageIdLong());
+        if (toDelete != null) {
+            messagesToDeleteIfIdDeleted.invalidate(toDelete);
+            CentralMessaging.deleteMessageById(event.getChannel(), toDelete);
         }
     }
 
@@ -207,7 +199,7 @@ public class EventListenerBoat extends AbstractEventListener {
 
     private void checkForAutoResume(VoiceChannel joinedChannel, Member joined) {
         Guild guild = joinedChannel.getGuild();
-        //ignore bot users taht arent us joining / moving
+        //ignore bot users that arent us joining / moving
         if (joined.getUser().isBot()
                 && guild.getSelfMember().getUser().getIdLong() != joined.getUser().getIdLong()) return;
 
@@ -245,12 +237,12 @@ public class EventListenerBoat extends AbstractEventListener {
         }
 
         //are we in the channel that someone left from?
-        if (guild.getSelfMember().getVoiceState().inVoiceChannel() &&
-                guild.getSelfMember().getVoiceState().getChannel().getIdLong() != channelLeft.getIdLong()) {
+        VoiceChannel currentVc = player.getCurrentVoiceChannel();
+        if (currentVc != null && currentVc.getIdLong() != channelLeft.getIdLong()) {
             return;
         }
 
-        if (player.getHumanUsersInCurrentVC().isEmpty() && !player.isPaused()) {
+        if (player.getHumanUsersInVC(currentVc).isEmpty() && !player.isPaused()) {
             player.pause();
             TextChannel activeTextChannel = player.getActiveTextChannel();
             if (activeTextChannel != null) {

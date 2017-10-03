@@ -35,21 +35,20 @@ import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.entities.Guild;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.util.List;
 
 public class ExportCommand extends Command implements IMusicCommand {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         GuildPlayer player = PlayerRegistry.get(context.guild);
         
         if (player.isQueueEmpty()) {
-            throw new MessagingException(I18n.get(context, "exportEmpty"));
+            throw new MessagingException(context.i18n("exportEmpty"));
         }
         
         List<AudioTrackContext> tracks = player.getRemainingTracks();
@@ -66,17 +65,17 @@ public class ExportCommand extends Command implements IMusicCommand {
         
         try {
             String url = TextUtils.postToPasteService(out) + ".fredboat";
-            context.reply(MessageFormat.format(I18n.get(context, "exportPlaylistResulted"), url));
+            context.reply(context.i18nFormat("exportPlaylistResulted", url));
         } catch (UnirestException ex) {
-            throw new MessagingException(I18n.get(context, "exportPlaylistFail"));
+            throw new MessagingException(context.i18n("exportPlaylistFail"));
         }
         
         
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpExportCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpExportCommand");
     }
 }

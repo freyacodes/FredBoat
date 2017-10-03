@@ -30,15 +30,16 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
 
+import javax.annotation.Nonnull;
 import java.net.URI;
 import java.net.URISyntaxException;
 
 public class NodeAdminCommand extends Command implements ICommandRestricted {
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         if (!LavalinkManager.ins.isEnabled()) {
             context.reply("Lavalink is disabled");
         }
@@ -83,8 +84,9 @@ public class NodeAdminCommand extends Command implements ICommandRestricted {
         context.reply("Added node: " + uri.toString());
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Add or remove lavalink nodes.";
     }
 

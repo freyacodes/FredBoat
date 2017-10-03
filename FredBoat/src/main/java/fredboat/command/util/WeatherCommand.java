@@ -5,12 +5,14 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.util.rest.APILimitException;
 import fredboat.util.rest.Weather;
 import fredboat.util.rest.models.weather.RetrievedWeather;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 
+import javax.annotation.Nonnull;
 import java.text.MessageFormat;
 
 public class WeatherCommand extends Command implements IUtilCommand {
@@ -71,8 +73,9 @@ public class WeatherCommand extends Command implements IUtilCommand {
         HelpCommand.sendFormattedCommandHelp(context);
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        return HELP_STRING_FORMAT + I18n.get(guild).getString("helpWeatherCommand");
+    public String help(@Nonnull Context context) {
+        return HELP_STRING_FORMAT + I18n.get(context.getGuild()).getString("helpWeatherCommand");
     }
 }

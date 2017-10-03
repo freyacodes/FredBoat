@@ -28,7 +28,7 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.Permission;
@@ -38,7 +38,7 @@ import net.dv8tion.jda.core.requests.RestAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
 /**
@@ -53,7 +53,7 @@ public class HardbanCommand extends Command implements IModerationCommand {
     private static final Logger log = LoggerFactory.getLogger(HardbanCommand.class);
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         String[] args = context.args;
         Guild guild = context.guild;
         //Ensure we have a search term
@@ -77,13 +77,13 @@ public class HardbanCommand extends Command implements IModerationCommand {
         RestAction<Void> modAction = guild.getController().ban(target, 7, auditLogReason);
 
         //on success
-        String successOutput = MessageFormat.format(I18n.get(guild).getString("hardbanSuccess"),
+        String successOutput = context.i18nFormat("hardbanSuccess",
                 target.getUser().getName(), target.getUser().getDiscriminator(), target.getUser().getId())
                 + "\n" + plainReason;
         Consumer<Void> onSuccess = aVoid -> context.replyWithName(successOutput);
 
         //on fail
-        String failOutput = MessageFormat.format(I18n.get(guild).getString("modBanFail"), target.getUser());
+        String failOutput = context.i18nFormat("modBanFail", target.getUser());
         Consumer<Throwable> onFail = t -> {
             log.error("Failed to ban user {} in guild {}", target.getUser().getIdLong(), guild.getIdLong(), t);
             context.replyWithName(failOutput);
@@ -96,37 +96,37 @@ public class HardbanCommand extends Command implements IModerationCommand {
     private boolean checkHardBanAuthorization(CommandContext context, Member target) {
         Member mod = context.invoker;
         if (mod == target) {
-            context.replyWithName(I18n.get(context, "hardbanFailSelf"));
+            context.replyWithName(context.i18n("hardbanFailSelf"));
             return false;
         }
 
         if (target.isOwner()) {
-            context.replyWithName(I18n.get(context, "hardbanFailOwner"));
+            context.replyWithName(context.i18n("hardbanFailOwner"));
             return false;
         }
 
         if (target == target.getGuild().getSelfMember()) {
-            context.replyWithName(I18n.get(context, "hardbanFailMyself"));
+            context.replyWithName(context.i18n("hardbanFailMyself"));
             return false;
         }
 
         if (!mod.hasPermission(Permission.BAN_MEMBERS, Permission.KICK_MEMBERS) && !mod.isOwner()) {
-            context.replyWithName(I18n.get(context, "modKickBanFailUserPerms"));
+            context.replyWithName(context.i18n("modKickBanFailUserPerms"));
             return false;
         }
 
         if (DiscordUtil.getHighestRolePosition(mod) <= DiscordUtil.getHighestRolePosition(target) && !mod.isOwner()) {
-            context.replyWithName(MessageFormat.format(I18n.get(context, "modFailUserHierarchy"), target.getEffectiveName()));
+            context.replyWithName(context.i18nFormat("modFailUserHierarchy", target.getEffectiveName()));
             return false;
         }
 
         if (!mod.getGuild().getSelfMember().hasPermission(Permission.BAN_MEMBERS)) {
-            context.replyWithName(I18n.get(context, "modBanBotPerms"));
+            context.replyWithName(context.i18n("modBanBotPerms"));
             return false;
         }
 
         if (DiscordUtil.getHighestRolePosition(mod.getGuild().getSelfMember()) <= DiscordUtil.getHighestRolePosition(target)) {
-            context.replyWithName(MessageFormat.format(I18n.get(context, "modFailBotHierarchy"), target.getEffectiveName()));
+            context.replyWithName(context.i18nFormat("modFailBotHierarchy", target.getEffectiveName()));
             return false;
         }
 
@@ -134,10 +134,10 @@ public class HardbanCommand extends Command implements IModerationCommand {
     }
 
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} <user> <reason>\n#";
-        return usage + I18n.get(guild).getString("helpHardbanCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} <user> <reason>\n#" + context.i18n("helpHardbanCommand");
     }
 }
 

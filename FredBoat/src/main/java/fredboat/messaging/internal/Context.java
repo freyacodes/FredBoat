@@ -25,6 +25,8 @@
 
 package fredboat.messaging.internal;
 
+import fredboat.commandmeta.MessagingException;
+import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.MessageFuture;
 import fredboat.util.TextUtils;
@@ -35,10 +37,15 @@ import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
+import java.text.MessageFormat;
+import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
 /**
@@ -48,6 +55,8 @@ import java.util.function.Consumer;
  * Also home to a bunch of convenience methods
  */
 public abstract class Context {
+
+    private static final Logger log = LoggerFactory.getLogger(Context.class);
 
     public abstract TextChannel getTextChannel();
 
@@ -138,8 +147,43 @@ public abstract class Context {
     }
 
     //checks whether we have the provided permissions for the channel of this context
+    @CheckReturnValue
     public boolean hasPermissions(Permission... permissions) {
         return getGuild().getSelfMember().hasPermission(getTextChannel(), permissions);
+    }
+
+    //return a single translated string
+    @CheckReturnValue
+    public String i18n(@Nonnull String key) {
+        if (getI18n().containsKey(key)) {
+            return getI18n().getString(key);
+        } else {
+            log.warn("Missing language entry for key {} in language {}", key, I18n.getLocale(getGuild()).getCode());
+            return I18n.DEFAULT.getProps().getString(key);
+        }
+    }
+
+    //return a translated string with applied formatting
+    @CheckReturnValue
+    public String i18nFormat(@Nonnull String key, Object... params) {
+        if (params == null || params.length == 0) {
+            log.warn("Context#i18nFormat() called with empty or null params, this is likely a bug.",
+                    new MessagingException("a stack trace to help find the source"));
+        }
+        return MessageFormat.format(this.i18n(key), params);
+    }
+
+    // ********************************************************************************
+    //                         Internal context stuff
+    // ********************************************************************************
+
+    private ResourceBundle i18n;
+
+    private ResourceBundle getI18n() {
+        if (this.i18n == null) {
+            this.i18n = I18n.get(getGuild());
+        }
+        return this.i18n;
     }
 
     private static MessageEmbed embedImage(String url) {

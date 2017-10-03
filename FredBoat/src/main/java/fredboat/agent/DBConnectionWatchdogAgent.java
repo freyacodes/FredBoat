@@ -28,53 +28,43 @@ import fredboat.db.DatabaseManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Created by napster on 01.05.17.
  * <p>
  * Tries to recover the database from a failed state
  */
 
-public class DBConnectionWatchdogAgent extends Thread {
+public class DBConnectionWatchdogAgent extends FredBoatAgent {
 
     private static final Logger log = LoggerFactory.getLogger(DBConnectionWatchdogAgent.class);
-    private static final int INTERVAL_MILLIS = 5000; // 5 sec
-
-    private boolean shutdown = false;
 
     private DatabaseManager dbManager;
 
     public DBConnectionWatchdogAgent(DatabaseManager dbManager) {
-        super(DBConnectionWatchdogAgent.class.getSimpleName());
-        setDaemon(true);
+        super("database connection", 5, TimeUnit.SECONDS);
         this.dbManager = dbManager;
     }
 
     @Override
-    public void run() {
-        log.info("Started database connection agent");
+    public void doRun() {
 
-        while (!shutdown) {
-            try {
-                sleep(INTERVAL_MILLIS);
+        try {
 
-                //we have to proactively call this, as it checks the ssh tunnel for connectivity and does a validation
-                //query against the DB
-                //the ssh tunnel does detect a disconnect, but doesn't provide a callback for that, so we have to check
-                //it ourselves
-                dbManager.isAvailable();
+            //we have to proactively call this, as it checks the ssh tunnel for connectivity and does a validation
+            //query against the DB
+            //the ssh tunnel does detect a disconnect, but doesn't provide a callback for that, so we have to check
+            //it ourselves
+            dbManager.isAvailable();
 
-                //only recover the database from a failed state
-                if (dbManager.getState() == DatabaseManager.DatabaseState.FAILED) {
-                    log.info("Attempting to recover failed database connection");
-                    dbManager.reconnectSSH();
-                }
-            } catch (Exception e) {
-                log.error("Caught an exception while trying to recover database connection!", e);
+            //only recover the database from a failed state
+            if (dbManager.getState() == DatabaseManager.DatabaseState.FAILED) {
+                log.info("Attempting to recover failed database connection");
+                dbManager.reconnectSSH();
             }
+        } catch (Exception e) {
+            log.error("Caught an exception while trying to recover database connection!", e);
         }
-    }
-
-    public void shutdown() {
-        shutdown = true;
     }
 }

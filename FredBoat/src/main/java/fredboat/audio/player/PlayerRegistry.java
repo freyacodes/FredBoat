@@ -28,23 +28,28 @@ package fredboat.audio.player;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Guild;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerRegistry {
 
-    private static final HashMap<String, GuildPlayer> REGISTRY = new HashMap<>();
+    private static final Map<String, GuildPlayer> REGISTRY = new ConcurrentHashMap<>();
     public static final float DEFAULT_VOLUME = 1f;
 
     public static void put(String k, GuildPlayer v) {
         REGISTRY.put(k, v);
     }
 
-    public static GuildPlayer get(Guild guild) {
+    @Nonnull
+    public static GuildPlayer get(@Nonnull Guild guild) {
         return get(guild.getJDA(), guild.getId());
     }
 
+    @Nonnull
     public static GuildPlayer get(JDA jda, String k) {
         GuildPlayer player = REGISTRY.get(k);
         if (player == null) {
@@ -61,10 +66,12 @@ public class PlayerRegistry {
         return player;
     }
 
+    @Nullable
     public static GuildPlayer getExisting(Guild guild) {
         return getExisting(guild.getJDA(), guild.getId());
     }
 
+    @Nullable
     public static GuildPlayer getExisting(JDA jda, String k) {
         if (REGISTRY.containsKey(k)) {
             return get(jda, k);
@@ -76,7 +83,7 @@ public class PlayerRegistry {
         return REGISTRY.remove(k);
     }
 
-    public static HashMap<String, GuildPlayer> getRegistry() {
+    public static Map<String, GuildPlayer> getRegistry() {
         return REGISTRY;
     }
 

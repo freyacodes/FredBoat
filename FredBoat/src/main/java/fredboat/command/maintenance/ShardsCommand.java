@@ -31,12 +31,13 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.impl.JDAImpl;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +47,7 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
 
     @SuppressWarnings("ConstantConditions")
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         MessageBuilder mb = null;
         List<Message> messages = new ArrayList<>();
 
@@ -57,8 +58,7 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
             full = true;
         }
 
-        //make a copy to avoid concurrent modification errors
-        List<FredBoat> shards = new ArrayList<>(FredBoat.getShards());
+        List<FredBoat> shards = FredBoat.getShards();
         int borkenShards = 0;
         int healthyGuilds = 0;
         int healthyUsers = 0;
@@ -106,8 +106,9 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} [full]\n#Show information about the shards of the bot as a summary or in a detailed report.";
     }
 }

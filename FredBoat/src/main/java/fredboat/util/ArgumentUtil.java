@@ -26,14 +26,12 @@
 package fredboat.util;
 
 import fredboat.commandmeta.abs.CommandContext;
-import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.IMentionable;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.Role;
 
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,12 +82,12 @@ public class ArgumentUtil {
 
         switch (list.size()) {
             case 0:
-                context.reply(MessageFormat.format(I18n.get(context, "fuzzyNothingFound"), term));
+                context.reply(context.i18nFormat("fuzzyNothingFound", term));
                 return null;
             case 1:
                 return list.get(0);
             default:
-                String msg = I18n.get(context, "fuzzyMultiple") + "\n```";
+                String msg = context.i18n("fuzzyMultiple") + "\n```";
 
                 for (int i = 0; i < 5; i++) {
                     if (list.size() == i) break;
@@ -107,12 +105,12 @@ public class ArgumentUtil {
     public static IMentionable checkSingleFuzzySearchResult(List<IMentionable> list, CommandContext context, String term) {
         switch (list.size()) {
             case 0:
-                context.reply(MessageFormat.format(I18n.get(context, "fuzzyNothingFound"), term));
+                context.reply(context.i18nFormat("fuzzyNothingFound", term));
                 return null;
             case 1:
                 return list.get(0);
             default:
-                String msg = I18n.get(context, "fuzzyMultiple") + "\n```";
+                String msg = context.i18n("fuzzyMultiple") + "\n```";
 
                 int i = 0;
                 for (IMentionable mentionable : list) {

@@ -28,7 +28,6 @@ package fredboat.api;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.db.entity.UConfig;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -36,8 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Spark;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class API {
 
@@ -69,9 +66,7 @@ public class API {
             JSONObject root = new JSONObject();
             JSONArray a = new JSONArray();
 
-            //make a copy to avoid concurrent modification errors
-            List<FredBoat> shards = new ArrayList<>(FredBoat.getShards());
-            for (FredBoat fb : shards) {
+            for (FredBoat fb : FredBoat.getShards()) {
                 JSONObject fbStats = new JSONObject();
                 fbStats.put("id", fb.getShardInfo().getShardId())
                         .put("guilds", fb.getGuildCount())
@@ -93,19 +88,6 @@ public class API {
 
             return root;
         });
-
-        Spark.post("/callback", (request, response) -> {
-            JSONObject out = new JSONObject();
-            JSONObject body = new JSONObject(request.body());
-
-            UConfig uconfig = OAuthManager.handleCallback(body.getString("code"));
-            out.put("bearer", uconfig.getBearer())
-                    .put("refresh", uconfig.getRefresh())
-                    .put("userId", uconfig.getUserId());
-
-            return out;
-        });
-
 
         /* Exception handling */
         Spark.exception(Exception.class, (e, request, response) -> {

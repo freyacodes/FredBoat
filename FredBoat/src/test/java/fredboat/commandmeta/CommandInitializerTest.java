@@ -1,5 +1,6 @@
 package fredboat.commandmeta;
 
+import fredboat.FakeContext;
 import fredboat.ProvideJDASingleton;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.init.MainCommandInitializer;
@@ -33,7 +34,7 @@ public class CommandInitializerTest extends ProvideJDASingleton {
         for (String c : CommandRegistry.getRegisteredCommandsAndAliases()) {
             Command com = CommandRegistry.getCommand(c).command;
 
-            String help = com.help(null); //sending no guild should have i18n fall back to the default
+            String help = com.help(new FakeContext(testChannel, testSelfMember, testGuild));
             Assertions.assertNotNull(help, () -> com.getClass().getName() + ".help() returns null");
             Assertions.assertNotEquals("", help, () -> com.getClass().getName() + ".help() returns an empty string");
         }

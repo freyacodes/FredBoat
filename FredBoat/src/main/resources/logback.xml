@@ -89,12 +89,6 @@
         </encoder>
     </appender>
 
-    <appender name="SENTRY" class="io.sentry.logback.SentryAppender">
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>WARN</level>
-        </filter>
-    </appender>
-
     <appender name="FB_STDOUT_DEBUG" class="ch.qos.logback.core.ConsoleAppender">
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <level>DEBUG</level>

@@ -26,7 +26,6 @@
 package fredboat.shared.constant;
 
 public enum DistributionEnum {
-    MAIN("production", false),
     MUSIC("music", false),
     DEVELOPMENT("beta", true),
     PATRON("patron", true);

@@ -29,11 +29,12 @@ import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.ExitCodes;
-import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -42,7 +43,7 @@ public class BotRestartCommand extends Command implements ICommandRestricted {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(BotRestartCommand.class);
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         try {
             context.replyWithName(" Restarting...").getWithDefaultTimeout();
         } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
@@ -51,8 +52,9 @@ public class BotRestartCommand extends Command implements ICommandRestricted {
         FredBoat.shutdown(ExitCodes.EXIT_CODE_RESTART);
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Restarts the bot.";
     }
 

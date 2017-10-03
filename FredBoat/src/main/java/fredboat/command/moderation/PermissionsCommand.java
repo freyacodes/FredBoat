@@ -32,9 +32,9 @@ import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
 import fredboat.db.entity.GuildPermissions;
-import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
@@ -50,7 +50,7 @@ import net.dv8tion.jda.core.utils.PermissionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,7 +65,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
     }
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         if (!FeatureFlags.PERMISSIONS.isActive()) {
             context.reply("Permissions are currently disabled.");
             return;
@@ -139,14 +139,14 @@ public class PermissionsCommand extends Command implements IModerationCommand {
                 && PermissionLevel.BOT_ADMIN.getLevel() > PermsUtil.getPerms(invoker).getLevel()
                 && !PermissionUtil.checkPermission(invoker, Permission.ADMINISTRATOR)
                 && !PermsUtil.checkList(newList, invoker)) {
-            context.replyWithName(I18n.get(context, "permsFailSelfDemotion"));
+            context.replyWithName(context.i18n("permsFailSelfDemotion"));
             return;
         }
 
         gp.setFromEnum(permissionLevel, newList);
         EntityWriter.mergeGuildPermissions(gp);
 
-        context.replyWithName(MessageFormat.format(I18n.get(context, "permsRemoved"), mentionableToName(selected), permissionLevel));
+        context.replyWithName(context.i18nFormat("permsRemoved", mentionableToName(selected), permissionLevel));
     }
 
     public void add(CommandContext context) {
@@ -167,7 +167,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         gp.setFromEnum(permissionLevel, newList);
         EntityWriter.mergeGuildPermissions(gp);
 
-        context.replyWithName(MessageFormat.format(I18n.get(guild).getString("permsAdded"), mentionableToName(selected), permissionLevel));
+        context.replyWithName(context.i18nFormat("permsAdded", mentionableToName(selected), permissionLevel));
     }
 
     public void list(CommandContext context) {
@@ -200,7 +200,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
 
         EmbedBuilder eb = CentralMessaging.getClearThreadLocalEmbedBuilder()
                 .setColor(BotConstants.FREDBOAT_COLOR)
-                .setTitle(MessageFormat.format(I18n.get(guild).getString("permsListTitle"), permissionLevel))
+                .setTitle(context.i18nFormat("permsListTitle", permissionLevel))
                 .setAuthor(invoker.getEffectiveName(), null, invoker.getUser().getAvatarUrl())
                 .addField("Roles", roleMentions, true)
                 .addField("Members", memberMentions, true)
@@ -247,10 +247,11 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         return out;
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         String usage = "{0}{1} add <role/user>\n{0}{1} del <role/user>\n{0}{1} list\n#";
-        return usage + MessageFormat.format(I18n.get(guild).getString("helpPerms"), permissionLevel.getName()) + " https://docs.fredboat.com/permissions";
+        return usage + context.i18nFormat("helpPerms", permissionLevel.getName()) + " https://docs.fredboat.com/permissions";
     }
 
 }

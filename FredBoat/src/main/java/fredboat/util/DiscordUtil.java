@@ -29,10 +29,10 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import fredboat.Config;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.feature.I18n;
 import fredboat.shared.constant.BotConstants;
+import net.dv8tion.jda.bot.entities.ApplicationInfo;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.OnlineStatus;
 import net.dv8tion.jda.core.entities.Guild;
@@ -45,6 +45,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
@@ -54,37 +55,14 @@ public class DiscordUtil {
     private static final Logger log = LoggerFactory.getLogger(DiscordUtil.class);
     private static final String USER_AGENT = "FredBoat DiscordBot (https://github.com/Frederikam/FredBoat, 1.0)";
 
-    private static String cachedOwnerId = null;
+    private static volatile ApplicationInfo discordAppInfo; //access this object through getApplicationInfo(jda)
+    private static final Object discordAppInfoLock = new Object();
 
     private DiscordUtil() {
     }
-
-    public static boolean isMainBot() {
-        return isMainBot(Config.CONFIG);
-    }
-
-    public static boolean isMusicBot() {
-        return isMusicBot(Config.CONFIG);
-    }
-
-    public static boolean isMainBot(Config conf) {
-        return (conf.getScope() & 0x100) != 0;
-    }
-
-    public static boolean isMusicBot(Config conf) {
-        return (conf.getScope() & 0x010) != 0;
-    }
-
+    
     public static String getOwnerId(JDA jda) {
-        if (cachedOwnerId != null) return cachedOwnerId;
-
-        try {
-            cachedOwnerId = getApplicationInfo(jda.getToken().substring(4)).getJSONObject("owner").getString("id");
-        } catch (UnirestException e) {
-            throw new RuntimeException(e);
-        }
-
-        return cachedOwnerId;
+        return getApplicationInfo(jda).getOwner().getId();
     }
 
     public static boolean isMainBotPresent(Guild guild) {
@@ -152,15 +130,19 @@ public class DiscordUtil {
         return null;
     }
 
-    // https://discordapp.com/developers/docs/topics/oauth2
-    @Deprecated
-    public static JSONObject getApplicationInfo(String token) throws UnirestException {
-        return Unirest.get(Requester.DISCORD_API_PREFIX + "/oauth2/applications/@me")
-                .header("Authorization", "Bot " + token)
-                .header("User-agent", USER_AGENT)
-                .asJson()
-                .getBody()
-                .getObject();
+    @Nonnull
+    public static ApplicationInfo getApplicationInfo(@Nonnull JDA jda) {
+        //double checked lock pattern
+        ApplicationInfo info = discordAppInfo;
+        if (info == null) {
+            synchronized (discordAppInfoLock) {
+                info = discordAppInfo;
+                if (info == null) {
+                    discordAppInfo = info = jda.asBot().getApplicationInfo().complete();
+                }
+            }
+        }
+        return info;
     }
 
     public static String getUserId(String token) throws UnirestException {
@@ -180,7 +162,7 @@ public class DiscordUtil {
             r = String.join(" ", Arrays.copyOfRange(context.args, 2, context.args.length));
         }
 
-        return I18n.get(context, "modReason") + ": " + (r != null ? r : "No reason provided.");
+        return context.i18n("modReason") + ": " + (r != null ? r : "No reason provided.");
     }
 
     public static String formatReasonForAuditLog(String plainReason, Member invoker) {

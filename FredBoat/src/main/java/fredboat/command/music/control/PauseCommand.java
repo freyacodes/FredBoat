@@ -32,32 +32,31 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 public class PauseCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         GuildPlayer player = PlayerRegistry.get(context.guild);
         player.setCurrentTC(context.channel);
         if (player.isQueueEmpty()) {
-            context.reply(I18n.get(context, "playQueueEmpty"));
+            context.reply(context.i18n("playQueueEmpty"));
         } else if (player.isPaused()) {
-            context.reply(I18n.get(context, "pauseAlreadyPaused"));
+            context.reply(context.i18n("pauseAlreadyPaused"));
         } else {
             player.pause();
-            context.reply(MessageFormat.format(I18n.get(context, "pauseSuccess"), Config.CONFIG.getPrefix()));
+            context.reply(context.i18nFormat("pauseSuccess", Config.CONFIG.getPrefix()));
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpPauseCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpPauseCommand");
     }
 
     @Override

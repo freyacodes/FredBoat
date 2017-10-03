@@ -25,12 +25,11 @@
 package fredboat.commandmeta.init;
 
 import fredboat.Config;
+import fredboat.agent.FredBoatAgent;
 import fredboat.agent.VoiceChannelCleanupAgent;
 import fredboat.command.admin.*;
 import fredboat.command.maintenance.*;
-import fredboat.command.moderation.ConfigCommand;
-import fredboat.command.moderation.LanguageCommand;
-import fredboat.command.moderation.PermissionsCommand;
+import fredboat.command.moderation.*;
 import fredboat.command.music.control.*;
 import fredboat.command.music.info.ExportCommand;
 import fredboat.command.music.info.GensokyoRadioCommand;
@@ -63,7 +62,8 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("yt", new PlayCommand(SearchUtil.SearchProvider.YOUTUBE), "youtube");
         CommandRegistry.registerCommand("sc", new PlayCommand(SearchUtil.SearchProvider.SOUNDCLOUD), "soundcloud");
         CommandRegistry.registerCommand("skip", new SkipCommand(), "sk", "s");
-        CommandRegistry.registerCommand("join", new JoinCommand(), "summon", "jn");
+        CommandRegistry.registerCommand("voteSkip", new VoteSkipCommand(), "vsk", "v");
+        CommandRegistry.registerCommand("join", new JoinCommand(), "summon", "jn", "j");
         CommandRegistry.registerCommand("leave", new LeaveCommand(), "lv");
         CommandRegistry.registerCommand("select", new SelectCommand(), buildNumericalSelectAllias("sel"));
         CommandRegistry.registerCommand("stop", new StopCommand(), "st");
@@ -109,8 +109,11 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("announce", new AnnounceCommand());
         CommandRegistry.registerCommand("mping", new PingCommand());
         CommandRegistry.registerCommand("node", new NodeAdminCommand());
-
         CommandRegistry.registerCommand("getnode", new GetNodeCommand());
+        CommandRegistry.registerCommand("disable", new DisableCommandsCommand());
+        CommandRegistry.registerCommand("enable", new EnableCommandsCommand());
+
+
         
         /* Bot configuration */
         CommandRegistry.registerCommand("config", new ConfigCommand(), "cfg");
@@ -123,7 +126,7 @@ public class MusicCommandInitializer {
 
         // The null check is to ensure we can run this in a test run
         if (Config.CONFIG == null || Config.CONFIG.getDistribution() != DistributionEnum.PATRON) {
-            new VoiceChannelCleanupAgent().start();
+            FredBoatAgent.start(new VoiceChannelCleanupAgent());
         } else {
             log.info("Skipped setting up the VoiceChannelCleanupAgent since we are running as PATRON distribution.");
         }

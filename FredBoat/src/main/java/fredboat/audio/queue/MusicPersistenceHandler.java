@@ -54,7 +54,7 @@ import java.nio.charset.Charset;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Map;
 
 public class MusicPersistenceHandler {
 
@@ -68,7 +68,7 @@ public class MusicPersistenceHandler {
         if (!dir.exists()) {
             dir.mkdir();
         }
-        HashMap<String, GuildPlayer> reg = PlayerRegistry.getRegistry();
+        Map<String, GuildPlayer> reg = PlayerRegistry.getRegistry();
 
         boolean isUpdate = code == ExitCodes.EXIT_CODE_UPDATE;
         boolean isRestart = code == ExitCodes.EXIT_CODE_RESTART;

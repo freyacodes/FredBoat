@@ -31,6 +31,7 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.User;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -45,14 +46,18 @@ public class LeakSafeContext extends Context {
     protected final long guildId;
     protected final long userId;
 
-    public LeakSafeContext(TextChannel channel, Guild guild, Member member) {
-        this.channelId = channel.getIdLong();
-        this.guildId = guild.getIdLong();
-        this.userId = member.getUser().getIdLong();
+    public LeakSafeContext(@Nonnull TextChannel channel, @Nonnull Member member) {
+        this(channel.getIdLong(), member.getGuild().getIdLong(), member.getUser().getIdLong());
     }
 
-    public LeakSafeContext(Context context) {
-        this(context.getTextChannel(), context.getGuild(), context.getMember());
+    public LeakSafeContext(@Nonnull Context context) {
+        this(context.getTextChannel(), context.getMember());
+    }
+
+    protected LeakSafeContext(long channelId, long guildId, long userId) {
+        this.channelId = channelId;
+        this.guildId = guildId;
+        this.userId = userId;
     }
 
     @Override

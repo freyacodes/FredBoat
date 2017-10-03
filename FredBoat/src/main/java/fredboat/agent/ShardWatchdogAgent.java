@@ -28,52 +28,41 @@ package fredboat.agent;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.event.ShardWatchdogListener;
+import fredboat.feature.togglz.FeatureFlags;
 import fredboat.shared.constant.DistributionEnum;
 import net.dv8tion.jda.core.JDA;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-public class ShardWatchdogAgent extends Thread {
+public class ShardWatchdogAgent extends FredBoatAgent {
 
     private static final Logger log = LoggerFactory.getLogger(ShardWatchdogAgent.class);
-    private static final int INTERVAL_MILLIS = 10000; // 10 secs
     private static final int ACCEPTABLE_SILENCE = getAcceptableSilenceThreshold();
 
-    private boolean shutdown = false;
-
     public ShardWatchdogAgent() {
-        super(ShardWatchdogAgent.class.getSimpleName());
+        super("shard watchdog", 10, TimeUnit.SECONDS);
     }
 
     @Override
-    public void run() {
-        log.info("Started shard watchdog");
-
-        //noinspection InfiniteLoopStatement
-        while (!shutdown) {
-            try {
-                inspect();
-                sleep(INTERVAL_MILLIS);
-            } catch (Exception e) {
-                log.error("Caught an exception while trying kill dead shards!", e);
-                try {
-                    sleep(1000);
-                } catch (InterruptedException e1) {
-                    throw new RuntimeException(e1);
-                }
-            }
+    public void doRun() {
+        try {
+            inspect();
+        } catch (Exception e) {
+            log.error("Caught an exception while trying kill dead shards!", e);
         }
     }
 
     private void inspect() throws InterruptedException {
+        if (!FeatureFlags.SHARD_WATCHDOG.isActive()) {
+            return;
+        }
+
         List<FredBoat> shards = FredBoat.getShards();
 
-        for (FredBoat shard : shards) {
-            if (shutdown) break;
+        for(FredBoat shard : shards) {
             ShardWatchdogListener listener = shard.getShardWatchdogListener();
 
             long diff = System.currentTimeMillis() - listener.getLastEventTime();
@@ -95,6 +84,7 @@ public class ShardWatchdogAgent extends Thread {
                     }*/
 
                     shard.revive();
+                    Thread.sleep(5000);
                 }
             }
         }
@@ -104,28 +94,11 @@ public class ShardWatchdogAgent extends Thread {
         return status == JDA.Status.ATTEMPTING_TO_RECONNECT || status == JDA.Status.WAITING_TO_RECONNECT;
     }
 
-    public void shutdown() {
-        shutdown = true;
-    }
-
     private static int getAcceptableSilenceThreshold() {
         if (Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT) {
             return Integer.MAX_VALUE;
         }
 
         return Config.CONFIG.getNumShards() != 1 ? 30 * 1000 : 600 * 1000; //30 seconds or 10 minutes depending on shard count
-    }
-
-    private static String getShardThreadDump(int shardId) {
-        ThreadInfo[] threadInfos = ManagementFactory.getThreadMXBean()
-                .dumpAllThreads(true,
-                        true);
-        StringBuilder dump = new StringBuilder();
-        dump.append(String.format("%n"));
-        for (ThreadInfo threadInfo : threadInfos) {
-            if (threadInfo.getThreadName().contains("[" + shardId + " / "))
-                dump.append(threadInfo);
-        }
-        return dump.toString();
     }
 }

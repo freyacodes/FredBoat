@@ -25,6 +25,9 @@
 
 package fredboat.audio.player;
 
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import fredboat.FredBoat;
 import fredboat.audio.queue.AbstractTrackProvider;
 import fredboat.audio.queue.AudioLoader;
@@ -32,6 +35,7 @@ import fredboat.audio.queue.AudioTrackContext;
 import fredboat.audio.queue.IdentifierContext;
 import fredboat.audio.queue.RepeatMode;
 import fredboat.audio.queue.SimpleTrackProvider;
+import fredboat.command.music.control.VoteSkipCommand;
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.DatabaseNotReadyException;
@@ -50,26 +54,23 @@ import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.managers.AudioManager;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class GuildPlayer extends AbstractPlayer {
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(GuildPlayer.class);
+    private static final Logger log = LoggerFactory.getLogger(GuildPlayer.class);
 
     private final FredBoat shard;
     private final long guildId;
-    public final Map<String, VideoSelection> selections = new HashMap<>(); //TODO possible source of leaks (holds audio tracks which aren't that lightweight)
     private long currentTCId;
 
     private final AudioLoader audioLoader;
@@ -98,7 +99,7 @@ public class GuildPlayer extends AbstractPlayer {
             TextChannel activeTextChannel = getActiveTextChannel();
             if (activeTextChannel != null) {
                 CentralMessaging.sendMessage(activeTextChannel,
-                        MessageFormat.format(I18n.get(getGuild()).getString("trackAnnounce"), atc.getEffectiveTitle()));
+                        atc.i18nFormat("trackAnnounce", atc.getEffectiveTitle()));
             }
         }
     }
@@ -147,10 +148,9 @@ public class GuildPlayer extends AbstractPlayer {
         if (!silent) {
             VoiceChannel currentVc = LavalinkManager.ins.getConnectedChannel(commandContext.guild);
             if (currentVc == null) {
-                commandContext.reply(I18n.get(getGuild()).getString("playerNotInChannel"));
+                commandContext.reply(commandContext.i18n("playerNotInChannel"));
             } else {
-                commandContext.reply(MessageFormat.format(I18n.get(getGuild()).getString("playerLeftChannel"),
-                        currentVc.getName()));
+                commandContext.reply(commandContext.i18nFormat("playerLeftChannel", currentVc.getName()));
             }
         }
         LavalinkManager.ins.closeConnection(getGuild());
@@ -354,12 +354,9 @@ public class GuildPlayer extends AbstractPlayer {
     /**
      * @return currently used TextChannel or null if there is none
      */
+    @Nullable
     private TextChannel getCurrentTC() {
-        try {
-            return shard.getJda().getTextChannelById(currentTCId);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
+        return shard.getJda().getTextChannelById(currentTCId);
     }
 
     //Success, fail message
@@ -422,6 +419,12 @@ public class GuildPlayer extends AbstractPlayer {
         }
     }
 
+    @Override
+    public void onTrackStart(AudioPlayer player, AudioTrack track) {
+        voteSkipCleanup();
+        super.onTrackStart(player, track);
+    }
+
     private boolean isTrackAnnounceEnabled() {
         boolean enabled = false;
         try {
@@ -441,5 +444,9 @@ public class GuildPlayer extends AbstractPlayer {
         audioTrackProvider.clear();
         super.destroy();
         log.info("Player for " + guildId + " was destroyed.");
+    }
+
+    private void voteSkipCleanup() {
+        VoteSkipCommand.guildSkipVotes.remove(guildId);
     }
 }

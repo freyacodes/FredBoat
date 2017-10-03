@@ -29,14 +29,15 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.log.SLF4JInputStreamErrorLogger;
 import fredboat.util.log.SLF4JInputStreamLogger;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -48,7 +49,7 @@ public class CompileCommand extends Command implements ICommandRestricted {
     private static final Logger log = LoggerFactory.getLogger(CompileCommand.class);
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         context.reply("*Now updating...*\n\nRunning `git clone`... ",
                 status -> cloneAndCompile(context, status),
                 throwable -> {
@@ -120,8 +121,9 @@ public class CompileCommand extends Command implements ICommandRestricted {
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} [branch [repo]]\n#Update the bot by checking out the provided branch from the provided github repo and compiling it. Default github repo is Frederikam, default branch is master. Does not restart the bot.";
     }
 

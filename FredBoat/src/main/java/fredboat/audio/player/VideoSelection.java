@@ -25,27 +25,81 @@
 
 package fredboat.audio.player;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import fredboat.FredBoat;
+import fredboat.messaging.CentralMessaging;
+import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.TextChannel;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class VideoSelection {
 
-    private final List<AudioTrack> choices;
-    private final long outMsgId;
+    public final List<AudioTrack> choices;
+    public final long outMsgId;
+    public final long channelId;
 
     public VideoSelection(List<AudioTrack> choices, Message outMsg) {
         this.choices = choices;
         this.outMsgId = outMsg.getIdLong();
+        this.channelId = outMsg.getChannel().getIdLong();
     }
 
-    public List<AudioTrack> getChoices() {
-        return choices;
+    public void deleteMessage() {
+        TextChannel tc = FredBoat.getTextChannelById(Long.toString(channelId));
+        if (tc != null) {
+            CentralMessaging.deleteMessageById(tc, outMsgId);
+        }
+    }
+    
+
+    // ********************************************************************************
+    //                     Caching of the video selections
+    // ********************************************************************************
+
+    //the key looks like this: guildId:userId
+    public static final Cache<String, VideoSelection> SELECTIONS = CacheBuilder.newBuilder()
+            .expireAfterWrite(60, TimeUnit.MINUTES)
+            .build();
+
+    @Nullable
+    public static VideoSelection get(@Nonnull Member member) {
+        return get(member.getGuild().getIdLong(), member.getUser().getIdLong());
     }
 
-    public long getOutMsgId() {
-        return outMsgId;
+    @Nullable
+    public static VideoSelection remove(@Nonnull Member member) {
+        return remove(member.getGuild().getIdLong(), member.getUser().getIdLong());
     }
 
+    public static void put(@Nonnull Member member, VideoSelection selection) {
+        SELECTIONS.put(asKey(member), selection);
+    }
+
+
+    private static String asKey(@Nonnull Member member) {
+        return asKey(member.getGuild().getIdLong(), member.getUser().getIdLong());
+    }
+
+    private static String asKey(long guildId, long userId) {
+        return guildId + ":" + userId;
+    }
+
+    @Nullable
+    private static VideoSelection get(long guildId, long userId) {
+        return SELECTIONS.getIfPresent(asKey(guildId, userId));
+    }
+
+    @Nullable
+    private static VideoSelection remove(long guildId, long userId) {
+        VideoSelection result = get(guildId, userId);
+        SELECTIONS.invalidate(asKey(guildId, userId));
+        return result;
+    }
 }
