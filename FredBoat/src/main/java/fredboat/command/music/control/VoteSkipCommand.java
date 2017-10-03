@@ -59,9 +59,10 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
 
         if (context.args.length == 1) {
             String response = addVoteWithResponse(context);
+            float actualMinSkip = player.getHumanUsersInCurrentVC().size() < 3 ? 1.0f : MIN_SKIP_PERCENTAGE;
 
             float skipPercentage = getSkipPercentage(context.guild);
-            if (skipPercentage >= MIN_SKIP_PERCENTAGE) {
+            if (skipPercentage >= actualMinSkip) {
                 AudioTrackContext atc = player.getPlayingTrack();
 
                 if (atc == null) {
@@ -74,7 +75,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
                 }
             } else {
                 String skipPerc = "`" + TextUtils.formatPercent(skipPercentage) + "`";
-                String minSkipPerc = "`" + TextUtils.formatPercent(MIN_SKIP_PERCENTAGE) + "`";
+                String minSkipPerc = "`" + TextUtils.formatPercent(actualMinSkip) + "`";
                 context.reply(response + "\n" + context.i18nFormat("voteSkipNotEnough", skipPerc, minSkipPerc));
             }
 
