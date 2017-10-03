@@ -25,7 +25,6 @@
 
 package fredboat.command.admin;
 
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
@@ -35,13 +34,17 @@ import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.io.IOException;
 
 public class PlayerDebugCommand extends Command implements ICommandRestricted {
+
+    private static final Logger log = LoggerFactory.getLogger(PlayerDebugCommand.class);
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
@@ -61,8 +64,10 @@ public class PlayerDebugCommand extends Command implements ICommandRestricted {
         
         try {
             context.reply(TextUtils.postToPasteService(a.toString()));
-        } catch (UnirestException ex) {
-            Logger.getLogger(PlayerDebugCommand.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException | JSONException e) {
+            String message = "Failed to upload to any pasteservice.";
+            log.error(message, e);
+            context.reply(message);
         }
     }
 

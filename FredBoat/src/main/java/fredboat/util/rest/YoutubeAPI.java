@@ -25,8 +25,6 @@
 
 package fredboat.util.rest;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
@@ -38,6 +36,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,19 +44,23 @@ public class YoutubeAPI {
 
     private static final Logger log = LoggerFactory.getLogger(YoutubeAPI.class);
 
+    public static final String YOUTUBE_VIDEO = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&fields=items(id,snippet/title,contentDetails/duration)";
+    public static final String YOUTUBE_VIDEO_VERBOSE = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet";
+    public static final String YOUTUBE_SEARCH = "https://www.googleapis.com/youtube/v3/search?part=snippet";
+    public static final String YOUTUBE_CHANNEL = "https://www.googleapis.com/youtube/v3/channels?part=snippet&fields=items(snippet/thumbnails)";
+
     private YoutubeAPI() {
     }
 
     private static YoutubeVideo getVideoFromID(String id) {
+        Http.SimpleRequest simpleRequest = Http.get(YOUTUBE_VIDEO, Http.Params.of(
+                "id", id,
+                "key", Config.CONFIG.getRandomGoogleKey()
+        ));
+
         JSONObject data = null;
         try {
-            data = Unirest.get("https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&fields=items(id,snippet/title,contentDetails/duration)")
-                    .queryString("id", id)
-                    .queryString("key", Config.CONFIG.getRandomGoogleKey())
-                    .asJson()
-                    .getBody()
-                    .getObject();
-
+            data = simpleRequest.asJson();
             YoutubeVideo vid = new YoutubeVideo();
             vid.id = data.getJSONArray("items").getJSONObject(0).getString("id");
             vid.name = data.getJSONArray("items").getJSONObject(0).getJSONObject("snippet").getString("title");
@@ -65,25 +68,24 @@ public class YoutubeAPI {
 
             return vid;
         } catch (JSONException ex) {
-            System.err.println(data);
+            log.error("Could not parse youtube video {}", data != null ? data.toString() : "null");
             throw ex;
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
     }
 
     public static YoutubeVideo getVideoFromID(String id, boolean verbose) {
         if(verbose){
-            JSONObject data = null;
             String gkey = Config.CONFIG.getRandomGoogleKey();
-            try {
-                data = Unirest.get("https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet")
-                        .queryString("id", id)
-                        .queryString("key", gkey)
-                        .asJson()
-                        .getBody()
-                        .getObject();
+            Http.SimpleRequest request = Http.get(YOUTUBE_VIDEO_VERBOSE, Http.Params.of(
+                    "id", id,
+                    "key", gkey
+            ));
 
+            JSONObject data = null;
+            try {
+                data = request.asJson();
                 YoutubeVideo vid = new YoutubeVideo();
                 vid.id = data.getJSONArray("items").getJSONObject(0).getString("id");
                 vid.name = data.getJSONArray("items").getJSONObject(0).getJSONObject("snippet").getString("title");
@@ -120,17 +122,17 @@ public class YoutubeAPI {
             throws SearchUtil.SearchingException {
         JSONObject data;
         String gkey = Config.CONFIG.getRandomGoogleKey();
+
+        Http.SimpleRequest request = Http.get(YOUTUBE_SEARCH, Http.Params.of(
+                "key", gkey,
+                "type", "video",
+                "maxResults", Integer.toString(maxResults),
+                "q", query
+        ));
         try {
-            data = Unirest.get("https://www.googleapis.com/youtube/v3/search?part=snippet")
-                    .queryString("key", gkey)
-                    .queryString("type", "video")
-                    .queryString("maxResults", maxResults)
-                    .queryString("q", query)
-                    .asJson()
-                    .getBody()
-                    .getObject();
-        } catch (UnirestException e) {
-            throw new SearchUtil.SearchingException("Unirest exception when search with the Youtube API", e);
+            data = request.asJson();
+        } catch (IOException e) {
+            throw new SearchUtil.SearchingException("Youtube API search failed", e);
         }
 
         //The search contains all values we need, except for the duration :feelsbadman:

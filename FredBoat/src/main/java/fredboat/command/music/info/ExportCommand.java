@@ -25,7 +25,6 @@
 
 package fredboat.command.music.info;
 
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.audio.player.GuildPlayer;
@@ -37,11 +36,18 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
+import org.json.JSONException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.util.List;
 
 public class ExportCommand extends Command implements IMusicCommand {
+
+    private static final Logger log = LoggerFactory.getLogger(ExportCommand.class);
+
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
@@ -66,7 +72,8 @@ public class ExportCommand extends Command implements IMusicCommand {
         try {
             String url = TextUtils.postToPasteService(out) + ".fredboat";
             context.reply(context.i18nFormat("exportPlaylistResulted", url));
-        } catch (UnirestException ex) {
+        } catch (IOException | JSONException e) {
+            log.error("Failed to upload to any pasteservice.", e);
             throw new MessagingException(context.i18n("exportPlaylistFail"));
         }
         

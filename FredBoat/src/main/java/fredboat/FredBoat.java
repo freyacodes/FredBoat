@@ -25,10 +25,6 @@
 
 package fredboat;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.sedmelluq.discord.lavaplayer.tools.PlayerLibrary;
 import fredboat.agent.CarbonitexAgent;
 import fredboat.agent.DBConnectionWatchdogAgent;
@@ -50,6 +46,7 @@ import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.AppInfo;
 import fredboat.util.GitRepoState;
 import fredboat.util.JDAUtil;
+import fredboat.util.rest.Http;
 import fredboat.util.rest.OpenWeatherAPI;
 import fredboat.util.rest.models.weather.RetrievedWeather;
 import net.dv8tion.jda.core.AccountType;
@@ -61,6 +58,8 @@ import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.managers.AudioManager;
+import okhttp3.Credentials;
+import okhttp3.Response;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,7 +100,7 @@ public abstract class FredBoat {
 
     private static DatabaseManager dbManager;
 
-    public static void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException, IOException, UnirestException {
+    public static void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException, IOException {
         //just post the info to the console
         if (args.length > 0 &&
                 (args[0].equalsIgnoreCase("-v")
@@ -185,40 +184,43 @@ public abstract class FredBoat {
     }
 
     private static boolean hasValidMALLogin() {
-        if ("".equals(Config.CONFIG.getMalUser()) || "".equals(Config.CONFIG.getMalPassword())) {
+        String malUser = Config.CONFIG.getMalUser();
+        String malPassWord = Config.CONFIG.getMalPassword();
+        if (malUser == null || malUser.isEmpty() || malPassWord == null || malPassWord.isEmpty()) {
             log.info("MAL credentials not found. MAL related commands will not be available.");
             return false;
         }
-        try {
-            HttpResponse<String> response = Unirest.get("https://myanimelist.net/api/account/verify_credentials.xml")
-                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
-                    .asString();
-            int responseStatus = response.getStatus();
-            if (responseStatus == 200) {
+
+        Http.SimpleRequest request = Http.get("https://myanimelist.net/api/account/verify_credentials.xml")
+                .auth(Credentials.basic(malUser, malPassWord));
+
+        try (Response response = request.execute()) {
+            if (response.isSuccessful()) {
                 log.info("MAL login successful");
                 return true;
             } else {
-                log.warn("MAL login failed with " + responseStatus + ": " + response.getBody());
+                //noinspection ConstantConditions
+                log.warn("MAL login failed with {}\n{}", response.toString(), response.body().string());
             }
-        } catch (UnirestException e) {
+        } catch (IOException e) {
             log.warn("MAL login failed, it seems to be down.", e);
         }
         return false;
     }
 
     private static boolean hasValidImgurCredentials() {
-        if ("".equals(Config.CONFIG.getImgurClientId())) {
+        String imgurClientId = Config.CONFIG.getImgurClientId();
+        if (imgurClientId == null || imgurClientId.isEmpty()) {
             log.info("Imgur credentials not found. Commands relying on Imgur will not work properly.");
             return false;
         }
-        try {
-            HttpResponse<JsonNode> response = Unirest.get("https://api.imgur.com/3/credits")
-                    .header("Authorization", "Client-ID " + Config.CONFIG.getImgurClientId())
-                    .asJson();
-            int responseStatus = response.getStatus();
-
-            if (responseStatus == 200) {
-                JSONObject data = response.getBody().getObject().getJSONObject("data");
+        Http.SimpleRequest request = Http.get("https://api.imgur.com/3/credits")
+                .auth("Client-ID " + imgurClientId);
+        try (Response response = request.execute()) {
+            //noinspection ConstantConditions
+            String content = response.body().string();
+            if (response.isSuccessful()) {
+                JSONObject data = new JSONObject(content).getJSONObject("data");
                 //https://api.imgur.com/#limits
                 //at the time of the introduction of this code imgur offers daily 12500 and hourly 500 GET requests for open source software
                 //hitting the daily limit 5 times in a month will blacklist the app for the rest of the month
@@ -234,9 +236,9 @@ public abstract class FredBoat {
                         dailyLeft + "/" + dailyLimit + " requests remaining today.");
                 return true;
             } else {
-                log.warn("Imgur login failed with " + responseStatus + ": " + response.getBody());
+                log.warn("Imgur login failed with {}\n{}", response.toString(), content);
             }
-        } catch (UnirestException e) {
+        } catch (IOException e) {
             log.warn("Imgur login failed, it seems to be down.", e);
         }
         return false;
@@ -330,11 +332,6 @@ public abstract class FredBoat {
 
         for (FredBoat fb : shards) {
             fb.getJda().shutdown();
-        }
-
-        try {
-            Unirest.shutdown();
-        } catch (IOException ignored) {
         }
 
         executor.shutdown();

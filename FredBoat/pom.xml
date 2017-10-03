@@ -87,12 +87,6 @@
             <version>1.0.6.1</version>
         </dependency>
         <dependency>
-            <!-- http client -->
-            <groupId>com.mashape.unirest</groupId>
-            <artifactId>unirest-java</artifactId>
-            <version>1.4.9</version>
-        </dependency>
-        <dependency>
             <!-- utility -->
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>

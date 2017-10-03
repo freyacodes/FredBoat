@@ -25,17 +25,18 @@
 
 package fredboat.util;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.commandmeta.MessagingException;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
+import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
+import org.json.JSONException;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -112,29 +113,34 @@ public class TextUtils {
             try {
                 context.reply(context.i18nFormat("errorOccurredTooLong",
                         postToPasteService(builder.getStringBuilder().toString())));
-            } catch (UnirestException e1) {
+            } catch (IOException | JSONException e1) {
+                log.error("Failed to upload to any pasteservice.");
                 context.reply(context.i18n("errorOccurredTooLongAndUnirestException"));
             }
         }
     }
 
-    public static String postToHastebin(String body) throws UnirestException {
-        return Unirest.post("https://hastebin.com/documents").body(body).asJson().getBody().getObject().getString("key");
+    private static String postToHastebin(String body) throws IOException {
+        return Http.post("https://hastebin.com/documents", body, "text/plain")
+                .asJson()
+                .getString("key");
     }
 
-    public static String postToWastebin(String body) throws UnirestException {
-        return Unirest.post("https://wastebin.party/documents").body(body).asJson().getBody().getObject().getString("key");
+    private static String postToWastebin(String body) throws IOException {
+        return Http.post("https://wastebin.party/documents", body, "text/plain")
+                .asJson()
+                .getString("key");
     }
 
     /**
      * @param body the content that should be uploaded to a paste service
      * @return the url of the uploaded paste
-     * @throws UnirestException if none of the paste services allowed a successful upload
+     * @throws IOException if none of the paste services allowed a successful upload
      */
-    public static String postToPasteService(String body) throws UnirestException {
+    public static String postToPasteService(String body) throws IOException, JSONException {
         try {
             return "https://hastebin.com/" + postToHastebin(body);
-        } catch (UnirestException e) {
+        } catch (IOException | JSONException e) {
             log.warn("Could not post to hastebin, trying backup", e);
             return "https://wastebin.party/" + postToWastebin(body);
         }

@@ -25,8 +25,6 @@
 
 package fredboat.command.music.info;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.sedmelluq.discord.lavaplayer.source.bandcamp.BandcampAudioTrack;
 import com.sedmelluq.discord.lavaplayer.source.beam.BeamAudioTrack;
 import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioTrack;
@@ -44,6 +42,7 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.shared.constant.BotConstants;
 import fredboat.util.TextUtils;
+import fredboat.util.rest.Http;
 import fredboat.util.rest.YoutubeAPI;
 import fredboat.util.rest.YoutubeVideo;
 import net.dv8tion.jda.core.EmbedBuilder;
@@ -52,6 +51,7 @@ import org.json.XML;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
+import java.io.IOException;
 
 public class NowplayingCommand extends Command implements IMusicCommand {
 
@@ -157,7 +157,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
 
     private EmbedBuilder getBeamEmbed(AudioTrackContext atc, BeamAudioTrack at) {
         try {
-            JSONObject json = Unirest.get("https://beam.pro/api/v1/channels/" + at.getInfo().author).asJson().getBody().getObject();
+            JSONObject json = Http.get("https://beam.pro/api/v1/channels/" + at.getInfo().author).asJson();
 
             return CentralMessaging.getClearThreadLocalEmbedBuilder()
                     .setAuthor(at.getInfo().author, "https://beam.pro/" + at.getInfo().author, json.getJSONObject("user").getString("avatarUrl"))
@@ -166,14 +166,14 @@ public class NowplayingCommand extends Command implements IMusicCommand {
                     .setImage(json.getJSONObject("thumbnail").getString("url"))
                     .setColor(new Color(77, 144, 244));
 
-        } catch (UnirestException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     static EmbedBuilder getGensokyoRadioEmbed(Context context) {
         try {
-            JSONObject data = XML.toJSONObject(Unirest.get("https://gensokyoradio.net/xml/").asString().getBody()).getJSONObject("GENSOKYORADIODATA");
+            JSONObject data = XML.toJSONObject(Http.get("https://gensokyoradio.net/xml/").asString()).getJSONObject("GENSOKYORADIODATA");
 
             String rating = data.getJSONObject("MISC").getInt("TIMESRATED") == 0 ?
                     context.i18n("noneYet") :
@@ -202,7 +202,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
                     .setImage(albumArt)
                     .setColor(new Color(66, 16, 80));
 
-        } catch (UnirestException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

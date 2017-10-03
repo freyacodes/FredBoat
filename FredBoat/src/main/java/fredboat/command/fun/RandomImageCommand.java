@@ -25,16 +25,14 @@
 
 package fredboat.command.fun;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.messaging.internal.Context;
 import fredboat.util.rest.CacheUtil;
+import fredboat.util.rest.Http;
+import okhttp3.Response;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -42,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
@@ -114,38 +113,38 @@ public class RandomImageCommand extends Command implements IFunCommand {
         }
 
         String albumId = m.group(1);
-        HttpResponse<JsonNode> response;
-        try {
-            synchronized (this) {
-                response = Unirest.get("https://api.imgur.com/3/album/" + albumId)
-                        .header("Authorization", "Client-ID " + Config.CONFIG.getImgurClientId())
-                        .header("If-None-Match", etag)
-                        .asJson();
-            }
-        } catch (UnirestException e) {
-            log.error("Imgur down? Could not fetch imgur album " + imgurAlbumUrl, e);
-            return;
-        }
+        Http.SimpleRequest request = Http.get("https://api.imgur.com/3/album/" + albumId)
+                .auth("Client-ID " + Config.CONFIG.getImgurClientId())
+                .header("If-None-Match", etag);
 
-        if (response.getStatus() == 200) {
-            JSONArray images = response.getBody().getObject().getJSONObject("data").getJSONArray("images");
-            List<String> imageUrls = new ArrayList<>();
-            images.forEach(o -> imageUrls.add(((JSONObject) o).getString("link")));
+        try (Response response = request.execute()) {
+            //etag implementation: nothing has changed
+            //https://api.imgur.com/performancetips
+            //NOTE: imgur's implementation of this is wonky. occasionally they will return a new Etag without a
+            // data change, and on the next fetch they will return the old Etag again.
+            if (response.code() == 304) {
+                //nothing to do here
+                log.info("Refreshed imgur album {}, no update.", imgurAlbumUrl);
+            } else if (response.isSuccessful()) {
+                //noinspection ConstantConditions
+                JSONArray images = new JSONObject(response.body().string()).getJSONObject("data").getJSONArray("images");
+                List<String> imageUrls = new ArrayList<>();
+                images.forEach(o -> imageUrls.add(((JSONObject) o).getString("link")));
 
-            synchronized (this) {
-                urls = imageUrls.toArray(urls);
-                etag = response.getHeaders().getFirst("ETag");
+                synchronized (this) {
+                    urls = imageUrls.toArray(urls);
+                    etag = response.header("ETag");
+                }
+                log.info("Refreshed imgur album {}, new data found.", imgurAlbumUrl);
+            } else {
+                //some other status
+                //noinspection ConstantConditions
+                log.warn("Unexpected http status for imgur album request {}, response: {}\n{}",
+                        imgurAlbumUrl, response.toString(), response.body().string());
             }
-            log.info("Refreshed imgur album " + imgurAlbumUrl + ", new data found.");
-        }
-        //etag implementation: nothing has changed
-        //https://api.imgur.com/performancetips
-        else if (response.getStatus() == 304) {
-            //nothing to do here
-            log.info("Refreshed imgur album " + imgurAlbumUrl + ", no update.");
-        } else {
-            //some other status
-            log.warn("Unexpected http status for imgur album request " + imgurAlbumUrl + ", response: " + response.getBody().toString());
+
+        } catch (IOException e) {
+            log.error("Imgur down? Could not fetch imgur album {}", imgurAlbumUrl, e);
         }
     }
 

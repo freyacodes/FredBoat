@@ -28,9 +28,9 @@ package fredboat.feature;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.mashape.unirest.http.Unirest;
 import fredboat.Config;
 import fredboat.shared.constant.DistributionEnum;
+import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.entities.Guild;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -108,13 +108,14 @@ public class PatronageChecker {
         @SuppressWarnings("NullableProblems")
         @Override
         public Status load(String key) throws Exception {
+            //TODO prevent selfhosters from running this?
             try {
-                return new Status(Unirest.get(Config.CONFIG.getDistribution() == DistributionEnum.PATRON
-                        ? "https://patronapi.fredboat.com/api/drm/" + key
-                        : "http://localhost:4500/api/drm/" + key)
-                        .asJson()
-                        .getBody()
-                        .getObject());
+                return new Status(
+                        Http.get(Config.CONFIG.getDistribution() == DistributionEnum.PATRON
+                                ? "https://patronapi.fredboat.com/api/drm/" + key
+                                : "http://localhost:4500/api/drm/" + key)
+                                .asJson()
+                );
             } catch (Exception e) {
                 log.error("Caught exception while verifying patron status", e);
                 return new Status(); // Valid status, expires early

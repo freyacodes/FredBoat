@@ -25,8 +25,6 @@
 
 package fredboat.audio.source;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
@@ -35,6 +33,7 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.*;
 import fredboat.audio.player.AbstractPlayer;
 import fredboat.audio.queue.PlaylistInfo;
+import fredboat.util.rest.Http;
 import org.slf4j.LoggerFactory;
 
 import java.io.DataInput;
@@ -154,9 +153,8 @@ public class PlaylistImportSourceManager implements AudioSourceManager, Playlist
     private List<String> loadAndParseTrackIds(String serviceName, String pasteId) {
         String response;
         try {
-            response = Unirest.get(PasteServiceConstants.PASTE_SERVICE_URLS.get(serviceName) + pasteId).asString()
-                    .getBody();
-        } catch (UnirestException ex) {
+            response = Http.get(PasteServiceConstants.PASTE_SERVICE_URLS.get(serviceName) + pasteId).asString();
+        } catch (IOException ex) {
             throw new FriendlyException(
                     "Couldn't load playlist. Either " + serviceName + " is down or the playlist does not exist.",
                     FriendlyException.Severity.FAULT, ex);

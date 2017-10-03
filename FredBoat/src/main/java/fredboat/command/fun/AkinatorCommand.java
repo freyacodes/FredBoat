@@ -25,15 +25,16 @@
 
 package fredboat.command.fun;
 
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.AkinatorListener;
 import fredboat.messaging.internal.Context;
+import org.json.JSONException;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
 
 public class AkinatorCommand extends Command implements IFunCommand {
 
@@ -43,8 +44,8 @@ public class AkinatorCommand extends Command implements IFunCommand {
             String userId = context.invoker.getUser().getId();
             AkinatorListener akinator = new AkinatorListener(context);
             FredBoat.getListenerBot().putListener(userId, akinator);
-        } catch (UnirestException ex) {
-            throw new RuntimeException(ex);
+        } catch (IOException | JSONException e) {
+            throw new RuntimeException(e);
         }
     }
 

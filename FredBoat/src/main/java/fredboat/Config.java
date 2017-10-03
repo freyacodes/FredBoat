@@ -26,7 +26,6 @@
 package fredboat;
 
 import com.google.common.base.CharMatcher;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.audio.player.PlayerLimitManager;
 import fredboat.command.admin.SentryDsnCommand;
 import fredboat.shared.constant.DistributionEnum;
@@ -260,7 +259,7 @@ public class Config {
             spotifyAudio = (Boolean) config.getOrDefault("enableSpotify", true);
             httpAudio = (Boolean) config.getOrDefault("enableHttp", false);
 
-        } catch (IOException | UnirestException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (YAMLException | ClassCastException e) {
             log.error("Could not parse the credentials and/or config yaml files! They are probably misformatted. " +

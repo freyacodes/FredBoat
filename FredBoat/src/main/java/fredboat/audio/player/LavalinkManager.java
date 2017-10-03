@@ -25,7 +25,6 @@
 
 package fredboat.audio.player;
 
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.util.DiscordUtil;
@@ -50,12 +49,7 @@ public class LavalinkManager {
     public void start() {
         if (!isEnabled()) return;
 
-        String userId;
-        try {
-            userId = DiscordUtil.getUserId(Config.CONFIG.getBotToken());
-        } catch (UnirestException e) {
-            throw new RuntimeException(e);
-        }
+        String userId = DiscordUtil.getUserId(Config.CONFIG.getBotToken());
 
         lavalink = new Lavalink(
                 userId,

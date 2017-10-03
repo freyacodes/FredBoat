@@ -25,13 +25,10 @@
 
 package fredboat.util;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.feature.I18n;
 import fredboat.shared.constant.BotConstants;
+import fredboat.util.rest.Http;
 import net.dv8tion.jda.bot.entities.ApplicationInfo;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.OnlineStatus;
@@ -39,13 +36,15 @@ import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Role;
 import net.dv8tion.jda.core.entities.User;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.requests.Requester;
+import okhttp3.Response;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
@@ -99,35 +98,20 @@ public class DiscordUtil {
         return top.getPosition();
     }
 
-    public static int getRecommendedShardCount(String token) throws UnirestException {
-        HttpResponse<JsonNode> response = Unirest.get(Requester.DISCORD_API_PREFIX + "gateway/bot")
-                .header("Authorization", "Bot " + token)
-                .header("User-agent", USER_AGENT)
-                .asJson();
-        if (response.getStatus() == 401) {
-            throw new IllegalArgumentException("Invalid discord bot token provided!");
-        } else if (response.getStatus() >= 400) {
-            log.error("Unexpected response from discord: {} {}", response.getStatus(), response.getStatusText());
-        }
-        return response.getBody().getObject().getInt("shards");
-    }
+    public static int getRecommendedShardCount(@Nonnull String token) throws IOException, JSONException {
+        Http.SimpleRequest request = Http.get(Requester.DISCORD_API_PREFIX + "gateway/bot")
+                .auth("Bot " + token)
+                .header("User-agent", USER_AGENT);
 
-    public static User getUserFromBearer(JDA jda, String token) {
-        try {
-            JSONObject user = Unirest.get(Requester.DISCORD_API_PREFIX + "/users/@me")
-                    .header("Authorization", "Bearer " + token)
-                    .header("User-agent", USER_AGENT)
-                    .asJson()
-                    .getBody()
-                    .getObject();
-
-            if (user.has("id")) {
-                return jda.retrieveUserById(user.getString("id")).complete(true);
+        try (Response response = request.execute()) {
+            if (response.code() == 401) {
+                throw new IllegalArgumentException("Invalid discord bot token provided!");
+            } else if (!response.isSuccessful()) {
+                log.error("Unexpected response from discord: {} {}", response.code(), response.toString());
             }
-        } catch (UnirestException | RateLimitedException ignored) {
+            //noinspection ConstantConditions
+            return new JSONObject(response.body().string()).getInt("shards");
         }
-
-        return null;
     }
 
     @Nonnull
@@ -145,14 +129,30 @@ public class DiscordUtil {
         return info;
     }
 
-    public static String getUserId(String token) throws UnirestException {
-        return Unirest.get(Requester.DISCORD_API_PREFIX + "/users/@me")
-                .header("Authorization", "Bot " + token)
-                .header("User-agent", USER_AGENT)
-                .asJson()
-                .getBody()
-                .getObject()
-                .getString("id");
+    @Nonnull
+    public static String getUserId(@Nonnull String token) {
+        Http.SimpleRequest request = Http.get(Requester.DISCORD_API_PREFIX + "/users/@me")
+                .auth("Bot " + token)
+                .header("User-agent", USER_AGENT);
+
+        String result = "";
+        int attempt = 0;
+        while (result.isEmpty() && attempt++ < 5) {
+            try {
+                result = request.asJson().getString("id");
+            } catch (Exception e) {
+                log.error("Could not request my own userId from Discord, will retry a few times", e);
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+        if (result.isEmpty()) {
+            throw new RuntimeException("Failed to retrieve my own userId from Discord");
+        }
+        return result;
     }
 
     // ########## Moderation related helper functions
