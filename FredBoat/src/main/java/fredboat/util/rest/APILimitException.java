@@ -1,13 +1,8 @@
 package fredboat.util.rest;
 
-public class APILimitException extends RuntimeException {
+import fredboat.commandmeta.MessagingException;
 
-    public APILimitException() {
-    }
-
-    public APILimitException(String string, Throwable thrwbl) {
-        super(string, thrwbl);
-    }
+public class APILimitException extends MessagingException {
 
     public APILimitException(String string) {
         super(string);

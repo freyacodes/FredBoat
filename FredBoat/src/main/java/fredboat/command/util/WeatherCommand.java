@@ -28,7 +28,7 @@ public class WeatherCommand extends Command implements IUtilCommand {
 
         context.sendTyping();
         if (context.args.length > 1) {
-
+            
             try {
                 StringBuilder argStringBuilder = new StringBuilder();
                 for (int i = 1; i < context.args.length; i++) {
