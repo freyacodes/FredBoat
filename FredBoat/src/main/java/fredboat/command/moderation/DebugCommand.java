@@ -13,6 +13,7 @@ import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
 import fredboat.util.Emojis;
+import lavalink.client.player.LavalinkPlayer;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
@@ -25,7 +26,7 @@ import java.util.List;
 
 public class DebugCommand extends Command implements ICommandRestricted {
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
 
         if (context.args.length == 2 || context.args.length == 1) {
 
@@ -63,6 +64,7 @@ public class DebugCommand extends Command implements ICommandRestricted {
         StringBuilder str = new StringBuilder();
         str
                 //.append(getAudioDebug(player)) doesn't work currently
+                .append(getLavaLinkDebug(player))
                 .append(getPlayerDebug(player))
                 .append(getVoiceChannelDebug(player))
                 .append(getAllTextChannelDebug(player.getGuild()))
@@ -76,6 +78,16 @@ public class DebugCommand extends Command implements ICommandRestricted {
             context.replyWithMention("Unable to send embed " + ex);
         }
 
+    }
+
+    private String getLavaLinkDebug(GuildPlayer player) {
+        if (player.getPlayer() instanceof LavalinkPlayer) {
+
+            return  "**LavaLink Debug**```\n"
+                    + "State: " + ((LavalinkPlayer) player.getPlayer()).getLink().getState() + "```\n";
+        }
+        return  "**LavaLink Debug**```\n"
+                + "Not a LavaLink player```\n";
     }
 
     private String getAudioDebug(GuildPlayer player) {
