@@ -23,8 +23,12 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(SetAvatarCommand.class);
 
+    private CommandContext context;
+
     @Override
     public void onInvoke(CommandContext context) {
+        this.context = context;
+
         if (context.args.length > 1) {
             String imageUrl = context.args[1];
 
@@ -59,7 +63,11 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
         InputStream avatarData;
         try {
             avatarData = Unirest.get(imageUrl).asBinary().getBody();
-            FredBoat.getFirstJDA().getSelfUser().getManager().setAvatar(Icon.from(avatarData)).queue();
+            FredBoat.getFirstJDA().getSelfUser().getManager().setAvatar(Icon.from(avatarData))
+                    .queue(
+                            success -> context.reply("Avatar has been set successfully!"),
+                            failure -> context.reply("Error setting avatar. Please try again later.")
+                    );
         } catch (UnirestException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
