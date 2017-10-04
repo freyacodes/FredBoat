@@ -23,12 +23,8 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(SetAvatarCommand.class);
 
-    private CommandContext context;
-
     @Override
     public void onInvoke(CommandContext context) {
-        this.context = context;
-
         if (context.args.length > 1) {
             String imageUrl = context.args[1];
 
@@ -36,7 +32,7 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
                 String type = getImageMimeType(imageUrl);
 
                 if (type.equals("image/jpeg") || type.equals("image/png") || type.equals("image/gif") || type.equals("image/webp")) {
-                    setBotAvatar(imageUrl);
+                    setBotAvatar(context, imageUrl);
                 }
             }
         }
@@ -59,7 +55,7 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
         return mimeType;
     }
 
-    private void setBotAvatar(String imageUrl) {
+    private void setBotAvatar(CommandContext context, String imageUrl) {
         InputStream avatarData;
         try {
             avatarData = Unirest.get(imageUrl).asBinary().getBody();
