@@ -124,6 +124,14 @@ public class OpenWeatherCurrent implements RetrievedWeather {
      * {@inheritDoc}
      */
     @Override
+    public ErrorCode errorType() {
+        return ErrorCode.NO_ERROR;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public String getLocation() {
         return name;
     }

@@ -1,9 +1,11 @@
 package fredboat.util.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import fredboat.Config;
 import fredboat.util.rest.models.weather.OpenWeatherCurrent;
 import fredboat.util.rest.models.weather.RetrievedWeather;
@@ -19,9 +21,11 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class OpenWeatherAPI implements Weather {
+    private static final String TAG = "OpenWeather";
     private static final Logger log = LoggerFactory.getLogger(OpenWeatherAPI.class);
     private static final String OPEN_WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
     private static final int MAX_CACHE_HOUR = 6;
@@ -54,17 +58,32 @@ public class OpenWeatherAPI implements Weather {
                         return processGetWeatherByCity(key);
                     }
                 });
-
     }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     public RetrievedWeather getCurrentWeatherByCity(@Nonnull String query) throws APILimitException {
-        // Strip all the query string that is not alphanumeric.
-        query = query.replaceAll("[^A-Za-z0-9 ]", "");
+        try {
 
-        return weatherCache.getUnchecked(query);
+            return weatherCache.get(query);
+        } catch (ExecutionException e) {
+            log.error(e.getMessage());
+            Throwables.propagateIfPossible(
+                    e.getCause(), APILimitException.class);
+
+            // Will never run.
+            throw new IllegalStateException(e);
+
+        } catch (UncheckedExecutionException e) {
+            log.error(e.getMessage());
+            Throwables.throwIfUnchecked(e.getCause());
+
+            // Will never run.
+            throw new IllegalStateException(e);
+        }
+
     }
 
     /**
@@ -76,7 +95,7 @@ public class OpenWeatherAPI implements Weather {
     private RetrievedWeather processGetWeatherByCity(@Nonnull String query) throws APILimitException {
         RetrievedWeather retrievedWeather = null;
 
-        if (currentWeatherBaseUrl != null) {
+        if (currentWeatherBaseUrl != null && query.length() > 0) {
 
             // Check if rate is exceeded.
             if (limitBucket.tryConsume(1)) {
@@ -94,6 +113,7 @@ public class OpenWeatherAPI implements Weather {
                 try {
                     Response response = client.newCall(request).execute();
                     ResponseBody responseBody = response.body();
+                    String resultBody = "";
 
                     switch (response.code()) {
                         case 200:
@@ -102,23 +122,34 @@ public class OpenWeatherAPI implements Weather {
                             }
                             break;
 
+                        case 404:
+                            if (responseBody != null) {
+                                resultBody = responseBody.string();
+                            }
+                            log.error(TAG + " query: " + query + " returned 404. \n" + resultBody);
+
+                            retrievedWeather = new WeatherError(RetrievedWeather.ErrorCode.LOCATION_NOT_FOUND);
+                            break;
+
                         default:
-                            log.warn("Open weather search error status code " + response.code());
+                            log.warn(TAG + " search error status code " + response.code());
                             if (responseBody != null) {
                                 log.warn(responseBody.string());
                             }
+                            retrievedWeather = new WeatherError(RetrievedWeather.ErrorCode.SOMETHING_IS_WRONG);
                             break;
                     }
                 } catch (IOException e) {
-                    log.warn("Open weather search: ", e);
+                    log.warn(TAG + " search: ", e);
+                    retrievedWeather = new WeatherError(RetrievedWeather.ErrorCode.SOMETHING_IS_WRONG);
                 }
             } else {
-                throw new APILimitException("OpenWeather API maximum rate exceeded.");
+                throw new APILimitException(TAG + " API maximum rate exceeded.");
             }
         }
 
         if (retrievedWeather == null) {
-            retrievedWeather = new WeatherError();
+            retrievedWeather = new WeatherError(RetrievedWeather.ErrorCode.SOMETHING_IS_WRONG);
         }
         return retrievedWeather;
     }

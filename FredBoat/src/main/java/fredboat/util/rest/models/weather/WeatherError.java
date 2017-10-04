@@ -4,9 +4,20 @@ package fredboat.util.rest.models.weather;
  * Weather data model for error.
  */
 public class WeatherError implements RetrievedWeather {
+    private ErrorCode errorCode;
+
+    public WeatherError(ErrorCode errorCode) {
+        this.errorCode = errorCode;
+    }
+
     @Override
     public boolean isError() {
         return true;
+    }
+
+    @Override
+    public ErrorCode errorType() {
+        return this.errorCode;
     }
 
     @Override

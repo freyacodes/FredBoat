@@ -10,7 +10,6 @@ import fredboat.util.rest.APILimitException;
 import fredboat.util.rest.Weather;
 import fredboat.util.rest.models.weather.RetrievedWeather;
 import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.entities.Guild;
 
 import javax.annotation.Nonnull;
 import java.text.MessageFormat;
@@ -30,8 +29,8 @@ public class WeatherCommand extends Command implements IUtilCommand {
 
         context.sendTyping();
         if (context.args.length > 1) {
-
             try {
+
                 StringBuilder argStringBuilder = new StringBuilder();
                 for (int i = 1; i < context.args.length; i++) {
                     argStringBuilder.append(context.args[i]);
@@ -39,9 +38,14 @@ public class WeatherCommand extends Command implements IUtilCommand {
                 }
 
                 String query = argStringBuilder.toString().trim();
-                String alphanumericalQuery = query.replaceAll("[^A-Za-z0-9 ]", "");
+                String alphabeticalQuery = query.replaceAll("[^A-Za-z]", "");
 
-                RetrievedWeather currentWeather = weather.getCurrentWeatherByCity(alphanumericalQuery);
+                if (alphabeticalQuery == null || alphabeticalQuery.length() == 0) {
+                    sendHelpString(context);
+                    return;
+                }
+
+                RetrievedWeather currentWeather = weather.getCurrentWeatherByCity(alphabeticalQuery);
 
                 if (!currentWeather.isError()) {
 
@@ -57,10 +61,19 @@ public class WeatherCommand extends Command implements IUtilCommand {
                     }
 
                     context.reply(embedBuilder.build());
+
                 } else {
-                    context.reply(
-                            MessageFormat.format(I18n.get(context.guild).getString("weatherError"),
-                                    query.toUpperCase()));
+                    switch (currentWeather.errorType()) {
+                        case LOCATION_NOT_FOUND:
+                            context.reply(MessageFormat.format(I18n.get(context.guild).getString("weatherLocationNotFound"), query));
+                            break;
+
+                        default:
+                            context.reply(
+                                    MessageFormat.format(I18n.get(context.guild).getString("weatherError"),
+                                            query.toUpperCase()));
+                            break;
+                    }
                 }
                 return;
 
@@ -70,12 +83,21 @@ public class WeatherCommand extends Command implements IUtilCommand {
             }
         }
 
-        HelpCommand.sendFormattedCommandHelp(context);
+        sendHelpString(context);
     }
 
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
         return HELP_STRING_FORMAT + I18n.get(context.getGuild()).getString("helpWeatherCommand");
+    }
+
+    /**
+     * Send help message.
+     *
+     * @param context Command context of the command.
+     */
+    private void sendHelpString(@Nonnull CommandContext context) {
+        HelpCommand.sendFormattedCommandHelp(context);
     }
 }

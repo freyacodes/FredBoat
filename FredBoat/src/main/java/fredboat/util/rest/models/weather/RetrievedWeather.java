@@ -4,6 +4,14 @@ package fredboat.util.rest.models.weather;
  * Interface for getting weather data.
  */
 public interface RetrievedWeather {
+    /**
+     * Error code to specify what kind of error.
+     */
+    enum ErrorCode {
+        LOCATION_NOT_FOUND,
+        SOMETHING_IS_WRONG,
+        NO_ERROR
+    }
 
     /**
      * Error indication for retrieving weather.
@@ -11,6 +19,13 @@ public interface RetrievedWeather {
      * @return True if there is an error, false if successful.
      */
     boolean isError();
+
+    /**
+     * Error code indicating what error.
+     *
+     * @return {@link ErrorCode}
+     */
+    ErrorCode errorType();
 
     /**
      * Get the location of the search result.
