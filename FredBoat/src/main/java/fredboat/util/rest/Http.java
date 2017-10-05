@@ -32,6 +32,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.commons.collections4.MapUtils;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,6 +123,13 @@ public class Http {
             this.requestBuilder = requestBuilder;
         }
 
+        @Nonnull
+        @CheckReturnValue
+        public SimpleRequest url(@Nonnull String url, @Nonnull Params params) {
+            requestBuilder.url(paramUrl(url, params.params).build());
+            return this;
+        }
+
         //set a custom client to execute this request with
         @Nonnull
         @CheckReturnValue
@@ -150,14 +158,16 @@ public class Http {
         @Nonnull
         @CheckReturnValue
         public Response execute() throws IOException {
-            return httpClient.newCall(requestBuilder.build()).execute();
+            Request req = requestBuilder.build();
+            log.debug("{} {}", req.method(), req.url().toString());
+            return httpClient.newCall(req).execute();
         }
 
         //give me the content, don't care about error handling
         @Nonnull
         @CheckReturnValue
         public String asString() throws IOException {
-            try (Response response = httpClient.newCall(requestBuilder.build()).execute()) {
+            try (Response response = this.execute()) {
                 //noinspection ConstantConditions
                 return response.body().string();
             }
@@ -186,9 +196,7 @@ public class Http {
                 log.warn("Passed an uneven number of args to the Params wrapper, this is a likely bug.");
             }
             Params result = new Params();
-            for (int i = 0; i <= pairs.length / 2; i += 2) {
-                result.params.put(pairs[i], pairs[i + 1]);
-            }
+            MapUtils.putAll(result.params, pairs);
             return result;
         }
     }

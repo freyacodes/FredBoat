@@ -60,11 +60,11 @@ public class MALCommand extends Command implements IUtilCommand {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(MALCommand.class);
     private static Pattern regex = Pattern.compile("^\\S+\\s+([\\W\\w]*)");
 
-    //MALs API is wonky af and loves to timeout requests, so we are setting rather strict ones for its requests
+    //MALs API is wonky af and loves to take its time to answer requests, so we are setting rather high time outs
     private static OkHttpClient malHttpClient = new OkHttpClient.Builder()
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(5, TimeUnit.SECONDS)
-            .writeTimeout(5, TimeUnit.SECONDS)
+            .connectTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .writeTimeout(120, TimeUnit.SECONDS)
             .build();
 
     @Override
@@ -99,13 +99,11 @@ public class MALCommand extends Command implements IUtilCommand {
             // we will try a user search instead
         }
 
-        request = Http.get("http://myanimelist.net/search/prefix.json",
+        request = request.url("http://myanimelist.net/search/prefix.json",
                 Http.Params.of(
                         "type", "user",
                         "keyword", term
-                ))
-                .auth(Credentials.basic(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword()))
-                .client(malHttpClient);
+                ));
 
         try {
             if (handleUser(context, request.asString())) {
