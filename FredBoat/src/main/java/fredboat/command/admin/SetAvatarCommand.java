@@ -3,12 +3,14 @@ package fredboat.command.admin;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.FredBoat;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.entities.Icon;
+import net.dv8tion.jda.core.entities.Message.Attachment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,15 +27,26 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
 
     @Override
     public void onInvoke(CommandContext context) {
-        if (context.args.length > 1) {
-            String imageUrl = context.args[1];
+        String imageUrl = null;
 
+        if (!context.msg.getAttachments().isEmpty()) {
+            Attachment attachment = context.msg.getAttachments().get(0);
+            imageUrl = attachment.getUrl();
+        } else if (context.args.length > 1) {
+            imageUrl = context.args[1];
+        }
+
+        if (imageUrl == null) {
+            HelpCommand.sendFormattedCommandHelp(context);
+        } else {
             if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
                 String type = getImageMimeType(imageUrl);
 
                 if (type.equals("image/jpeg") || type.equals("image/png") || type.equals("image/gif") || type.equals("image/webp")) {
                     setBotAvatar(context, imageUrl);
                 }
+            } else {
+                HelpCommand.sendFormattedCommandHelp(context);
             }
         }
     }
@@ -41,7 +54,7 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1} <imageUrl>\n#Sets the bot avatar to the image file.";
+        return "{0}{1} <imageUrl> OR <attachment>\n#Sets the bot avatar to the image provided by the url or attachment.";
     }
 
     private String getImageMimeType(String imageUrl) {
