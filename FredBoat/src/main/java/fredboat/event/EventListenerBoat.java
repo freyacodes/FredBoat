@@ -50,6 +50,7 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.VoiceChannel;
+import net.dv8tion.jda.core.events.Event;
 import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceJoinEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceLeaveEvent;
@@ -114,6 +115,12 @@ public class EventListenerBoat extends AbstractEventListener {
             .name("fredboat_command_execution_duration_seconds")
             .help("Command execution time")
             .labelNames("class") // use the simple name of the command class
+            .register();
+
+    private static final Counter totalJdaEvents = Counter.build()
+            .name("fredboat_jda_events_received_total")
+            .help("All events that JDA provides us with by class")
+            .labelNames("class")
             .register();
 
 
@@ -348,6 +355,13 @@ public class EventListenerBoat extends AbstractEventListener {
         if (event.getResponse().code >= 300) {
             log.warn("Unsuccessful JDA HTTP Request:\n{}\nResponse:{}\n",
                     event.getRequestRaw(), event.getResponseRaw());
+        }
+    }
+
+    @Override
+    public void onGenericEvent(Event event) {
+        if (FeatureFlags.FULL_METRICS.isActive()) {
+            totalJdaEvents.labels(event.getClass().getSimpleName()).inc();
         }
     }
 }
