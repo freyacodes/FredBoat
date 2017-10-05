@@ -39,12 +39,16 @@ import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
+import fredboat.util.ArgumentUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 
 public class SelectCommand extends Command implements IMusicCommand, ICommandRestricted {
 
@@ -61,29 +65,58 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
         VideoSelection selection = VideoSelection.get(invoker);
         if (selection != null) {
             try {
-                int i = 1;
+                // Handle duplicates.
+                LinkedHashSet<Integer> requestChoices = new LinkedHashSet<>();
+                ArrayList<Integer> validChoices = new ArrayList<>();
 
                 if (args.length >= 1) {
                     String contentWithoutPrefix = args[0].substring(Config.CONFIG.getPrefix().length());
+                    String commandOptions = ArgumentUtil.combineArgOptions(args);
+
                     if (StringUtils.isNumeric(contentWithoutPrefix)) {
-                        i = Integer.valueOf(contentWithoutPrefix);
+                        requestChoices.add(Integer.valueOf(contentWithoutPrefix));
+
+                    } else if (TextUtils.isSplitSelect(commandOptions)) {
+                        // Remove all non comma or number character.
+                        String query = TextUtils.removeAllExceptCommaAndNumerical(commandOptions);
+                        String[] querySplit = query.split(",");
+
+                        for (String value : querySplit) {
+                            if (StringUtils.isNumeric(value)) {
+                                requestChoices.add(Integer.valueOf(value));
+                            }
+                        }
                     } else {
-                        i = Integer.valueOf(args[1]);
+                        requestChoices.add(Integer.valueOf(args[1]));
                     }
                 }
 
-                if (selection.choices.size() < i || i < 1) {
+                // Only include the valid values.
+                for (Integer value : requestChoices) {
+                    if (selection.choices.size() >= value || value >= 1) {
+                        validChoices.add(value);
+                    }
+                }
+                // Check if there is a valid request exist.
+                if (validChoices.isEmpty()) {
                     throw new NumberFormatException();
+
                 } else {
-                    AudioTrack selected = selection.choices.get(i - 1);
+                    AudioTrack[] selectedTracks = new AudioTrack[validChoices.size()];
+
+                    for (int i = 0; i < validChoices.size(); i++) {
+                        selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
+                        player.queue(new AudioTrackContext(selectedTracks[i], invoker));
+                    }
+
                     VideoSelection.remove(invoker);
                     TextChannel tc = FredBoat.getTextChannelById(Long.toString(selection.channelId));
                     if (tc != null) {
-                        String msg = context.i18nFormat("selectSuccess", i, selected.getInfo().title,
-                                TextUtils.formatTime(selected.getInfo().length));
+                        String msg = context.i18nFormat("selectSuccess", validChoices.get(0), selectedTracks[0].getInfo().title,
+                                TextUtils.formatTime(selectedTracks[0].getInfo().length));
                         CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(msg));
                     }
-                    player.queue(new AudioTrackContext(selected, invoker));
+
                     player.setPause(false);
                     context.deleteMessage();
                 }

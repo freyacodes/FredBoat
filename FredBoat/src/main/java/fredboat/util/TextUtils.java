@@ -37,6 +37,7 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.regex.Matcher;
@@ -69,7 +70,7 @@ public class TextUtils {
                 .build();
     }
 
-    private static String ensureSpace(String msg){
+    private static String ensureSpace(String msg) {
         return msg.charAt(0) == ' ' ? msg : " " + msg;
     }
 
@@ -185,11 +186,11 @@ public class TextUtils {
         return roundToTwo(percent * 100) + "%";
     }
 
-    public static String substringPreserveWords(String str, int len){
+    public static String substringPreserveWords(String str, int len) {
         Pattern pattern = Pattern.compile("^([\\w\\W]{" + len + "}\\S+?)\\s");
         Matcher matcher = pattern.matcher(str);
 
-        if(matcher.find()){
+        if (matcher.find()) {
             return matcher.group(1);
         } else {
             //Oh well
@@ -208,11 +209,11 @@ public class TextUtils {
         m.find();
 
         int capturedGroups = 0;
-        if(m.group(1) != null) capturedGroups++;
-        if(m.group(2) != null) capturedGroups++;
-        if(m.group(3) != null) capturedGroups++;
+        if (m.group(1) != null) capturedGroups++;
+        if (m.group(2) != null) capturedGroups++;
+        if (m.group(3) != null) capturedGroups++;
 
-        switch(capturedGroups){
+        switch (capturedGroups) {
             case 0:
                 throw new IllegalStateException("Unable to match " + str);
             case 1:
@@ -249,4 +250,26 @@ public class TextUtils {
 
         return str;
     }
+
+    /**
+     * Helper method to check for string that matches "1,2,3" etc.
+     *
+     * @param arg String of the argument.
+     * @return True if it matches, false if empty string or not match.
+     */
+    public static boolean isSplitSelect(@Nonnull String arg) {
+        String temp = removeAllExceptCommaAndNumerical(arg);
+        return arg.length() > 0 && temp.matches("(\\d*,*)*");
+    }
+
+    /**
+     * Helper method to remove all characters from arg that is not numerical or comma.
+     *
+     * @param arg String to be sanitized.
+     * @return Sanitized string.
+     */
+    public static String removeAllExceptCommaAndNumerical(@Nonnull String arg) {
+        return arg.replaceAll("[^0-9$.,]", "");
+    }
+
 }

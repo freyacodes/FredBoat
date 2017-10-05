@@ -32,6 +32,7 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.Role;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -140,6 +141,21 @@ public class ArgumentUtil {
         String raw = message.getRawContent();
         raw = raw.substring(args[0].length());
         return raw.substring(raw.indexOf(args[argsToStrip]));
+    }
+
+    /**
+     * Helper method to combine all the options from command into a single String.
+     * Will call trim on each combine.
+     *
+     * @param args Command arguments.
+     * @return String object of the combined args or empty string.
+     */
+    public static String combineArgOptions(@Nonnull String[] args) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i < args.length; i++) {
+            sb.append(args[i].trim());
+        }
+        return sb.toString().trim();
     }
 
 }
