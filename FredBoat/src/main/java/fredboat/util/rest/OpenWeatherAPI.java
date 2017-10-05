@@ -121,13 +121,9 @@ public class OpenWeatherAPI implements Weather {
                                 retrievedWeather = objectMapper.readValue(responseBody.string(), OpenWeatherCurrent.class);
                             }
                             break;
-
+                            
+                        case 400:
                         case 404:
-                            if (responseBody != null) {
-                                resultBody = responseBody.string();
-                            }
-                            log.error(TAG + " query: " + query + " returned 404. \n" + resultBody);
-
                             retrievedWeather = new WeatherError(RetrievedWeather.ErrorCode.LOCATION_NOT_FOUND);
                             break;
 
