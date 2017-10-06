@@ -25,7 +25,6 @@
 package fredboat.util;
 
 import fredboat.FredBoat;
-import fredboat.feature.togglz.FeatureFlags;
 import gnu.trove.procedure.TObjectProcedure;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.dv8tion.jda.core.entities.Guild;
@@ -67,18 +66,6 @@ public class JDAUtil {
      */
     @CheckReturnValue
     public static int countAllUniqueUsers(@Nonnull List<FredBoat> shards, @Nullable AtomicInteger biggestUserCount) {
-        long result;
-        //not taking any chances this time
-        if (FeatureFlags.NEW_ENTITY_COUNTING.isActive()) {
-            result = getAllUsers(shards).distinct().count();
-        } else {
-            result = countAllUniqueUsersOld(shards, biggestUserCount);
-        }
-        return Math.toIntExact(result); //the day where there are more than 2^32 fredboat users will be a glorious one. until then this is fine
-    }
-
-    @CheckReturnValue
-    private static long countAllUniqueUsersOld(@Nonnull List<FredBoat> shards, @Nullable AtomicInteger biggestUserCount) {
         int expected = biggestUserCount != null && biggestUserCount.get() > 0 ? biggestUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
         LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 100000); //add 100k for good measure
         TObjectProcedure<User> adder = user -> {
