@@ -125,7 +125,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         if (selected == null) return;
 
         if (!gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
-            context.replyWithName(MessageFormat.format(I18n.get(context, "permsNotAdded"), "`" + mentionableToName(selected) + "`", "`" + permissionLevel + "`"));
+            context.replyWithName(context. i18nFormat("permsNotAdded", "`" + mentionableToName(selected) + "`", "`" + permissionLevel + "`"));
             return;
         }
 
@@ -159,7 +159,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         if (selected == null) return;
 
         if (gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
-            context.replyWithName(MessageFormat.format(I18n.get(context, "permsAlreadyAdded"), "`" + mentionableToName(selected) + "`", "`" + permissionLevel + "`"));
+            context.replyWithName(context.i18nFormat("permsAlreadyAdded", "`" + mentionableToName(selected) + "`", "`" + permissionLevel + "`"));
             return;
         }
 
