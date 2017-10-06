@@ -33,7 +33,6 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.ratelimit.Ratelimiter;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 
 import javax.annotation.Nonnull;
@@ -49,7 +48,7 @@ public class UserInfoCommand extends Command implements IUtilCommand {
     public void onInvoke(@Nonnull CommandContext context) {
         Member target;
         StringBuilder knownServers = new StringBuilder();
-        List<Guild> matchguild = new ArrayList<>();
+        List<String> matchedGuildNames = new ArrayList<>();
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
         if (context.args.length == 1) {
             target = context.invoker;
@@ -57,19 +56,19 @@ public class UserInfoCommand extends Command implements IUtilCommand {
             target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(context, context.args[1], true);
         }
         if (target == null) return;
-        for(Guild g: FredBoat.getAllGuilds()) {
-            if(g.getMemberById(target.getUser().getId()) != null) {
-                matchguild.add(g);
+        FredBoat.getAllGuilds().forEach(guild -> {
+            if (guild.getMemberById(target.getUser().getId()) != null) {
+                matchedGuildNames.add(guild.getName());
             }
-        }
-        if(matchguild.size() >= 30) {
-            knownServers.append(matchguild.size());
+        });
+        if (matchedGuildNames.size() >= 30) {
+            knownServers.append(matchedGuildNames.size());
         } else {
             int i = 0;
-            for(Guild g: matchguild) {
+            for (String guildName : matchedGuildNames) {
                 i++;
-                knownServers.append(g.getName());
-                if(i < matchguild.size()) {
+                knownServers.append(guildName);
+                if (i < matchedGuildNames.size()) {
                     knownServers.append(",\n");
                 }
 

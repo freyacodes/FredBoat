@@ -36,7 +36,6 @@ import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.impl.JDAImpl;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -66,8 +65,7 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
         for (FredBoat fb : shards) {
             if (fb.getJda().getStatus() == JDA.Status.CONNECTED && !full) {
                 healthyGuilds += fb.getGuildCount();
-                // casting to get the underlying map, this is safe because we only need the .size()
-                healthyUsers += ((JDAImpl) fb.getJda()).getUserMap().size();
+                healthyUsers += fb.getJda().getUserCache().size();
             } else {
                 if (borkenShards % SHARDS_PER_MESSAGE == 0) {
                     if (mb != null) {

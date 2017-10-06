@@ -40,6 +40,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public class VoiceChannelCleanupAgent extends FredBoatAgent {
 
@@ -61,45 +63,49 @@ public class VoiceChannelCleanupAgent extends FredBoatAgent {
     }
 
     private void cleanup(){
-        List<Guild> guilds = FredBoat.getAllGuilds();
-        log.info("Checking " + guilds.size() + " guilds for stale voice connections.");
+        Stream<Guild> guilds = FredBoat.getAllGuilds();
+        log.info("Checking " + guilds.count() + " guilds for stale voice connections.");
 
-        int total = 0;
-        int closed = 0;
+        final AtomicInteger total = new AtomicInteger(0);
+        final AtomicInteger closed = new AtomicInteger(0);
 
-        for(Guild guild : guilds) {
-            if (guild != null
-                    && guild.getSelfMember() != null
-                    && guild.getSelfMember().getVoiceState() != null
-                    && guild.getSelfMember().getVoiceState().getChannel() != null) {
+        guilds.forEach(guild -> {
+            try {
+                if (guild != null
+                        && guild.getSelfMember() != null
+                        && guild.getSelfMember().getVoiceState() != null
+                        && guild.getSelfMember().getVoiceState().getChannel() != null) {
 
-                total++;
-                VoiceChannel vc = guild.getSelfMember().getVoiceState().getChannel();
+                    total.incrementAndGet();
+                    VoiceChannel vc = guild.getSelfMember().getVoiceState().getChannel();
 
-                if (getHumanMembersInVC(vc).size() == 0){
-                    closed++;
-                    VoteSkipCommand.guildSkipVotes.remove(guild.getIdLong());
-                    LavalinkManager.ins.closeConnection(guild);
-                    VC_LAST_USED.remove(vc.getId());
-                } else if(isBeingUsed(vc)) {
-                    VC_LAST_USED.put(vc.getId(), System.currentTimeMillis());
-                } else {
-                    // Not being used! But there are users in te VC. Check if we've been here for a while.
-
-                    if(!VC_LAST_USED.containsKey(vc.getId())) {
-                        VC_LAST_USED.put(vc.getId(), System.currentTimeMillis());
-                    }
-
-                    long lastUsed = VC_LAST_USED.get(vc.getId());
-
-                    if (System.currentTimeMillis() - lastUsed > UNUSED_CLEANUP_THRESHOLD) {
-                        closed++;
+                    if (getHumanMembersInVC(vc).size() == 0) {
+                        closed.incrementAndGet();
+                        VoteSkipCommand.guildSkipVotes.remove(guild.getIdLong());
                         LavalinkManager.ins.closeConnection(guild);
                         VC_LAST_USED.remove(vc.getId());
+                    } else if (isBeingUsed(vc)) {
+                        VC_LAST_USED.put(vc.getId(), System.currentTimeMillis());
+                    } else {
+                        // Not being used! But there are users in te VC. Check if we've been here for a while.
+
+                        if (!VC_LAST_USED.containsKey(vc.getId())) {
+                            VC_LAST_USED.put(vc.getId(), System.currentTimeMillis());
+                        }
+
+                        long lastUsed = VC_LAST_USED.get(vc.getId());
+
+                        if (System.currentTimeMillis() - lastUsed > UNUSED_CLEANUP_THRESHOLD) {
+                            closed.incrementAndGet();
+                            LavalinkManager.ins.closeConnection(guild);
+                            VC_LAST_USED.remove(vc.getId());
+                        }
                     }
                 }
+            } catch (Exception e) {
+                log.error("Failed to check guild {} for stale voice connections", guild.getIdLong(), e);
             }
-        }
+        });
 
         log.info("Closed " + closed + " of " + total + " voice connections.");
     }

@@ -68,6 +68,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public abstract class FredBoat {
 
@@ -304,7 +305,7 @@ public abstract class FredBoat {
         return shards;
     }
 
-    public static List<Guild> getAllGuilds() {
+    public static Stream<Guild> getAllGuilds() {
         return JDAUtil.getAllGuilds(shards);
     }
 
@@ -312,33 +313,12 @@ public abstract class FredBoat {
         return JDAUtil.countAllGuilds(shards);
     }
 
-    //this probably takes horribly long and should be solved in a different way
-    //rewrite it when we actually come up with a use case for needing all user objects
-//    @Deprecated
-//    public static Map<String, User> getAllUsersAsMap() {
-//        HashMap<String, User> map = new HashMap<>();
-//
-//        for (FredBoat fb : shards) {
-//            for (User usr : fb.getJda().getUsers()) {
-//                map.put(usr.getId(), usr);
-//            }
-//        }
-//        return map;
-//    }
-
-    private static AtomicInteger biggestUserCount = new AtomicInteger(-1);
-
-    //IMPORTANT: do not use this for actually counting, it will not be accurate; it is meant to be used to initialize
-    // sets or maps that are about to hold all those user values
-    public static int getExpectedUserCount() {
-        if (biggestUserCount.get() <= 0) { //initialize
-            countAllUniqueUsers();
-        }
-        return biggestUserCount.get();
-    }
-
+    private static AtomicInteger biggestUserCountTotal = new AtomicInteger(-1); //of FredBoat total
     public static long countAllUniqueUsers() {
-        return JDAUtil.countAllUniqueUsers(shards, biggestUserCount);
+        int result = JDAUtil.countAllUniqueUsers(shards, biggestUserCountTotal);
+        //never shrink the user count (might happen due to not connected shards)
+        biggestUserCountTotal.accumulateAndGet(result, Math::max);
+        return result;
     }
 
     // ################################################################################
@@ -346,24 +326,20 @@ public abstract class FredBoat {
     // ################################################################################
 
     @Nullable
-    public static TextChannel getTextChannelById(String id) {
+    public static TextChannel getTextChannelById(long id) {
         for (FredBoat fb : shards) {
-            for (TextChannel channel : fb.getJda().getTextChannels()) {
-                if (channel.getId().equals(id)) return channel;
-            }
+            TextChannel tc = fb.getJda().getTextChannelById(id);
+            if (tc != null) return tc;
         }
-
         return null;
     }
 
     @Nullable
-    public static VoiceChannel getVoiceChannelById(String id) {
+    public static VoiceChannel getVoiceChannelById(long id) {
         for (FredBoat fb : shards) {
-            for (VoiceChannel channel : fb.getJda().getVoiceChannels()) {
-                if (channel.getId().equals(id)) return channel;
-            }
+            VoiceChannel vc = fb.getJda().getVoiceChannelById(id);
+            if (vc != null) return vc;
         }
-
         return null;
     }
 
@@ -373,7 +349,6 @@ public abstract class FredBoat {
             Guild g = fb.getJda().getGuildById(id);
             if (g != null) return g;
         }
-
         return null;
     }
 

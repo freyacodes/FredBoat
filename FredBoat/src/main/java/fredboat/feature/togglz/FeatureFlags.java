@@ -55,6 +55,9 @@ public enum FeatureFlags implements Feature {
 
     @Label("Force soundcloud search instead of youtube")
     FORCE_SOUNDCLOUD_SEARCH,
+
+    @Label("Temporary flag to test updated method to count unique users") //todo test in production and remove
+    NEW_ENTITY_COUNTING,
     ;
 
     public boolean isActive() {
