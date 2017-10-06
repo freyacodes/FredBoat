@@ -36,18 +36,13 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
             imageUrl = context.args[1];
         }
 
-        if (imageUrl == null) {
-            HelpCommand.sendFormattedCommandHelp(context);
-        } else {
-            if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-                String type = getImageMimeType(imageUrl);
-
-                if (type.equals("image/jpeg") || type.equals("image/png") || type.equals("image/gif") || type.equals("image/webp")) {
-                    setBotAvatar(context, imageUrl);
-                }
-            } else {
+        if (imageUrl != null) {
+            boolean success = setBotAvatar(context, imageUrl);
+            if (!success) {
                 HelpCommand.sendFormattedCommandHelp(context);
             }
+        } else {
+            HelpCommand.sendFormattedCommandHelp(context);
         }
     }
 
@@ -68,20 +63,26 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
         return mimeType;
     }
 
-    private void setBotAvatar(CommandContext context, String imageUrl) {
-        InputStream avatarData;
-        try {
-            avatarData = Unirest.get(imageUrl).asBinary().getBody();
-            FredBoat.getFirstJDA().getSelfUser().getManager().setAvatar(Icon.from(avatarData))
-                    .queue(
-                            success -> context.reply("Avatar has been set successfully!"),
-                            failure -> context.reply("Error setting avatar. Please try again later.")
-                    );
-        } catch (UnirestException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    private boolean setBotAvatar(CommandContext context, String imageUrl) {
+        if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+            String type = getImageMimeType(imageUrl);
+
+            if (type.equals("image/jpeg") || type.equals("image/png") || type.equals("image/gif") || type.equals("image/webp")) {
+                InputStream avatarData;
+                try {
+                    avatarData = Unirest.get(imageUrl).asBinary().getBody();
+                    FredBoat.getFirstJDA().getSelfUser().getManager().setAvatar(Icon.from(avatarData))
+                            .queue(
+                                    success -> context.reply("Avatar has been set successfully!"),
+                                    failure -> context.reply("Error setting avatar. Please try again later.")
+                            );
+                } catch (UnirestException | IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return true;
+            }
         }
+        return false;
     }
 
     @Override
