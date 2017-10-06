@@ -53,9 +53,10 @@ public class JDAUtil {
      */
     @CheckReturnValue
     public static int countAllGuilds(@Nonnull List<FredBoat> shards) {
-        return Math.toIntExact(shards.stream()
+        long result = shards.stream()
                 .mapToLong(shard -> shard.getJda().getGuildCache().size())
-                .sum());
+                .sum();
+        return Math.toIntExact(result); //the day where there are more than 2^32 guilds served by fredboat will be a glorious one. until then this is fine
     }
 
     /**
@@ -73,7 +74,7 @@ public class JDAUtil {
         } else {
             result = countAllUniqueUsersOld(shards, biggestUserCount);
         }
-        return new Long(result).intValue(); //the day where there are more than 2^32 fredboat users will be a glorious one. until then this is fine
+        return Math.toIntExact(result); //the day where there are more than 2^32 fredboat users will be a glorious one. until then this is fine
     }
 
     @CheckReturnValue
