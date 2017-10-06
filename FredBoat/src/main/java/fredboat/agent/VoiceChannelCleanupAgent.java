@@ -30,7 +30,6 @@ import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.command.music.control.VoteSkipCommand;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import org.slf4j.Logger;
@@ -41,7 +40,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 public class VoiceChannelCleanupAgent extends FredBoatAgent {
 
@@ -63,24 +61,25 @@ public class VoiceChannelCleanupAgent extends FredBoatAgent {
     }
 
     private void cleanup(){
-        Stream<Guild> guilds = FredBoat.getAllGuilds();
-        log.info("Checking " + guilds.count() + " guilds for stale voice connections.");
+        log.info("Checking guilds for stale voice connections.");
 
-        final AtomicInteger total = new AtomicInteger(0);
-        final AtomicInteger closed = new AtomicInteger(0);
+        final AtomicInteger totalGuilds = new AtomicInteger(0);
+        final AtomicInteger totalVcs = new AtomicInteger(0);
+        final AtomicInteger closedVcs = new AtomicInteger(0);
 
-        guilds.forEach(guild -> {
+        FredBoat.getAllGuilds().forEach(guild -> {
             try {
+                totalGuilds.incrementAndGet();
                 if (guild != null
                         && guild.getSelfMember() != null
                         && guild.getSelfMember().getVoiceState() != null
                         && guild.getSelfMember().getVoiceState().getChannel() != null) {
 
-                    total.incrementAndGet();
+                    totalVcs.incrementAndGet();
                     VoiceChannel vc = guild.getSelfMember().getVoiceState().getChannel();
 
                     if (getHumanMembersInVC(vc).size() == 0) {
-                        closed.incrementAndGet();
+                        closedVcs.incrementAndGet();
                         VoteSkipCommand.guildSkipVotes.remove(guild.getIdLong());
                         LavalinkManager.ins.closeConnection(guild);
                         VC_LAST_USED.remove(vc.getId());
@@ -96,7 +95,7 @@ public class VoiceChannelCleanupAgent extends FredBoatAgent {
                         long lastUsed = VC_LAST_USED.get(vc.getId());
 
                         if (System.currentTimeMillis() - lastUsed > UNUSED_CLEANUP_THRESHOLD) {
-                            closed.incrementAndGet();
+                            closedVcs.incrementAndGet();
                             LavalinkManager.ins.closeConnection(guild);
                             VC_LAST_USED.remove(vc.getId());
                         }
@@ -107,7 +106,8 @@ public class VoiceChannelCleanupAgent extends FredBoatAgent {
             }
         });
 
-        log.info("Closed " + closed + " of " + total + " voice connections.");
+        log.info("Checked {} guilds for stale voice connections.", totalGuilds.get());
+        log.info("Closed {} of {} voice connections.", closedVcs.get(), totalVcs.get());
     }
 
     private List<Member> getHumanMembersInVC(VoiceChannel vc){
