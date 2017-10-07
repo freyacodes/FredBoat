@@ -61,4 +61,18 @@ public interface RetrievedWeather {
      * @return String representation of thumbnail url or empty string if there is an error.
      */
     String getThumbnailUrl();
+
+    /**
+     * Get icon url (if available).
+     *
+     * @return String representation of icon url or empty string if there is an error.
+     */
+    String getDataProviderIcon();
+
+    /**
+     * Get data provider credit string.
+     *
+     * @return String representation of data provider credit or empty string if there is an error.
+     */
+    String getDataProviderString();
 }

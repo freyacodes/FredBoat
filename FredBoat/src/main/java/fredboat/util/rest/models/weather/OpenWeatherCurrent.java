@@ -33,6 +33,8 @@ public class OpenWeatherCurrent implements RetrievedWeather {
 
     // Url for retrieving thumbnails.
     private static final String THUMBNAIL_ICON_URL = "https://openweathermap.org/img/w/%s.png";
+    private static final String PROVIDER_ICON_URL = "https://i.imgur.com/YqZuqEB.jpg";
+    private static final String PROVIDER_CREDIT_STRING = "Provided by OpenWeatherMap.org";
 
     @JsonProperty("weather")
     private List<WeatherOpenWeather> weather;
@@ -178,6 +180,22 @@ public class OpenWeatherCurrent implements RetrievedWeather {
             url = String.format(THUMBNAIL_ICON_URL, iconName);
         }
         return url;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getDataProviderIcon() {
+        return PROVIDER_ICON_URL;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getDataProviderString() {
+        return PROVIDER_CREDIT_STRING;
     }
 
     private double getFahrenheit() {

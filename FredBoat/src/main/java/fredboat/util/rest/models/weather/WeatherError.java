@@ -44,4 +44,14 @@ public class WeatherError implements RetrievedWeather {
     public String getThumbnailUrl() {
         return "";
     }
+
+    @Override
+    public String getDataProviderIcon() {
+        return "";
+    }
+
+    @Override
+    public String getDataProviderString() {
+        return "";
+    }
 }

@@ -54,7 +54,8 @@ public class WeatherCommand extends Command implements IUtilCommand {
 
                     EmbedBuilder embedBuilder = CentralMessaging.getClearThreadLocalEmbedBuilder()
                             .setTitle(title)
-                            .setDescription(currentWeather.getWeatherDescription());
+                            .setDescription(currentWeather.getWeatherDescription())
+                            .setFooter(currentWeather.getDataProviderString(), currentWeather.getDataProviderIcon());
 
                     if (currentWeather.getThumbnailUrl().length() > 0) {
                         embedBuilder.setThumbnail(currentWeather.getThumbnailUrl());
