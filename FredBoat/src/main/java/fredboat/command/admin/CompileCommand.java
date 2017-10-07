@@ -127,6 +127,7 @@ public class CompileCommand extends Command implements ICommandRestricted {
         return "{0}{1} [branch [repo]]\n#Update the bot by checking out the provided branch from the provided github repo and compiling it. Default github repo is Frederikam, default branch is master. Does not restart the bot.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_OWNER;

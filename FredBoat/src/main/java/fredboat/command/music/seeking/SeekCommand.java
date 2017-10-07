@@ -81,6 +81,7 @@ public class SeekCommand extends Command implements IMusicCommand, ICommandRestr
         return usage + context.i18n("helpSeekCommand") + example;
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;

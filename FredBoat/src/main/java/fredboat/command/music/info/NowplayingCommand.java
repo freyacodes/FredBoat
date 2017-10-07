@@ -58,7 +58,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         player.setCurrentTC(context.channel);
 
         if (player.isPlaying()) {

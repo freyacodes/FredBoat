@@ -25,41 +25,58 @@
 
 package fredboat.command.fun;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.event.EventListenerBoat;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
+import net.dv8tion.jda.core.entities.Guild;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 public class DanceCommand extends Command implements IFunCommand {
 
+    private final Function<Guild, ReentrantLock> locks = CacheBuilder.newBuilder()
+            .maximumSize(128) //any value will do, but not too big
+            .build(CacheLoader.from(() -> new ReentrantLock()))
+            .compose(Guild::getId); //mapping guild id to a lock
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
+        //locking by use of java.util.concurrent.locks
+
+        //in most cases we would need to use a fair lock, but since
+        // any one lock is only set-up by one thread we can get away with a naive isLocked check
+        ReentrantLock lock = locks.apply(context.getGuild());
+        if (lock.isLocked()) {
+            return; //already in progress
+        }
         Runnable func = new Runnable() {
             @Override
             public void run() {
-                synchronized (context.channel) {
-                    context.reply('\u200b' + "\\o\\", msg -> {
-                        try {
-                            EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), msg.getIdLong());
-                            long start = System.currentTimeMillis();
-                            synchronized (this) {
-                                while (start + 60000 > System.currentTimeMillis()) {
-                                    wait(1000);
-                                    msg = CentralMessaging.editMessage(msg, "/o/").getWithDefaultTimeout();
-                                    wait(1000);
-                                    msg = CentralMessaging.editMessage(msg, "\\o\\").getWithDefaultTimeout();
-                                }
-                            }
-                        } catch (TimeoutException | ExecutionException | InterruptedException ignored) {
+                context.reply('\u200b' + "\\o\\", msg -> {
+                    try {
+                        lock.lock();
+                        EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), msg.getIdLong());
+                        long start = System.currentTimeMillis();
+                        while (start + 60000 > System.currentTimeMillis()) {
+                            Thread.sleep(1000);
+                            msg = CentralMessaging.editMessage(msg, "/o/").getWithDefaultTimeout();
+                            Thread.sleep(1000);
+                            msg = CentralMessaging.editMessage(msg, "\\o\\").getWithDefaultTimeout();
                         }
-                    });
-                }
+                    } catch (TimeoutException | ExecutionException | InterruptedException ignored) {
+                    } finally {
+                        lock.unlock();
+                    }
+                });
             }
         };
 

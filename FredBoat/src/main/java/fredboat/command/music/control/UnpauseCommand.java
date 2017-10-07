@@ -45,7 +45,7 @@ public class UnpauseCommand extends Command implements IMusicCommand, ICommandRe
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         Guild guild = context.guild;
-        GuildPlayer player = PlayerRegistry.get(guild);
+        GuildPlayer player = PlayerRegistry.getOrCreate(guild);
         player.setCurrentTC(context.channel);
         if (player.isQueueEmpty()) {
             context.reply(context.i18n("unpauseQueueEmpty"));
@@ -72,6 +72,7 @@ public class UnpauseCommand extends Command implements IMusicCommand, ICommandRe
         return "{0}{1}\n#" + context.i18n("helpUnpauseCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;

@@ -39,7 +39,7 @@ Commands intended for public use (read: non-admin, non-maintenance commands) are
 
 ### Translations
 See [Translations](https://github.com/Frederikam/FredBoat/blob/master/CONTRIBUTING.md#translations) for more details on our flow of adding new strings to translation files.
-You can access translations through the `CommandContext` (soon:tm:) or using the [I18n](https://github.com/Frederikam/FredBoat/blob/master/FredBoat/src/main/java/fredboat/feature/I18n.java) class.
+You can access translations through any provided `Context`.
 
 ### Example: The Shuffle Command
 
@@ -51,21 +51,21 @@ The [ShuffleCommand.java](https://github.com/Frederikam/FredBoat/blob/master/Fre
 public class ShuffleCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         GuildPlayer player = PlayerRegistry.get(context.guild);
         player.setShuffle(!player.isShuffle());
 
         if (player.isShuffle()) {
-            context.reply(I18n.get(context, "shuffleOn"));
+            context.reply(context.i18n("shuffleOn"));
         } else {
-            context.reply(I18n.get(context, "shuffleOff"));
+            context.reply(context.i18n("shuffleOff"));
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpShuffleCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpShuffleCommand");
     }
 
     @Override

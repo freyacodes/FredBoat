@@ -90,6 +90,7 @@ public class NodeAdminCommand extends Command implements ICommandRestricted {
         return "{0}{1}\n#Add or remove lavalink nodes.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_ADMIN;

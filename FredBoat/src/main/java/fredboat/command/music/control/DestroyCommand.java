@@ -49,6 +49,7 @@ public class DestroyCommand extends Command implements IMusicCommand, ICommandRe
         return "{0}{1}\n#" + context.i18n("destroyHelp");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;

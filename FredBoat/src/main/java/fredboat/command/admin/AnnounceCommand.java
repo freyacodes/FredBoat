@@ -136,6 +136,7 @@ public class AnnounceCommand extends Command implements ICommandRestricted {
         return "{0}{1}\n#Broadcasts an announcement to GuildPlayer TextChannels.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_ADMIN;

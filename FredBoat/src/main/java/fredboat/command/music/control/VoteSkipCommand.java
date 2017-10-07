@@ -35,7 +35,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         player.setCurrentTC(context.channel);
 
         // No point to allow voteskip if you are not in the vc at all
@@ -59,9 +59,10 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
 
         if (context.args.length == 1) {
             String response = addVoteWithResponse(context);
+            float actualMinSkip = player.getHumanUsersInCurrentVC().size() < 3 ? 1.0f : MIN_SKIP_PERCENTAGE;
 
             float skipPercentage = getSkipPercentage(context.guild);
-            if (skipPercentage >= MIN_SKIP_PERCENTAGE) {
+            if (skipPercentage >= actualMinSkip) {
                 AudioTrackContext atc = player.getPlayingTrack();
 
                 if (atc == null) {
@@ -74,7 +75,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
                 }
             } else {
                 String skipPerc = "`" + TextUtils.formatPercent(skipPercentage) + "`";
-                String minSkipPerc = "`" + TextUtils.formatPercent(MIN_SKIP_PERCENTAGE) + "`";
+                String minSkipPerc = "`" + TextUtils.formatPercent(actualMinSkip) + "`";
                 context.reply(response + "\n" + context.i18nFormat("voteSkipNotEnough", skipPerc, minSkipPerc));
             }
 
@@ -112,7 +113,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
     }
 
     private float getSkipPercentage(Guild guild) {
-        GuildPlayer player = PlayerRegistry.get(guild);
+        GuildPlayer player = PlayerRegistry.getOrCreate(guild);
         List<Member> vcMembers = player.getHumanUsersInCurrentVC();
         int votes = 0;
 
@@ -171,6 +172,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
         return context.i18n("helpVoteSkip");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.USER;

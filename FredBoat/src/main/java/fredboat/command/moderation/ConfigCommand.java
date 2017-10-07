@@ -113,6 +113,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
         return usage + context.i18n("helpConfigCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BASE;

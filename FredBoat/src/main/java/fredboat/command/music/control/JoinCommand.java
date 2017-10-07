@@ -41,7 +41,7 @@ public class JoinCommand extends Command implements IMusicCommand, ICommandRestr
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         VoiceChannel vc = player.getUserCurrentVoiceChannel(context.invoker);
         player.setCurrentTC(context.channel);
         try {
@@ -64,6 +64,7 @@ public class JoinCommand extends Command implements IMusicCommand, ICommandRestr
         return "{0}{1}\n#" + context.i18n("helpJoinCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.USER;

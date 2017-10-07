@@ -56,7 +56,7 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
     static void select(CommandContext context) {
         String[] args = context.args;
         Member invoker = context.invoker;
-        GuildPlayer player = PlayerRegistry.get(context.guild);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         player.setCurrentTC(context.channel);
         VideoSelection selection = VideoSelection.get(invoker);
         if (selection != null) {
@@ -101,6 +101,7 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
         return "{0}{1} n OR {0}{2} n\n#" + context.i18n("helpSelectCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.USER;

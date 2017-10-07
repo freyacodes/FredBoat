@@ -186,7 +186,7 @@ public class MusicPersistenceHandler {
                 RepeatMode repeatMode = data.getEnum(RepeatMode.class, "repeatMode");
                 boolean shuffle = data.getBoolean("shuffle");
 
-                GuildPlayer player = PlayerRegistry.get(vc.getJDA(), gId);
+                GuildPlayer player = PlayerRegistry.getOrCreate(vc.getJDA(), gId);
 
                 player.joinChannel(vc);
                 if (tc != null) {

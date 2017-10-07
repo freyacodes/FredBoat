@@ -48,6 +48,7 @@ public class DisableCommandsCommand extends Command implements ICommandRestricte
         return "{0}{1} <command>\n#Disable a command GLOBALLY use with caution";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_ADMIN;

@@ -37,6 +37,7 @@ import fredboat.messaging.internal.Context;
 import fredboat.util.rest.CacheUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
@@ -44,13 +45,19 @@ import java.io.File;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RandomImageCommand extends Command implements IFunCommand {
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(RandomImageCommand.class);
+
+    private static final Logger log = LoggerFactory.getLogger(RandomImageCommand.class);
+    private static final ScheduledExecutorService imgurRefresher = Executors.newSingleThreadScheduledExecutor(
+            runnable -> new Thread(runnable, "imgur-refresher"));
 
     //https://regex101.com/r/0TDxsu/2
     private static final Pattern IMGUR_ALBUM = Pattern.compile("^https?://imgur\\.com/a/([a-zA-Z0-9]+)$");
@@ -64,20 +71,15 @@ public class RandomImageCommand extends Command implements IFunCommand {
         this.urls = urls;
     }
 
-    public RandomImageCommand(String imgurAlbum) {
-        //update the album every hour or so
-        new Thread(() -> {
-            boolean run = true;
-            while (run) {
-                populateItems(imgurAlbum);
-                try {
-                    Thread.sleep(1000 * 60 * 60);
-                } catch (InterruptedException e) {
-                    log.info("Update thread for " + imgurAlbum + " has been interrupted.");
-                    run = false;
-                }
+    public RandomImageCommand(@Nonnull String imgurAlbumUrl) {
+        //update the album every hour
+        imgurRefresher.scheduleAtFixedRate(() -> {
+            try {
+                populateItems(imgurAlbumUrl);
+            } catch (Exception e) {
+                log.error("Populating imgur album {} failed", imgurAlbumUrl, e);
             }
-        }, RandomImageCommand.class.getSimpleName() + " imgur updater").start();
+        }, 0, 1, TimeUnit.HOURS);
     }
 
     @Override
@@ -107,7 +109,7 @@ public class RandomImageCommand extends Command implements IFunCommand {
         Matcher m = IMGUR_ALBUM.matcher(imgurAlbumUrl);
 
         if (!m.find()) {
-            log.error("Not a valid imgur album url " + imgurAlbumUrl);
+            log.error("Not a valid imgur album url {}", imgurAlbumUrl);
             return;
         }
 

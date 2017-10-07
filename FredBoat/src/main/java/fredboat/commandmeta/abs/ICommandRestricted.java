@@ -27,8 +27,11 @@ package fredboat.commandmeta.abs;
 
 import fredboat.perms.PermissionLevel;
 
+import javax.annotation.Nonnull;
+
 public interface ICommandRestricted {
 
+    @Nonnull
     PermissionLevel getMinimumPerms();
 
 }

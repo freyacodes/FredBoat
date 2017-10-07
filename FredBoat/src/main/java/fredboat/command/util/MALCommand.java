@@ -47,6 +47,12 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * @deprecated The mal API is broken af. After an unsuccessful search it will answer requests after one full minute only,
+ * until one does a successful search. This is unacceptable.
+ * Reworking this should also include a cache of some kind.
+ */
+@Deprecated
 public class MALCommand extends Command implements IUtilCommand {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(MALCommand.class);

@@ -92,6 +92,7 @@ public class UpdateCommand extends Command implements ICommandRestricted {
         return "{0}{1} [branch [repo]]\n#Update the bot by checking out the provided branch from the provided github repo and compiling it. Default github repo is Frederikam, default branch is master. Restart with the fresh build.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_OWNER;

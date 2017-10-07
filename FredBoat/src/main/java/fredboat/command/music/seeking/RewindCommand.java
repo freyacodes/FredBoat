@@ -79,6 +79,7 @@ public class RewindCommand extends Command implements IMusicCommand, ICommandRes
         return usage + context.i18n("helpRewindCommand") + example;
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;

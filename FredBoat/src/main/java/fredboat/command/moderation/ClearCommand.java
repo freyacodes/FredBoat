@@ -81,7 +81,7 @@ public class ClearCommand extends Command implements IModerationCommand {
                 }
 
                 context.reply("Deleting **" + myMessages.size() + "** messages.");
-                CentralMessaging.deleteMessages(myMessages);
+                CentralMessaging.deleteMessages(channel, myMessages);
             }
         } catch (RateLimitedException e) {
             throw new RuntimeException(e);

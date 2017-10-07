@@ -138,7 +138,7 @@ public class ArgumentUtil {
 
     public static String getSearchTerm(Message message, String[] args, int argsToStrip) {
         String raw = message.getRawContent();
-        raw = raw.substring(args[0].length());
+        raw = raw.substring(args[0].length() + args[1].length() + 2); //arg0 is prefix, arg1 is add / remove and + 2 for the 2 spaces
         return raw.substring(raw.indexOf(args[argsToStrip]));
     }
 

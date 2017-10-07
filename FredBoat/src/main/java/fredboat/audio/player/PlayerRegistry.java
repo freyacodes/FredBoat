@@ -45,12 +45,12 @@ public class PlayerRegistry {
     }
 
     @Nonnull
-    public static GuildPlayer get(@Nonnull Guild guild) {
-        return get(guild.getJDA(), guild.getId());
+    public static GuildPlayer getOrCreate(@Nonnull Guild guild) {
+        return getOrCreate(guild.getJDA(), guild.getId());
     }
 
     @Nonnull
-    public static GuildPlayer get(JDA jda, String k) {
+    public static GuildPlayer getOrCreate(JDA jda, String k) {
         GuildPlayer player = REGISTRY.get(k);
         if (player == null) {
             player = new GuildPlayer(jda.getGuildById(k));
@@ -74,7 +74,7 @@ public class PlayerRegistry {
     @Nullable
     public static GuildPlayer getExisting(JDA jda, String k) {
         if (REGISTRY.containsKey(k)) {
-            return get(jda, k);
+            return getOrCreate(jda, k);
         }
         return null;
     }
