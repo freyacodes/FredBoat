@@ -43,7 +43,6 @@ import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.DistributionEnum;
-import fredboat.util.rest.OpenWeatherAPI;
 import fredboat.util.rest.SearchUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
