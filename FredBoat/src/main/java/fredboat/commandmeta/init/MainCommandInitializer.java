@@ -41,8 +41,8 @@ public class MainCommandInitializer {
     public static void initCommands() {
         CommandRegistry.registerCommand("help", new HelpCommand(), "info");
         CommandRegistry.registerCommand("commands", new CommandsCommand(), "comms", "cmds");
-        CommandRegistry.registerCommand("invite", new InviteCommand());      
-        
+        CommandRegistry.registerCommand("invite", new InviteCommand());
+
         /* Bot Maintenance */
         CommandRegistry.registerCommand("unblacklist", new UnblacklistCommand(), "unlimit");
         CommandRegistry.registerCommand("version", new VersionCommand());
@@ -58,20 +58,21 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("test", new TestCommand());
         CommandRegistry.registerCommand("gitinfo", new GitInfoCommand(), "git");
         CommandRegistry.registerCommand("exit", new ExitCommand());
-        
+
         /* Moderation */
         CommandRegistry.registerCommand("hardban", new HardbanCommand());
         CommandRegistry.registerCommand("kick", new KickCommand());
         CommandRegistry.registerCommand("softban", new SoftbanCommand());
         CommandRegistry.registerCommand("clear", new ClearCommand());
-        
+
         /* Util */
         CommandRegistry.registerCommand("serverinfo", new fredboat.command.util.ServerInfoCommand(), "guildinfo");
         CommandRegistry.registerCommand("userinfo", new fredboat.command.util.UserInfoCommand(), "memberinfo");
         CommandRegistry.registerCommand("ping", new PingCommand());
         CommandRegistry.registerCommand("fuzzy", new FuzzyUserSearchCommand());
         CommandRegistry.registerCommand("math", new MathCommand());
-        
+        CommandRegistry.registerCommand("weather", new WeatherCommand(new OpenWeatherAPI()));
+
         /* Fun Commands */
         CommandRegistry.registerCommand("joke", new JokeCommand(), "jk");
         CommandRegistry.registerCommand("riot", new RiotCommand());
@@ -80,7 +81,6 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("catgirl", new CatgirlCommand(), "neko", "catgrill");
         CommandRegistry.registerCommand("avatar", new AvatarCommand(), "ava");
         CommandRegistry.registerCommand("say", new SayCommand());
-        CommandRegistry.registerCommand("weather", new WeatherCommand(new OpenWeatherAPI()));
 
         /* Other Anime Discord, Sergi memes or any other memes */
         // saved in this album https://imgur.com/a/wYvDu
@@ -102,7 +102,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("noods", new RemoteFileCommand("http://i.imgur.com/mKdTGlg.png"));
         CommandRegistry.registerCommand("internetspeed", new RemoteFileCommand("http://i.imgur.com/84nbpQe.png"));
         CommandRegistry.registerCommand("powerpoint", new RemoteFileCommand("http://i.imgur.com/i65ss6p.png"));
-        
+
         /* Text Faces & Unicode 'Art' & ASCII 'Art' and Stuff */
         CommandRegistry.registerCommand("shr", new TextCommand("¯\\_(ツ)_/¯"), "shrug");
         CommandRegistry.registerCommand("faceofdisapproval", new TextCommand("ಠ_ಠ"), "fod", "disapproving");
@@ -124,7 +124,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("eagleoflenny", new TextCommand(AsciiArtConstant.EAGLE_OF_LENNY), "eol", "lennyeagle");
 
         /* Misc - All commands under this line fall in this category */
-        
+
         CommandRegistry.registerCommand("mal", new MALCommand());
         CommandRegistry.registerCommand("brainfuck", new BrainfuckCommand());
 
