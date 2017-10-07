@@ -65,20 +65,21 @@ public class WeatherCommand extends Command implements IUtilCommand {
                 } else {
                     switch (currentWeather.errorType()) {
                         case LOCATION_NOT_FOUND:
-                            context.reply(MessageFormat.format(I18n.get(context.guild).getString("weatherLocationNotFound"), query));
+                            context.reply(context.i18nFormat("weatherLocationNotFound",
+                                    "`" + query + "`"));
                             break;
 
                         default:
-                            context.reply(
-                                    MessageFormat.format(I18n.get(context.guild).getString("weatherError"),
-                                            query.toUpperCase()));
+                            context.reply((context.i18nFormat("weatherError",
+                                    "`" + query.toUpperCase()) + "`"
+                            ));
                             break;
                     }
                 }
                 return;
 
             } catch (APILimitException e) {
-                context.reply(I18n.get(context.guild).getString("tryLater"));
+                context.reply(context.i18n("tryLater"));
                 return;
             }
         }
@@ -89,7 +90,7 @@ public class WeatherCommand extends Command implements IUtilCommand {
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return HELP_STRING_FORMAT + I18n.get(context.getGuild()).getString("helpWeatherCommand");
+        return HELP_STRING_FORMAT + context.i18n("helpWeatherCommand");
     }
 
     /**
