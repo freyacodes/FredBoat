@@ -152,7 +152,12 @@ public abstract class Context {
         return getGuild().getSelfMember().hasPermission(getTextChannel(), permissions);
     }
 
-    //return a single translated string
+    /**
+     * Return a single translated string.
+     *
+     * @param key Key of the i18n string.
+     * @return Formatted i18n string, or a default language string if i18n is not found.
+     */
     @CheckReturnValue
     public String i18n(@Nonnull String key) {
         if (getI18n().containsKey(key)) {
@@ -163,7 +168,13 @@ public abstract class Context {
         }
     }
 
-    //return a translated string with applied formatting
+    /**
+     * Return a translated string with applied formatting.
+     *
+     * @param key Key of the i18n string.
+     * @param params Parameter(s) to be apply into the i18n string.
+     * @return Formatted i18n string.
+     */
     @CheckReturnValue
     public String i18nFormat(@Nonnull String key, Object... params) {
         if (params == null || params.length == 0) {
