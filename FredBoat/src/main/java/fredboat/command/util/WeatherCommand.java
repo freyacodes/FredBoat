@@ -6,6 +6,7 @@ import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
+import fredboat.shared.constant.BotConstants;
 import fredboat.util.rest.APILimitException;
 import fredboat.util.rest.Weather;
 import fredboat.util.rest.models.weather.RetrievedWeather;
@@ -53,6 +54,7 @@ public class WeatherCommand extends Command implements IUtilCommand {
                             currentWeather.getLocation(), currentWeather.getTemperature());
 
                     EmbedBuilder embedBuilder = CentralMessaging.getClearThreadLocalEmbedBuilder()
+                            .setColor(BotConstants.FREDBOAT_COLOR)
                             .setTitle(title)
                             .setDescription(currentWeather.getWeatherDescription())
                             .setFooter(currentWeather.getDataProviderString(), currentWeather.getDataProviderIcon());
