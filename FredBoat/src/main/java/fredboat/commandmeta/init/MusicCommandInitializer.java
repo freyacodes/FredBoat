@@ -89,7 +89,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("seek", new SeekCommand());
         CommandRegistry.registerCommand("forward", new ForwardCommand(), "fwd");
         CommandRegistry.registerCommand("rewind", new RewindCommand(), "rew");
-        CommandRegistry.registerCommand("restart", new RestartCommand());
+        CommandRegistry.registerCommand("restart", new RestartCommand(), "replay");
         
         /* Bot Maintenance Commands */
         CommandRegistry.registerCommand("mgitinfo", new GitInfoCommand(), "mgit");
