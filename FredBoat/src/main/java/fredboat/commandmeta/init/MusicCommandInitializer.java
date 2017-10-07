@@ -34,6 +34,7 @@ import fredboat.command.music.control.*;
 import fredboat.command.music.info.ExportCommand;
 import fredboat.command.music.info.GensokyoRadioCommand;
 import fredboat.command.music.info.ListCommand;
+import fredboat.command.music.info.HistoryCommand;
 import fredboat.command.music.info.NowplayingCommand;
 import fredboat.command.music.seeking.ForwardCommand;
 import fredboat.command.music.seeking.RestartCommand;
@@ -81,6 +82,7 @@ public class MusicCommandInitializer {
         /* Info */
         CommandRegistry.registerCommand("nowplaying", new NowplayingCommand(), "np");
         CommandRegistry.registerCommand("list", new ListCommand(), "queue", "q", "l");
+        CommandRegistry.registerCommand("history", new HistoryCommand(), "hist", "h");
         CommandRegistry.registerCommand("export", new ExportCommand(), "ex");
         CommandRegistry.registerCommand("gr", new GensokyoRadioCommand(), "gensokyo", "gensokyoradio");
         CommandRegistry.registerCommand("muserinfo", new UserInfoCommand());
