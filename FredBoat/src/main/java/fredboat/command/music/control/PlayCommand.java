@@ -82,9 +82,9 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
             for (Attachment atc : context.msg.getAttachments()) {
                 player.queue(atc.getUrl(), context);
             }
-
+            
             player.setPause(false);
-
+            
             return;
         }
 
@@ -126,10 +126,10 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
             context.reply(context.i18n("playAlreadyPlaying"));
         } else if (player.getHumanUsersInCurrentVC().isEmpty() && LavalinkManager.ins.getConnectedChannel(guild) != null) {
             context.reply(context.i18n("playVCEmpty"));
-        } else if (LavalinkManager.ins.getConnectedChannel(guild) == null) {
+        } else if(LavalinkManager.ins.getConnectedChannel(guild) == null) {
             // When we just want to continue playing, but the user is not in a VC
             JOIN_COMMAND.onInvoke(context);
-            if (LavalinkManager.ins.getConnectedChannel(guild) != null || guild.getAudioManager().isAttemptingToConnect()) {
+            if(LavalinkManager.ins.getConnectedChannel(guild) != null || guild.getAudioManager().isAttemptingToConnect()) {
                 player.play();
                 context.reply(context.i18n("playWillNowPlay"));
             }
@@ -143,7 +143,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         Matcher m = Pattern.compile("\\S+\\s+(.*)").matcher(context.msg.getRawContent());
         m.find();
         String query = m.group(1);
-
+        
         //Now remove all punctuation
         query = query.replaceAll(SearchUtil.PUNCTUATION_REGEX, "");
 
@@ -171,7 +171,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
                 List<AudioTrack> selectable = list.getTracks().subList(0, Math.min(SearchUtil.MAX_RESULTS, list.getTracks().size()));
 
                 VideoSelection oldSelection = VideoSelection.remove(context.invoker);
-                if (oldSelection != null) {
+                if(oldSelection != null) {
                     oldSelection.deleteMessage();
                 }
 

@@ -70,7 +70,7 @@ public class TextUtils {
                 .build();
     }
 
-    private static String ensureSpace(String msg) {
+    private static String ensureSpace(String msg){
         return msg.charAt(0) == ' ' ? msg : " " + msg;
     }
 
@@ -186,11 +186,11 @@ public class TextUtils {
         return roundToTwo(percent * 100) + "%";
     }
 
-    public static String substringPreserveWords(String str, int len) {
+    public static String substringPreserveWords(String str, int len){
         Pattern pattern = Pattern.compile("^([\\w\\W]{" + len + "}\\S+?)\\s");
         Matcher matcher = pattern.matcher(str);
 
-        if (matcher.find()) {
+        if(matcher.find()){
             return matcher.group(1);
         } else {
             //Oh well
@@ -209,11 +209,11 @@ public class TextUtils {
         m.find();
 
         int capturedGroups = 0;
-        if (m.group(1) != null) capturedGroups++;
-        if (m.group(2) != null) capturedGroups++;
-        if (m.group(3) != null) capturedGroups++;
+        if(m.group(1) != null) capturedGroups++;
+        if(m.group(2) != null) capturedGroups++;
+        if(m.group(3) != null) capturedGroups++;
 
-        switch (capturedGroups) {
+        switch(capturedGroups){
             case 0:
                 throw new IllegalStateException("Unable to match " + str);
             case 1:
