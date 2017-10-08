@@ -117,7 +117,7 @@ public class BlacklistCommand extends Command implements IModerationCommand {
         newList.add(mentionableToId(selected));
 
         if (!PermissionUtil.checkPermission(context.invoker, Permission.ADMINISTRATOR)
-                && !PermsUtil.checkList(newList, context.invoker)) {
+                && PermsUtil.checkList(newList, context.invoker)) {
             context.replyWithName("You cant add this to the Blacklisted list as it would add yourself to the blacklist!");
             return;
         }
