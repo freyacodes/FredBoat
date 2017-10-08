@@ -200,4 +200,13 @@ public class Http {
             return result;
         }
     }
+
+    public static boolean isImage(Response response) {
+        String type = response.header("Content-Type");
+        return type != null
+                && (type.equals("image/jpeg")
+                || type.equals("image/png")
+                || type.equals("image/gif")
+                || type.equals("image/webp"));
+    }
 }
