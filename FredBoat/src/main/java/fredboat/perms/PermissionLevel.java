@@ -32,7 +32,8 @@ public enum PermissionLevel {
     ADMIN(3, "Admin"),
     DJ(2, "DJ"),
     USER(1, "User"),
-    BASE(0, "Base");
+    BASE(0, "Base"),
+    BLACKLISTED(-1, "Blacklisted");
 
     private int level;
     private String name;

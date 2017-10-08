@@ -71,16 +71,16 @@ public class GuildPermissions implements IEntity, Serializable {
     @Column(name = "list_user", nullable = false, columnDefinition = "text")
     private String userList = "";
 
-    @Column(name = "list_blocked", nullable = false, columnDefinition = "text")
+    @Column(name = "list_blacklist", nullable = false, columnDefinition = "text")
     private String blockedList = "";
 
-    public List<String> getBlockedList() {
+    public List<String> getBlacklistedList() {
         if (blockedList == null) return new ArrayList<>();
 
         return Arrays.asList(blockedList.split( " "));
     }
 
-    public void setBlockedList(List<String> list) {
+    public void setBlacklistedList(List<String> list) {
         StringBuilder str = new StringBuilder();
         for (String item : list) {
             str.append(item).append(" ");
@@ -142,8 +142,8 @@ public class GuildPermissions implements IEntity, Serializable {
                 return getDjList();
             case USER:
                 return getUserList();
-            case BASE:
-                return getBlockedList();
+            case BLACKLISTED:
+                return getBlacklistedList();
             default:
                 throw new IllegalArgumentException("Unexpected enum " + level);
         }
@@ -160,8 +160,8 @@ public class GuildPermissions implements IEntity, Serializable {
             case USER:
                 setUserList(list);
                 break;
-            case BASE:
-                setBlockedList(list);
+            case BLACKLISTED:
+                setBlacklistedList(list);
                 break;
             default:
                 throw new IllegalArgumentException("Unexpected enum " + level);

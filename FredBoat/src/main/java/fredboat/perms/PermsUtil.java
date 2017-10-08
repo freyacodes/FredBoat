@@ -56,7 +56,7 @@ public class PermsUtil {
 
         GuildPermissions gp = EntityReader.getGuildPermissions(member.getGuild());
 
-        if (checkList(gp.getBlockedList(), member)) return PermissionLevel.BASE;
+        if (checkList(gp.getBlacklistedList(), member)) return PermissionLevel.BLACKLISTED; //Should we blacklist admins like its now ?
         if (checkList(gp.getAdminList(), member)) return PermissionLevel.ADMIN;
         if (checkList(gp.getDjList(), member)) return PermissionLevel.DJ;
         if (checkList(gp.getUserList(), member)) return PermissionLevel.USER;
@@ -66,6 +66,14 @@ public class PermsUtil {
 
     public static boolean checkPerms(PermissionLevel minLevel, Member member) {
         return getPerms(member).getLevel() >= minLevel.getLevel();
+    }
+
+    public static boolean isBlacklisted(Member member) {
+        if (!FeatureFlags.PERMISSIONS.isActive()) {
+            return false;
+        }
+        GuildPermissions gp = EntityReader.getGuildPermissions(member.getGuild());
+        return checkList(gp.getBlacklistedList(), member);
     }
 
     /**
