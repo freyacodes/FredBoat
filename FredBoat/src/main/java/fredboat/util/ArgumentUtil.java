@@ -150,10 +150,10 @@ public class ArgumentUtil {
      * @param args Command arguments.
      * @return String object of the combined args or empty string.
      */
-    public static String combineArgOptions(@Nonnull String[] args) {
+    public static String combineArgs(@Nonnull String[] args) {
         StringBuilder sb = new StringBuilder();
-        for (int i = 1; i < args.length; i++) {
-            sb.append(args[i].trim());
+        for (String arg : args) {
+            sb.append(arg.trim());
         }
         return sb.toString().trim();
     }

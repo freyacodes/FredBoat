@@ -93,10 +93,16 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
             return;
         }
 
-        String argsOptions = ArgumentUtil.combineArgOptions(args);
-        argsOptions = TextUtils.removeAllExceptCommaAndNumerical(argsOptions);
+        // Combine all args except the first part of the arg
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i < args.length; i++) {
+            sb.append(args[i]);
+            sb.append(" ");
+        }
+        String argsOptions = sb.toString();
+        argsOptions = ArgumentUtil.combineArgs(new String[]{argsOptions});
         // What if we want to select a selection instead? or multi-select?
-        if (args.length >= 2 && (StringUtils.isNumeric(args[1]) || TextUtils.isSplitSelect(argsOptions))) {
+        if (args.length >= 2 && TextUtils.isSplitSelect(argsOptions)) {
             SelectCommand.select(context);
             return;
         }

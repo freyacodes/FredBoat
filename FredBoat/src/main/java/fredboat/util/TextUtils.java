@@ -252,24 +252,15 @@ public class TextUtils {
     }
 
     /**
-     * Helper method to check for string that matches "1,2,3" etc.
+     * Helper method to check for string that matches ONLY contain digit(s), comma(s) or space(s).
      *
      * @param arg String of the argument.
      * @return True if it matches, false if empty string or not match.
      */
     public static boolean isSplitSelect(@Nonnull String arg) {
-        String temp = removeAllExceptCommaAndNumerical(arg);
-        return arg.length() > 0 && temp.matches("(\\d*,*)*");
-    }
+        String temp = arg.replaceAll(" +", " ");
 
-    /**
-     * Helper method to remove all characters from arg that is not numerical or comma.
-     *
-     * @param arg String to be sanitized.
-     * @return Sanitized string.
-     */
-    public static String removeAllExceptCommaAndNumerical(@Nonnull String arg) {
-        return arg.replaceAll("[^0-9$.,]", "");
+        return arg.length() > 0 && temp.matches("(\\d*,*\\s*)*");
     }
-
+    
 }
