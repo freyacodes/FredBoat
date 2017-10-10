@@ -129,8 +129,6 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                     VideoSelection.remove(invoker);
                     TextChannel tc = FredBoat.getTextChannelById(Long.toString(selection.channelId));
                     if (tc != null) {
-//                        String msg = context.i18nFormat("selectSuccess", validChoices.get(0), selectedTracks[0].getInfo().title,
-//                                TextUtils.formatTime(selectedTracks[0].getInfo().length));
                         CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
                     }
 
