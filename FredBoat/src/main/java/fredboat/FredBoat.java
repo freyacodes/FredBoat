@@ -64,7 +64,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -86,8 +85,9 @@ public abstract class FredBoat {
     //central event listener that all events by all shards pass through
     protected static EventListenerBoat mainEventListener;
     protected static final ConnectQueue connectQueue = new ConnectQueue();
-    protected final static StatsAgent uniqueUsersCounterAgent = new StatsAgent("unique users counter");
+    protected final static StatsAgent jdaEntityCountAgent = new StatsAgent("jda entity counter");
 
+    private final static JdaEntityCounts jdaEntityCountsTotal = new JdaEntityCounts();
     private static DatabaseManager dbManager;
     private static final List<FredBoat> shards = new CopyOnWriteArrayList<>();
 
@@ -161,7 +161,7 @@ public abstract class FredBoat {
         //Check OpenWeather key
         executor.submit(FredBoat::hasValidOpenWeatherKey);
 
-        FredBoatAgent.start(uniqueUsersCounterAgent);
+        FredBoatAgent.start(jdaEntityCountAgent);
 
         /* Init JDA */
         initBotShards(mainEventListener);
@@ -171,7 +171,10 @@ public abstract class FredBoat {
             FredBoatAgent.start(new CarbonitexAgent(carbonKey));
         }
 
-        uniqueUsersCounterAgent.addAction(FredBoat::countUniqueUsersTotal);
+        //attempt to do counts for all shards
+        // the last ones might not be ready yet, in which case the stats agent will take care of it later
+        jdaEntityCountsTotal.count(shards);
+        jdaEntityCountAgent.addAction(() -> jdaEntityCountsTotal.count(shards));
     }
 
     // ################################################################################
@@ -269,7 +272,9 @@ public abstract class FredBoat {
                 //NOTE: This will take a while since creating shards happens in a blocking fashion
                 shards.add(i, new FredBoatShard(i, listener));
             } catch (Exception e) {
-                log.error("Caught an exception while starting shard " + i + "!", e);
+                //todo this is fatal and requires a restart to fix, so either remove it by guaranteeing that
+                //todo shard creation never fails, or have a proper handling for it
+                log.error("Caught an exception while starting shard {}!", i, e);
             }
         }
 
@@ -316,25 +321,14 @@ public abstract class FredBoat {
         return JDAUtil.getGuilds(shards);
     }
 
-    //fredboat wide
     public static int getTotalUniqueUsersCount() {
-        return currentUniqueUsersCountTotal;
+        return jdaEntityCountsTotal.uniqueUsersCount;
     }
 
-    //shardwide
-    public int getShardUniqueUsersCount() {
-        return currentUniqueUsersCountShard;
-    }
-
-    //fredboat wide
     public static int getTotalGuildsCount() {
-        return JDAUtil.countGuilds(shards);
+        return jdaEntityCountsTotal.guildsCount;
     }
 
-    //shardwide
-    public int getShardGuildsCount() {
-        return JDAUtil.countGuilds(Collections.singletonList(this));
-    }
 
     // ################################################################################
     // ##                           Global lookups
@@ -428,33 +422,55 @@ public abstract class FredBoat {
 
     public abstract void onInit(@Nonnull ReadyEvent readyEvent);
 
+    public abstract int getShardUniqueUsersCount();
+
+    public abstract int getShardGuildsCount();
 
     // ################################################################################
     //                              Counting things
     // ################################################################################
 
 
-    // Unique Users
+    //holds counts of JDA entities
+    //this is a central place for stats agents to make calls to
+    //stats agents are prefered to triggering counts by JDA events, since we cannot predict JDA events
+    //the resulting lower resolution of datapoints is fine, we don't need a high data resolution for these anyways
+    protected static class JdaEntityCounts {
 
-    //is updated by calling countUniqueUsersTotal() and returned by getTotalUniqueUsersCount()
-    private static int currentUniqueUsersCountTotal;
-    private final static AtomicInteger biggestUniqueUserCountTotal = new AtomicInteger(-1); //of FredBoat total
+        protected int uniqueUsersCount;
+        protected int guildsCount;
+        protected int textChannelsCount;
+        protected int voiceChannelsCount;
+        protected int categoriesCount;
+        protected int emotesCount;
+        protected int rolesCount;
 
-    private static void countUniqueUsersTotal() {
-        int result = JDAUtil.countUniqueUsers(shards, biggestUniqueUserCountTotal);
-        //never shrink the user count (might happen due to not connected shards)
-        biggestUniqueUserCountTotal.accumulateAndGet(result, Math::max);
-        currentUniqueUsersCountTotal = result;
-    }
+        private final static AtomicInteger expectedUniqueUserCount = new AtomicInteger(-1);
 
-    //is updated by calling countUniqueUsersShard() and returned by getShardUniqueUsersCount()
-    private int currentUniqueUsersCountShard;
-    private final AtomicInteger biggestUniqueUserCountShard = new AtomicInteger(-1); //of this shard
+        //counts things
+        // also checks shards for readiness and only counts if all of them are ready
+        // the force is an option for when we want to do a count when receiving the onReady event, but JDAs status is
+        // not CONNECTED at that point
+        protected boolean count(List<FredBoat> shards, boolean... force) {
+            for (FredBoat shard : shards) {
+                if ((shard.getJda().getStatus() != JDA.Status.CONNECTED) && (force.length < 1 || !force[0])) {
+                    log.info("Skipping counts since not all requested shards are ready.");
+                    return false;
+                }
+            }
 
-    protected void countUniqueUsersShard() {
-        int result = JDAUtil.countUniqueUsers(Collections.singletonList(this), biggestUniqueUserCountShard);
-        //never shrink the user count (might happen due to unready/reloading shards)
-        biggestUniqueUserCountShard.accumulateAndGet(result, Math::max);
-        currentUniqueUsersCountShard = result;
+            this.uniqueUsersCount = JDAUtil.countUniqueUsers(shards, expectedUniqueUserCount);
+            //never shrink the expected user count (might happen due to unready/reloading shards)
+            expectedUniqueUserCount.accumulateAndGet(uniqueUsersCount, Math::max);
+
+            this.guildsCount = JDAUtil.countGuilds(shards);
+            this.textChannelsCount = JDAUtil.countTextChannels(shards);
+            this.voiceChannelsCount = JDAUtil.countVoiceChannels(shards);
+            this.categoriesCount = JDAUtil.countCategories(shards);
+            this.emotesCount = JDAUtil.countEmotes(shards);
+            this.rolesCount = JDAUtil.countRoles(shards);
+
+            return true;
+        }
     }
 }

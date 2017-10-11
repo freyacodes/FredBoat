@@ -62,6 +62,7 @@ public class FredBoatShard extends FredBoat {
 
     //For when we need to join a revived shard with it's old GuildPlayers
     protected final ArrayList<String> channelsToRejoin = new ArrayList<>();
+    protected final JdaEntityCounts jdaEntityCountsShard = new JdaEntityCounts();
 
     @Nonnull
     protected volatile JDA jda;
@@ -72,7 +73,7 @@ public class FredBoatShard extends FredBoat {
         this.listener = listener;
         log.info("Building shard " + shardId);
         jda = buildJDA();
-        uniqueUsersCounterAgent.addAction(this::countUniqueUsersShard);
+        jdaEntityCountAgent.addAction(() -> jdaEntityCountsShard.count(Collections.singletonList(this)));
     }
 
     private JDA buildJDA(boolean... blocking) {
@@ -132,6 +133,8 @@ public class FredBoatShard extends FredBoat {
     @Override
     public void onInit(@Nonnull ReadyEvent readyEvent) {
         log.info("Received ready event for {}", readyEvent.getJDA().getShardInfo().toString());
+        jdaEntityCountsShard.count(Collections.singletonList(this), true);//jda finished loading, do a single count to init values
+
 
         if (Config.CONFIG.getNumShards() <= 10) {
             //the current implementation of music persistence is not a good idea on big bots
@@ -245,5 +248,15 @@ public class FredBoatShard extends FredBoat {
     @Override
     public long getUserCount() {
         return JDAUtil.countUniqueUsers(Collections.singletonList(this), biggestUserCountShard);
+    }
+
+    @Override
+    public int getShardUniqueUsersCount() {
+        return jdaEntityCountsShard.uniqueUsersCount;
+    }
+
+    @Override
+    public int getShardGuildsCount() {
+        return jdaEntityCountsShard.guildsCount;
     }
 }

@@ -65,8 +65,8 @@ public class JDAUtil {
      * to count the unique values with an approriate size reducing expensive resizing operations.
      */
     @CheckReturnValue
-    public static int countUniqueUsers(@Nonnull List<FredBoat> shards, @Nullable AtomicInteger biggestUserCount) {
-        int expected = biggestUserCount != null && biggestUserCount.get() > 0 ? biggestUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
+    public static int countUniqueUsers(@Nonnull List<FredBoat> shards, @Nullable AtomicInteger expectedUserCount) {
+        int expected = expectedUserCount != null && expectedUserCount.get() > 0 ? expectedUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
         LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 100000); //add 100k for good measure
         TObjectProcedure<User> adder = user -> {
             uniqueUsers.add(user.getIdLong());
@@ -80,6 +80,66 @@ public class JDAUtil {
                 shard -> ((JDAImpl) shard.getJda()).getUserMap().forEachValue(adder)
         );
         return uniqueUsers.size();
+    }
+
+    /**
+     * @return Sum of amount of TextChannels in the provided shards. The result will be a unique count if the provided
+     * shards are unique since each TextChannel can only be present in one guild which can only be present in one shard.
+     */
+    @CheckReturnValue
+    public static int countTextChannels(@Nonnull List<FredBoat> shards) {
+        long result = shards.stream()
+                .mapToLong(shard -> shard.getJda().getTextChannelCache().size())
+                .sum();
+        return Math.toIntExact(result);
+    }
+
+    /**
+     * @return Sum of amount of VoiceChannels in the provided shards. The result will be a unique count if the provided
+     * shards are unique since each VoiceChannel can only be present in one guild which can only be present in one shard.
+     */
+    @CheckReturnValue
+    public static int countVoiceChannels(@Nonnull List<FredBoat> shards) {
+        long result = shards.stream()
+                .mapToLong(shard -> shard.getJda().getVoiceChannelCache().size())
+                .sum();
+        return Math.toIntExact(result);
+    }
+
+    /**
+     * @return Sum of amount of Category in the provided shards. The result will be a unique count if the provided
+     * shards are unique since each Category can only be present in one guild which can only be present in one shard.
+     */
+    @CheckReturnValue
+    public static int countCategories(@Nonnull List<FredBoat> shards) {
+        long result = shards.stream()
+                .mapToLong(shard -> shard.getJda().getCategoryCache().size())
+                .sum();
+        return Math.toIntExact(result);
+    }
+
+    /**
+     * @return Sum of amount of Emotes in the provided shards. The result will be a unique count if the provided
+     * shards are unique since each Emote can only be present in one guild which can only be present in one shard.
+     */
+    @CheckReturnValue
+    public static int countEmotes(@Nonnull List<FredBoat> shards) {
+        long result = shards.stream()
+                .mapToLong(shard -> shard.getJda().getEmoteCache().size())
+                .sum();
+        return Math.toIntExact(result);
+    }
+
+    /**
+     * @return Sum of amount of Roles in the provided shards. The result will be a unique count if the provided
+     * shards are unique since each Role can only be present in one guild which can only be present in one shard.
+     */
+    @CheckReturnValue
+    public static int countRoles(@Nonnull List<FredBoat> shards) {
+        long result = shards.stream()
+                .mapToLong(shard -> shard.getJda().getRoleCache().size())
+                .sum();
+        return Math.toIntExact(result);
     }
 
     /**
