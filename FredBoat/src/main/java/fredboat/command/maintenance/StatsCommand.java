@@ -71,8 +71,8 @@ public class StatsCommand extends Command implements IMaintenanceCommand {
 
         content += "Sharding:                       " + FredBoat.getShard(context.guild.getJDA()).getShardInfo().getShardString() + "\n";
         content += "Players playing:                " + PlayerRegistry.getPlayingPlayers().size() + "\n";
-        content += "Known servers:                  " + FredBoat.countAllGuilds() + "\n";
-        content += "Known users in servers:         " + FredBoat.countAllUniqueUsers() + "\n";
+        content += "Known servers:                  " + FredBoat.getTotalGuildsCount() + "\n";
+        content += "Known users in servers:         " + FredBoat.getTotalUniqueUsersCount() + "\n";
         content += "Distribution:                   " + Config.CONFIG.getDistribution() + "\n";
         content += "JDA responses total:            " + context.guild.getJDA().getResponseTotal() + "\n";
         content += "JDA version:                    " + JDAInfo.VERSION + "\n";

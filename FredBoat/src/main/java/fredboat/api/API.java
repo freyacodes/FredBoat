@@ -69,8 +69,8 @@ public class API {
             for (FredBoat fb : FredBoat.getShards()) {
                 JSONObject fbStats = new JSONObject();
                 fbStats.put("id", fb.getShardInfo().getShardId())
-                        .put("guilds", fb.getGuildCount())
-                        .put("users", fb.getUserCount())
+                        .put("guilds", fb.getShardGuildsCount())
+                        .put("users", fb.getShardUniqueUsersCount())
                         .put("status", fb.getJda().getStatus());
 
                 a.put(fbStats);
@@ -80,8 +80,8 @@ public class API {
             g.put("playingPlayers", PlayerRegistry.getPlayingPlayers().size())
                     .put("totalPlayers", PlayerRegistry.getRegistry().size())
                     .put("distribution", Config.CONFIG.getDistribution())
-                    .put("guilds", FredBoat.countAllGuilds())
-                    .put("users", FredBoat.countAllUniqueUsers());
+                    .put("guilds", FredBoat.getTotalGuildsCount())
+                    .put("users", FredBoat.getTotalUniqueUsersCount());
 
             root.put("shards", a);
             root.put("global", g);

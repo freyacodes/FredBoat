@@ -51,7 +51,7 @@ public class JDAUtil {
      * shards are unique since each guild can only be present in one shard.
      */
     @CheckReturnValue
-    public static int countAllGuilds(@Nonnull List<FredBoat> shards) {
+    public static int countGuilds(@Nonnull List<FredBoat> shards) {
         long result = shards.stream()
                 .mapToLong(shard -> shard.getJda().getGuildCache().size())
                 .sum();
@@ -65,7 +65,7 @@ public class JDAUtil {
      * to count the unique values with an approriate size reducing expensive resizing operations.
      */
     @CheckReturnValue
-    public static int countAllUniqueUsers(@Nonnull List<FredBoat> shards, @Nullable AtomicInteger biggestUserCount) {
+    public static int countUniqueUsers(@Nonnull List<FredBoat> shards, @Nullable AtomicInteger biggestUserCount) {
         int expected = biggestUserCount != null && biggestUserCount.get() > 0 ? biggestUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
         LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 100000); //add 100k for good measure
         TObjectProcedure<User> adder = user -> {
@@ -87,7 +87,7 @@ public class JDAUtil {
      */
     @Nonnull
     @CheckReturnValue
-    public static Stream<Guild> getAllGuilds(@Nonnull List<FredBoat> shards) {
+    public static Stream<Guild> getGuilds(@Nonnull List<FredBoat> shards) {
         return shards.stream().flatMap(fb -> fb.getJda().getGuildCache().stream());
     }
 
@@ -96,7 +96,7 @@ public class JDAUtil {
      */
     @Nonnull
     @CheckReturnValue
-    public static Stream<User> getAllUsers(@Nonnull List<FredBoat> shards) {
+    public static Stream<User> getUsers(@Nonnull List<FredBoat> shards) {
         return shards.stream().flatMap(fb -> fb.getJda().getUserCache().stream());
     }
 }

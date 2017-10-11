@@ -29,6 +29,7 @@ import com.sedmelluq.discord.lavaplayer.tools.PlayerLibrary;
 import fredboat.agent.CarbonitexAgent;
 import fredboat.agent.DBConnectionWatchdogAgent;
 import fredboat.agent.FredBoatAgent;
+import fredboat.agent.StatsAgent;
 import fredboat.api.API;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.queue.MusicPersistenceHandler;
@@ -63,6 +64,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -84,6 +86,7 @@ public abstract class FredBoat {
     //central event listener that all events by all shards pass through
     protected static EventListenerBoat mainEventListener;
     protected static final ConnectQueue connectQueue = new ConnectQueue();
+    protected final static StatsAgent uniqueUsersCounterAgent = new StatsAgent("unique users counter");
 
     private static DatabaseManager dbManager;
     private static final List<FredBoat> shards = new CopyOnWriteArrayList<>();
@@ -158,6 +161,8 @@ public abstract class FredBoat {
         //Check OpenWeather key
         executor.submit(FredBoat::hasValidOpenWeatherKey);
 
+        FredBoatAgent.start(uniqueUsersCounterAgent);
+
         /* Init JDA */
         initBotShards(mainEventListener);
 
@@ -165,6 +170,8 @@ public abstract class FredBoat {
         if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && carbonKey != null && !carbonKey.isEmpty()) {
             FredBoatAgent.start(new CarbonitexAgent(carbonKey));
         }
+
+        uniqueUsersCounterAgent.addAction(FredBoat::countUniqueUsersTotal);
     }
 
     // ################################################################################
@@ -306,19 +313,27 @@ public abstract class FredBoat {
     }
 
     public static Stream<Guild> getAllGuilds() {
-        return JDAUtil.getAllGuilds(shards);
+        return JDAUtil.getGuilds(shards);
     }
 
-    public static int countAllGuilds() {
-        return JDAUtil.countAllGuilds(shards);
+    //fredboat wide
+    public static int getTotalUniqueUsersCount() {
+        return currentUniqueUsersCountTotal;
     }
 
-    private static AtomicInteger biggestUserCountTotal = new AtomicInteger(-1); //of FredBoat total
-    public static int countAllUniqueUsers() {
-        int result = JDAUtil.countAllUniqueUsers(shards, biggestUserCountTotal);
-        //never shrink the user count (might happen due to not connected shards)
-        biggestUserCountTotal.accumulateAndGet(result, Math::max);
-        return result;
+    //shardwide
+    public int getShardUniqueUsersCount() {
+        return currentUniqueUsersCountShard;
+    }
+
+    //fredboat wide
+    public static int getTotalGuildsCount() {
+        return JDAUtil.countGuilds(shards);
+    }
+
+    //shardwide
+    public int getShardGuildsCount() {
+        return JDAUtil.countGuilds(Collections.singletonList(this));
     }
 
     // ################################################################################
@@ -412,4 +427,34 @@ public abstract class FredBoat {
     public abstract long getUserCount();
 
     public abstract void onInit(@Nonnull ReadyEvent readyEvent);
+
+
+    // ################################################################################
+    //                              Counting things
+    // ################################################################################
+
+
+    // Unique Users
+
+    //is updated by calling countUniqueUsersTotal() and returned by getTotalUniqueUsersCount()
+    private static int currentUniqueUsersCountTotal;
+    private final static AtomicInteger biggestUniqueUserCountTotal = new AtomicInteger(-1); //of FredBoat total
+
+    private static void countUniqueUsersTotal() {
+        int result = JDAUtil.countUniqueUsers(shards, biggestUniqueUserCountTotal);
+        //never shrink the user count (might happen due to not connected shards)
+        biggestUniqueUserCountTotal.accumulateAndGet(result, Math::max);
+        currentUniqueUsersCountTotal = result;
+    }
+
+    //is updated by calling countUniqueUsersShard() and returned by getShardUniqueUsersCount()
+    private int currentUniqueUsersCountShard;
+    private final AtomicInteger biggestUniqueUserCountShard = new AtomicInteger(-1); //of this shard
+
+    protected void countUniqueUsersShard() {
+        int result = JDAUtil.countUniqueUsers(Collections.singletonList(this), biggestUniqueUserCountShard);
+        //never shrink the user count (might happen due to unready/reloading shards)
+        biggestUniqueUserCountShard.accumulateAndGet(result, Math::max);
+        currentUniqueUsersCountShard = result;
+    }
 }

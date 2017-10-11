@@ -72,6 +72,7 @@ public class FredBoatShard extends FredBoat {
         this.listener = listener;
         log.info("Building shard " + shardId);
         jda = buildJDA();
+        uniqueUsersCounterAgent.addAction(this::countUniqueUsersShard);
     }
 
     private JDA buildJDA(boolean... blocking) {
@@ -235,7 +236,7 @@ public class FredBoatShard extends FredBoat {
 
     @Override
     public int getGuildCount() {
-        return JDAUtil.countAllGuilds(Collections.singletonList(this));
+        return JDAUtil.countGuilds(Collections.singletonList(this));
     }
 
 
@@ -243,6 +244,6 @@ public class FredBoatShard extends FredBoat {
 
     @Override
     public long getUserCount() {
-        return JDAUtil.countAllUniqueUsers(Collections.singletonList(this), biggestUserCountShard);
+        return JDAUtil.countUniqueUsers(Collections.singletonList(this), biggestUserCountShard);
     }
 }
