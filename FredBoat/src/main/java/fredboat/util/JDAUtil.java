@@ -66,8 +66,12 @@ public class JDAUtil {
      */
     @CheckReturnValue
     public static int countUniqueUsers(@Nonnull Collection<FredBoat> shards, @Nullable AtomicInteger expectedUserCount) {
+        if (shards.size() == 1) { //a single shard provides a cheap call for getting user cardinality
+            return Math.toIntExact(shards.iterator().next().getJda().getUserCache().size());
+        }
+
         int expected = expectedUserCount != null && expectedUserCount.get() > 0 ? expectedUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
-        LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 100000); //add 100k for good measure
+        LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 10000); //add 10k for good measure
         TObjectProcedure<User> adder = user -> {
             uniqueUsers.add(user.getIdLong());
             return true;

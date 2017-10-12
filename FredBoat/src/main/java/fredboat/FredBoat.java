@@ -460,13 +460,9 @@ public abstract class FredBoat {
                 }
             }
 
-            if (shards.size() == 1) { //a single shard provides a cheap call for getting user cardinality
-                this.uniqueUsersCount = Math.toIntExact(shards.iterator().next().getJda().getUserCache().size());
-            } else {
-                this.uniqueUsersCount = JDAUtil.countUniqueUsers(shards, expectedUniqueUserCount);
-            }
+            this.uniqueUsersCount = JDAUtil.countUniqueUsers(shards, expectedUniqueUserCount);
             //never shrink the expected user count (might happen due to unready/reloading shards)
-            expectedUniqueUserCount.accumulateAndGet(uniqueUsersCount, Math::max);
+            this.expectedUniqueUserCount.accumulateAndGet(uniqueUsersCount, Math::max);
 
             this.guildsCount = JDAUtil.countGuilds(shards);
             this.textChannelsCount = JDAUtil.countTextChannels(shards);
