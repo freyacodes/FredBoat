@@ -65,7 +65,7 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
         for (FredBoat fb : shards) {
             if (fb.getJda().getStatus() == JDA.Status.CONNECTED && !full) {
                 healthyGuilds += fb.getShardGuildsCount();
-                healthyUsers += fb.getJda().getUserCache().size();
+                healthyUsers += fb.getShardUniqueUsersCount();
             } else {
                 if (borkenShards % SHARDS_PER_MESSAGE == 0) {
                     if (mb != null) {

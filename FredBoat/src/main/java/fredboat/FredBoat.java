@@ -64,6 +64,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -445,13 +446,13 @@ public abstract class FredBoat {
         protected int emotesCount;
         protected int rolesCount;
 
-        private final static AtomicInteger expectedUniqueUserCount = new AtomicInteger(-1);
+        private final AtomicInteger expectedUniqueUserCount = new AtomicInteger(-1);
 
         //counts things
         // also checks shards for readiness and only counts if all of them are ready
         // the force is an option for when we want to do a count when receiving the onReady event, but JDAs status is
         // not CONNECTED at that point
-        protected boolean count(List<FredBoat> shards, boolean... force) {
+        protected boolean count(Collection<FredBoat> shards, boolean... force) {
             for (FredBoat shard : shards) {
                 if ((shard.getJda().getStatus() != JDA.Status.CONNECTED) && (force.length < 1 || !force[0])) {
                     log.info("Skipping counts since not all requested shards are ready.");
@@ -459,7 +460,11 @@ public abstract class FredBoat {
                 }
             }
 
-            this.uniqueUsersCount = JDAUtil.countUniqueUsers(shards, expectedUniqueUserCount);
+            if (shards.size() == 1) { //a single shard provides a cheap call for getting user cardinality
+                this.uniqueUsersCount = Math.toIntExact(shards.iterator().next().getJda().getUserCache().size());
+            } else {
+                this.uniqueUsersCount = JDAUtil.countUniqueUsers(shards, expectedUniqueUserCount);
+            }
             //never shrink the expected user count (might happen due to unready/reloading shards)
             expectedUniqueUserCount.accumulateAndGet(uniqueUsersCount, Math::max);
 
