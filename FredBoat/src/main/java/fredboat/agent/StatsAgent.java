@@ -48,7 +48,7 @@ public class StatsAgent extends FredBoatAgent {
     }
 
     public StatsAgent(String name) {
-        super(name, 1, TimeUnit.MINUTES);
+        super(name, 5, TimeUnit.MINUTES);
     }
 
     public void addAction(Action action) {
