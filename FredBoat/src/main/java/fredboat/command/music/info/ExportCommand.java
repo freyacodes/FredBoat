@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ExportCommand extends Command implements IMusicCommand {
 
@@ -55,14 +56,11 @@ public class ExportCommand extends Command implements IMusicCommand {
         if (player.isQueueEmpty()) {
             throw new MessagingException(context.i18n("exportEmpty"));
         }
-        
-        List<AudioTrackContext> tracks = player.getRemainingTracks();
-        String out = "";
-        for(AudioTrackContext atc : tracks){
-            AudioTrack at = atc.getTrack();
-            out = out + at.getInfo().uri + "\n";
-        }
-        
+
+        String out = player.getRemainingTracks().stream()
+                .map(atc -> atc.getTrack().getInfo().uri)
+                .collect(Collectors.joining("\n"));
+
         try {
             String url = TextUtils.postToPasteService(out) + ".fredboat";
             context.reply(context.i18nFormat("exportPlaylistResulted", url));
