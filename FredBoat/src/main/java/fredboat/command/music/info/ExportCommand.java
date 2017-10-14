@@ -25,7 +25,6 @@
 
 package fredboat.command.music.info;
 
-import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
@@ -59,14 +58,9 @@ public class ExportCommand extends Command implements IMusicCommand {
         
         List<AudioTrackContext> tracks = player.getRemainingTracks();
         String out = "";
-        
         for(AudioTrackContext atc : tracks){
             AudioTrack at = atc.getTrack();
-            if(at instanceof YoutubeAudioTrack){
-                out = out + "https://www.youtube.com/watch?v=" + at.getIdentifier() + "\n";
-            } else {
-                out = out + at.getIdentifier() + "\n";
-            }
+            out = out + at.getInfo().uri + "\n";
         }
         
         try {
