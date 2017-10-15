@@ -34,10 +34,7 @@ import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -59,13 +56,13 @@ public class ConnectQueue extends SessionReconnectQueue {
     private static final Logger log = LoggerFactory.getLogger(ConnectQueue.class);
     public static final int CONNECT_DELAY_MS = (WebSocketClient.IDENTIFY_DELAY * 1000) + 500; //5500 ms
 
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-
-    private final Object jdaReconnectWorkerLock = new Object();
-    private volatile Future scheduledJdaWorker;
-
     //this queue is not allowed to have more than one coin
-    private DelayQueue<Coin> coinService = new DelayQueue<>(Collections.singletonList(new Coin(0, TimeUnit.MILLISECONDS)));
+    private static DelayQueue<Coin> coinService = new DelayQueue<>(Collections.singletonList(new Coin(0, TimeUnit.MILLISECONDS)));
+
+    //provide the SessionReconnectQueue with our custom BlockingQueue implementation
+    public ConnectQueue() {
+        super(new WebSocketQueue());
+    }
 
     /**
      * These coins are meant for immediate use.
@@ -74,97 +71,26 @@ public class ConnectQueue extends SessionReconnectQueue {
     public void getCoin(int shardId) throws InterruptedException {
         long start = System.currentTimeMillis();
         log.info("Shard {} requesting coin", shardId);
-        getCoin(false);
+
+        //if there is a reconnect going on by JDA, wait for it to be done)
+        Thread jdaReconnectThread = this.reconnectThread;
+        while (jdaReconnectThread != null) {
+            log.info("Waiting on JDA reconnect to be done");
+            jdaReconnectThread.join();
+            jdaReconnectThread = this.reconnectThread; // handle the race condition mentioned in SessionReconnectQueue#ReconnectThread
+            Thread.sleep(CONNECT_DELAY_MS); // back off a few more seconds because the reconnect thread exits early
+        }
+
+        takeCoin();
         log.info("Shard {} received coin after {}ms", shardId, System.currentTimeMillis() - start);
     }
 
-    private void getCoin(boolean isJdaWorker) throws InterruptedException {
-        //do not give out coins while the JDA reconnect queue is running
-        if (!isJdaWorker) { //dont let the jda worker wait for itself
-            Future jdaWorker = null;
-            synchronized (jdaReconnectWorkerLock) {
-                if (isJdaWorkerRunning()) {
-                    jdaWorker = scheduledJdaWorker;
-                    log.info("JDA reconnect queue is running, shards left to reconnect: {}", reconnectQueue.size());
-                }
-            }
-            //wait for the jdaWorker to be done
-            if (jdaWorker != null) {
-                try {
-                    jdaWorker.get();
-                } catch (ExecutionException e) {
-                    log.error("jda worker exception", e);
-                }
-            }
-        }
-
+    private static void takeCoin() throws InterruptedException {
         Coin c = coinService.take();
         log.info("Took coin with delay {}ms", c.getDelay(TimeUnit.MILLISECONDS));
-        if (!isJdaWorker) { //the JDA worker will add its own coin when it's done
-            coinService.add(new Coin());
-        }
+        coinService.add(new Coin());
     }
 
-    //implementation notes:
-    //this is called each time a session is appended by JDA
-    //in the super method it would cause a worker to start if there isnt one started yet, a worker that will handle JDA reconnects only
-    //we need to make sure that a new worker is started with a proper delay to our own connection stuff
-    //we need to make sure that after the JDA worker is done, we wait an appropriate amount of time, since it will not sleep after being done with its queue
-    //further on, we need to respect the JDA worker running itself again (rare race condition :tm:)
-    //this method must never be blocking
-    @Override
-    protected void runWorker() {
-        // handle the rare race condition:tm: case where the jda SessionReconnectQueue.ReconnectThread calls runWorker() again
-        if (Thread.currentThread().equals(reconnectThread)) {
-            log.warn(":clap: race :clap: condition :clap: triggered :clap:, lets hope the following code handles it properly." +
-                    "\nIf FredBoat dies shortly after this log line...blame Napster.");
-        }
-
-        synchronized (jdaReconnectWorkerLock) {
-            if (!isJdaWorkerRunning() ||
-                    //if this is the JDA reconnect thread, it is allowed to schedule another worker
-                    // (see the rare race condition:tm: comment in SessionReconnectQueue.ReconnectThread)
-                    Thread.currentThread().equals(reconnectThread)) {
-
-                log.info("Scheduling jda reconnect worker");
-                scheduledJdaWorker = scheduler.submit(this::runJdaReconnectWorker);
-            } else {
-                log.info("jda reconnect worker is already running/scheduled");
-            }
-        }
-    }
-
-    private boolean isJdaWorkerRunning() {
-        return scheduledJdaWorker != null
-                && !scheduledJdaWorker.isDone()
-                && !scheduledJdaWorker.isCancelled();
-    }
-
-    //this method blocks until the JDA reconnect worker is done
-    private void runJdaReconnectWorker() {
-        try {
-            //make sure we wait enough before allowing JDA to do its reconnects
-            getCoin(true);
-            log.info("Starting jda reconnect worker");
-            super.runWorker();
-
-            //wait for JDAs reconnect thread to be done
-            Thread recThread = reconnectThread;
-            //if it is null at this point it got done running before we reached this point so we can skip right ahead
-            if (recThread != null && !Thread.currentThread().equals(recThread)) {//don't Thread.join() on ourselves accidently
-                log.info("Waiting on the jda reconnect worker to be done");
-                recThread.join();
-            }
-
-            log.info("We done here bois, pull me out");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("Got interrupted while waiting for the jda reconnect worker", e);
-        } finally {
-            //jda reconnect worker is done, add a coin with a fresh delay
-            coinService.add(new Coin());
-        }
-    }
 
     private static class Coin implements Delayed {
 
@@ -186,7 +112,23 @@ public class ConnectQueue extends SessionReconnectQueue {
 
         @Override
         public int compareTo(@Nonnull Delayed o) {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException(); //there is only one of these meant to exist at any time
+        }
+    }
+
+
+    private static class WebSocketQueue extends LinkedBlockingQueue<WebSocketClient> {
+        private static final long serialVersionUID = -7022487258759087625L;
+
+        @Override
+        public WebSocketClient poll() {
+            //do our coin stuff
+            try {
+                takeCoin();
+            } catch (InterruptedException e) {
+                log.error("Interrupted while getting coin for jda reconnect");
+            }
+            return super.poll();
         }
     }
 }
