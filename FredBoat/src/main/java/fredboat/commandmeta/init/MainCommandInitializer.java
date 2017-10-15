@@ -34,6 +34,7 @@ import fredboat.command.moderation.SoftbanCommand;
 import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.util.AsciiArtConstant;
+import fredboat.util.rest.OpenWeatherAPI;
 
 public class MainCommandInitializer {
 
@@ -79,6 +80,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("catgirl", new CatgirlCommand(), "neko", "catgrill");
         CommandRegistry.registerCommand("avatar", new AvatarCommand(), "ava");
         CommandRegistry.registerCommand("say", new SayCommand());
+        CommandRegistry.registerCommand("weather", new WeatherCommand(new OpenWeatherAPI()));
 
         /* Other Anime Discord, Sergi memes or any other memes */
         // saved in this album https://imgur.com/a/wYvDu

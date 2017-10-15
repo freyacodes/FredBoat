@@ -92,14 +92,14 @@ public class Ratelimit {
     public boolean isAllowed(Context context, int weight, Blacklist blacklist) {
         //This gets called real often, right before every command execution. Keep it light, don't do any blocking stuff,
         //ensure whatever you do in here is threadsafe, but minimize usage of synchronized as it adds overhead
-        long userId = context.getUser().getIdLong();
+        long id = context.getUser().getIdLong();
         //first of all, ppl that can never get limited or blacklisted, no matter what
-        if (userWhiteList.contains(userId)) return true;
+        if (userWhiteList.contains(id)) return true;
 
         //user or guild scope?
-        long id;
-        if (scope == Scope.GUILD) id = userId;
-        else id = userId;
+        if (scope == Scope.GUILD) {
+            id = context.getGuild().getIdLong();
+        }
 
         Rate rate = limits.get(id);
         if (rate == null)

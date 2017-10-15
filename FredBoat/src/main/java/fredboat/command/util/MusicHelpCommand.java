@@ -106,7 +106,7 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
     }
 
     private static void sendCommandsHelpInDM(CommandContext context, String dmMsg) {
-        context.replyPrivate(TextUtils.asMarkdown(dmMsg),
+        context.replyPrivate(TextUtils.asCodeBlock(dmMsg, "md"),
                 success -> context.replyWithName(context.i18n("helpSent")),
                 failure -> {
                     if (context.hasPermissions(Permission.MESSAGE_WRITE)) {

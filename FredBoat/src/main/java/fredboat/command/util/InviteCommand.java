@@ -33,7 +33,6 @@ import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.bot.entities.ApplicationInfo;
 
 import javax.annotation.Nonnull;
-import java.text.MessageFormat;
 
 public class InviteCommand extends Command implements IUtilCommand {
 
@@ -41,7 +40,7 @@ public class InviteCommand extends Command implements IUtilCommand {
     public void onInvoke(@Nonnull CommandContext context) {
         ApplicationInfo appInfo = DiscordUtil.getApplicationInfo(context.guild.getJDA());
         String str = "https://discordapp.com/oauth2/authorize?&client_id=" + appInfo.getId() + "&scope=bot";
-        String send = MessageFormat.format(context.i18n("invite"), appInfo.getName());
+        String send = context.i18nFormat("invite", appInfo.getName());
         context.reply(send + "\n" + str);
     }
 

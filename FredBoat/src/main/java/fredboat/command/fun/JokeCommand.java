@@ -25,24 +25,27 @@
 
 package fredboat.command.fun;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.messaging.internal.Context;
+import fredboat.util.rest.Http;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.io.IOException;
 
 public class JokeCommand extends Command implements IFunCommand {
+
+    private static final Logger log = LoggerFactory.getLogger(JokeCommand.class);
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         try {
-            JSONObject object = Unirest.get("http://api.icndb.com/jokes/random").asJson().getBody().getObject();
+            JSONObject object = Http.get("http://api.icndb.com/jokes/random").asJson();
 
             if (!"success".equals(object.getString("type"))) {
                 throw new RuntimeException("Couldn't gather joke ;|");
@@ -60,8 +63,9 @@ public class JokeCommand extends Command implements IFunCommand {
             joke = joke.replaceAll("&quot;", "\"");
 
             context.reply(joke);
-        } catch (UnirestException ex) {
-            Logger.getLogger(JokeCommand.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException | JSONException e) {
+            log.error("Failed to fetch joke", e);
+            context.reply(context.i18n("Please try again later."));//todo i18n a generic try again error message for api dependent commands
         }
     }
 

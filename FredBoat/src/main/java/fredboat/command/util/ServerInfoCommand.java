@@ -30,7 +30,6 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.shared.constant.BotConstants;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.OnlineStatus;
 import net.dv8tion.jda.core.entities.Guild;
@@ -48,8 +47,7 @@ public class ServerInfoCommand extends Command implements IUtilCommand {
         Guild guild = context.guild;
         int i = 0;
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
-        EmbedBuilder eb = CentralMessaging.getClearThreadLocalEmbedBuilder();
-        eb.setColor(BotConstants.FREDBOAT_COLOR);
+        EmbedBuilder eb = CentralMessaging.getColoredEmbedBuilder();
         eb.setTitle(context.i18nFormat("serverinfoTitle", guild.getName()), null);
         eb.setThumbnail(guild.getIconUrl());
         for (Member u : guild.getMembers()) {

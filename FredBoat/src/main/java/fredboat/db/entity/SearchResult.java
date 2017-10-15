@@ -107,7 +107,7 @@ public class SearchResult implements Serializable {
     public static AudioPlaylist load(AudioPlayerManager playerManager, SearchUtil.SearchProvider provider,
                                      String searchTerm, long maxAgeMillis) throws DatabaseNotReadyException {
         DatabaseManager dbManager = FredBoat.getDbManager();
-        if (!dbManager.isAvailable()) {
+        if (dbManager == null || !dbManager.isAvailable()) {
             throw new DatabaseNotReadyException();
         }
 
@@ -139,7 +139,7 @@ public class SearchResult implements Serializable {
      */
     public SearchResult save() {
         DatabaseManager dbManager = FredBoat.getDbManager();
-        if (!dbManager.isAvailable()) {
+        if (dbManager == null || !dbManager.isAvailable()) {
             throw new DatabaseNotReadyException();
         }
 

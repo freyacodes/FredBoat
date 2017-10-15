@@ -25,8 +25,6 @@
 
 package fredboat.command.music.info;
 
-import com.mashape.unirest.http.exceptions.UnirestException;
-import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
@@ -37,36 +35,37 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
+import org.json.JSONException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ExportCommand extends Command implements IMusicCommand {
 
+    private static final Logger log = LoggerFactory.getLogger(ExportCommand.class);
+
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         
         if (player.isQueueEmpty()) {
             throw new MessagingException(context.i18n("exportEmpty"));
         }
-        
-        List<AudioTrackContext> tracks = player.getRemainingTracks();
-        String out = "";
-        
-        for(AudioTrackContext atc : tracks){
-            AudioTrack at = atc.getTrack();
-            if(at instanceof YoutubeAudioTrack){
-                out = out + "https://www.youtube.com/watch?v=" + at.getIdentifier() + "\n";
-            } else {
-                out = out + at.getIdentifier() + "\n";
-            }
-        }
-        
+
+        String out = player.getRemainingTracks().stream()
+                .map(atc -> atc.getTrack().getInfo().uri)
+                .collect(Collectors.joining("\n"));
+
         try {
             String url = TextUtils.postToPasteService(out) + ".fredboat";
             context.reply(context.i18nFormat("exportPlaylistResulted", url));
-        } catch (UnirestException ex) {
+        } catch (IOException | JSONException e) {
+            log.error("Failed to upload to any pasteservice.", e);
             throw new MessagingException(context.i18n("exportPlaylistFail"));
         }
         

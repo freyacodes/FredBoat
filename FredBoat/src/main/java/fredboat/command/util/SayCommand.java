@@ -29,6 +29,7 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.event.EventListenerBoat;
 import fredboat.messaging.internal.Context;
+import fredboat.util.TextUtils;
 
 import javax.annotation.Nonnull;
 
@@ -45,7 +46,7 @@ public class SayCommand extends Command implements IUtilCommand {
             return;
         }
         String res = context.msg.getRawContent().substring(context.args[0].length() + 1);
-        context.reply('\u200b' + res,
+        context.reply(TextUtils.ZERO_WIDTH_CHAR + res,
                 message1 -> EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), message1.getIdLong())
         );
 

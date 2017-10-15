@@ -25,15 +25,15 @@
 
 package fredboat.command.util;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.messaging.internal.Context;
+import fredboat.util.rest.Http;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
 import org.apache.commons.text.StringEscapeUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -42,15 +42,30 @@ import org.json.XML;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * @deprecated The mal API is broken af. After an unsuccessful search it will answer requests after one full minute only,
+ * until one does a successful search. This is unacceptable.
+ * Reworking this should also include a cache of some kind.
+ */
+@Deprecated
 public class MALCommand extends Command implements IUtilCommand {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(MALCommand.class);
     private static Pattern regex = Pattern.compile("^\\S+\\s+([\\W\\w]*)");
+
+    //MALs API is wonky af and loves to take its time to answer requests, so we are setting rather high time outs
+    private static OkHttpClient malHttpClient = new OkHttpClient.Builder()
+            .connectTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .writeTimeout(120, TimeUnit.SECONDS)
+            .build();
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
@@ -64,38 +79,41 @@ public class MALCommand extends Command implements IUtilCommand {
         String term = matcher.group(1).replace(' ', '+').trim();
         log.debug("TERM:" + term);
 
-        //MALs API is currently wonky af, so we are setting rather strict timeouts for its requests
-        Unirest.setTimeouts(5000, 10000);
         FredBoat.executor.submit(() -> requestAsync(term, context));
-        //back to defaults
-        Unirest.setTimeouts(10000, 60000);
     }
 
+    //attempts to find an anime with the provided search term, and if that's not possible looks for a user
     private void requestAsync(String term, CommandContext context) {
+        Http.SimpleRequest request = Http.get("https://myanimelist.net/api/anime/search.xml",
+                Http.Params.of(
+                        "q", term
+                ))
+                .auth(Credentials.basic(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword()))
+                .client(malHttpClient);
+
         try {
-            HttpResponse<String> response = Unirest.get("https://myanimelist.net/api/anime/search.xml")
-                    .queryString("q", term)
-                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
-                    .asString();
-
-            String body = response.getBody();
-            if (body != null && body.length() > 0) {
-                if (handleAnime(context, term, body)) {
-                    return;
-                }
+            if (handleAnime(context, term, request.asString())) {
+                return; //success
             }
-            response = Unirest.get("http://myanimelist.net/search/prefix.json")
-                    .queryString("type", "user")
-                    .queryString("keyword", term)
-                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
-                    .asString();
-            body = response.getBody();
-
-            handleUser(context, body);
-        } catch (UnirestException ex) {
-            context.reply(context.i18nFormat("malNoResults", context.invoker.getEffectiveName()));
-            log.warn("MAL request blew up", ex);
+        } catch (IOException | JSONException ignored) {
+            // we will try a user search instead
         }
+
+        request = request.url("http://myanimelist.net/search/prefix.json",
+                Http.Params.of(
+                        "type", "user",
+                        "keyword", term
+                ));
+
+        try {
+            if (handleUser(context, request.asString())) {
+                return; //succcess
+            }
+        } catch (IOException | JSONException e) {
+            log.warn("MAL request blew up", e);
+        }
+
+        context.reply(context.i18nFormat("malNoResults", context.invoker.getEffectiveName()));
     }
 
     private boolean handleAnime(CommandContext context, String terms, String body) {

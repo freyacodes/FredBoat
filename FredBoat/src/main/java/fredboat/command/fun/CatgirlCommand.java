@@ -30,18 +30,14 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.messaging.internal.Context;
-import fredboat.util.rest.CacheUtil;
-import fredboat.util.rest.CloudFlareScraper;
+import fredboat.util.rest.Http;
 
 import javax.annotation.Nonnull;
-import java.io.File;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.io.IOException;
 
 public class CatgirlCommand extends Command implements IFunCommand {
 
-    private static final Pattern IMAGE_PATTERN = Pattern.compile("src=\"([^\"]+)");
-    private static final String BASE_URL = "http://catgirls.brussell98.tk/";
+    private static final String BASE_URL = "https://nekos.life/api/neko";
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
@@ -50,17 +46,13 @@ public class CatgirlCommand extends Command implements IFunCommand {
     }
 
     private void postCatgirl(CommandContext context) {
-        String str = CloudFlareScraper.get(BASE_URL);
-        Matcher m = IMAGE_PATTERN.matcher(str);
 
-        if (!m.find()) {
+        try {
+            String nekoUrl = Http.get(BASE_URL).asJson().getString("neko");
+            context.replyImage(nekoUrl);
+        } catch (IOException e) {
             context.reply(context.i18nFormat("catgirlFail", BASE_URL));
-            return;
         }
-
-        File tmp = CacheUtil.getImageFromURL(BASE_URL + m.group(1));
-        //NOTE: we cannot send this as a URL because discord cant access it (cloudflare etc)
-        context.replyFile(tmp, null);
     }
 
     @Nonnull

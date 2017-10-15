@@ -25,8 +25,6 @@
 
 package fredboat.command.music.info;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.sedmelluq.discord.lavaplayer.source.bandcamp.BandcampAudioTrack;
 import com.sedmelluq.discord.lavaplayer.source.beam.BeamAudioTrack;
 import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioTrack;
@@ -42,8 +40,8 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.shared.constant.BotConstants;
 import fredboat.util.TextUtils;
+import fredboat.util.rest.Http;
 import fredboat.util.rest.YoutubeAPI;
 import fredboat.util.rest.YoutubeVideo;
 import net.dv8tion.jda.core.EmbedBuilder;
@@ -52,14 +50,13 @@ import org.json.XML;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
-import java.text.MessageFormat;
+import java.io.IOException;
 
 public class NowplayingCommand extends Command implements IMusicCommand {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
-        player.setCurrentTC(context.channel);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
         if (player.isPlaying()) {
 
@@ -127,8 +124,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
         return CentralMessaging.getClearThreadLocalEmbedBuilder()
                 .setAuthor(at.getInfo().author, null, null)
                 .setTitle(atc.getEffectiveTitle(), null)
-                .setDescription(MessageFormat.format(
-                        atc.i18n("npLoadedSoundcloud"),
+                .setDescription(atc.i18nFormat("npLoadedSoundcloud",
                         TextUtils.formatTime(atc.getEffectivePosition()), TextUtils.formatTime(atc.getEffectiveDuration()))) //TODO: Gather description, thumbnail, etc
                 .setColor(new Color(255, 85, 0));
     }
@@ -145,7 +141,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
         return CentralMessaging.getClearThreadLocalEmbedBuilder()
                 .setAuthor(at.getInfo().author, null, null)
                 .setTitle(atc.getEffectiveTitle(), null)
-                .setDescription(MessageFormat.format(atc.i18n("npLoadedBandcamp"), desc))
+                .setDescription(atc.i18nFormat("npLoadedBandcamp", desc))
                 .setColor(new Color(99, 154, 169));
     }
 
@@ -159,7 +155,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
 
     private EmbedBuilder getBeamEmbed(AudioTrackContext atc, BeamAudioTrack at) {
         try {
-            JSONObject json = Unirest.get("https://beam.pro/api/v1/channels/" + at.getInfo().author).asJson().getBody().getObject();
+            JSONObject json = Http.get("https://beam.pro/api/v1/channels/" + at.getInfo().author).asJson();
 
             return CentralMessaging.getClearThreadLocalEmbedBuilder()
                     .setAuthor(at.getInfo().author, "https://beam.pro/" + at.getInfo().author, json.getJSONObject("user").getString("avatarUrl"))
@@ -168,14 +164,14 @@ public class NowplayingCommand extends Command implements IMusicCommand {
                     .setImage(json.getJSONObject("thumbnail").getString("url"))
                     .setColor(new Color(77, 144, 244));
 
-        } catch (UnirestException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     static EmbedBuilder getGensokyoRadioEmbed(Context context) {
         try {
-            JSONObject data = XML.toJSONObject(Unirest.get("https://gensokyoradio.net/xml/").asString().getBody()).getJSONObject("GENSOKYORADIODATA");
+            JSONObject data = XML.toJSONObject(Http.get("https://gensokyoradio.net/xml/").asString()).getJSONObject("GENSOKYORADIODATA");
 
             String rating = data.getJSONObject("MISC").getInt("TIMESRATED") == 0 ?
                     context.i18n("noneYet") :
@@ -204,7 +200,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
                     .setImage(albumArt)
                     .setColor(new Color(66, 16, 80));
 
-        } catch (UnirestException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -218,11 +214,10 @@ public class NowplayingCommand extends Command implements IMusicCommand {
                         + TextUtils.formatTime(atc.getEffectiveDuration())
                         + "]";
 
-        return CentralMessaging.getClearThreadLocalEmbedBuilder()
+        return CentralMessaging.getColoredEmbedBuilder()
                 .setAuthor(at.getInfo().author, null, null)
                 .setTitle(atc.getEffectiveTitle(), at.getIdentifier())
-                .setDescription(MessageFormat.format(atc.i18n("npLoadedFromHTTP"), desc, at.getIdentifier())) //TODO: Probe data
-                .setColor(BotConstants.FREDBOAT_COLOR);
+                .setDescription(atc.i18nFormat("npLoadedFromHTTP", desc, at.getIdentifier())); //TODO: Probe data
     }
 
     private EmbedBuilder getDefaultEmbed(AudioTrackContext atc, AudioTrack at) {
@@ -234,11 +229,10 @@ public class NowplayingCommand extends Command implements IMusicCommand {
                         + TextUtils.formatTime(atc.getEffectiveDuration())
                         + "]";
 
-        return CentralMessaging.getClearThreadLocalEmbedBuilder()
+        return CentralMessaging.getColoredEmbedBuilder()
                 .setAuthor(at.getInfo().author, null, null)
                 .setTitle(atc.getEffectiveTitle(), null)
-                .setDescription(MessageFormat.format(atc.i18n("npLoadedDefault"), desc, at.getSourceManager().getSourceName()))
-                .setColor(BotConstants.FREDBOAT_COLOR);
+                .setDescription(atc.i18nFormat("npLoadedDefault", desc, at.getSourceManager().getSourceName()));
     }
 
     @Nonnull

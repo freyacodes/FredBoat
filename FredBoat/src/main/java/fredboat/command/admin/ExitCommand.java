@@ -59,6 +59,7 @@ public class ExitCommand extends Command implements ICommandRestricted {
         return "{0}{1}\n#Shut down the bot.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_ADMIN;

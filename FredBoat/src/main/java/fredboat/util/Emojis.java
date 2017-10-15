@@ -31,4 +31,7 @@ package fredboat.util;
 public class Emojis {
 
     public static final String EXCLAMATION = "❗";
+    public static final String OK = "✅";
+    public static final String BAD = "❌";
+
 }

@@ -46,7 +46,7 @@ public class VolumeCommand extends Command implements IMusicCommand, ICommandRes
 
         if(Config.CONFIG.getDistribution().volumeSupported()) {
 
-            GuildPlayer player = PlayerRegistry.get(context.guild);
+            GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
             try {
                 float volume = Float.parseFloat(context.args[1]) / 100;
                 volume = Math.max(0, Math.min(1.5f, volume));
@@ -71,6 +71,7 @@ public class VolumeCommand extends Command implements IMusicCommand, ICommandRes
         return "{0}{1} <0-150>\n#" + context.i18n("helpVolumeCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;

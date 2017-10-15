@@ -106,7 +106,8 @@ public class CommandContext extends Context {
      * Deletes the users message that triggered this command, if we have the permissions to do so
      */
     public void deleteMessage() {
-        if (hasPermissions(Permission.MESSAGE_MANAGE)) {
+        TextChannel tc = msg.getTextChannel();
+        if (tc != null && hasPermissions(tc, Permission.MESSAGE_MANAGE)) {
             CentralMessaging.deleteMessage(msg);
         }
     }

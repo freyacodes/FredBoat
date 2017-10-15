@@ -170,7 +170,7 @@ public abstract class ProvideJDASingleton {
             String spacer = "";
             for (int i = 0; i < out.length(); i++) spacer += "#";
             out = spacer + "\n" + out + "\n" + spacer;
-            out = TextUtils.asMarkdown(out);
+            out = TextUtils.asCodeBlock(out, "md");
             CentralMessaging.sendMessage(testChannel, out).getWithDefaultTimeout();
 
             initialized = true;

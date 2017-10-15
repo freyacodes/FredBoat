@@ -60,7 +60,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                 .append(context.i18nFormat("configNoArgs", context.guild.getName())).append("\n")
                 .append("track_announce = ").append(gc.isTrackAnnounce()).append("\n")
                 .append("auto_resume = ").append(gc.isAutoResume()).append("\n")
-                .append("```");
+                .append("```"); //opening ``` is part of the configNoArgs language string
 
         context.reply(mb.build());
     }
@@ -113,6 +113,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
         return usage + context.i18n("helpConfigCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BASE;

@@ -69,7 +69,9 @@ public class CommandsCommand extends Command implements IUtilCommand {
         //bot owner and debug commands (+ ;;music and ;;help) missing + the currently defunct config command
         //this is currently fine but might change in the future
         new MusicHelpCommand().onInvoke(context);
-//        mainBotHelp(context); //TODO: decide how to do handle this after unification of main and music bot
+        if (Config.CONFIG.isDevDistribution()) {
+            mainBotHelp(context); //TODO: decide how to do handle this after unification of main and music bot
+        }
     }
 
     private void mainBotHelp(CommandContext context) {
@@ -124,8 +126,11 @@ public class CommandsCommand extends Command implements IUtilCommand {
             out += "\n" + mod;
         }
 
-        if (PermsUtil.isUserBotOwner(context.invoker.getUser())) {
+        if (PermsUtil.checkPerms(PermissionLevel.BOT_ADMIN, context.invoker)) {
             out += "\n" + maint;
+        }
+
+        if (PermsUtil.checkPerms(PermissionLevel.BOT_OWNER, context.invoker)) {
             out += "\n" + owner;
         }
 

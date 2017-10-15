@@ -25,10 +25,11 @@
 
 package fredboat.agent;
 
-import com.mashape.unirest.http.Unirest;
 import fredboat.Config;
 import fredboat.FredBoat;
+import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.JDA;
+import okhttp3.Response;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
@@ -65,12 +66,20 @@ public class CarbonitexAgent extends FredBoatAgent {
             return;
         }
 
-        try {
-            final String response = Unirest.post("https://www.carbonitex.net/discord/data/botdata.php")
-                    .field("key", key)
-                    .field("servercount", FredBoat.countAllGuilds())
-                    .asString().getBody();
-            log.info("Successfully posted the bot data to carbonitex.com: " + response);
+        try (Response response = Http.post("https://www.carbonitex.net/discord/data/botdata.php",
+                    Http.Params.of(
+                            "key", key,
+                            "servercount", Integer.toString(FredBoat.countAllGuilds())
+                    ))
+                .execute()) {
+
+            //noinspection ConstantConditions
+            String content = response.body().string();
+            if (response.isSuccessful()) {
+                log.info("Successfully posted the bot data to carbonitex.com: {}", content);
+            } else {
+                log.warn("Failed to post stats to Carbonitex: {}\n{}", response.toString(), content);
+            }
         } catch (Exception e) {
             log.error("An error occurred while posting the bot data to carbonitex.com", e);
         }

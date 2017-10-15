@@ -103,6 +103,7 @@ public class MavenTestCommand extends Command implements ICommandRestricted {
         return "{0}{1}\n#Run 'mvn test' on the bots present sources.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_OWNER;

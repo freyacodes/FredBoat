@@ -109,6 +109,7 @@ public class SentryDsnCommand extends Command implements ICommandRestricted {
                 " the next restart, or stop the sentry service.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_ADMIN;

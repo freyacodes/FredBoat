@@ -54,7 +54,7 @@ public class EventLogger extends ListenerAdapter {
     private void send(String msg) {
         //JDA jda = shard.getJda(); //do a null check if you ever uncomment this code again
         /*DiscordUtil.sendShardlessMessage(jda, logChannelId,
-                FredBoat.getInstance(jda).getShardInfo().getShardString()
+                FredBoat.getShard(jda).getShardInfo().getShardString()
                 + " "
                 + msg
         );*/
@@ -63,7 +63,7 @@ public class EventLogger extends ListenerAdapter {
 
     @Override
     public void onReady(ReadyEvent event) {
-        FredBoat.getInstance(event.getJDA());
+        FredBoat.getShard(event.getJDA());
         send(CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append("[:rocket:] Received ready event.")
                 .build()

@@ -55,9 +55,6 @@ public enum FeatureFlags implements Feature {
 
     @Label("Force soundcloud search instead of youtube")
     FORCE_SOUNDCLOUD_SEARCH,
-
-    @Label("Have a watchdog restart stale shards")
-    SHARD_WATCHDOG,
     ;
 
     public boolean isActive() {

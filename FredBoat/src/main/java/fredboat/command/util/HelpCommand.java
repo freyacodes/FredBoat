@@ -119,7 +119,7 @@ public class HelpCommand extends Command implements IUtilCommand {
         if (command instanceof ICommandRestricted
                 && ((ICommandRestricted) command).getMinimumPerms() == PermissionLevel.BOT_OWNER)
             out += "\n#" + context.i18n("helpCommandOwnerRestricted");
-        out = TextUtils.asMarkdown(out);
+        out = TextUtils.asCodeBlock(out, "md");
         out = context.i18n("helpProperUsage") + out;
         context.replyWithName(out);
     }

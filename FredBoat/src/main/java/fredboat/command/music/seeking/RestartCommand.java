@@ -59,6 +59,7 @@ public class RestartCommand extends Command implements IMusicCommand, ICommandRe
         return "{0}{1}\n#" + context.i18n("helpRestartCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;

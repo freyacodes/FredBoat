@@ -25,17 +25,17 @@
 
 package fredboat.feature;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.FredBoat;
 import fredboat.event.UserListener;
 import fredboat.messaging.internal.Context;
 import fredboat.messaging.internal.LeakSafeContext;
+import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.entities.Channel;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
-import org.apache.commons.text.RandomStringGenerator;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -45,11 +45,11 @@ public final class AkinatorListener extends UserListener {
 
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
 
-    private final String NEW_SESSION_URL = "http://api-en4.akinator.com/ws/new_session?partner=1";
-    private final String ANSWER_URL = "http://api-en4.akinator.com/ws/answer";
-    private final String GET_GUESS_URL = "http://api-en4.akinator.com/ws/list";
-    private final String CHOICE_URL = "http://api-en4.akinator.com/ws/choice";
-    private final String EXCLUSION_URL = "http://api-en4.akinator.com/ws/exclusion";
+    private static final String NEW_SESSION_URL = "http://api-en4.akinator.com/ws/new_session?partner=1";
+    private static final String ANSWER_URL = "http://api-en4.akinator.com/ws/answer";
+    private static final String GET_GUESS_URL = "http://api-en4.akinator.com/ws/list";
+    private static final String CHOICE_URL = "http://api-en4.akinator.com/ws/choice";
+    private static final String EXCLUSION_URL = "http://api-en4.akinator.com/ws/exclusion";
 
     private final LeakSafeContext context;
     private final String channelId;
@@ -65,7 +65,7 @@ public final class AkinatorListener extends UserListener {
     private Future timeoutTask;
 
 
-    public AkinatorListener(Context context) throws UnirestException {
+    public AkinatorListener(Context context) throws IOException, JSONException {
         this.context = new LeakSafeContext(context);
         this.userId = context.getMember().getUser().getId();
         this.channelId = context.getTextChannel().getId();
@@ -73,12 +73,11 @@ public final class AkinatorListener extends UserListener {
         context.sendTyping();
 
         //Start new session
-        RandomStringGenerator randomStringGenerator = new RandomStringGenerator.Builder().build();
-        JSONObject json = Unirest.get(NEW_SESSION_URL)
-                .queryString("player", randomStringGenerator.generate(16))
-                .asJson().getBody().getObject();
-        stepInfo = new StepInfo(json);
+        Http.SimpleRequest request = Http.get(NEW_SESSION_URL, Http.Params.of(
+                "player", userId
+        ));
 
+        stepInfo = new StepInfo(request.asJson());
         signature = stepInfo.getSignature();
         session = stepInfo.getSession();
 
@@ -88,7 +87,7 @@ public final class AkinatorListener extends UserListener {
 
     private void checkTimeout() {
         if (System.currentTimeMillis() - lastActionReceived > TimeUnit.MINUTES.toMillis(5)) {
-            FredBoat.getListenerBot().removeListener(userId);
+            FredBoat.getMainEventListener().removeListener(userId);
             timeoutTask.cancel(false);
         }
     }
@@ -101,7 +100,7 @@ public final class AkinatorListener extends UserListener {
         lastQuestionWasGuess = false;
     }
 
-    private void sendGuess() throws UnirestException {
+    private void sendGuess() throws IOException, JSONException {
         guess = new Guess();
         String out = "Is this your character?\n" + guess.toString() + "\n[yes/no]";
         context.reply(out);
@@ -109,20 +108,20 @@ public final class AkinatorListener extends UserListener {
     }
 
     private void answerQuestion(byte answer) {
+        Http.SimpleRequest request = Http.get(ANSWER_URL, Http.Params.of(
+                "session", session,
+                "signature", signature,
+                "step", String.valueOf(stepInfo.getStepNum()),
+                "answer", Byte.toString(answer)
+        ));
         try {
-            JSONObject json = Unirest.get(ANSWER_URL)
-                    .queryString("session", session)
-                    .queryString("signature", signature)
-                    .queryString("step", stepInfo.getStepNum())
-                    .queryString("answer", answer)
-                    .asJson().getBody().getObject();
-            stepInfo = new StepInfo(json);
+            stepInfo = new StepInfo(request.asJson());
 
             if (stepInfo.gameOver) {
                 context.reply("Bravo !\n"
                         + "You have defeated me !\n"
                         + "<http://akinator.com>");
-                FredBoat.getListenerBot().removeListener(userId);
+                FredBoat.getMainEventListener().removeListener(userId);
                 return;
             }
 
@@ -131,7 +130,7 @@ public final class AkinatorListener extends UserListener {
             } else {
                 sendNextQuestion();
             }
-        } catch (UnirestException ex) {
+        } catch (IOException | JSONException ex) {
             throw new RuntimeException(ex);
         }
     }
@@ -139,28 +138,35 @@ public final class AkinatorListener extends UserListener {
     private void answerGuess(byte answer) {
         try {
             if (answer == 0) {
-                Unirest.get(CHOICE_URL)
-                        .queryString("session", session)
-                        .queryString("signature", signature)
-                        .queryString("step", stepInfo.getStepNum())
-                        .queryString("element", guess.getId())
-                        .asString();
-                context.reply("Great ! Guessed right one more time.\n"
+                Http.get(CHOICE_URL,
+                        Http.Params.of(
+                                "session", session,
+                                "signature", signature,
+                                "step", Integer.toString(stepInfo.getStepNum()),
+                                "element", guess.getId()
+                        ))
+                        .execute()
+                        .close();
+
+                context.reply("Great! Guessed right one more time.\n"
                         + "I love playing with you!\n"
                         + "<http://akinator.com>");
-                FredBoat.getListenerBot().removeListener(userId);
+                FredBoat.getMainEventListener().removeListener(userId);
             } else if (answer == 1) {
-                Unirest.get(EXCLUSION_URL)
-                        .queryString("session", session)
-                        .queryString("signature", signature)
-                        .queryString("step", stepInfo.getStepNum())
-                        .queryString("forward_answer", answer)
-                        .asString();
+                Http.get(EXCLUSION_URL,
+                        Http.Params.of(
+                                "session", session,
+                                "signature", signature,
+                                "step", Integer.toString(stepInfo.getStepNum()),
+                                "forward_answer", Byte.toString(answer)
+                        ))
+                        .execute()
+                        .close();
 
                 lastQuestionWasGuess = false;
                 sendNextQuestion();
             }
-        } catch (UnirestException ex) {
+        } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
     }
@@ -237,7 +243,7 @@ public final class AkinatorListener extends UserListener {
         private int stepNum;
         private double progression;
 
-        StepInfo(JSONObject json) {
+        StepInfo(JSONObject json) throws JSONException {
             String completion = json.getString("completion");
             if ("OK".equalsIgnoreCase(completion)) {
                 JSONObject params = json.getJSONObject("parameters");
@@ -288,16 +294,14 @@ public final class AkinatorListener extends UserListener {
         private final String pseudo;
         private final String imgPath;
 
-        Guess() throws UnirestException {
-            JSONObject json = Unirest.get(GET_GUESS_URL)
-                    .queryString("session", session)
-                    .queryString("signature", signature)
-                    .queryString("step", stepInfo.getStepNum())
-                    .asJson()
-                    .getBody()
-                    .getObject();
+        Guess() throws IOException, JSONException {
+            Http.SimpleRequest request = Http.get(GET_GUESS_URL, Http.Params.of(
+                    "session", session,
+                    "signature", signature,
+                    "step", Integer.toString(stepInfo.getStepNum())
+            ));
 
-            JSONObject character = json.getJSONObject("parameters")
+            JSONObject character = request.asJson().getJSONObject("parameters")
                     .getJSONArray("elements")
                     .getJSONObject(0)
                     .getJSONObject("element");

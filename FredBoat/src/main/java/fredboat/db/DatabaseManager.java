@@ -202,7 +202,7 @@ public class DatabaseManager {
             config.put("StrictHostKeyChecking", "no");
             config.put("ConnectionAttempts", "3");
             session.setConfig(config);
-            session.setServerAliveInterval(500);//milliseconds
+            session.setServerAliveInterval(1000);//milliseconds
             session.connect();
 
             log.info("SSH Connected");

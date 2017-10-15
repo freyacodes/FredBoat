@@ -38,6 +38,8 @@ import java.util.List;
 
 public class ArgumentUtil {
 
+    public static final int FUZZY_RESULT_LIMIT = 10;
+
     private ArgumentUtil() {
     }
 
@@ -88,17 +90,21 @@ public class ArgumentUtil {
             case 1:
                 return list.get(0);
             default:
-                String msg = context.i18n("fuzzyMultiple") + "\n```";
-
-                for (int i = 0; i < 5; i++) {
-                    if (list.size() == i) break;
-                    msg = msg + "\n" + list.get(i).getUser().getName() + "#" + list.get(i).getUser().getDiscriminator();
+                StringBuilder searchResults = new StringBuilder();
+                int maxIndex = Math.min(FUZZY_RESULT_LIMIT, list.size());
+                for (int i = 0; i < maxIndex; i++) {
+                    searchResults.append("\n")
+                            .append(list.get(i).getUser().getName())
+                            .append("#")
+                            .append(list.get(i).getUser().getDiscriminator());
                 }
 
-                msg = list.size() > 5 ? msg + "\n[...]" : msg;
-                msg = msg + "```";
+                if (list.size() > FUZZY_RESULT_LIMIT) {
+                    searchResults.append("\n[...]");
+                }
 
-                context.reply(msg);
+                context.reply(context.i18n("fuzzyMultiple") + "\n"
+                        + TextUtils.asCodeBlock(searchResults.toString()));
                 return null;
         }
     }
@@ -111,35 +117,42 @@ public class ArgumentUtil {
             case 1:
                 return list.get(0);
             default:
-                String msg = context.i18n("fuzzyMultiple") + "\n```";
-
+                StringBuilder searchResults = new StringBuilder();
                 int i = 0;
                 for (IMentionable mentionable : list) {
-                    if (i == 5) break;
+                    if (i == FUZZY_RESULT_LIMIT) break;
 
                     if (mentionable instanceof Member) {
                         Member member = (Member) mentionable;
-                        msg = msg + "\n" + "USER " + member.getUser().getId() + " " + member.getEffectiveName();
+                        searchResults.append("\nUSER ")
+                                .append(member.getUser().getId())
+                                .append(" ")
+                                .append(member.getEffectiveName());
                     } else if (mentionable instanceof Role) {
                         Role role = (Role) mentionable;
-                        msg = msg + "\n" + "ROLE " + role.getId() + " " + role.getName();
+                        searchResults.append("\nROLE ")
+                                .append(role.getId())
+                                .append(" ")
+                                .append(role.getName());
                     } else {
                         throw new IllegalArgumentException("Expected Role or Member, got " + mentionable);
                     }
                     i++;
                 }
 
-                msg = list.size() > 5 ? msg + "\n[...]" : msg;
-                msg = msg + "```";
+                if (list.size() > FUZZY_RESULT_LIMIT) {
+                    searchResults.append("\n[...]");
+                }
 
-                context.reply(msg);
+                context.reply(context.i18n("fuzzyMultiple") + "\n"
+                        + TextUtils.asCodeBlock(searchResults.toString()));
                 return null;
         }
     }
 
     public static String getSearchTerm(Message message, String[] args, int argsToStrip) {
         String raw = message.getRawContent();
-        raw = raw.substring(args[0].length());
+        raw = raw.substring(args[0].length() + args[1].length() + 2); //arg0 is prefix, arg1 is add / remove and + 2 for the 2 spaces
         return raw.substring(raw.indexOf(args[argsToStrip]));
     }
 

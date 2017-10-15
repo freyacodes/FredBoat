@@ -41,6 +41,7 @@ public class EnableCommandsCommand extends Command implements ICommandRestricted
         return "{0}{1} <command>\n#Re-enable a globally disabled command";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_ADMIN;

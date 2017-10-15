@@ -29,6 +29,7 @@ import fredboat.FredBoat;
 import fredboat.audio.queue.PlaylistInfo;
 import fredboat.command.maintenance.ShardsCommand;
 import fredboat.command.music.control.SkipCommand;
+import fredboat.command.util.WeatherCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.messaging.internal.Context;
 import fredboat.util.DiscordUtil;
@@ -77,8 +78,8 @@ public class Ratelimiter {
         Set<Long> whitelist = new ConcurrentHashSet<>();
 
         //it is ok to use the jda of any shard as long as we aren't using it for guild specific stuff
-        JDA jda = FredBoat.getFirstJDA();
-        whitelist.add(Long.valueOf(DiscordUtil.getOwnerId(jda)));
+        JDA jda = FredBoat.getShard(0).getJda();
+        whitelist.add(DiscordUtil.getOwnerId(jda));
         whitelist.add(jda.getSelfUser().getIdLong());
         //only works for those admins who are added with their userId and not through a roleId
         for (String admin : Config.CONFIG.getAdminIds())
@@ -96,6 +97,7 @@ public class Ratelimiter {
         ratelimits.add(new Ratelimit(whitelist, Ratelimit.Scope.USER, 5, 20000, SkipCommand.class));
         ratelimits.add(new Ratelimit(whitelist, Ratelimit.Scope.USER, 5, 10000, Command.class));
 
+        ratelimits.add(new Ratelimit(whitelist, Ratelimit.Scope.GUILD, 30, 180000, WeatherCommand.class));
         ratelimits.add(new Ratelimit(whitelist, Ratelimit.Scope.GUILD, 1000, 120000, PlaylistInfo.class));
         ratelimits.add(new Ratelimit(whitelist, Ratelimit.Scope.GUILD, 10, 10000, Command.class));
     }

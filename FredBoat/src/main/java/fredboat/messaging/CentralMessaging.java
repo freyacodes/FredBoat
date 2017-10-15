@@ -26,6 +26,7 @@
 package fredboat.messaging;
 
 import fredboat.feature.I18n;
+import fredboat.shared.constant.BotConstants;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -62,6 +63,11 @@ public class CentralMessaging {
 
     private static final Logger log = LoggerFactory.getLogger(CentralMessaging.class);
 
+    //this is needed for when we absolutely don't care about a rest action failing (use this only after good consideration!)
+    // because if we pass null for a failure handler to JDA it uses a default handler that results in a warning/error level log
+    private static final Consumer<Throwable> NOOP_EXCEPTION_HANDLER = __ -> {
+    };
+
 
     // ********************************************************************************
     //       Thread local handling and providing of Messages and Embeds builders
@@ -76,6 +82,12 @@ public class CentralMessaging {
 
     public static MessageBuilder getClearThreadLocalMessageBuilder() {
         return threadLocalMessageBuilder.get().clear();
+    }
+
+    //presets fredboat color on a clear embed
+    public static EmbedBuilder getColoredEmbedBuilder() {
+        return getClearThreadLocalEmbedBuilder()
+                .setColor(BotConstants.FREDBOAT_COLOR);
     }
 
     public static EmbedBuilder getClearThreadLocalEmbedBuilder() {
@@ -393,40 +405,48 @@ public class CentralMessaging {
 
     public static void sendTyping(MessageChannel channel) {
         try {
-            channel.sendTyping().queue();
+            channel.sendTyping().queue(
+                    null,
+                    t -> log.warn("Could not send typing event", t)
+            );
         } catch (InsufficientPermissionException e) {
             handleInsufficientPermissionsException(channel, e);
         }
     }
 
-    //messages must all be from the same channel
-    public static void deleteMessages(Collection<Message> messages) {
+    //make sure that all the messages are from the channel you provide
+    public static void deleteMessages(@Nonnull TextChannel channel, @Nonnull Collection<Message> messages) {
         if (!messages.isEmpty()) {
-            MessageChannel channel = messages.iterator().next().getChannel();
-            if (channel instanceof TextChannel) {
-                try {
-                    ((TextChannel) channel).deleteMessages(messages).queue();
-                } catch (InsufficientPermissionException e) {
-                    handleInsufficientPermissionsException(channel, e);
-                }
-            } else {
-                messages.forEach(m -> deleteMessageById(channel, m.getIdLong()));
+            try {
+                channel.deleteMessages(messages).queue(
+                        null,
+                        t -> log.warn("Could not bulk delete messages", t)
+                );
+            } catch (InsufficientPermissionException e) {
+                handleInsufficientPermissionsException(channel, e);
             }
         }
     }
 
-    public static void deleteMessage(Message message) {
-        deleteMessageById(message.getChannel(), message.getIdLong());
-    }
-
     public static void deleteMessageById(@Nonnull MessageChannel channel, long messageId) {
-        if (channel == null) {
-            throw new IllegalArgumentException("Channel is null");
-        }
         try {
-            channel.deleteMessageById(messageId).queue();
+            channel.getMessageById(messageId).queue(
+                    CentralMessaging::deleteMessage,
+                    NOOP_EXCEPTION_HANDLER //do nothing if that message could not be found in the first place
+            );
         } catch (InsufficientPermissionException e) {
             handleInsufficientPermissionsException(channel, e);
+        }
+    }
+
+    public static void deleteMessage(@Nonnull Message message) {
+        try {
+            message.delete().queue(
+                    null,
+                    t -> log.warn("Could not delete message", t)
+            );
+        } catch (InsufficientPermissionException e) {
+            handleInsufficientPermissionsException(message.getChannel(), e);
         }
     }
 
@@ -548,7 +568,8 @@ public class CentralMessaging {
         return result;
     }
 
-    private static void handleInsufficientPermissionsException(MessageChannel channel, InsufficientPermissionException e) {
+    private static void handleInsufficientPermissionsException(@Nonnull MessageChannel channel,
+                                                               @Nonnull InsufficientPermissionException e) {
         final ResourceBundle i18n;
         if (channel instanceof TextChannel) {
             i18n = I18n.get(((TextChannel) channel).getGuild());

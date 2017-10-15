@@ -32,6 +32,7 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
@@ -83,6 +84,7 @@ public class EvalCommand extends Command implements ICommandRestricted {
         engine.put("guild", guild);
         engine.put("player", PlayerRegistry.getExisting(guild));
         engine.put("pm", AbstractPlayer.getPlayerManager());
+        engine.put("context", context);
 
         ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
         ScheduledFuture<?> future = service.schedule(() -> {
@@ -96,7 +98,7 @@ public class EvalCommand extends Command implements ICommandRestricted {
 
             } catch (Exception ex) {
                 context.reply("`" + ex.getMessage() + "`");
-                log.error("Error occurred in eval", ex);
+                log.info("Error occurred in eval", ex);
                 return;
             }
 
@@ -104,12 +106,12 @@ public class EvalCommand extends Command implements ICommandRestricted {
             if (out == null) {
                 outputS = ":ok_hand::skin-tone-3:";
             } else if (out.toString().contains("\n")) {
-                outputS = "\nEval: ```\n" + out.toString() + "```";
+                outputS = "\nEval: " + TextUtils.asCodeBlock(out.toString());
             } else {
                 outputS = "\nEval: `" + out.toString() + "`";
             }
 
-            context.reply("```java\n" + source + "```" + "\n" + outputS);
+            context.reply(TextUtils.asCodeBlock(source, "java") + "\n" + outputS);
 
         }, 0, TimeUnit.MILLISECONDS);
 
@@ -136,6 +138,7 @@ public class EvalCommand extends Command implements ICommandRestricted {
         return "{0}{1} <Java-code>\\n#Run the provided Java code.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_OWNER;

@@ -50,8 +50,7 @@ public class ListCommand extends Command implements IMusicCommand {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
-        player.setCurrentTC(context.channel);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
         if(player.isQueueEmpty()) {
             context.reply(context.i18n("npNotPlaying"));

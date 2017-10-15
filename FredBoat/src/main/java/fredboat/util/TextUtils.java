@@ -25,27 +25,33 @@
 
 package fredboat.util;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.commandmeta.MessagingException;
-import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
+import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
+import org.json.JSONException;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.text.DecimalFormat;
-import java.text.MessageFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TextUtils {
 
     private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^(\\d?\\d)(?::([0-5]?\\d))?(?::([0-5]?\\d))?$");
+    public static final DateTimeFormatter TIME_IN_CENTRAL_EUROPE = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss z")
+            .withZone(ZoneId.of("Europe/Copenhagen"));
+
+    public static final char ZERO_WIDTH_CHAR = '\u200b';
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(TextUtils.class);
 
@@ -86,63 +92,56 @@ public class TextUtils {
 
         if (context.getMember() != null) {
             builder.append(context.getMember());
-
-            String filtered = context.i18nFormat("utilErrorOccurred", e.toString());
-
-            for (String str : Config.CONFIG.getGoogleKeys()) {
-                filtered = filtered.replace(str, "GOOGLE_SERVER_KEY");
-            }
-
-            builder.append(filtered);
-        } else {
-            String filtered = MessageFormat.format(I18n.DEFAULT.getProps().getString("utilErrorOccurred"), e.toString());
-
-            for (String str : Config.CONFIG.getGoogleKeys()) {
-                filtered = filtered.replace(str, "GOOGLE_SERVER_KEY");
-            }
-
-            builder.append(filtered);
         }
 
-        //builder.append("```java\n");
+        String filtered = context.i18nFormat("utilErrorOccurred", e.toString());
+        for (String str : Config.CONFIG.getGoogleKeys()) {
+            filtered = filtered.replace(str, "GOOGLE_SERVER_KEY");
+        }
+        builder.append(filtered);
+
         for (StackTraceElement ste : e.getStackTrace()) {
-            builder.append("\t" + ste.toString() + "\n");
+            builder.append("\t").append(ste.toString()).append("\n");
             if ("prefixCalled".equals(ste.getMethodName())) {
                 break;
             }
         }
-        builder.append("\t...```");
-
-        Message out = builder.build();
+        builder.append("\t...```"); //opening ``` is part of the utilErrorOccurred language string
 
         try {
-            context.reply(out);
-        } catch (UnsupportedOperationException tooLongEx) {
+            context.reply(builder.build());
+        } catch (UnsupportedOperationException | IllegalStateException tooLongEx) {
             try {
-                context.reply(context.i18nFormat("errorOccurredTooLong", postToPasteService(out.getRawContent())));
-            } catch (UnirestException e1) {
+                context.reply(context.i18nFormat("errorOccurredTooLong",
+                        postToPasteService(builder.getStringBuilder().toString())));
+            } catch (IOException | JSONException e1) {
+                log.error("Failed to upload to any pasteservice.");
                 context.reply(context.i18n("errorOccurredTooLongAndUnirestException"));
             }
         }
     }
 
-    public static String postToHastebin(String body) throws UnirestException {
-        return Unirest.post("https://hastebin.com/documents").body(body).asJson().getBody().getObject().getString("key");
+    private static String postToHastebin(String body) throws IOException {
+        return Http.post("https://hastebin.com/documents", body, "text/plain")
+                .asJson()
+                .getString("key");
     }
 
-    public static String postToWastebin(String body) throws UnirestException {
-        return Unirest.post("https://wastebin.party/documents").body(body).asJson().getBody().getObject().getString("key");
+    private static String postToWastebin(String body) throws IOException {
+        return Http.post("https://wastebin.party/documents", body, "text/plain")
+                .asJson()
+                .getString("key");
     }
 
     /**
      * @param body the content that should be uploaded to a paste service
      * @return the url of the uploaded paste
-     * @throws UnirestException if none of the paste services allowed a successful upload
+     * @throws IOException if none of the paste services allowed a successful upload
      */
-    public static String postToPasteService(String body) throws UnirestException {
+    public static String postToPasteService(String body) throws IOException, JSONException {
         try {
             return "https://hastebin.com/" + postToHastebin(body);
-        } catch (UnirestException e) {
+        } catch (IOException | JSONException e) {
             log.warn("Could not post to hastebin, trying backup", e);
             return "https://wastebin.party/" + postToWastebin(body);
         }
@@ -182,7 +181,7 @@ public class TextUtils {
         return percentageFormat.format((double) tmp / factor);
     }
 
-    public static String formatPercent(float percent) {
+    public static String formatPercent(double percent) {
         return roundToTwo(percent * 100) + "%";
     }
 
@@ -237,8 +236,10 @@ public class TextUtils {
         return millis;
     }
 
-    public static String asMarkdown(String str) {
-        return "```md\n" + str + "```";
+    //optional provide a style, for example diff or md
+    public static String asCodeBlock(String str, String... style) {
+        String sty = style != null && style.length > 0 ? style[0] : "";
+        return "```" + sty + "\n" + str + "\n```";
     }
 
     public static String forceNDigits(int i, int n) {
@@ -263,4 +264,11 @@ public class TextUtils {
         return arg.length() > 0 && temp.matches("(\\d*,*\\s*)*");
     }
     
+    public static String getTimeInCentralEurope() {
+        return asTimeInCentralEurope(System.currentTimeMillis());
+    }
+
+    public static String asTimeInCentralEurope(final long epochMillis) {
+        return TIME_IN_CENTRAL_EUROPE.format(Instant.ofEpochMilli(epochMillis));
+    }
 }

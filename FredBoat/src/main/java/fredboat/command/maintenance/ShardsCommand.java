@@ -32,6 +32,7 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Message;
@@ -95,9 +96,9 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
 
         //healthy shards summary, contains sensible data only if we aren't doing a full report
         if (!full) {
-            context.reply("```diff\n+ "
-                    + (shards.size() - borkenShards) + "/" + Config.CONFIG.getNumShards() + " shards are " + JDA.Status.CONNECTED
-                    + " -- Guilds: " + healthyGuilds + " -- Users: " + healthyUsers + "\n```");
+            String content = String.format("+ %s of %s shards are %s -- Guilds: %s -- Users: %s", (shards.size() - borkenShards),
+                    Config.CONFIG.getNumShards(), JDA.Status.CONNECTED, healthyGuilds, healthyUsers);
+            context.reply(TextUtils.asCodeBlock(content, "diff"));
         }
 
         //detailed shards

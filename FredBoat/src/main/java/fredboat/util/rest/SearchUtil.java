@@ -126,6 +126,7 @@ public class SearchUtil {
                     }
                 } catch (Http503Exception e) {
                     if (provider == SearchProvider.YOUTUBE) {
+                        log.warn("Got a 503 from Youtube. Not hitting it with searches it for {} minutes", TimeUnit.MILLISECONDS.toMinutes(DEFAULT_YOUTUBE_COOLDOWN));
                         youtubeCooldownUntil = System.currentTimeMillis() + DEFAULT_YOUTUBE_COOLDOWN;
                     }
                     searchingException = e;

@@ -31,10 +31,12 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.messaging.internal.Context;
 import fredboat.util.ArgumentUtil;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Member;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class FuzzyUserSearchCommand extends Command implements IMaintenanceCommand {
 
@@ -50,14 +52,22 @@ public class FuzzyUserSearchCommand extends Command implements IMaintenanceComma
                 return;
             }
 
-            String msg = "```\n";
-            for(Member member : list){
-                msg = msg + member.getEffectiveName() + ",\n";
+            List<String> lines = list.stream()
+                    .map(member -> member.getUser().getIdLong() + " " + member.getEffectiveName() + "\n")
+                    .collect(Collectors.toList());
+
+
+            StringBuilder sb = new StringBuilder();
+
+            for (String line : lines) {
+                if (sb.length() + line.length() < 1900) { //respect max message size
+                    sb.append(line);
+                } else {
+                    sb.append("[...]");
+                    break;
+                }
             }
-
-            msg = msg.substring(0, msg.length() - 2) + "```";
-
-            context.replyWithName(msg);
+            context.replyWithName(TextUtils.asCodeBlock(sb.toString()));
         }
     }
 

@@ -104,7 +104,7 @@ public class AudioTrackContext extends LeakSafeContext implements Comparable<Aud
     public long getEffectivePosition() {
         Guild guild = FredBoat.getGuildById(guildId);
         if (guild != null) {
-            return PlayerRegistry.get(guild).getPosition();
+            return PlayerRegistry.getOrCreate(guild).getPosition();
         } else {
             return getStartPosition();
         }

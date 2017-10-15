@@ -89,7 +89,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("seek", new SeekCommand());
         CommandRegistry.registerCommand("forward", new ForwardCommand(), "fwd");
         CommandRegistry.registerCommand("rewind", new RewindCommand(), "rew");
-        CommandRegistry.registerCommand("restart", new RestartCommand());
+        CommandRegistry.registerCommand("restart", new RestartCommand(), "replay");
         
         /* Bot Maintenance Commands */
         CommandRegistry.registerCommand("mgitinfo", new GitInfoCommand(), "mgit");
@@ -114,9 +114,9 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand("getnode", new GetNodeCommand());
         CommandRegistry.registerCommand("disable", new DisableCommandsCommand());
         CommandRegistry.registerCommand("enable", new EnableCommandsCommand());
+        CommandRegistry.registerCommand("debug", new DebugCommand());
+        CommandRegistry.registerCommand("setavatar", new SetAvatarCommand());
 
-
-        
         /* Bot configuration */
         CommandRegistry.registerCommand("config", new ConfigCommand(), "cfg");
         CommandRegistry.registerCommand("lang", new LanguageCommand(), "language");

@@ -11,7 +11,6 @@ import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import fredboat.shared.constant.BotConstants;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.Guild;
@@ -35,8 +34,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
-        player.setCurrentTC(context.channel);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
         // No point to allow voteskip if you are not in the vc at all
         // as votes only count as long are you are in the vc
@@ -59,9 +57,10 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
 
         if (context.args.length == 1) {
             String response = addVoteWithResponse(context);
+            float actualMinSkip = player.getHumanUsersInCurrentVC().size() < 3 ? 1.0f : MIN_SKIP_PERCENTAGE;
 
             float skipPercentage = getSkipPercentage(context.guild);
-            if (skipPercentage >= MIN_SKIP_PERCENTAGE) {
+            if (skipPercentage >= actualMinSkip) {
                 AudioTrackContext atc = player.getPlayingTrack();
 
                 if (atc == null) {
@@ -74,7 +73,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
                 }
             } else {
                 String skipPerc = "`" + TextUtils.formatPercent(skipPercentage) + "`";
-                String minSkipPerc = "`" + TextUtils.formatPercent(MIN_SKIP_PERCENTAGE) + "`";
+                String minSkipPerc = "`" + TextUtils.formatPercent(actualMinSkip) + "`";
                 context.reply(response + "\n" + context.i18nFormat("voteSkipNotEnough", skipPerc, minSkipPerc));
             }
 
@@ -112,7 +111,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
     }
 
     private float getSkipPercentage(Guild guild) {
-        GuildPlayer player = PlayerRegistry.get(guild);
+        GuildPlayer player = PlayerRegistry.getOrCreate(guild);
         List<Member> vcMembers = player.getHumanUsersInCurrentVC();
         int votes = 0;
 
@@ -157,11 +156,10 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
                 field.append("| ").append(member.getEffectiveName()).append("\n");
             }
         }
-        EmbedBuilder embed = CentralMessaging.getClearThreadLocalEmbedBuilder();
+        EmbedBuilder embed = CentralMessaging.getColoredEmbedBuilder();
         embed.addField("", field1.toString(), true);
         embed.addField("", field2.toString(), true);
         embed.setTitle(context.i18nFormat("voteSkipEmbedVoters", voters.size(), player.getHumanUsersInCurrentVC().size()));
-        embed.setColor(BotConstants.FREDBOAT_COLOR);
         context.reply(embed.build());
     }
 
@@ -171,6 +169,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
         return context.i18n("helpVoteSkip");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.USER;

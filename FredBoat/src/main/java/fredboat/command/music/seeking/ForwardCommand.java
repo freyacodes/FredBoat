@@ -83,6 +83,7 @@ public class ForwardCommand extends Command implements IMusicCommand, ICommandRe
         return usage + context.i18n("helpForwardCommand") + example;
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;

@@ -34,7 +34,6 @@ import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Role;
-import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.utils.PermissionUtil;
 
 import java.util.List;
@@ -42,7 +41,7 @@ import java.util.List;
 public class PermsUtil {
 
     public static PermissionLevel getPerms(Member member) {
-        if (isUserBotOwner(member.getUser())) {
+        if (DiscordUtil.getOwnerId(member.getJDA()) == member.getUser().getIdLong()) {
             return PermissionLevel.BOT_OWNER; // https://fred.moe/Q-EB.png
         } else if (isAdmin(member)) {
             return PermissionLevel.BOT_ADMIN;
@@ -63,6 +62,9 @@ public class PermsUtil {
         return PermissionLevel.BASE;
     }
 
+    /**
+     * @return True if the provided member has at least the requested PermissionLevel or higher. False if not.
+     */
     public static boolean checkPerms(PermissionLevel minLevel, Member member) {
         return getPerms(member).getLevel() >= minLevel.getLevel();
     }
@@ -95,11 +97,6 @@ public class PermsUtil {
             }
         }
         return admin;
-    }
-
-    // TODO: Make private and use getPerms() instead
-    public static boolean isUserBotOwner(User user) {
-        return DiscordUtil.getOwnerId(user.getJDA()).equals(user.getId());
     }
 
     public static boolean checkList(List<String> list, Member member) {

@@ -46,8 +46,7 @@ public class LeaveCommand extends Command implements IMusicCommand, ICommandRest
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         try {
-            GuildPlayer player = PlayerRegistry.get(context.guild);
-            player.setCurrentTC(context.channel);
+            GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
             player.pause();
             player.leaveVoiceChannelRequest(context, false);
         } catch (Exception e) {
@@ -62,6 +61,7 @@ public class LeaveCommand extends Command implements IMusicCommand, ICommandRest
         return "{0}{1}\n#" + context.i18n("helpLeaveCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;

@@ -26,9 +26,9 @@
 package fredboat;
 
 import com.google.common.base.CharMatcher;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.audio.player.PlayerLimitManager;
 import fredboat.command.admin.SentryDsnCommand;
+import fredboat.commandmeta.MessagingException;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.DiscordUtil;
 import org.apache.commons.io.FileUtils;
@@ -54,7 +54,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 public class Config {
 
     private static final Logger log = LoggerFactory.getLogger(Config.class);
-    
+
     public static Config CONFIG = null;
 
     public static String DEFAULT_PREFIX = ";;";
@@ -81,6 +81,7 @@ public class Config {
     private boolean useAutoBlacklist = false;
     private String game = "";
     private List<LavalinkHost> lavalinkHosts = new ArrayList<>();
+    private String openWeatherKey;
     private String sentryDsn;
 
     //testing related stuff
@@ -173,6 +174,8 @@ public class Config {
 
             jdbcUrl = (String) creds.getOrDefault("jdbcUrl", "");
 
+            openWeatherKey = (String) creds.getOrDefault("openWeatherKey", "");
+
             Object gkeys = creds.get("googleServerKeys");
             if (gkeys instanceof List) {
                 ((List) gkeys).forEach((Object str) -> googleKeys.add((String) str));
@@ -183,7 +186,7 @@ public class Config {
             }
 
             List<String> nodesArray = (List) creds.get("lavaplayerNodes");
-            if(nodesArray != null) {
+            if (nodesArray != null) {
                 lavaplayerNodesEnabled = true;
                 log.info("Using lavaplayer nodes");
                 lavaplayerNodes = nodesArray.toArray(new String[nodesArray.size()]);
@@ -205,24 +208,22 @@ public class Config {
                 });
             }
 
-            if(getDistribution() == DistributionEnum.DEVELOPMENT) {
-                log.info("Development distribution; forcing 2 shards");
-                numShards = 2;
-            } else {
-                //this is the first request on start
-                //it sometimes fails cause network isn'T set up yet. wait 10 sec and try one more time in that case
+            //this is the first request on start
+            //it sometimes fails cause network isn't set up yet. wait 10 sec and try one more time in that case
+            try {
+                numShards = DiscordUtil.getRecommendedShardCount(getBotToken());
+            } catch (Exception e) {
                 try {
-                    numShards = DiscordUtil.getRecommendedShardCount(getBotToken());
-                } catch (Exception e) {
-                    try {
-                        Thread.sleep(10000);
-                    } catch (InterruptedException ex) {
-                        //duh
-                    }
-                    numShards = DiscordUtil.getRecommendedShardCount(getBotToken());
+                    Thread.sleep(10000);
+                } catch (InterruptedException ex) {
+                    //duh
                 }
-                log.info("Discord recommends " + numShards + " shard(s)");
+                numShards = DiscordUtil.getRecommendedShardCount(getBotToken());
             }
+            log.info("Discord recommends " + numShards + " shard(s)");
+            //overriding to always use sharding. saves us a headache with tons of null checks while keeping the code
+            // usable for selfhosters because we can assume JDA#getShardInfo will never be null
+            if (numShards < 2) numShards = 2;
 
             //more database connections don't help with performance, so use a value based on available cores
             //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
@@ -257,7 +258,7 @@ public class Config {
             spotifyAudio = (Boolean) config.getOrDefault("enableSpotify", true);
             httpAudio = (Boolean) config.getOrDefault("enableHttp", false);
 
-        } catch (IOException | UnirestException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (YAMLException | ClassCastException e) {
             log.error("Could not parse the credentials and/or config yaml files! They are probably misformatted. " +
@@ -319,7 +320,10 @@ public class Config {
     }
 
     public String getRandomGoogleKey() {
-        return getGoogleKeys().get((int) Math.floor(Math.random() * getGoogleKeys().size()));
+        if (googleKeys.isEmpty()) {
+            throw new MessagingException("No Youtube API key detected. Please read the documentation of the credentials file on how to obtain one.");
+        }
+        return googleKeys.get((int) Math.floor(Math.random() * getGoogleKeys().size()));
     }
 
     public DistributionEnum getDistribution() {
@@ -388,6 +392,10 @@ public class Config {
 
     public String getPrefix() {
         return prefix;
+    }
+
+    public String getOpenWeatherKey() {
+        return openWeatherKey;
     }
 
     public boolean isRestServerEnabled() {

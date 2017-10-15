@@ -25,19 +25,16 @@
 
 package fredboat.util.rest;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
-import com.mashape.unirest.request.HttpRequest;
 import fredboat.Config;
 import fredboat.audio.queue.PlaylistInfo;
-import org.apache.commons.codec.binary.Base64;
+import okhttp3.Credentials;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -57,7 +54,7 @@ public class SpotifyAPIWrapper {
     private static final String URL_SPOTIFY_API = "https://api.spotify.com";
     private static final String URL_SPOTIFY_AUTHENTICATION_HOST = "https://accounts.spotify.com";
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(SpotifyAPIWrapper.class);
+    private static final Logger log = LoggerFactory.getLogger(SpotifyAPIWrapper.class);
 
     /**
      * This should be the only way to grab a handle on this class.
@@ -77,16 +74,11 @@ public class SpotifyAPIWrapper {
     private volatile long accessTokenExpires = 0;
     private volatile String accessToken = "";
 
-    private final String clientId;
-    private final String clientSecret;
-
     /**
      * Do not call this.
      * Get an instance of this class by using SpotifyAPIWrapper.getApi()
      */
     private SpotifyAPIWrapper() {
-        this.clientId = Config.CONFIG.getSpotifyId();
-        this.clientSecret = Config.CONFIG.getSpotifySecret();
         refreshTokenIfNecessary();
     }
 
@@ -95,16 +87,13 @@ public class SpotifyAPIWrapper {
      * https://developer.spotify.com/web-api/authorization-guide/#client-credentials-flow
      */
     private void refreshAccessToken() {
-        String idSecret = clientId + ":" + clientSecret;
-        String idSecretEncoded = new String(Base64.encodeBase64(idSecret.getBytes()));
-        HttpRequest request = Unirest.post(URL_SPOTIFY_AUTHENTICATION_HOST + "/api/token")
-                .header("Authorization", "Basic " + idSecretEncoded)
-                .field("grant_type", "client_credentials")
-                .getHttpRequest();
         try {
-            HttpResponse<JsonNode> response = request.asJson();
-
-            JSONObject jsonClientCredentials = response.getBody().getObject();
+            JSONObject jsonClientCredentials = Http.post(URL_SPOTIFY_AUTHENTICATION_HOST + "/api/token",
+                    Http.Params.of(
+                            "grant_type", "client_credentials"
+                    ))
+                    .auth(Credentials.basic(Config.CONFIG.getSpotifyId(), Config.CONFIG.getSpotifySecret()))
+                    .asJson();
 
             accessToken = jsonClientCredentials.getString("access_token");
             accessTokenExpires = System.currentTimeMillis() + (jsonClientCredentials.getInt("expires_in") * 1000);
@@ -129,18 +118,16 @@ public class SpotifyAPIWrapper {
     /**
      * Returns some data on a spotify playlist, currently it's name and tracks total.
      *
-     * @param userId Spotify user id of the owner of the requested playlist
+     * @param userId     Spotify user id of the owner of the requested playlist
      * @param playlistId Spotify playlist identifier
      * @return an array containing information about the requested spotify playlist
      */
-    public PlaylistInfo getPlaylistDataBlocking(String userId, String playlistId) throws UnirestException, JSONException {
+    public PlaylistInfo getPlaylistDataBlocking(String userId, String playlistId) throws IOException, JSONException {
         refreshTokenIfNecessary();
 
-        JSONObject jsonPlaylist = Unirest.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId)
-                    .header("Authorization", "Bearer " + accessToken)
-                    .asJson()
-                    .getBody()
-                    .getObject();
+        JSONObject jsonPlaylist = Http.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId)
+                .auth("Bearer " + accessToken)
+                .asJson();
 
         // https://developer.spotify.com/web-api/object-model/#playlist-object-full
         String name = jsonPlaylist.getString("name");
@@ -150,11 +137,11 @@ public class SpotifyAPIWrapper {
     }
 
     /**
-     * @param userId Spotify user id of the owner of the requested playlist
+     * @param userId     Spotify user id of the owner of the requested playlist
      * @param playlistId Spotify playlist identifier
      * @return a string for each track on the requested playlist, containing track and artist names
      */
-    public List<String> getPlaylistTracksSearchTermsBlocking(String userId, String playlistId) throws UnirestException, JSONException {
+    public List<String> getPlaylistTracksSearchTermsBlocking(String userId, String playlistId) throws IOException, JSONException {
         refreshTokenIfNecessary();
 
         //strings on this list will contain name of the track + names of the artists
@@ -184,13 +171,13 @@ public class SpotifyAPIWrapper {
             }
 
             //request a page of tracks
-            jsonPage = Unirest.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId + "/tracks")
-                    .queryString("offset", offset)
-                    .queryString("limit", limit)
-                    .header("Authorization", "Bearer " + accessToken)
-                    .asJson()
-                    .getBody()
-                    .getObject();
+            jsonPage = Http.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId + "/tracks",
+                    Http.Params.of(
+                            "offset", offset,
+                            "limit", limit
+                    ))
+                    .auth("Bearer " + accessToken)
+                    .asJson();
 
             //add tracks to our result list
             // https://developer.spotify.com/web-api/object-model/#paging-object

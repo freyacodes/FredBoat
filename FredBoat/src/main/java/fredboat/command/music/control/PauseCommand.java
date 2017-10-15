@@ -41,8 +41,7 @@ public class PauseCommand extends Command implements IMusicCommand, ICommandRest
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
-        player.setCurrentTC(context.channel);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         if (player.isQueueEmpty()) {
             context.reply(context.i18n("playQueueEmpty"));
         } else if (player.isPaused()) {
@@ -59,6 +58,7 @@ public class PauseCommand extends Command implements IMusicCommand, ICommandRest
         return "{0}{1}\n#" + context.i18n("helpPauseCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;

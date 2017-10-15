@@ -53,7 +53,7 @@
             <!-- discord api -->
             <groupId>net.dv8tion</groupId>
             <artifactId>JDA</artifactId>
-            <version>3.3.1_284</version>
+            <version>3.3.1_286</version>
         </dependency>
         <dependency>
             <!-- because JDA's gradle doesn't make a good pom and the scope isn't set correctly -->
@@ -65,7 +65,7 @@
             <!-- audio player for discord -->
             <groupId>com.fredboat.fork</groupId>
             <artifactId>com.sedmelluq.lavaplayer</artifactId>
-            <version>1.2.43.3</version>
+            <version>1.2.44.4</version>
         </dependency>
         <dependency>
             <!-- gradle's pom scope is wrong, depending on it again -->
@@ -87,16 +87,28 @@
             <version>1.0.6.1</version>
         </dependency>
         <dependency>
-            <!-- http client -->
-            <groupId>com.mashape.unirest</groupId>
-            <artifactId>unirest-java</artifactId>
-            <version>1.4.9</version>
-        </dependency>
-        <dependency>
             <!-- utility -->
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
             <version>1.1</version>
+        </dependency>
+        <dependency>
+            <!-- utility -->
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.5</version>
+        </dependency>
+        <dependency>
+            <!-- utility -->
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.10</version>
+        </dependency>
+        <dependency>
+            <!-- used for some config options for lavaplayer-->
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.3</version>
         </dependency>
         <dependency>
             <!-- logging framework -->
@@ -129,19 +141,6 @@
             <version>1.18</version>
         </dependency>
         <dependency>
-            <!-- provides a webclient which we use to get around cloudflare protection -->
-            <groupId>net.sourceforge.htmlunit</groupId>
-            <artifactId>htmlunit</artifactId>
-            <version>2.27</version>
-            <exclusions>
-                <exclusion>
-                    <!-- exclude a transient dependency that clashes with one required by spark -->
-                    <groupId>org.eclipse.jetty.websocket</groupId>
-                    <artifactId>websocket-client</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <!-- faster and, more importantly, memory efficient collections -->
             <groupId>it.unimi.dsi</groupId>
             <artifactId>fastutil</artifactId>
@@ -158,50 +157,50 @@
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
-            <version>5.2.10.Final</version>
+            <version>5.2.11.Final</version>
         </dependency>
         <dependency>
             <!-- 2nd level cache -->
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-ehcache</artifactId>
-            <version>5.2.10.Final</version>
+            <version>5.2.11.Final</version>
         </dependency>
         <dependency>
             <!-- connection pool -->
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-hikaricp</artifactId>
-            <version>5.2.10.Final</version>
+            <version>5.2.11.Final</version>
         </dependency>
         <dependency>
             <!-- entity manager factory -->
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-            <version>1.5.4.RELEASE</version>
+            <version>1.5.7.RELEASE</version>
         </dependency>
         <dependency>
             <!-- entity manager factory -->
             <groupId>org.springframework</groupId>
             <artifactId>spring-orm</artifactId>
-            <version>4.3.9.RELEASE</version>
+            <version>4.3.11.RELEASE</version>
         </dependency>
         <dependency>
             <!-- postgres driver -->
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.1.1</version>
+            <version>42.1.4</version>
         </dependency>
         <dependency>
             <!-- sqlite driver for internal db aimed at selfhosting -->
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
-            <version>3.19.3</version>
+            <version>3.20.0</version>
         </dependency>
         <dependency>
             <!-- sqlite dialect for hibernate
             official sqlite support is in the works, see here https://github.com/hibernate/hibernate-orm/pull/1874 -->
             <groupId>com.github.gwenn</groupId>
             <artifactId>sqlite-dialect</artifactId>
-            <version>24970986d0</version>
+            <version>d285e228514e4a70bb18bc3b0de9628f55ce9a43</version>
         </dependency>
         <dependency>
             <!-- ssh tunnel -->
@@ -219,7 +218,13 @@
             <!-- Used for CacheBuilder -->
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>22.0</version>
+            <version>23.0</version>
+        </dependency>
+        <dependency>
+            <!-- For api limiter -->
+            <groupId>com.github.vladimir-bukhtoyarov</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>3.0.2</version>
         </dependency>
         <dependency>
             <!-- testing library -->
@@ -243,7 +248,7 @@
                 <dependency>
                     <groupId>com.github.Frederikam</groupId>
                     <artifactId>Lavalink</artifactId>
-                    <version>255552857b7895e2a8a89736a3b8d3dc84d11b88</version>
+                    <version>ef6bc58308269a25317472a7771ac19254803ce4</version>
                     <exclusions>
                         <exclusion>
                             <groupId>com.github.Frederikam.Lavalink</groupId>
@@ -285,6 +290,10 @@
     </profiles>
 
     <build>
+        <finalName>
+            <!-- omit version info from artifact -->
+            FredBoat
+        </finalName>
         <resources>
             <resource>
                 <!-- include all regular resources -->
@@ -321,7 +330,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.20</version>
+                <version>2.20.1</version>
                 <executions>
                     <execution>
                         <id>integration-test</id>
@@ -340,7 +349,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.1</version>
+                <version>3.7.0</version>
                 <configuration>
                     <encoding>UTF-8</encoding>
                 </configuration>
@@ -378,12 +387,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.1.0</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.springframework.boot</groupId>
                         <artifactId>spring-boot-maven-plugin</artifactId>
-                        <version>1.5.4.RELEASE</version>
+                        <version>1.5.7.RELEASE</version>
                     </dependency>
                 </dependencies>
                 <configuration>

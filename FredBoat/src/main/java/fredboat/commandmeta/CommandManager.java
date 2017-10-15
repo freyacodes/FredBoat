@@ -27,6 +27,7 @@ package fredboat.commandmeta;
 
 
 import fredboat.Config;
+import fredboat.audio.player.PlayerRegistry;
 import fredboat.command.fun.AkinatorCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
@@ -127,6 +128,10 @@ public class CommandManager {
                 context.replyWithName(context.i18nFormat("cmdPermsTooLow", minPerms, actual));
                 return;
             }
+        }
+
+        if (invoked instanceof IMusicCommand) {
+            PlayerRegistry.getOrCreate(guild).setCurrentTC(channel);
         }
 
         try {

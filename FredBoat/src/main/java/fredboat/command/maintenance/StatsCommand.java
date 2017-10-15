@@ -36,6 +36,7 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.messaging.internal.Context;
 import fredboat.util.AppInfo;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDAInfo;
 
 import javax.annotation.Nonnull;
@@ -58,34 +59,36 @@ public class StatsCommand extends Command implements IMaintenanceCommand {
         str = context.i18nFormat("statsRate", str,
                 (float) (CommandManager.commandsExecuted.get() - 1) / ((float) totalSecs / (float) (60 * 60)));
 
-        str = str + "\n\n```";
+        str += "\n\n";
+        String content = "";
 
-        str = str + "Reserved memory:                " + Runtime.getRuntime().totalMemory() / 1000000 + "MB\n";
-        str = str + "-> Of which is used:            " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1000000 + "MB\n";
-        str = str + "-> Of which is free:            " + Runtime.getRuntime().freeMemory() / 1000000 + "MB\n";
-        str = str + "Max reservable:                 " + Runtime.getRuntime().maxMemory() / 1000000 + "MB\n";
+        content += "Reserved memory:                " + Runtime.getRuntime().totalMemory() / 1000000 + "MB\n";
+        content += "-> Of which is used:            " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1000000 + "MB\n";
+        content += "-> Of which is free:            " + Runtime.getRuntime().freeMemory() / 1000000 + "MB\n";
+        content += "Max reservable:                 " + Runtime.getRuntime().maxMemory() / 1000000 + "MB\n";
 
-        str = str + "\n----------\n\n";
+        content += "\n----------\n\n";
 
-        str = str + "Sharding:                       " + FredBoat.getInstance(context.guild.getJDA()).getShardInfo().getShardString() + "\n";
-        str = str + "Players playing:                " + PlayerRegistry.getPlayingPlayers().size() + "\n";
-        str = str + "Known servers:                  " + FredBoat.countAllGuilds() + "\n";
-        str = str + "Known users in servers:         " + FredBoat.countAllUniqueUsers() + "\n";
-        str = str + "Distribution:                   " + Config.CONFIG.getDistribution() + "\n";
-        str = str + "JDA responses total:            " + context.guild.getJDA().getResponseTotal() + "\n";
-        str = str + "JDA version:                    " + JDAInfo.VERSION + "\n";
-        str = str + "FredBoat version:               " + AppInfo.getAppInfo().getVersionBuild() + "\n";
-        str = str + "Lavaplayer version:             " + PlayerLibrary.VERSION + "\n";
+        content += "Sharding:                       " + FredBoat.getShard(context.guild.getJDA()).getShardInfo().getShardString() + "\n";
+        content += "Players playing:                " + PlayerRegistry.getPlayingPlayers().size() + "\n";
+        content += "Known servers:                  " + FredBoat.countAllGuilds() + "\n";
+        content += "Known users in servers:         " + FredBoat.countAllUniqueUsers() + "\n";
+        content += "Distribution:                   " + Config.CONFIG.getDistribution() + "\n";
+        content += "JDA responses total:            " + context.guild.getJDA().getResponseTotal() + "\n";
+        content += "JDA version:                    " + JDAInfo.VERSION + "\n";
+        content += "FredBoat version:               " + AppInfo.getAppInfo().getVersionBuild() + "\n";
+        content += "Lavaplayer version:             " + PlayerLibrary.VERSION + "\n";
 
-        str = str + "\n----------\n\n";
+        content += "\n----------\n\n";
 
-        str = str + "Last agent run times:\n";
+        content += "Last agent run times:\n";
         for (Map.Entry<Class<? extends FredBoatAgent>, Long> entry : FredBoatAgent.getLastRunTimes().entrySet()) {
-            // [classname] [padded to length 32 with spaces] [date]T[time][zone]
-            str += String.format("%1$-32s%2$TFT%2$TT%2$Tz\n", entry.getKey().getSimpleName(), entry.getValue());
+            // [classname] [padded to length 32 with spaces] [formatted time]
+            content += String.format("%1$-32s%2$s\n", entry.getKey().getSimpleName(),
+                    TextUtils.asTimeInCentralEurope(entry.getValue()));
         }
 
-        str = str + "```";
+        str += TextUtils.asCodeBlock(content);
 
         context.replyWithName(str);
     }

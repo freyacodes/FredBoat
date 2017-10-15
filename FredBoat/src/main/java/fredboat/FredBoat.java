@@ -25,31 +25,26 @@
 
 package fredboat;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
+import com.sedmelluq.discord.lavaplayer.tools.PlayerLibrary;
 import fredboat.agent.CarbonitexAgent;
 import fredboat.agent.DBConnectionWatchdogAgent;
 import fredboat.agent.FredBoatAgent;
-import fredboat.agent.ShardWatchdogAgent;
 import fredboat.api.API;
-import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
-import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.MusicPersistenceHandler;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.init.MainCommandInitializer;
 import fredboat.commandmeta.init.MusicCommandInitializer;
 import fredboat.db.DatabaseManager;
 import fredboat.event.EventListenerBoat;
-import fredboat.event.ShardWatchdogListener;
 import fredboat.feature.I18n;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.AppInfo;
 import fredboat.util.GitRepoState;
 import fredboat.util.JDAUtil;
-import net.dv8tion.jda.core.AccountType;
+import fredboat.util.rest.Http;
+import fredboat.util.rest.OpenWeatherAPI;
+import fredboat.util.rest.models.weather.RetrievedWeather;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDAInfo;
 import net.dv8tion.jda.core.entities.Guild;
@@ -57,16 +52,17 @@ import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
-import net.dv8tion.jda.core.managers.AudioManager;
+import net.dv8tion.jda.core.requests.SessionReconnectQueue;
+import okhttp3.Credentials;
+import okhttp3.Response;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -77,45 +73,35 @@ public abstract class FredBoat {
 
     private static final Logger log = LoggerFactory.getLogger(FredBoat.class);
 
-    static final int SHARD_CREATION_SLEEP_INTERVAL = 5500;
-
-    private static final List<FredBoat> shards = new CopyOnWriteArrayList<>();
+    public static final int SHARD_CREATION_SLEEP_INTERVAL = 5500;
     public static final long START_TIME = System.currentTimeMillis();
     public static final int UNKNOWN_SHUTDOWN_CODE = -991023;
     public static int shutdownCode = UNKNOWN_SHUTDOWN_CODE;//Used when specifying the intended code for shutdown hooks
-    static EventListenerBoat listenerBot;
-    ShardWatchdogListener shardWatchdogListener = null;
-    private static AtomicInteger numShardsReady = new AtomicInteger(0);
-
-    //For when we need to join a revived shard with it's old GuildPlayers
-    final ArrayList<String> channelsToRejoin = new ArrayList<>();
-
     //unlimited threads = http://i.imgur.com/H3b7H1S.gif
     //use this executor for various small async tasks
     public final static ExecutorService executor = Executors.newCachedThreadPool();
 
-    JDA jda;
+    //central event listener that all events by all shards pass through
+    protected static EventListenerBoat mainEventListener;
+    protected static final SessionReconnectQueue reconnectQueue = new SessionReconnectQueue();
 
     private static DatabaseManager dbManager;
+    private static final List<FredBoat> shards = new CopyOnWriteArrayList<>();
 
-    public static void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException, IOException, UnirestException {
+    public static void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException, IOException {
+        //just post the info to the console
+        if (args.length > 0 &&
+                (args[0].equalsIgnoreCase("-v")
+                        || args[0].equalsIgnoreCase("--version")
+                        || args[0].equalsIgnoreCase("-version"))) {
+            System.out.println("Version flag detected. Printing version info, then exiting.");
+            System.out.println(getVersionInfo());
+            System.out.println("Version info printed, exiting.");
+            return;
+        }
+
         Runtime.getRuntime().addShutdownHook(new Thread(ON_SHUTDOWN, "FredBoat main shutdownhook"));
-
-        log.info("\n\n" +
-                "  ______            _ ____              _   \n" +
-                " |  ____|          | |  _ \\            | |  \n" +
-                " | |__ _ __ ___  __| | |_) | ___   __ _| |_ \n" +
-                " |  __| '__/ _ \\/ _` |  _ < / _ \\ / _` | __|\n" +
-                " | |  | | |  __/ (_| | |_) | (_) | (_| | |_ \n" +
-                " |_|  |_|  \\___|\\__,_|____/ \\___/ \\__,_|\\__|\n\n"
-
-                + "\n\tVersion:       " + AppInfo.getAppInfo().VERSION
-                + "\n\tBuild:         " + AppInfo.getAppInfo().BUILD_NUMBER
-                + "\n\tCommit:        " + GitRepoState.getGitRepositoryState().commitIdAbbrev + " (" + GitRepoState.getGitRepositoryState().branch +  ")"
-                + "\n\tCommit time:   " + GitRepoState.getGitRepositoryState().commitTime
-                + "\n\tJVM:           " + System.getProperty("java.version")
-                + "\n\tJDA:           " + JDAInfo.VERSION
-                + "\n");
+        log.info(getVersionInfo());
 
         String javaVersionMinor = System.getProperty("java.version").split("\\.")[1];
 
@@ -151,19 +137,15 @@ public abstract class FredBoat {
             dbManager.startup();
         }
 
-
         //Initialise event listeners
-        listenerBot = new EventListenerBoat();
+        mainEventListener = new EventListenerBoat();
         LavalinkManager.ins.start();
 
         //Commands
         if (Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT)
             MainCommandInitializer.initCommands();
 
-        if (Config.CONFIG.getDistribution() == DistributionEnum.DEVELOPMENT
-                || Config.CONFIG.getDistribution() == DistributionEnum.MUSIC
-                || Config.CONFIG.getDistribution() == DistributionEnum.PATRON)
-            MusicCommandInitializer.initCommands();
+        MusicCommandInitializer.initCommands();
 
         log.info("Loaded commands, registry size is " + CommandRegistry.getSize());
 
@@ -173,52 +155,60 @@ public abstract class FredBoat {
         //Check imgur creds
         executor.submit(FredBoat::hasValidImgurCredentials);
 
+        //Check OpenWeather key
+        executor.submit(FredBoat::hasValidOpenWeatherKey);
+
         /* Init JDA */
-        initBotShards(listenerBot);
+        initBotShards(mainEventListener);
 
-        if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && Config.CONFIG.getCarbonKey() != null) {
-            FredBoatAgent.start(new CarbonitexAgent(Config.CONFIG.getCarbonKey()));
+        String carbonKey = Config.CONFIG.getCarbonKey();
+        if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && carbonKey != null && !carbonKey.isEmpty()) {
+            FredBoatAgent.start(new CarbonitexAgent(carbonKey));
         }
-
-        FredBoatAgent.start(new ShardWatchdogAgent());
     }
 
+    // ################################################################################
+    // ##                     Login / credential tests
+    // ################################################################################
+
     private static boolean hasValidMALLogin() {
-        if ("".equals(Config.CONFIG.getMalUser()) || "".equals(Config.CONFIG.getMalPassword())) {
+        String malUser = Config.CONFIG.getMalUser();
+        String malPassWord = Config.CONFIG.getMalPassword();
+        if (malUser == null || malUser.isEmpty() || malPassWord == null || malPassWord.isEmpty()) {
             log.info("MAL credentials not found. MAL related commands will not be available.");
             return false;
         }
-        try {
-            HttpResponse<String> response = Unirest.get("https://myanimelist.net/api/account/verify_credentials.xml")
-                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
-                    .asString();
-            int responseStatus = response.getStatus();
-            if (responseStatus == 200) {
+
+        Http.SimpleRequest request = Http.get("https://myanimelist.net/api/account/verify_credentials.xml")
+                .auth(Credentials.basic(malUser, malPassWord));
+
+        try (Response response = request.execute()) {
+            if (response.isSuccessful()) {
                 log.info("MAL login successful");
                 return true;
             } else {
-                log.warn("MAL login failed with " + responseStatus + ": " + response.getBody());
+                //noinspection ConstantConditions
+                log.warn("MAL login failed with {}\n{}", response.toString(), response.body().string());
             }
-        } catch (UnirestException e) {
+        } catch (IOException e) {
             log.warn("MAL login failed, it seems to be down.", e);
         }
         return false;
     }
 
     private static boolean hasValidImgurCredentials() {
-        if ("".equals(Config.CONFIG.getImgurClientId())) {
+        String imgurClientId = Config.CONFIG.getImgurClientId();
+        if (imgurClientId == null || imgurClientId.isEmpty()) {
             log.info("Imgur credentials not found. Commands relying on Imgur will not work properly.");
             return false;
         }
-        try {
-            HttpResponse<JsonNode> response = Unirest.get("https://api.imgur.com/3/credits")
-                    .header("Authorization", "Client-ID " + Config.CONFIG.getImgurClientId())
-                    .asJson();
-            int responseStatus = response.getStatus();
-
-
-            if (responseStatus == 200) {
-                JSONObject data = response.getBody().getObject().getJSONObject("data");
+        Http.SimpleRequest request = Http.get("https://api.imgur.com/3/credits")
+                .auth("Client-ID " + imgurClientId);
+        try (Response response = request.execute()) {
+            //noinspection ConstantConditions
+            String content = response.body().string();
+            if (response.isSuccessful()) {
+                JSONObject data = new JSONObject(content).getJSONObject("data");
                 //https://api.imgur.com/#limits
                 //at the time of the introduction of this code imgur offers daily 12500 and hourly 500 GET requests for open source software
                 //hitting the daily limit 5 times in a month will blacklist the app for the rest of the month
@@ -234,21 +224,44 @@ public abstract class FredBoat {
                         dailyLeft + "/" + dailyLimit + " requests remaining today.");
                 return true;
             } else {
-                log.warn("Imgur login failed with " + responseStatus + ": " + response.getBody());
+                log.warn("Imgur login failed with {}\n{}", response.toString(), content);
             }
-        } catch (UnirestException e) {
+        } catch (IOException e) {
             log.warn("Imgur login failed, it seems to be down.", e);
         }
         return false;
     }
 
+    /**
+     * Method to check if there is an error to retrieve open weather data.
+     *
+     * @return True if it can retrieve data, else return false.
+     */
+    private static boolean hasValidOpenWeatherKey() {
+        if ("".equals(Config.CONFIG.getOpenWeatherKey())) {
+            log.warn("Open Weather API credentials not found. Weather related commands will not work properly.");
+            return false;
+        }
+
+        OpenWeatherAPI api = new OpenWeatherAPI();
+        RetrievedWeather weather = api.getCurrentWeatherByCity("san francisco");
+
+        boolean isSuccess = !(weather == null || weather.isError());
+
+        if (isSuccess) {
+            log.info("Open Weather API check successful");
+        } else {
+            log.warn("Open Weather API check failed. It may be down, the provided credentials may be invalid, or temporarily blocked.");
+        }
+        return isSuccess;
+    }
+
     private static void initBotShards(EventListener listener) {
         for (int i = 0; i < Config.CONFIG.getNumShards(); i++) {
             try {
-                shards.add(i, new FredBoatBot(i, listener));
+                shards.add(i, new FredBoatShard(i, listener));
             } catch (Exception e) {
                 log.error("Caught an exception while starting shard " + i + "!", e);
-                numShardsReady.getAndIncrement();
             }
             try {
                 Thread.sleep(SHARD_CREATION_SLEEP_INTERVAL);
@@ -259,38 +272,6 @@ public abstract class FredBoat {
 
         log.info(shards.size() + " shards have been constructed");
 
-    }
-
-    public void onInit(ReadyEvent readyEvent) {
-        log.info("Received ready event for " + FredBoat.getInstance(readyEvent.getJDA()).getShardInfo().getShardString());
-
-        int ready = numShardsReady.get();
-        if (ready == Config.CONFIG.getNumShards()) {
-            log.info("All " + ready + " shards are ready.");
-
-            if (Config.CONFIG.getNumShards() <= 10) {
-                MusicPersistenceHandler.reloadPlaylists();
-            } else {
-                log.warn("Skipped music persistence loading! We are using more than 10 shards, so probably not a good idea to run that.");
-            }
-        }
-
-        //Rejoin old channels if revived
-        channelsToRejoin.forEach(vcid -> {
-            VoiceChannel channel = readyEvent.getJDA().getVoiceChannelById(vcid);
-            if (channel == null) return;
-            GuildPlayer player = PlayerRegistry.get(channel.getGuild());
-            if (player == null) return;
-
-            LavalinkManager.ins.openConnection(channel);
-
-            if (!LavalinkManager.ins.isEnabled()) {
-                AudioManager am = channel.getGuild().getAudioManager();
-                am.setSendingHandler(player);
-            }
-        });
-
-        channelsToRejoin.clear();
     }
 
     //Shutdown hook
@@ -309,11 +290,6 @@ public abstract class FredBoat {
             fb.getJda().shutdown();
         }
 
-        try {
-            Unirest.shutdown();
-        } catch (IOException ignored) {
-        }
-
         executor.shutdown();
         dbManager.shutdown();
     };
@@ -325,14 +301,8 @@ public abstract class FredBoat {
         System.exit(code);
     }
 
-    public static EventListenerBoat getListenerBot() {
-        return listenerBot;
-    }
-
-    /* Sharding */
-
-    public JDA getJda() {
-        return jda;
+    public static EventListenerBoat getMainEventListener() {
+        return mainEventListener;
     }
 
     public static List<FredBoat> getShards() {
@@ -376,6 +346,10 @@ public abstract class FredBoat {
         return JDAUtil.countAllUniqueUsers(shards, biggestUserCount);
     }
 
+    // ################################################################################
+    // ##                           Global lookups
+    // ################################################################################
+
     @Nullable
     public static TextChannel getTextChannelById(String id) {
         for (FredBoat fb : shards) {
@@ -408,77 +382,22 @@ public abstract class FredBoat {
         return null;
     }
 
-    public static FredBoat getInstance(JDA jda) {
+    @Nonnull
+    public static FredBoat getShard(@Nonnull JDA jda) {
         int sId = jda.getShardInfo() == null ? 0 : jda.getShardInfo().getShardId();
         for (FredBoat fb : shards) {
-            if (((FredBoatBot) fb).getShardId() == sId) {
+            if (fb.getShardId() == sId) {
                 return fb;
             }
         }
         throw new IllegalStateException("Attempted to get instance for JDA shard that is not indexed, shardId: " + sId);
     }
 
-    public static FredBoat getInstance(int id) {
+    public static FredBoat getShard(int id) {
         return shards.get(id);
     }
 
-    public static JDA getFirstJDA() {
-        return shards.get(0).getJda();
-    }
-
-    public ShardInfo getShardInfo() {
-        int sId = jda.getShardInfo() == null ? 0 : jda.getShardInfo().getShardId();
-
-        if (jda.getAccountType() == AccountType.CLIENT) {
-            return new ShardInfo(0, 1);
-        } else {
-            return new ShardInfo(sId, Config.CONFIG.getNumShards());
-        }
-    }
-
-    public long getGuildCount() {
-        return JDAUtil.countAllGuilds(Collections.singletonList(this));
-    }
-
-    public long getUserCount() {
-        return JDAUtil.countAllUniqueUsers(Collections.singletonList(this), biggestUserCount);
-    }
-
-    public abstract String revive(boolean... force);
-
-    public ShardWatchdogListener getShardWatchdogListener() {
-        return shardWatchdogListener;
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    public static class ShardInfo {
-
-        int shardId;
-        int shardTotal;
-
-        ShardInfo(int shardId, int shardTotal) {
-            this.shardId = shardId;
-            this.shardTotal = shardTotal;
-        }
-
-        public int getShardId() {
-            return this.shardId;
-        }
-
-        public int getShardTotal() {
-            return this.shardTotal;
-        }
-
-        public String getShardString() {
-            return String.format("[%02d / %02d]", this.shardId, this.shardTotal);
-        }
-
-        @Override
-        public String toString() {
-            return getShardString();
-        }
-    }
-
+    @Nullable
     public static DatabaseManager getDbManager() {
         return dbManager;
     }
@@ -495,4 +414,45 @@ public abstract class FredBoat {
         }
         return false;
     }
+
+    private static String getVersionInfo() {
+        return "\n\n" +
+                "  ______            _ ____              _   \n" +
+                " |  ____|          | |  _ \\            | |  \n" +
+                " | |__ _ __ ___  __| | |_) | ___   __ _| |_ \n" +
+                " |  __| '__/ _ \\/ _` |  _ < / _ \\ / _` | __|\n" +
+                " | |  | | |  __/ (_| | |_) | (_) | (_| | |_ \n" +
+                " |_|  |_|  \\___|\\__,_|____/ \\___/ \\__,_|\\__|\n\n"
+
+                + "\n\tVersion:       " + AppInfo.getAppInfo().VERSION
+                + "\n\tBuild:         " + AppInfo.getAppInfo().BUILD_NUMBER
+                + "\n\tCommit:        " + GitRepoState.getGitRepositoryState().commitIdAbbrev + " (" + GitRepoState.getGitRepositoryState().branch + ")"
+                + "\n\tCommit time:   " + GitRepoState.getGitRepositoryState().commitTime
+                + "\n\tJVM:           " + System.getProperty("java.version")
+                + "\n\tJDA:           " + JDAInfo.VERSION
+                + "\n\tLavaplayer     " + PlayerLibrary.VERSION
+                + "\n";
+    }
+
+
+    // ################################################################################
+    // ##                           Shard definition
+    // ################################################################################
+
+    @Nonnull
+    public abstract JDA getJda();
+
+    @Nonnull
+    public abstract String revive(boolean... force);
+
+    public abstract int getShardId();
+
+    @Nonnull
+    public abstract JDA.ShardInfo getShardInfo();
+
+    public abstract int getGuildCount();
+
+    public abstract long getUserCount();
+
+    public abstract void onInit(@Nonnull ReadyEvent readyEvent);
 }

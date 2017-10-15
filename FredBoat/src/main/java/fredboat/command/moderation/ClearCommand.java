@@ -31,6 +31,7 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
+import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
@@ -51,7 +52,8 @@ public class ClearCommand extends Command implements IModerationCommand {
         TextChannel channel = context.channel;
         Member invoker = context.invoker;
 
-        if (!invoker.hasPermission(channel, Permission.MESSAGE_MANAGE) && !PermsUtil.isUserBotOwner(invoker.getUser())) {
+        if (!invoker.hasPermission(channel, Permission.MESSAGE_MANAGE)
+                && !PermsUtil.checkPerms(PermissionLevel.BOT_ADMIN, invoker)) {
             context.replyWithName("You must have Manage Messages to do that!");
             return;
         }
@@ -81,7 +83,7 @@ public class ClearCommand extends Command implements IModerationCommand {
                 }
 
                 context.reply("Deleting **" + myMessages.size() + "** messages.");
-                CentralMessaging.deleteMessages(myMessages);
+                CentralMessaging.deleteMessages(channel, myMessages);
             }
         } catch (RateLimitedException e) {
             throw new RuntimeException(e);

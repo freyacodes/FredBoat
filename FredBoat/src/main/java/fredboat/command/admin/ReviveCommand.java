@@ -63,7 +63,7 @@ public class ReviveCommand extends Command implements ICommandRestricted {
 
         context.replyWithName("Attempting to revive shard " + shardId);
         try {
-            String answer = FredBoat.getInstance(shardId).revive(force);
+            String answer = FredBoat.getShard(shardId).revive(force);
             context.replyWithName(answer);
         } catch (IndexOutOfBoundsException e) {
             context.replyWithName("No such shard: " + shardId);
@@ -76,6 +76,7 @@ public class ReviveCommand extends Command implements ICommandRestricted {
         return "{0}{1} <shardId> OR {0}{1} guild <guildId>\n#Revive the specified shard, or the shard of the specified guild.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_ADMIN;

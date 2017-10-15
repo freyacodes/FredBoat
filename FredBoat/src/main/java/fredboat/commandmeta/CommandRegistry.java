@@ -30,6 +30,7 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.messaging.internal.Context;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -37,7 +38,7 @@ public class CommandRegistry {
 
     private static HashMap<String, CommandEntry> registry = new HashMap<>();
 
-    public static void registerCommand(String name, Command command, String... aliases) {
+    public static void registerCommand(@Nonnull String name, @Nonnull Command command, String... aliases) {
         name = name.toLowerCase();
         CommandEntry entry = new CommandEntry(command, name);
         registry.put(name, entry);
@@ -46,7 +47,8 @@ public class CommandRegistry {
         }
     }
 
-    public static CommandEntry getCommand(String name) {
+    @Nullable
+    public static CommandEntry getCommand(@Nonnull String name) {
         return registry.get(name);
     }
 

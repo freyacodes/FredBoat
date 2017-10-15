@@ -76,8 +76,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         if (!PlayerLimitManager.checkLimitResponsive(context)) return;
 
         if (!context.msg.getAttachments().isEmpty()) {
-            GuildPlayer player = PlayerRegistry.get(context.guild);
-            player.setCurrentTC(context.channel);
+            GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
             for (Attachment atc : context.msg.getAttachments()) {
                 player.queue(atc.getUrl(), context);
@@ -113,8 +112,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
             return;
         }
 
-        GuildPlayer player = PlayerRegistry.get(context.guild);
-        player.setCurrentTC(context.channel);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
         player.queue(args[1], context);
         player.setPause(false);
@@ -124,8 +122,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
 
     private void handleNoArguments(CommandContext context) {
         Guild guild = context.guild;
-        GuildPlayer player = PlayerRegistry.get(guild);
-        player.setCurrentTC(context.channel);
+        GuildPlayer player = PlayerRegistry.getOrCreate(guild);
         if (player.isQueueEmpty()) {
             context.reply(context.i18n("playQueueEmpty"));
         } else if (player.isPlaying()) {
@@ -171,7 +168,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
 
             } else {
                 //Clean up any last search by this user
-                GuildPlayer player = PlayerRegistry.get(context.guild);
+                GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
                 //Get at most 5 tracks
                 List<AudioTrack> selectable = list.getTracks().subList(0, Math.min(SearchUtil.MAX_RESULTS, list.getTracks().size()));
@@ -198,7 +195,6 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
                 }
 
                 CentralMessaging.editMessage(outMsg, builder.build());
-                player.setCurrentTC(context.channel);
                 VideoSelection.put(context.invoker, new VideoSelection(selectable, outMsg));
             }
         });
@@ -211,6 +207,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         return usage + context.i18n("helpPlayCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.USER;

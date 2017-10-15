@@ -32,6 +32,7 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.messaging.internal.Context;
+import fredboat.util.TextUtils;
 
 import javax.annotation.Nonnull;
 
@@ -47,10 +48,10 @@ public class AudioDebugCommand extends Command implements IMaintenanceCommand {
         } else {
             int deficit = AudioLossCounter.EXPECTED_PACKET_COUNT_PER_MIN - (guildPlayer.getAudioLossCounter().getLastMinuteLoss() + guildPlayer.getAudioLossCounter().getLastMinuteSuccess());
 
-            msg = msg + "Last minute's packet stats:```\n"
-                + "Packets sent:   " + guildPlayer.getAudioLossCounter().getLastMinuteSuccess() + "\n"
-                + "Null packets:   " + guildPlayer.getAudioLossCounter().getLastMinuteLoss() + "\n"
-                + "Packet deficit: " + deficit + "\n```";
+            msg = msg + "Last minute's packet stats:\n" + TextUtils.asCodeBlock(
+                              "Packets sent:   " + guildPlayer.getAudioLossCounter().getLastMinuteSuccess() + "\n"
+                            + "Null packets:   " + guildPlayer.getAudioLossCounter().getLastMinuteLoss() + "\n"
+                            + "Packet deficit: " + deficit);
         }
 
         context.replyWithName(msg);
