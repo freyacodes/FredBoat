@@ -31,7 +31,6 @@ import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.MusicPersistenceHandler;
 import fredboat.event.EventLogger;
-import fredboat.util.ConnectQueue;
 import fredboat.util.JDAUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.AccountType;
@@ -60,7 +59,6 @@ public class FredBoatShard extends FredBoat {
     private static final Logger log = LoggerFactory.getLogger(FredBoatShard.class);
     private final int shardId;
     private final EventListener listener;
-    private static final ConnectQueue connectQueue = new ConnectQueue();
 
     //For when we need to join a revived shard with it's old GuildPlayers
     protected final ArrayList<String> channelsToRejoin = new ArrayList<>();

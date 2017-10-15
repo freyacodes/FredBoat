@@ -40,6 +40,7 @@ import fredboat.event.EventListenerBoat;
 import fredboat.feature.I18n;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.AppInfo;
+import fredboat.util.ConnectQueue;
 import fredboat.util.GitRepoState;
 import fredboat.util.JDAUtil;
 import fredboat.util.rest.Http;
@@ -52,7 +53,6 @@ import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
-import net.dv8tion.jda.core.requests.SessionReconnectQueue;
 import okhttp3.Credentials;
 import okhttp3.Response;
 import org.json.JSONObject;
@@ -82,7 +82,7 @@ public abstract class FredBoat {
 
     //central event listener that all events by all shards pass through
     protected static EventListenerBoat mainEventListener;
-    protected static final SessionReconnectQueue reconnectQueue = new SessionReconnectQueue();
+    protected static final ConnectQueue connectQueue = new ConnectQueue();
 
     private static DatabaseManager dbManager;
     private static final List<FredBoat> shards = new CopyOnWriteArrayList<>();
