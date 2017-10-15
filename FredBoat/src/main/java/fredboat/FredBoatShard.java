@@ -110,7 +110,7 @@ public class FredBoatShard extends FredBoat {
                     builder.useSharding(shardId, Config.CONFIG.getNumShards());
                 }
                 try {
-                    connectQueue.getCoin(shardId);
+                    connectQueue.requestCoin(shardId);
                     if (blocking.length > 0 && blocking[0]) {
                         newJda = builder.buildBlocking();
                     } else {

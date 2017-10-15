@@ -71,7 +71,7 @@ public class ConnectQueue extends SessionReconnectQueue {
      * These coins are meant for immediate use.
      * Calling this will block until a coin becomes available
      */
-    public void getCoin(int shardId) throws InterruptedException {
+    public void requestCoin(int shardId) throws InterruptedException {
         long start = System.currentTimeMillis();
         log.info("Shard {} requesting coin", shardId);
 
