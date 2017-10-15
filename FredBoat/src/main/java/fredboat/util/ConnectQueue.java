@@ -56,12 +56,15 @@ public class ConnectQueue extends SessionReconnectQueue {
     private static final Logger log = LoggerFactory.getLogger(ConnectQueue.class);
     public static final int CONNECT_DELAY_MS = (WebSocketClient.IDENTIFY_DELAY * 1000) + 500; //5500 ms
 
-    //this queue is not allowed to have more than one coin
-    private static DelayQueue<Coin> coinService = new DelayQueue<>(Collections.singletonList(new Coin(0, TimeUnit.MILLISECONDS)));
+    private final CoinProvider coinProvider;
 
-    //provide the SessionReconnectQueue with our custom BlockingQueue implementation
     public ConnectQueue() {
-        super(new WebSocketQueue());
+        this(new CoinProvider());
+    }
+
+    private ConnectQueue(CoinProvider coinProvider) {
+        super(new WebSocketQueue(coinProvider));
+        this.coinProvider = coinProvider;
     }
 
     /**
@@ -81,50 +84,60 @@ public class ConnectQueue extends SessionReconnectQueue {
             Thread.sleep(CONNECT_DELAY_MS); // back off a few more seconds because the reconnect thread exits early
         }
 
-        takeCoin();
+        coinProvider.takeCoin();
         log.info("Shard {} received coin after {}ms", shardId, System.currentTimeMillis() - start);
     }
 
-    private static void takeCoin() throws InterruptedException {
-        Coin c = coinService.take();
-        log.info("Took coin with delay {}ms", c.getDelay(TimeUnit.MILLISECONDS));
-        coinService.add(new Coin());
+
+    private static class CoinProvider {
+        //this queue is not allowed to have more than one coin
+        private DelayQueue<Coin> coin = new DelayQueue<>(Collections.singletonList(new Coin(0, TimeUnit.MILLISECONDS)));
+
+        protected void takeCoin() throws InterruptedException {
+            Coin c = coin.take();
+            log.info("Took coin with delay {}ms", c.getDelay(TimeUnit.MILLISECONDS));
+            coin.add(new Coin());
+        }
+
+        private static class Coin implements Delayed {
+
+            private long valid; //the point in time when this coin becomes valid
+
+            //create a coin with default timeout
+            public Coin() {
+                this(CONNECT_DELAY_MS, TimeUnit.MILLISECONDS);
+            }
+
+            public Coin(long delay, TimeUnit unit) {
+                valid = System.currentTimeMillis() + unit.toMillis(delay);
+            }
+
+            @Override
+            public long getDelay(@Nonnull TimeUnit unit) {
+                return unit.convert(valid - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+            }
+
+            @Override
+            public int compareTo(@Nonnull Delayed o) {
+                throw new UnsupportedOperationException(); //there is only one of these meant to exist at any time
+            }
+        }
     }
-
-
-    private static class Coin implements Delayed {
-
-        private long valid; //the point in time when this coin becomes valid
-
-        //create a coin with default timeout
-        public Coin() {
-            this(CONNECT_DELAY_MS, TimeUnit.MILLISECONDS);
-        }
-
-        public Coin(long delay, TimeUnit unit) {
-            valid = System.currentTimeMillis() + unit.toMillis(delay);
-        }
-
-        @Override
-        public long getDelay(@Nonnull TimeUnit unit) {
-            return unit.convert(valid - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-        }
-
-        @Override
-        public int compareTo(@Nonnull Delayed o) {
-            throw new UnsupportedOperationException(); //there is only one of these meant to exist at any time
-        }
-    }
-
 
     private static class WebSocketQueue extends LinkedBlockingQueue<WebSocketClient> {
         private static final long serialVersionUID = -7022487258759087625L;
 
+        private final CoinProvider coinProvider;
+
+        public WebSocketQueue(CoinProvider coinProvider) {
+            this.coinProvider = coinProvider;
+        }
+
+        //this will make sure that the jda reconnect thread waits long enough when requesting their first reconnect
         @Override
         public WebSocketClient poll() {
-            //do our coin stuff
             try {
-                takeCoin();
+                coinProvider.takeCoin();
             } catch (InterruptedException e) {
                 log.error("Interrupted while getting coin for jda reconnect");
             }
