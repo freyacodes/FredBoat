@@ -38,6 +38,7 @@ import net.dv8tion.jda.core.entities.Guild;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -49,6 +50,8 @@ public class DanceCommand extends Command implements IFunCommand {
             .build(CacheLoader.from(() -> new ReentrantLock()))
             .compose(Guild::getId); //mapping guild id to a lock
 
+    private final Semaphore allowed = new Semaphore(5);
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         //locking by use of java.util.concurrent.locks
@@ -56,8 +59,8 @@ public class DanceCommand extends Command implements IFunCommand {
         //in most cases we would need to use a fair lock, but since
         // any one lock is only set-up by one thread we can get away with a naive isLocked check
         ReentrantLock lock = locks.apply(context.getGuild());
-        if (lock.isLocked()) {
-            return; //already in progress
+        if (lock.isLocked() || !allowed.tryAcquire()) {
+            return; //already in progress or not allowed
         }
         Runnable func = new Runnable() {
             @Override
@@ -75,6 +78,7 @@ public class DanceCommand extends Command implements IFunCommand {
                         }
                     } catch (TimeoutException | ExecutionException | InterruptedException ignored) {
                     } finally {
+                        allowed.release();
                         lock.unlock();
                     }
                 });
