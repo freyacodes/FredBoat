@@ -60,7 +60,9 @@ public class DanceCommand extends Command implements IFunCommand {
         // any one lock is only set-up by one thread we can get away with a naive isLocked check
         ReentrantLock lock = locks.apply(context.getGuild());
         if (lock.isLocked() || !allowed.tryAcquire()) {
-            return; //already in progress or not allowed
+            //already in progress or not allowed
+            context.reply(context.i18n("tryLater"));
+            return;
         }
         Runnable func = new Runnable() {
             @Override
