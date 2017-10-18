@@ -33,6 +33,7 @@ import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.MusicPersistenceHandler;
 import fredboat.event.EventLogger;
 import fredboat.feature.metrics.Metrics;
+import fredboat.feature.metrics.OkHttpEventMetrics;
 import fredboat.util.JDAUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.AccountType;
@@ -44,6 +45,7 @@ import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.managers.AudioManager;
+import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,6 +94,8 @@ public class FredBoatShard extends FredBoat {
                         .setGame(Game.of(Config.CONFIG.getGame()))
                         .setBulkDeleteSplittingEnabled(true)
                         .setEnableShutdownHook(false)
+                        .setHttpClientBuilder(new OkHttpClient.Builder()
+                                .eventListener(new OkHttpEventMetrics("jda")))
                         .setReconnectQueue(connectQueue);
 
                 if(listener != null) {

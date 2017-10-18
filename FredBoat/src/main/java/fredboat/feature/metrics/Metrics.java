@@ -91,6 +91,7 @@ public class Metrics {
     //todo agent metrics
     //todo guava metrics
     //todo check for other metrics packages
+    //todo any missing counters n gauges n stuff
 
     // ################################################################################
     // ##                              JDA Stats
@@ -229,10 +230,10 @@ public class Metrics {
     // ################################################################################
 
     //outgoing
-    public static Counter httpEventCounter = Counter.build() //todo use this
+    public static Counter httpEventCounter = Counter.build()
             .name("fredboat_okhttp_events_total")
             .help("Total okhttp events")
-            .labelNames("okhttp_instance", "event") //see OkHttpEventListener for details
+            .labelNames("okhttp_instance", "event") //see OkHttpEventMetrics for details
             .register();
 
     //incoming
