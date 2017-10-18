@@ -25,7 +25,7 @@
 
 package fredboat.audio.player;
 
-import io.prometheus.client.Gauge;
+import fredboat.feature.metrics.Metrics;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Guild;
 
@@ -43,18 +43,14 @@ public class PlayerRegistry {
 
     public static final float DEFAULT_VOLUME = 1f;
     private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private static final Gauge playingPlayers = new Gauge.Builder()
-            .name("fredboat_music_players_playing_total")
-            .help("Total playing music players")
-            .register();
 
     private final Map<Long, GuildPlayer> REGISTRY = new ConcurrentHashMap<>();
 
     private PlayerRegistry() {
-        //update gauge of playing players regularly
+        //update gauge of playing players regularly todo use a fredboat agent?
         scheduler.scheduleAtFixedRate(() -> {
             try {
-                playingPlayers.set(playingCount());
+                Metrics.playingPlayers.set(playingCount());
             } catch (Exception ignored) {
             }
         }, 0, 1, TimeUnit.MINUTES);

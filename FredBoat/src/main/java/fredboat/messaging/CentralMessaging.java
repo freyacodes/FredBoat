@@ -26,10 +26,9 @@
 package fredboat.messaging;
 
 import fredboat.feature.I18n;
+import fredboat.feature.metrics.Metrics;
 import fredboat.shared.constant.BotConstants;
-import io.prometheus.client.Counter;
 import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Member;
@@ -38,12 +37,7 @@ import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.exceptions.InsufficientPermissionException;
-import net.dv8tion.jda.core.requests.Request;
-import net.dv8tion.jda.core.requests.Response;
-import net.dv8tion.jda.core.requests.RestAction;
-import net.dv8tion.jda.core.requests.Route;
 import org.apache.commons.io.FileUtils;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,32 +63,6 @@ public class CentralMessaging {
     private static final Consumer<Throwable> NOOP_EXCEPTION_HANDLER = __ -> {
     };
 
-    //these metrics are meant to cover all queue() calls we do in here
-    private static final Counter messagesSent = Counter.build()
-            .name("fredboat_messaging_messages_sent_total")
-            .help("Total amount of messages sent by FredBoat")
-            .labelNames("type") //message, file
-            .register();
-
-    private static final Counter messagesEdited = Counter.build()
-            .name("fredboat_messaging_messages_edited_total")
-            .help("Total amount of messages edited by FredBoat")
-            .register();
-
-    private static final Counter messagesDeleted = Counter.build()
-            .name("fredboat_messaging_messages_deleted_total")
-            .help("Total amount of messages deleted by FredBoat")
-            .register();
-
-    private static final Counter messagesRetrieved = Counter.build()
-            .name("fredboat_messaging_messages_retrieved_total")
-            .help("Total amount of messages retrieved by FredBoat")
-            .register();
-
-    private static final Counter typing = Counter.build()
-            .name("fredboat_messaging_typing_total")
-            .help("Total amount of typing events sent by FredBoat")
-            .register();
 
 
     // ********************************************************************************
@@ -248,26 +216,6 @@ public class CentralMessaging {
                 null,
                 null
         );
-    }
-
-    // for the adventurers among us
-    public static void sendShardlessMessage(long channelId, Message msg) {
-        sendShardlessMessage(msg.getJDA(), channelId, msg.getRawContent());
-    }
-
-    // for the adventurers among us
-    public static void sendShardlessMessage(JDA jda, long channelId, String content) {
-        JSONObject body = new JSONObject();
-        body.put("content", content);
-        new RestAction<Void>(jda, Route.Messages.SEND_MESSAGE.compile(Long.toString(channelId)), body) {
-            @Override
-            protected void handleResponse(Response response, Request<Void> request) {
-                if (response.isOk())
-                    request.onSuccess(null);
-                else
-                    request.onFailure(response);
-            }
-        }.queue(__ -> messagesSent.labels("shardless").inc());
     }
 
     // ********************************************************************************
@@ -434,7 +382,7 @@ public class CentralMessaging {
     public static void sendTyping(MessageChannel channel) {
         try {
             channel.sendTyping().queue(
-                    __ -> typing.inc(),
+                    __ -> Metrics.successfulRestActions.labels("sendTyping").inc(),
                     t -> log.warn("Could not send typing event", t)
             );
         } catch (InsufficientPermissionException e) {
@@ -447,7 +395,7 @@ public class CentralMessaging {
         if (!messages.isEmpty()) {
             try {
                 channel.deleteMessages(messages).queue(
-                        __ -> messagesDeleted.inc(messages.size()),
+                        __ -> Metrics.successfulRestActions.labels("bulkDeleteMessages").inc(),
                         t -> log.warn("Could not bulk delete messages", t)
                 );
             } catch (InsufficientPermissionException e) {
@@ -460,7 +408,7 @@ public class CentralMessaging {
         try {
             channel.getMessageById(messageId).queue(
                     message -> {
-                        messagesRetrieved.inc();
+                        Metrics.successfulRestActions.labels("getMessageById").inc();
                         CentralMessaging.deleteMessage(message);
                     },
                     NOOP_EXCEPTION_HANDLER //prevent logging an error if that message could not be found in the first place
@@ -473,7 +421,7 @@ public class CentralMessaging {
     public static void deleteMessage(@Nonnull Message message) {
         try {
             message.delete().queue(
-                    __ -> messagesDeleted.inc(),
+                    __ -> Metrics.successfulRestActions.labels("deleteMessage").inc(),
                     t -> log.warn("Could not delete message", t)
             );
         } catch (InsufficientPermissionException e) {
@@ -503,7 +451,7 @@ public class CentralMessaging {
         MessageFuture result = new MessageFuture();
         Consumer<Message> successWrapper = m -> {
             result.complete(m);
-            messagesSent.labels("message").inc();
+            Metrics.successfulRestActions.labels("sendMessage").inc();
             if (onSuccess != null) {
                 onSuccess.accept(m);
             }
@@ -542,7 +490,7 @@ public class CentralMessaging {
         MessageFuture result = new MessageFuture();
         Consumer<Message> successWrapper = m -> {
             result.complete(m);
-            messagesSent.labels("file").inc();
+            Metrics.successfulRestActions.labels("sendFile").inc();
             if (onSuccess != null) {
                 onSuccess.accept(m);
             }
@@ -581,7 +529,7 @@ public class CentralMessaging {
         MessageFuture result = new MessageFuture();
         Consumer<Message> successWrapper = m -> {
             result.complete(m);
-            messagesEdited.inc();
+            Metrics.successfulRestActions.labels("editMessage").inc();
             if (onSuccess != null) {
                 onSuccess.accept(m);
             }

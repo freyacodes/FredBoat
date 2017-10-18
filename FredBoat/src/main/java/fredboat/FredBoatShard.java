@@ -32,7 +32,7 @@ import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.MusicPersistenceHandler;
 import fredboat.event.EventLogger;
-import fredboat.event.MetricsListener;
+import fredboat.feature.metrics.Metrics;
 import fredboat.util.JDAUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.AccountType;
@@ -87,7 +87,7 @@ public class FredBoatShard extends FredBoat {
             while (!success) {
                 JDABuilder builder = new JDABuilder(AccountType.BOT)
                         .addEventListener(new EventLogger("216689009110417408"))
-                        .addEventListener(MetricsListener.getSingleton())
+                        .addEventListener(Metrics.instance().metricsListener)
                         .setToken(Config.CONFIG.getBotToken())
                         .setGame(Game.of(Config.CONFIG.getGame()))
                         .setBulkDeleteSplittingEnabled(true)

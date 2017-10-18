@@ -23,14 +23,9 @@
  * SOFTWARE.
  */
 
-package fredboat.feature;
+package fredboat.feature.metrics;
 
-import ch.qos.logback.classic.LoggerContext;
 import io.prometheus.client.exporter.MetricsServlet;
-import io.prometheus.client.hotspot.DefaultExports;
-import io.prometheus.client.logback.InstrumentedAppender;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -38,41 +33,12 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * Created by napster on 08.09.17.
+ * Created by napster on 18.10.17.
+ * <p>
+ * used to expose the prometheus metrics with a spark api
  */
-public class Metrics extends MetricsServlet {
-
-    private static final long serialVersionUID = 7504954462644353L;
-    private static final Logger log = LoggerFactory.getLogger(Metrics.class);
-
-    //call this once at the start of the bot to set up things
-    // further calls won't have any effect
-    public static void setup() {
-        log.info("Metrics set up {}", instance().toString());
-    }
-
-    //holder pattern
-    public static Metrics instance() {
-        return MetricHolder.INSTANCE;
-    }
-
-    private static class MetricHolder {
-        private static final Metrics INSTANCE = new Metrics();
-    }
-
-    private Metrics() {
-        //log metrics
-        final LoggerContext factory = (LoggerContext) LoggerFactory.getILoggerFactory();
-        final ch.qos.logback.classic.Logger root = factory.getLogger(Logger.ROOT_LOGGER_NAME);
-        final InstrumentedAppender prometheusAppender = new InstrumentedAppender();
-        prometheusAppender.setContext(root.getLoggerContext());
-        prometheusAppender.start();
-        root.addAppender(prometheusAppender);
-
-        //jvm (hotspot) metrics
-        DefaultExports.initialize();
-    }
-
+public class SparkMetricsServlet extends MetricsServlet {
+    private static final long serialVersionUID = -442447083882925873L;
 
     //wrapping http methods
     public HttpServletResponse servletGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {

@@ -37,12 +37,12 @@ import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityReader;
 import fredboat.feature.I18n;
+import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
 import fredboat.util.DiscordUtil;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
-import io.prometheus.client.Counter;
 import io.prometheus.client.Histogram;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
@@ -50,7 +50,6 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.VoiceChannel;
-import net.dv8tion.jda.core.events.Event;
 import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceJoinEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceLeaveEvent;
@@ -75,73 +74,21 @@ public class EventListenerBoat extends AbstractEventListener {
             .build();
 
 
-    // ***********************************************************************************
-    //                      Metrics objects (yes there are a ton)
-    // ***********************************************************************************
-
-    private static final Counter totalMessagesReceived = Counter.build()
-            .name("fredboat_messages_received_total")
-            .help("Total messages received")
-            .register();
-    private static final Counter totalBlacklistedMessagesReceived = Counter.build()
-            .name("fredboat_messages_received_blacklisted_total")
-            .help("Total messages by users that are blacklisted")
-            .register();
-    private static final Counter totalPrivateMessagesReceived = Counter.build()
-            .name("fredboat_messages_received_private_total")
-            .help("Total private messages received")
-            .register();
-
-    private static final Counter totalMessagesWithPrefixReceived = Counter.build()
-            .name("fredboat_messages_received_prefix_total")
-            .help("Total received messages with our prefix")
-            .register();
-
-    private static final Counter totalCommandsReceived = Counter.build()
-            .name("fredboat_commands_received_total")
-            .help("Total received commands")
-            .labelNames("class") // use the simple name of the command class
-            .register();
-
-    //includes commands that get ratelimited
-    private static final Histogram processingTime = Histogram.build()
-            .name("fredboat_command_processing_duration_seconds")
-            .help("Command processing time")
-            .labelNames("class") // use the simple name of the command class
-            .register();
-
-    //actual commands execution
-    private static final Histogram executionTime = Histogram.build()
-            .name("fredboat_command_execution_duration_seconds")
-            .help("Command execution time")
-            .labelNames("class") // use the simple name of the command class
-            .register();
-
-    private static final Counter totalJdaEvents = Counter.build()
-            .name("fredboat_jda_events_received_total")
-            .help("All events that JDA provides us with by class")
-            .labelNames("class")
-            .register();
-
-
-
     public EventListenerBoat() {
     }
 
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
-        totalMessagesReceived.inc();
 
         if (FeatureFlags.RATE_LIMITER.isActive()) {
             if (Ratelimiter.getRatelimiter().isBlacklisted(event.getAuthor().getIdLong())) {
-                totalBlacklistedMessagesReceived.inc();
+                Metrics.totalBlacklistedMessagesReceived.inc();
                 return;
             }
         }
 
         if (event.getPrivateChannel() != null) {
             log.info("PRIVATE" + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
-            totalPrivateMessagesReceived.inc();
             return;
         }
 
@@ -161,7 +108,7 @@ public class EventListenerBoat extends AbstractEventListener {
 
         if (content.startsWith(Config.CONFIG.getPrefix())) {
             log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
-            totalMessagesWithPrefixReceived.inc();
+            Metrics.totalMessagesWithPrefixReceived.inc();
 
             CommandContext context = CommandContext.parse(event);
 
@@ -178,8 +125,8 @@ public class EventListenerBoat extends AbstractEventListener {
             String commandClassName = context.command.getClass().getSimpleName();
             Histogram.Timer processingTimer = null;
             if (FeatureFlags.FULL_METRICS.isActive()) {
-                totalCommandsReceived.labels(commandClassName).inc();
-                processingTimer = processingTime.labels(commandClassName).startTimer();
+                Metrics.totalCommandsReceived.labels(commandClassName).inc();
+                processingTimer = Metrics.processingTime.labels(commandClassName).startTimer();
             }
             try {
                 limitOrExecuteCommand(context);
@@ -205,7 +152,7 @@ public class EventListenerBoat extends AbstractEventListener {
         if (ratelimiterResult.a) {
             Histogram.Timer executionTimer = null;
             if (FeatureFlags.FULL_METRICS.isActive()) {
-                executionTimer = executionTime.labels(context.command.getClass().getSimpleName()).startTimer();
+                executionTimer = Metrics.executionTime.labels(context.command.getClass().getSimpleName()).startTimer();
             }
             try {
                 CommandManager.prefixCalled(context);
@@ -355,13 +302,6 @@ public class EventListenerBoat extends AbstractEventListener {
         if (event.getResponse().code >= 300) {
             log.warn("Unsuccessful JDA HTTP Request:\n{}\nResponse:{}\n",
                     event.getRequestRaw(), event.getResponseRaw());
-        }
-    }
-
-    @Override
-    public void onGenericEvent(Event event) {
-        if (FeatureFlags.FULL_METRICS.isActive()) {
-            totalJdaEvents.labels(event.getClass().getSimpleName()).inc();
         }
     }
 }

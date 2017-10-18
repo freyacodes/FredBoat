@@ -34,6 +34,7 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.PatronageChecker;
+import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
@@ -41,7 +42,6 @@ import fredboat.shared.constant.BotConstants;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
-import io.prometheus.client.Counter;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -59,16 +59,6 @@ public class CommandManager {
     private static final Logger log = LoggerFactory.getLogger(CommandManager.class);
 
     public static final Set<Command> disabledCommands = new HashSet<>(0);
-    public static final Counter totalCommandsExecuted = Counter.build()
-            .name("fredboat_commands_executed_total")
-            .help("Total executed commands")
-            .register();
-
-    public static final Counter commandsExecuted = Counter.build()
-            .name("fredboat_commands_executed_by_class_total")
-            .help("Total executed commands by class")
-            .labelNames("class") // use the simple name of the command class
-            .register();
 
     public static void prefixCalled(CommandContext context) {
         Guild guild = context.guild;
@@ -76,10 +66,8 @@ public class CommandManager {
         TextChannel channel = context.channel;
         Member invoker = context.invoker;
 
-        totalCommandsExecuted.inc();
-        if (FeatureFlags.FULL_METRICS.isActive()) {
-            commandsExecuted.labels(invoked.getClass().getSimpleName()).inc();
-        }
+        Metrics.totalCommandsExecuted.inc();
+        Metrics.commandsExecuted.labels(invoked.getClass().getSimpleName()).inc();
 
         if (guild.getJDA().getSelfUser().getId().equals(BotConstants.PATRON_BOT_ID)
                 && Config.CONFIG.getDistribution() == DistributionEnum.PATRON

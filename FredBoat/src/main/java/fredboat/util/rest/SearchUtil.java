@@ -38,8 +38,8 @@ import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.entity.SearchResult;
+import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
-import io.prometheus.client.Counter;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.slf4j.Logger;
@@ -69,19 +69,6 @@ public class SearchUtil {
     private static final long DEFAULT_YOUTUBE_COOLDOWN = TimeUnit.MINUTES.toMillis(10); // 10 minutes
     private static long youtubeCooldownUntil;
 
-    //search requests issued by users
-    private static final Counter totalSearchRequests = Counter.build()
-            .name("fredboat_music_search_requests_total")
-            .help("Total search requests")
-            .register();
-
-    //actual sources of the returned results
-    private static final Counter searchHits = Counter.build()
-            .name("fredboat_music_searches_hits_total")
-            .labelNames("source")
-            .help("Total search hits")
-            .register();
-
     private static AudioPlayerManager initPlayerManager() {
         DefaultAudioPlayerManager manager = new DefaultAudioPlayerManager();
         YoutubeAudioSourceManager youtubeAudioSourceManager = new YoutubeAudioSourceManager();
@@ -108,7 +95,7 @@ public class SearchUtil {
      */
     public static AudioPlaylist searchForTracks(String query, long cacheMaxAge, int timeoutMillis, List<SearchProvider> providers)
             throws SearchingException {
-        totalSearchRequests.inc();
+        Metrics.totalSearchRequests.inc();
 
         List<SearchProvider> provs = new ArrayList<>();
         if (providers == null || providers.isEmpty()) {
@@ -126,7 +113,7 @@ public class SearchUtil {
             AudioPlaylist cacheResult = fromCache(provider, query, cacheMaxAge);
             if (cacheResult != null && !cacheResult.getTracks().isEmpty()) {
                 log.debug("Loaded search result {} {} from cache", provider, query);
-                searchHits.labels("cache").inc();
+                Metrics.searchHits.labels("cache").inc();
                 return cacheResult;
             }
 
@@ -138,7 +125,7 @@ public class SearchUtil {
                         log.debug("Loaded search result {} {} from lavaplayer", provider, query);
                         // got a search result? cache and return it
                         FredBoat.executor.execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, lavaplayerResult).save());
-                        searchHits.labels("lavaplayer-" + provider.name().toLowerCase()).inc();
+                        Metrics.searchHits.labels("lavaplayer-" + provider.name().toLowerCase()).inc();
                         return lavaplayerResult;
                     }
                 } catch (Http503Exception e) {
@@ -161,7 +148,7 @@ public class SearchUtil {
                         log.debug("Loaded search result {} {} from Youtube API", provider, query);
                         // got a search result? cache and return it
                         FredBoat.executor.execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, youtubeApiResult).save());
-                        searchHits.labels("youtube-api").inc();
+                        Metrics.searchHits.labels("youtube-api").inc();
                         return youtubeApiResult;
                     }
                 } catch (SearchingException e) {
@@ -172,11 +159,11 @@ public class SearchUtil {
 
         //did we run into searching exceptions that made us end up here?
         if (searchingException != null) {
-            searchHits.labels("exception").inc();
+            Metrics.searchHits.labels("exception").inc();
             throw searchingException;
         }
         //no result with any of the search providers
-        searchHits.labels("empty").inc();
+        Metrics.searchHits.labels("empty").inc();
         return new BasicAudioPlaylist("Search result for: " + query, Collections.emptyList(), null, true);
     }
 

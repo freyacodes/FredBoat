@@ -39,7 +39,7 @@ import fredboat.commandmeta.init.MusicCommandInitializer;
 import fredboat.db.DatabaseManager;
 import fredboat.event.EventListenerBoat;
 import fredboat.feature.I18n;
-import fredboat.feature.Metrics;
+import fredboat.feature.metrics.Metrics;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.AppInfo;
 import fredboat.util.ConnectQueue;
@@ -177,9 +177,12 @@ public abstract class FredBoat {
             Thread.sleep(1000);
         }
 
+        //force a count and then turn on metrics to be served
+        jdaEntityCountsTotal.count(shards);
         jdaEntityCountAgent.addAction(new FredBoatStatsCounter(
                 () -> jdaEntityCountsTotal.count(shards)));
-        FredBoatAgent.startNow(jdaEntityCountAgent);
+        FredBoatAgent.start(jdaEntityCountAgent);
+        API.turnOnMetrics();
     }
 
     // ################################################################################

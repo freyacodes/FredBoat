@@ -28,10 +28,9 @@ package fredboat.db;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import com.zaxxer.hikari.HikariDataSource;
-import com.zaxxer.hikari.metrics.prometheus.PrometheusMetricsTrackerFactory;
 import fredboat.Config;
 import fredboat.FredBoat;
-import io.prometheus.client.hibernate.HibernateStatisticsCollector;
+import fredboat.feature.metrics.Metrics;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.config.CacheConfiguration;
 import net.sf.ehcache.config.PersistenceConfiguration;
@@ -149,8 +148,9 @@ public class DatabaseManager {
                 SessionFactoryImpl sessionFactory = emf.unwrap(SessionFactoryImpl.class);
                 sessionFactory.getServiceRegistry().getService(ConnectionProvider.class)
                         .unwrap(HikariDataSource.class)
-                        .setMetricsTrackerFactory(new PrometheusMetricsTrackerFactory());
-                new HibernateStatisticsCollector(sessionFactory, DEFAULT_PERSISTENCE_UNIT_NAME).register();
+                        .setMetricsTrackerFactory(Metrics.instance().hikariStats);
+                //NOTE the register() on the HibernateCollector may only be called once so this will break in case we create 2 connections
+                Metrics.instance().hibernateStats.add(sessionFactory, DEFAULT_PERSISTENCE_UNIT_NAME).register();
             } catch (Exception e) {
                 log.warn("Exception when registering database metrics. This is not expected to happen outside of tests.", e);
             }
