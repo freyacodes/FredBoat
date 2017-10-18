@@ -79,14 +79,14 @@ public abstract class FredBoatAgent implements Runnable {
     protected abstract void doRun();
 
     public static void start(FredBoatAgent agent) {
-        AGENTS.scheduleAtFixedRate(agent, agent.millisToSleep, agent.millisToSleep, TimeUnit.MILLISECONDS);
         LAST_RUN_TIME.put(agent.getClass(), 0L);
+        AGENTS.scheduleAtFixedRate(agent, agent.millisToSleep, agent.millisToSleep, TimeUnit.MILLISECONDS);
     }
 
     //start the agent without a delay
     public static void startNow(FredBoatAgent agent) {
-        AGENTS.scheduleAtFixedRate(agent, 0L, agent.millisToSleep, TimeUnit.MILLISECONDS);
         LAST_RUN_TIME.put(agent.getClass(), 0L);
+        AGENTS.scheduleAtFixedRate(agent, 0L, agent.millisToSleep, TimeUnit.MILLISECONDS);
     }
 
     public static Map<Class<? extends FredBoatAgent>, Long> getLastRunTimes() {
