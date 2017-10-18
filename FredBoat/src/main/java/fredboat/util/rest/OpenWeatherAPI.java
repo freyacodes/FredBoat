@@ -7,6 +7,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import fredboat.Config;
+import fredboat.feature.metrics.Metrics;
 import fredboat.feature.metrics.OkHttpEventMetrics;
 import fredboat.util.rest.models.weather.OpenWeatherCurrent;
 import fredboat.util.rest.models.weather.RetrievedWeather;
@@ -58,6 +59,7 @@ public class OpenWeatherAPI implements Weather {
         limitBucket = Bucket4j.builder().addLimit(limit).build();
 
         weatherCache = CacheBuilder.newBuilder()
+                .recordStats()
                 .expireAfterWrite(MAX_CACHE_HOUR, TimeUnit.HOURS)
                 .build(new CacheLoader<String, RetrievedWeather>() {
                     @Override
@@ -65,6 +67,7 @@ public class OpenWeatherAPI implements Weather {
                         return processGetWeatherByCity(key);
                     }
                 });
+        Metrics.instance().cacheMetrics.addCache("openWeatherApi", weatherCache);
     }
 
     /**

@@ -27,9 +27,11 @@ package fredboat.feature.metrics;
 
 import ch.qos.logback.classic.LoggerContext;
 import com.zaxxer.hikari.metrics.prometheus.PrometheusMetricsTrackerFactory;
+import fredboat.audio.player.VideoSelection;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 import io.prometheus.client.Histogram;
+import io.prometheus.client.guava.cache.CacheMetricsCollector;
 import io.prometheus.client.hibernate.HibernateStatisticsCollector;
 import io.prometheus.client.hotspot.DefaultExports;
 import io.prometheus.client.logback.InstrumentedAppender;
@@ -66,6 +68,7 @@ public class Metrics {
 
     public final SparkMetricsServlet metricsServlet = new SparkMetricsServlet();
     public final MetricsListener metricsListener = new MetricsListener();
+    public final CacheMetricsCollector cacheMetrics = new CacheMetricsCollector().register();
 
     private Metrics() {
         //log metrics
@@ -81,6 +84,8 @@ public class Metrics {
 
         hibernateStats = new HibernateStatisticsCollector();
         hikariStats = new PrometheusMetricsTrackerFactory();
+
+        cacheMetrics.addCache("videoSelections", VideoSelection.SELECTIONS);
     }
 
 
@@ -89,8 +94,6 @@ public class Metrics {
     //todo check for inc() usage
     //todo check FULL_METRICS feature flag
     //todo agent metrics
-    //todo guava metrics
-    //todo check for other metrics packages
     //todo any missing counters n gauges n stuff
 
     // ################################################################################

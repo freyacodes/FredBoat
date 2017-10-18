@@ -70,11 +70,13 @@ public class EventListenerBoat extends AbstractEventListener {
     //first string is the users message ID, second string the id of fredboat's message that should be deleted if the
     // user's message is deleted
     public static final Cache<Long, Long> messagesToDeleteIfIdDeleted = CacheBuilder.newBuilder()
+            .recordStats()
             .expireAfterWrite(6, TimeUnit.HOURS)
             .build();
 
 
     public EventListenerBoat() {
+        Metrics.instance().cacheMetrics.addCache("messagesToDeleteIfIdDeleted", messagesToDeleteIfIdDeleted);
     }
 
     @Override
