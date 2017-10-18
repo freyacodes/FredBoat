@@ -36,7 +36,9 @@ import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.exceptions.ErrorResponseException;
 import net.dv8tion.jda.core.exceptions.InsufficientPermissionException;
+import net.dv8tion.jda.core.requests.ErrorResponse;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,8 +47,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.ResourceBundle;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 
 /**
@@ -60,9 +65,14 @@ public class CentralMessaging {
 
     //this is needed for when we absolutely don't care about a rest action failing (use this only after good consideration!)
     // because if we pass null for a failure handler to JDA it uses a default handler that results in a warning/error level log
-    private static final Consumer<Throwable> NOOP_EXCEPTION_HANDLER = __ -> {
+    public static final Consumer<Throwable> NOOP_EXCEPTION_HANDLER = __ -> {
     };
 
+    //use this to schedule rest actions whenever queueAfter() or similar JDA methods would be used
+    // this makes it way easier to track stats + handle failures of such delayed RestActions
+    // instead of implementing a ton of overloaded methods in this class
+    public static final ScheduledExecutorService restService = Executors.newScheduledThreadPool(10,
+            runnable -> new Thread(runnable, "central-messaging-scheduler"));
 
 
     // ********************************************************************************
@@ -383,7 +393,7 @@ public class CentralMessaging {
         try {
             channel.sendTyping().queue(
                     __ -> Metrics.successfulRestActions.labels("sendTyping").inc(),
-                    t -> log.warn("Could not send typing event", t)
+                    getJdaRestActionFailureHandler("Could not send typing event")
             );
         } catch (InsufficientPermissionException e) {
             handleInsufficientPermissionsException(channel, e);
@@ -396,7 +406,7 @@ public class CentralMessaging {
             try {
                 channel.deleteMessages(messages).queue(
                         __ -> Metrics.successfulRestActions.labels("bulkDeleteMessages").inc(),
-                        t -> log.warn("Could not bulk delete messages", t)
+                        getJdaRestActionFailureHandler("Could not bulk delete messages")
                 );
             } catch (InsufficientPermissionException e) {
                 handleInsufficientPermissionsException(channel, e);
@@ -422,7 +432,7 @@ public class CentralMessaging {
         try {
             message.delete().queue(
                     __ -> Metrics.successfulRestActions.labels("deleteMessage").inc(),
-                    t -> log.warn("Could not delete message", t)
+                    getJdaRestActionFailureHandler("Could not delete message")
             );
         } catch (InsufficientPermissionException e) {
             handleInsufficientPermissionsException(message.getChannel(), e);
@@ -460,6 +470,11 @@ public class CentralMessaging {
             result.completeExceptionally(t);
             if (onFail != null) {
                 onFail.accept(t);
+            } else {
+                String info = String.format("Could not sent message\n%s\nto channel %s in guild %s",
+                        message.getRawContent(), channel.getId(),
+                        (channel instanceof TextChannel) ? ((TextChannel) channel).getGuild().getIdLong() : "null");
+                getJdaRestActionFailureHandler(info).accept(t);
             }
         };
 
@@ -499,6 +514,11 @@ public class CentralMessaging {
             result.completeExceptionally(t);
             if (onFail != null) {
                 onFail.accept(t);
+            } else {
+                String info = String.format("Could not sent file %s to channel %s in guild %s",
+                        file.getAbsolutePath(), channel.getId(),
+                        (channel instanceof TextChannel) ? ((TextChannel) channel).getGuild().getIdLong() : "null");
+                getJdaRestActionFailureHandler(info).accept(t);
             }
         };
 
@@ -538,6 +558,12 @@ public class CentralMessaging {
             result.completeExceptionally(t);
             if (onFail != null) {
                 onFail.accept(t);
+            } else {
+                String info = String.format("Could not edit message %s in channel %s in guild %s wiht new content %s",
+                        oldMessageId, channel.getId(),
+                        (channel instanceof TextChannel) ? ((TextChannel) channel).getGuild().getIdLong() : "null",
+                        newMessage.getRawContent());
+                getJdaRestActionFailureHandler(info).accept(t);
             }
         };
 
@@ -560,6 +586,22 @@ public class CentralMessaging {
         }
         //only ever try sending a simple string from here so we don't end up handling a loop of insufficient permissions
         sendMessage(channel, i18n.getString("permissionMissingBot") + " **" + e.getPermission().getName() + "**");
+    }
+
+
+    //handles failed JDA rest actions by logging them with an informational string and optionally ignoring some error response codes
+    public static Consumer<Throwable> getJdaRestActionFailureHandler(String info, ErrorResponse... ignored) {
+        return t -> {
+            if (t instanceof ErrorResponseException) {
+                ErrorResponseException e = (ErrorResponseException) t;
+                Metrics.failedRestActions.labels(Integer.toString(e.getErrorCode())).inc();
+                if (Arrays.asList(ignored).contains(e.getErrorResponse())
+                        || e.getErrorCode() == -1) { //socket timeout, fuck those
+                    return;
+                }
+            }
+            log.warn(info, t);
+        };
     }
 
 }

@@ -36,6 +36,7 @@ import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.PatronageChecker;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
@@ -109,7 +110,8 @@ public class CommandManager {
                     && !invoker.getUser().getId().equals("81011298891993088")) { // Fre_d
                 context.deleteMessage();
                 context.replyWithName("Please don't spam music commands outside of <#174821093633294338>.",
-                        msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
+                        msg -> CentralMessaging.restService.schedule(() -> CentralMessaging.deleteMessage(msg),
+                                5, TimeUnit.SECONDS));
                 return;
             }
         }

@@ -27,6 +27,7 @@ package fredboat.messaging.internal;
 
 import fredboat.commandmeta.MessagingException;
 import fredboat.feature.I18n;
+import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.MessageFuture;
 import fredboat.util.TextUtils;
@@ -142,8 +143,11 @@ public abstract class Context {
 
     public void replyPrivate(@Nonnull String message, @Nullable Consumer<Message> onSuccess, @Nullable Consumer<Throwable> onFail) {
         getMember().getUser().openPrivateChannel().queue(
-                privateChannel -> CentralMessaging.sendMessage(privateChannel, message, onSuccess, onFail),
-                onFail
+                privateChannel -> {
+                    Metrics.successfulRestActions.labels("openPrivateChannel").inc();
+                    CentralMessaging.sendMessage(privateChannel, message, onSuccess, onFail);
+                },
+                onFail != null ? onFail : CentralMessaging.NOOP_EXCEPTION_HANDLER //dun care logging about ppl that we cant message
         );
     }
 

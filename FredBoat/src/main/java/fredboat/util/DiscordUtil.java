@@ -27,6 +27,7 @@ package fredboat.util;
 
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.feature.I18n;
+import fredboat.feature.metrics.Metrics;
 import fredboat.shared.constant.BotConstants;
 import fredboat.util.rest.Http;
 import net.dv8tion.jda.bot.entities.ApplicationInfo;
@@ -123,6 +124,7 @@ public class DiscordUtil {
                 info = discordAppInfo;
                 if (info == null) {
                     discordAppInfo = info = jda.asBot().getApplicationInfo().complete();
+                    Metrics.successfulRestActions.labels("getApplicationInfo").inc();
                 }
             }
         }
