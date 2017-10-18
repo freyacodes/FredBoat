@@ -175,7 +175,8 @@ public abstract class FredBoat {
         //attempt to do counts for all shards
         // the last ones might not be ready yet, in which case the stats agent will take care of it later
         jdaEntityCountsTotal.count(shards);
-        jdaEntityCountAgent.addAction(() -> jdaEntityCountsTotal.count(shards));
+        jdaEntityCountAgent.addAction(new FredBoatStatsCounter(
+                () -> jdaEntityCountsTotal.count(shards)));
     }
 
     // ################################################################################
@@ -472,6 +473,24 @@ public abstract class FredBoat {
             this.rolesCount = JDAUtil.countRoles(shards);
 
             return true;
+        }
+    }
+
+    private static class FredBoatStatsCounter implements StatsAgent.Action {
+        private final StatsAgent.Action action;
+
+        FredBoatStatsCounter(StatsAgent.Action action) {
+            this.action = action;
+        }
+
+        @Override
+        public String getName() {
+            return "jda entity stats for fredboat";
+        }
+
+        @Override
+        public void act() throws Exception {
+            action.act();
         }
     }
 }

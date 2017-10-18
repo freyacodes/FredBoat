@@ -61,13 +61,16 @@ public class StatsAgent extends FredBoatAgent {
             try {
                 action.act();
             } catch (Exception e) {
-                log.error("Unexpected exception when counting", e);
+                log.error("Unexpected exception when counting {}", action.getName(), e);
             }
         }
     }
 
     @FunctionalInterface
     public interface Action {
+        default String getName() {
+            return "stats";
+        }
         void act() throws Exception;
     }
 

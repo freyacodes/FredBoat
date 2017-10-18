@@ -25,6 +25,7 @@
 
 package fredboat;
 
+import fredboat.agent.StatsAgent;
 import fredboat.audio.nas.NativeAudioSendFactory;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
@@ -73,7 +74,8 @@ public class FredBoatShard extends FredBoat {
         this.listener = listener;
         log.info("Building shard " + shardId);
         jda = buildJDA();
-        jdaEntityCountAgent.addAction(() -> jdaEntityCountsShard.count(Collections.singletonList(this)));
+        jdaEntityCountAgent.addAction(new ShardStatsCounter(jda.getShardInfo(),
+                () -> jdaEntityCountsShard.count(Collections.singletonList(this))));
     }
 
     private JDA buildJDA(boolean... blocking) {
@@ -258,5 +260,25 @@ public class FredBoatShard extends FredBoat {
     @Override
     public int getShardGuildsCount() {
         return jdaEntityCountsShard.guildsCount;
+    }
+
+    private static class ShardStatsCounter implements StatsAgent.Action {
+        private final JDA.ShardInfo shardInfo;
+        private final StatsAgent.Action action;
+
+        ShardStatsCounter(JDA.ShardInfo shardInfo, StatsAgent.Action action) {
+            this.shardInfo = shardInfo;
+            this.action = action;
+        }
+
+        @Override
+        public String getName() {
+            return "jda entity stats for shard " + shardInfo.getShardString();
+        }
+
+        @Override
+        public void act() throws Exception {
+            action.act();
+        }
     }
 }
