@@ -162,8 +162,6 @@ public abstract class FredBoat {
         //Check OpenWeather key
         executor.submit(FredBoat::hasValidOpenWeatherKey);
 
-        FredBoatAgent.start(jdaEntityCountAgent);
-
         /* Init JDA */
         initBotShards(mainEventListener);
 
@@ -172,11 +170,14 @@ public abstract class FredBoat {
             FredBoatAgent.start(new CarbonitexAgent(carbonKey));
         }
 
-        //attempt to do counts for all shards
-        // the last ones might not be ready yet, in which case the stats agent will take care of it later
-        jdaEntityCountsTotal.count(shards);
+        //wait for all shards to ready up before requesting a total count of jda entities
+        while (!areWeReadyYet()) {
+            Thread.sleep(1000);
+        }
+
         jdaEntityCountAgent.addAction(new FredBoatStatsCounter(
                 () -> jdaEntityCountsTotal.count(shards)));
+        FredBoatAgent.startNow(jdaEntityCountAgent);
     }
 
     // ################################################################################
@@ -282,6 +283,16 @@ public abstract class FredBoat {
 
         log.info(shards.size() + " shards have been constructed");
 
+    }
+
+    //returns true if all registered shards are reporting back as CONNECTED, false otherwise
+    private static boolean areWeReadyYet() {
+        for (FredBoat shard : shards) {
+            if (shard.getJda().getStatus() != JDA.Status.CONNECTED) {
+                return false;
+            }
+        }
+        return true;
     }
 
     //Shutdown hook
