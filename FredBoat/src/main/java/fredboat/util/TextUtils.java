@@ -45,7 +45,12 @@ import java.util.ArrayList;
 public class TextUtils {
 
     private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^(\\d?\\d)(?::([0-5]?\\d))?(?::([0-5]?\\d))?$");
-
+    private static final ArrayList<Character> markdownList = new ArrayList<Character>() {{
+        add('*');
+        add('`');
+        add('~');
+        add('_');
+    }};
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(TextUtils.class);
 
     private TextUtils() {
@@ -69,7 +74,7 @@ public class TextUtils {
                 .build();
     }
 
-    private static String ensureSpace(String msg) {
+    private static String ensureSpace(String msg){
         return msg.charAt(0) == ' ' ? msg : " " + msg;
     }
 
@@ -173,11 +178,11 @@ public class TextUtils {
         return i < 10 ? "0" + i : Integer.toString(i);
     }
 
-    public static String substringPreserveWords(String str, int len) {
+    public static String substringPreserveWords(String str, int len){
         Pattern pattern = Pattern.compile("^([\\w\\W]{" + len + "}\\S+?)\\s");
         Matcher matcher = pattern.matcher(str);
 
-        if (matcher.find()) {
+        if (matcher.find()){
             return matcher.group(1);
         } else {
             //Oh well
@@ -196,11 +201,11 @@ public class TextUtils {
         m.find();
 
         int capturedGroups = 0;
-        if (m.group(1) != null) capturedGroups++;
-        if (m.group(2) != null) capturedGroups++;
-        if (m.group(3) != null) capturedGroups++;
+        if(m.group(1) != null) capturedGroups++;
+        if(m.group(2) != null) capturedGroups++;
+        if(m.group(3) != null) capturedGroups++;
 
-        switch (capturedGroups) {
+        switch(capturedGroups){
             case 0:
                 throw new IllegalStateException("Unable to match " + str);
             case 1:
@@ -228,13 +233,7 @@ public class TextUtils {
         return "```md\n" + str + "```";
     }
 
-    public static String removeMarkdown(String str) {
-        ArrayList<Character> markdownList = new ArrayList<Character>() {{
-            add('*');
-            add('`');
-            add('~');
-            add('_');
-        }};
+    public static String escapeMarkdown(String str) {
         StringBuilder revisedString = new StringBuilder();
         for (Character n : str.toCharArray()) {
             if (markdownList.contains(n)) {
