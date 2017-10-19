@@ -26,12 +26,10 @@
 package fredboat.util;
 
 import fredboat.commandmeta.abs.CommandContext;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.IMentionable;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Role;
+import net.dv8tion.jda.core.entities.*;
 
 import javax.annotation.Nonnull;
+import javax.xml.soap.Text;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,6 +38,18 @@ public class ArgumentUtil {
     public static final int FUZZY_RESULT_LIMIT = 10;
 
     private ArgumentUtil() {
+    }
+
+    public static List<TextChannel> fuzzyTextChannelSearch(Guild guild, String term) {
+        ArrayList<TextChannel> list = new ArrayList<>();
+
+        term = term.toLowerCase();
+
+        for (TextChannel ch : guild.getTextChannels()) {
+            if (ch.getName().toLowerCase().contains(term) || term.contains(ch.getId()))
+                list.add(ch);
+        }
+        return list;
     }
 
     public static List<Member> fuzzyMemberSearch(Guild guild, String term, boolean includeBots) {
@@ -73,6 +83,36 @@ public class ArgumentUtil {
         }
 
         return list;
+    }
+
+    public static TextChannel checkSingleFuzzyTextChannelSearchResult(CommandContext context, String term) {
+        List<TextChannel> list = fuzzyTextChannelSearch(context.guild, term);
+
+        switch (list.size()) {
+            case 0:
+                context.reply(context.i18nFormat("fuzzyNothingFound", term));
+                return null;
+            case 1:
+                return list.get(0);
+            default:
+                StringBuilder searchResults = new StringBuilder();
+                int maxIndex = Math.min(FUZZY_RESULT_LIMIT, list.size());
+                for (int i = 0; i < maxIndex; i++) {
+                    searchResults.append("\n")
+                            .append(list.get(i).getId())
+                            .append(" - ")
+                            .append(list.get(i).getName());
+                }
+
+                if (list.size() > FUZZY_RESULT_LIMIT) {
+                    searchResults.append("\n[...]");
+                }
+
+                context.reply(context.i18n("fuzzyMultiple") + "\n"
+                        + TextUtils.asCodeBlock(searchResults.toString()));
+
+                return null;
+        }
     }
 
     public static Member checkSingleFuzzyMemberSearchResult(CommandContext context, String term) {
