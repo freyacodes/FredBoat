@@ -55,6 +55,9 @@ public class GuildConfig implements IEntity, Serializable {
     @Column(name = "lang", nullable = false)
     private String lang = "en_US";
 
+    @Column(name = "topic_channel", nullable = false)
+    private String topicChannel = "";
+
     public GuildConfig(String id) {
         this.guildId = id;
     }
@@ -94,6 +97,10 @@ public class GuildConfig implements IEntity, Serializable {
     public void setLang(String lang) {
         this.lang = lang;
     }
+
+    public String getTopicChannel() {return topicChannel; }
+
+    public void setTopicChannel(String topicChannel) {this.topicChannel = topicChannel; }
 
     /*@OneToMany
     @JoinColumn(name = "guildconfig")
