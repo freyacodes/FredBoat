@@ -61,12 +61,13 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
 
     private void printConfig(CommandContext context) {
         GuildConfig gc = EntityReader.getGuildConfig(context.guild.getId());
+        TextChannel channel = context.guild.getTextChannelById(gc.getTopicChannel());
 
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append(context.i18nFormat("configNoArgs", context.guild.getName())).append("\n")
                 .append("track_announce = ").append(gc.isTrackAnnounce()).append("\n")
                 .append("auto_resume = ").append(gc.isAutoResume()).append("\n")
-                .append("topic_channel = ").append(gc.getTopicChannel()).append("\n")
+                .append("topic_channel = ").append(channel != null ? channel.getName() : "Null").append("\n")
                 .append("```"); //opening ``` is part of the configNoArgs language string
 
         context.reply(mb.build());
@@ -112,9 +113,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                 if (channel != null) {
                     gc.setTopicChannel(channel.getId());
                     EntityWriter.mergeGuildConfig(gc);
-                    context.replyWithName("`topic_channel` " + context.i18nFormat("configSetTo", val));
-                } else {
-                    context.reply(context.i18nFormat("configMustBeChannel", val));
+                    context.replyWithName("`topic_channel` " + context.i18nFormat("configSetTo", channel.getName()));
                 }
                 break;
             default:
