@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import java.text.MessageFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.ArrayList;
 
 public class TextUtils {
 
@@ -227,6 +228,25 @@ public class TextUtils {
         return "```md\n" + str + "```";
     }
 
+    public static String removeMarkdown(String str) {
+                ArrayList<Character> markdownList = new ArrayList<Character>() {{
+                        add('*');
+                        add('`');
+                        add('~');
+                        add('_');
+                    }};
+                StringBuilder revisedString = new StringBuilder();
+                for (Character n : str.toCharArray()) {
+                        if(markdownList.contains(n)) {
+                                revisedString.append("\\" + n);
+                            } else {
+                                revisedString.append(n);
+                            }
+                    }
+                return revisedString.toString();
+            }
+ 
+    
     public static String forceNDigits(int i, int n) {
         String str = Integer.toString(i);
 
