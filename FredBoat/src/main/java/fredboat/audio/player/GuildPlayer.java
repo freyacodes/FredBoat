@@ -48,10 +48,7 @@ import fredboat.util.Emojis;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.entities.VoiceChannel;
+import net.dv8tion.jda.core.entities.*;
 import net.dv8tion.jda.core.managers.AudioManager;
 import net.dv8tion.jda.core.managers.ChannelManager;
 import net.dv8tion.jda.core.requests.restaction.ChannelAction;
@@ -62,6 +59,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.xml.soap.Text;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -467,19 +465,28 @@ public class GuildPlayer extends AbstractPlayer {
     }
 
     private void updateTopic() {
+        Guild guild = getGuild();
 
-        TextChannel channel = getCurrentTC();
-        if (channel != null) {
-            ChannelManager manager = channel.getManager();
+        GuildConfig gc = EntityReader.getGuildConfig(guild.getId());
+        TextChannel topicChannel = guild.getTextChannelById(gc.getTopicChannel());
+
+        if (topicChannel != null) {
+
+
+            ChannelManager manager = topicChannel.getManager();
 
             AudioTrackContext playingAtc = getPlayingTrack();
-            String topic = Emojis.PLAY + " **" + playingAtc.getEffectiveTitle() + "** " + playingAtc.getUser().getAsMention() + " [" + TextUtils.formatTime(playingAtc.getEffectiveDuration()) + "]";
+            User user = playingAtc.getUser() != null ? playingAtc.getUser() : guild.getSelfMember().getUser();
+
+            String topic = Emojis.PLAY + " **" + playingAtc.getEffectiveTitle() + "** " + user.getAsMention() + " [" + TextUtils.formatTime(playingAtc.getEffectiveDuration()) + "]";
 
             try {
                 manager.setTopic(topic).queue();
-            } catch (Exception ex) {
+            } catch (Exception ex) { //dunno what Exception is thrown when missing perms so i just catch all
                 log.warn("Failed to set Topic");
             }
         }
+
+
     }
 }
