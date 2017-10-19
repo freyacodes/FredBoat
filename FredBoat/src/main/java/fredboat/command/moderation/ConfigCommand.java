@@ -37,8 +37,10 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
+import fredboat.util.ArgumentUtil;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.TextChannel;
 
 import javax.annotation.Nonnull;
 
@@ -64,6 +66,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                 .append(context.i18nFormat("configNoArgs", context.guild.getName())).append("\n")
                 .append("track_announce = ").append(gc.isTrackAnnounce()).append("\n")
                 .append("auto_resume = ").append(gc.isAutoResume()).append("\n")
+                .append("topic_channel = ").append(gc.getTopicChannel()).append("\n")
                 .append("```"); //opening ``` is part of the configNoArgs language string
 
         context.reply(mb.build());
@@ -101,6 +104,17 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                     context.replyWithName("`auto_resume` " + context.i18nFormat("configSetTo", val));
                 } else {
                     context.reply(context.i18nFormat("configMustBeBoolean", invoker.getEffectiveName()));
+                }
+                break;
+            case "topic_channel":
+                String term = ArgumentUtil.getSearchTerm(context.msg, args, 2);
+                TextChannel channel = ArgumentUtil.checkSingleFuzzyTextChannelSearchResult(context, term);
+                if (channel != null) {
+                    gc.setTopicChannel(channel.getId());
+                    EntityWriter.mergeGuildConfig(gc);
+                    context.replyWithName("`topic_channel` " + context.i18nFormat("configSetTo", val));
+                } else {
+                    context.reply(context.i18nFormat("configMustBeChannel", val));
                 }
                 break;
             default:
