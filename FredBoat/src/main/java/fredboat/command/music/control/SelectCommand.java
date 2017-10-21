@@ -35,6 +35,8 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.db.EntityReader;
+import fredboat.db.entity.GuildConfig;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
@@ -108,19 +110,57 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
             } else {
                 AudioTrack[] selectedTracks = new AudioTrack[validChoices.size()];
                 StringBuilder outputMsgBuilder = new StringBuilder();
+                    GuildConfig gc = EntityReader.getGuildConfig(context.getGuild().getId());
+                    Integer memberTrackLimit = gc.getMemberTrackLimit();
+                    Long maxTrackDuration = gc.getMaxTrackDuration();
+
+                    for (int i = 0; i < validChoices.size(); i++) {
+
+
+
+                        if (memberTrackLimit > 0) {
+                            if ((player.getMemberTrackCount(context.getMember()) + 1) > memberTrackLimit) {
+                                context.replyWithName(context.i18nFormat("exceedsMemberTrackLimitSingle", ("`" + memberTrackLimit + "`")));
+                                break;
+                            }
+                        }
+
+                        selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
 
                 for (int i = 0; i < validChoices.size(); i++) {
                     selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
+                        if (maxTrackDuration > 0) {
+                            if (selectedTracks[i].getDuration() > maxTrackDuration) {
+                                outputMsgBuilder.append(context.i18nFormat("exceedsTrackDurationLimitSingle",
+                                        "**" + selectedTracks[i].getInfo().title + "**",
+                                        "`" + TextUtils.formatTime(maxTrackDuration) + "`")).append("\n");
+                                continue;
+                            }
+                        }
 
                     String msg = context.i18nFormat("selectSuccess", validChoices.get(i), selectedTracks[i].getInfo().title,
                             TextUtils.formatTime(selectedTracks[0].getInfo().length));
                     if (i < validChoices.size()) {
                         outputMsgBuilder.append("\n");
+                        String msg = context.i18nFormat("selectSuccess", validChoices.get(i), selectedTracks[i].getInfo().title,
+                                "`" + TextUtils.formatTime(selectedTracks[i].getInfo().length) + "`");
+                        outputMsgBuilder.append(msg).append("\n");
+
+                        player.queue(new AudioTrackContext(selectedTracks[i], invoker));
                     }
                     outputMsgBuilder.append(msg);
 
                     player.queue(new AudioTrackContext(selectedTracks[i], invoker));
                 }
+                    VideoSelection.remove(invoker);
+                    TextChannel tc = FredBoat.getTextChannelById(selection.channelId);
+                    if (tc != null) {
+                        if (!outputMsgBuilder.toString().isEmpty()) {
+                            CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
+                        } else {
+                            CentralMessaging.deleteMessageById(tc, selection.outMsgId);
+                        }
+                    }
 
                 VideoSelection.remove(invoker);
                 TextChannel tc = FredBoat.getTextChannelById(selection.channelId);

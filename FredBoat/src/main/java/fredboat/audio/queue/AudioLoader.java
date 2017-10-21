@@ -36,8 +36,12 @@ import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.PlaylistImporter;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
 import fredboat.feature.metrics.Metrics;
+import fredboat.db.EntityReader;
+import fredboat.db.entity.GuildConfig;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
+import fredboat.perms.PermissionLevel;
+import fredboat.perms.PermsUtil;
 import fredboat.util.TextUtils;
 import fredboat.util.ratelimit.Ratelimiter;
 import fredboat.util.rest.YoutubeAPI;
@@ -169,13 +173,13 @@ public class AudioLoader implements AudioLoadResultHandler {
     public void trackLoaded(AudioTrack at) {
         Metrics.tracksLoaded.inc();
         try {
-            if(context.isSplit()){
+            if (context.isSplit()) {
                 loadSplit(at, context);
             } else {
 
                 if (!context.isQuiet()) {
                     context.reply(gplayer.isPlaying() ?
-                            context.i18nFormat("loadSingleTrack", at.getInfo().title)
+                            context.i18nFormat("loadSingleTrack", "**" + at.getInfo().title + "**")
                             :
                             context.i18nFormat("loadSingleTrackAndPlay", at.getInfo().title)
                     );
@@ -200,18 +204,64 @@ public class AudioLoader implements AudioLoadResultHandler {
     public void playlistLoaded(AudioPlaylist ap) {
         Metrics.tracksLoaded.inc(ap.getTracks() == null ? 0 : ap.getTracks().size());
         try {
-            if(context.isSplit()){
+            if (context.isSplit()) {
                 context.reply(context.i18n("loadPlaySplitListFail"));
                 loadNextAsync();
                 return;
             }
 
             List<AudioTrackContext> toAdd = new ArrayList<>();
+            List<AudioTrack> failedToAdd = new ArrayList<>();
             for (AudioTrack at : ap.getTracks()) {
+
+                if (gc.getMaxTrackDuration() > 0) {
+                    if (at.getDuration() > gc.getMaxTrackDuration()) {
+                        failedToAdd.add(at);
+                        continue;
+                    }
+                }
+
                 toAdd.add(new AudioTrackContext(at, context.getMember()));
             }
+
             trackProvider.addAll(toAdd);
-            context.reply(context.i18nFormat("loadListSuccess", ap.getTracks().size(), ap.getName()));
+
+            String added = toAdd.size() > 1
+                    ? "`" + toAdd.size() + "`"
+                    : "**" + ap.getTracks().get(0).getInfo().title + "**";
+            String failed = failedToAdd.size() > 1
+                    ? "`" + failedToAdd.size() + "`"
+                    : "**" + failedToAdd.get(0).getInfo().title + "**";
+            String maxDuration = "`" + TextUtils.formatTime(gc.getMaxTrackDuration()) + "`";
+            String playlistName = "**" + ap.getName() + "**";
+
+            if (toAdd.size() > 1) {
+                if (failedToAdd.size() > 0) {
+                    context.reply(context.i18nFormat("loadListSuccess", added, playlistName) + "\n" +
+                            (failedToAdd.size() > 1
+                                    ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDuration)
+                                    : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDuration)));
+                } else {
+                    context.reply(context.i18nFormat("loadListSuccess", added, playlistName));
+                }
+
+            } else if (toAdd.size() == 1){
+                if (failedToAdd.size() > 0) {
+                    context.reply(context.i18nFormat("loadSingleTrack", added) + "\n" +
+                            (failedToAdd.size() > 1
+                                    ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDuration)
+                                    : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDuration)));
+                } else {
+                    context.reply(context.i18nFormat("loadSingleTrack", added));
+                }
+            }
+            else {
+                context.reply(failedToAdd.size() > 1
+                        ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDuration)
+                        : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDuration));
+
+            }
+
             if (!gplayer.isPaused()) {
                 gplayer.play();
             }
@@ -239,8 +289,8 @@ public class AudioLoader implements AudioLoadResultHandler {
         loadNextAsync();
     }
 
-    private void loadSplit(AudioTrack at, IdentifierContext ic){
-        if(!(at instanceof YoutubeAudioTrack)){
+    private void loadSplit(AudioTrack at, IdentifierContext ic) {
+        if (!(at instanceof YoutubeAudioTrack)) {
             ic.reply(ic.i18n("loadSplitNotYouTube"));
             return;
         }
@@ -252,7 +302,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
         ArrayList<Pair<Long, String>> pairs = new ArrayList<>();
 
-        while(m.find()) {
+        while (m.find()) {
             long timestamp;
             try {
                 timestamp = TextUtils.parseTimeString(m.group(2));
@@ -262,8 +312,8 @@ public class AudioLoader implements AudioLoadResultHandler {
 
             String title1 = m.group(1);
             String title2 = m.group(3);
-            
-            if(title1.length() > title2.length()) {
+
+            if (title1.length() > title2.length()) {
                 pairs.add(new ImmutablePair<>(timestamp, title1));
             } else {
                 pairs.add(new ImmutablePair<>(timestamp, title2));
@@ -272,7 +322,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
         }
 
-        if(pairs.size() < 2) {
+        if (pairs.size() < 2) {
             ic.reply(ic.i18n("loadSplitNotResolves"));
             return;
         }
@@ -280,11 +330,11 @@ public class AudioLoader implements AudioLoadResultHandler {
         ArrayList<SplitAudioTrackContext> list = new ArrayList<>();
 
         int i = 0;
-        for(Pair<Long, String> pair : pairs){
+        for (Pair<Long, String> pair : pairs) {
             long startPos;
             long endPos;
 
-            if(i != pairs.size() - 1){
+            if (i != pairs.size() - 1) {
                 // Not last
                 startPos = pair.getLeft();
                 endPos = pairs.get(i + 1).getLeft();
@@ -307,7 +357,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append(ic.i18n("loadFollowingTracksAdded")).append("\n");
-        for(SplitAudioTrackContext atc : list) {
+        for (SplitAudioTrackContext atc : list) {
             mb.append("`[")
                     .append(TextUtils.formatTime(atc.getEffectiveDuration()))
                     .append("]` ")
@@ -316,7 +366,7 @@ public class AudioLoader implements AudioLoadResultHandler {
         }
 
         //This is pretty spammy .. let's use a shorter one
-        if(mb.length() > 800){
+        if (mb.length() > 800) {
             mb = CentralMessaging.getClearThreadLocalMessageBuilder()
                     .append(ic.i18nFormat("loadPlaylistTooMany", list.size()));
         }
