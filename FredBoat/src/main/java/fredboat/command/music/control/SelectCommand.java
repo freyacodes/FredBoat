@@ -110,62 +110,47 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
             } else {
                 AudioTrack[] selectedTracks = new AudioTrack[validChoices.size()];
                 StringBuilder outputMsgBuilder = new StringBuilder();
-                    GuildConfig gc = EntityReader.getGuildConfig(context.getGuild().getId());
-                    Integer memberTrackLimit = gc.getMemberTrackLimit();
-                    Long maxTrackDuration = gc.getMaxTrackDuration();
 
-                    for (int i = 0; i < validChoices.size(); i++) {
-
-
-
-                        if (memberTrackLimit > 0) {
-                            if ((player.getMemberTrackCount(context.getMember()) + 1) > memberTrackLimit) {
-                                context.replyWithName(context.i18nFormat("exceedsMemberTrackLimitSingle", ("`" + memberTrackLimit + "`")));
-                                break;
-                            }
-                        }
-
-                        selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
+                GuildConfig gc = EntityReader.getGuildConfig(context.getGuild().getId());
+                Integer memberTrackLimit = gc.getMemberTrackLimit();
+                Long maxTrackDuration = gc.getMaxTrackDuration();
 
                 for (int i = 0; i < validChoices.size(); i++) {
-                    selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
-                        if (maxTrackDuration > 0) {
-                            if (selectedTracks[i].getDuration() > maxTrackDuration) {
-                                outputMsgBuilder.append(context.i18nFormat("exceedsTrackDurationLimitSingle",
-                                        "**" + selectedTracks[i].getInfo().title + "**",
-                                        "`" + TextUtils.formatTime(maxTrackDuration) + "`")).append("\n");
-                                continue;
-                            }
+                    // Check how many and if too many songs a user queued
+                    if (memberTrackLimit > 0) {
+                        if ((player.getMemberTrackCount(context.getMember()) + 1) > memberTrackLimit) {
+                            context.replyWithName(context.i18nFormat("exceedsMemberTrackLimitSingle", ("`" + memberTrackLimit + "`")));
+                            break;
                         }
+                    }
+
+                    selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
+                    // Check the song length and continue to the next song if to long
+                    if (maxTrackDuration > 0) {
+                        if (selectedTracks[i].getDuration() > maxTrackDuration) {
+                            outputMsgBuilder.append(context.i18nFormat("exceedsTrackDurationLimitSingle",
+                                    "**" + selectedTracks[i].getInfo().title + "**",
+                                    "`" + TextUtils.formatTime(maxTrackDuration) + "`")).append("\n");
+                            continue;
+                        }
+                    }
 
                     String msg = context.i18nFormat("selectSuccess", validChoices.get(i), selectedTracks[i].getInfo().title,
                             TextUtils.formatTime(selectedTracks[0].getInfo().length));
-                    if (i < validChoices.size()) {
-                        outputMsgBuilder.append("\n");
-                        String msg = context.i18nFormat("selectSuccess", validChoices.get(i), selectedTracks[i].getInfo().title,
-                                "`" + TextUtils.formatTime(selectedTracks[i].getInfo().length) + "`");
-                        outputMsgBuilder.append(msg).append("\n");
-
-                        player.queue(new AudioTrackContext(selectedTracks[i], invoker));
-                    }
-                    outputMsgBuilder.append(msg);
+                    outputMsgBuilder.append(msg).append("\n"); //we can always add a newline discord removes any extra tailing newlines
 
                     player.queue(new AudioTrackContext(selectedTracks[i], invoker));
                 }
-                    VideoSelection.remove(invoker);
-                    TextChannel tc = FredBoat.getTextChannelById(selection.channelId);
-                    if (tc != null) {
-                        if (!outputMsgBuilder.toString().isEmpty()) {
-                            CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
-                        } else {
-                            CentralMessaging.deleteMessageById(tc, selection.outMsgId);
-                        }
-                    }
 
                 VideoSelection.remove(invoker);
                 TextChannel tc = FredBoat.getTextChannelById(selection.channelId);
                 if (tc != null) {
-                    CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
+                    // outputMsgBuilder can be empty if no song was valid after limitation checks so delete to not throw
+                    if (!outputMsgBuilder.toString().isEmpty()) {
+                        CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
+                    } else {
+                        CentralMessaging.deleteMessageById(tc, selection.outMsgId);
+                    }
                 }
 
                 player.setPause(false);
