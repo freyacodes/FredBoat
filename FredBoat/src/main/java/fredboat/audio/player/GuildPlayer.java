@@ -219,6 +219,22 @@ public class GuildPlayer extends AbstractPlayer {
         return result;
     }
 
+    public List<AudioTrackContext> getAllTracks() {
+        return getTracksInRange(0, getTrackCount());
+    }
+
+    public int getMemberTrackCount(Member member) {
+        List<AudioTrackContext> atcList = getAllTracks();
+
+
+        Integer count = 0;
+        for (AudioTrackContext atc : atcList) {
+            if (atc.getMember() == member)
+                count++;
+        }
+        return count;
+    }
+
     //similar to getTracksInRange, but only gets the trackIds
     public List<Long> getTrackIdsInRange(int start, int end) {
         log.debug("getTrackIdsInRange({} {})", start, end);
