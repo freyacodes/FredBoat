@@ -55,6 +55,15 @@ public class GuildConfig implements IEntity, Serializable {
     @Column(name = "lang", nullable = false)
     private String lang = "en_US";
 
+    @Column(name = "allow_playlist", nullable = false)
+    private boolean allowPlaylist = true;
+
+    @Column(name = "member_track_limit", nullable = false)
+    private int memberTrackLimit = 0;
+
+    @Column(name = "max_track_duration", nullable = false)
+    private long maxTrackDuration = 0;
+
     public GuildConfig(String id) {
         this.guildId = id;
     }
@@ -94,6 +103,18 @@ public class GuildConfig implements IEntity, Serializable {
     public void setLang(String lang) {
         this.lang = lang;
     }
+
+    public boolean isAllowPlaylist() { return allowPlaylist; }
+
+    public void setAllowPlaylist(boolean allowPlaylist) { this.allowPlaylist = allowPlaylist; }
+
+    public int getMemberTrackLimit() { return memberTrackLimit; }
+
+    public void  setMemberTrackLimit(int memberTrackLimit) { this.memberTrackLimit = memberTrackLimit; }
+
+    public long getMaxTrackDuration() { return maxTrackDuration; }
+
+    public void setMaxTrackDuration(long maxTrackDuration) { this.maxTrackDuration = maxTrackDuration; }
 
     /*@OneToMany
     @JoinColumn(name = "guildconfig")

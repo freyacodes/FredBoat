@@ -37,6 +37,7 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Member;
 
@@ -64,6 +65,9 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                 .append(context.i18nFormat("configNoArgs", context.guild.getName())).append("\n")
                 .append("track_announce = ").append(gc.isTrackAnnounce()).append("\n")
                 .append("auto_resume = ").append(gc.isAutoResume()).append("\n")
+                .append("allow_playlist = ").append(gc.isAllowPlaylist()).append("\n")
+                .append("member_track_limit = ").append(gc.getMemberTrackLimit()).append("\n")
+                .append("max_track_duration = ").append(TextUtils.formatTime(gc.getMaxTrackDuration())).append("\n")
                 .append("```"); //opening ``` is part of the configNoArgs language string
 
         context.reply(mb.build());
@@ -102,6 +106,30 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                 } else {
                     context.reply(context.i18nFormat("configMustBeBoolean", invoker.getEffectiveName()));
                 }
+                break;
+            case "allow_playlist":
+                if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
+                    gc.setAllowPlaylist(Boolean.valueOf(val));
+                    EntityWriter.mergeGuildConfig(gc);
+                    context.replyWithName("`allow_playlist` " + context.i18nFormat("configSetTo", val));
+                } else {
+                    context.replyWithName(context.i18n("configMustBeBoolean"));
+                }
+                break;
+            case "member_track_limit":
+                if (val.matches("^\\d+$")) {
+                    gc.setMemberTrackLimit(Integer.valueOf(val));
+                    EntityWriter.mergeGuildConfig(gc);
+                    context.replyWithName("`member_track_limit` " + context.i18nFormat("configSetTo", val));
+                } else {
+                    context.replyWithName(context.i18n("configMustBeNumber"));
+                }
+                break;
+            case "max_track_duration":
+                Long time = TextUtils.parseTimeString(val); // We should handle failed parses better than throwing tbh.
+                gc.setMaxTrackDuration(time);
+                EntityWriter.mergeGuildConfig(gc);
+                context.replyWithName("`max_track_duration` " + context.i18nFormat("configSetTo", val));
                 break;
             default:
                 context.reply(context.i18nFormat("configUnknownKey", invoker.getEffectiveName()));
