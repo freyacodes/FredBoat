@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.validation.constraints.NotNull;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
@@ -450,12 +451,12 @@ public class CentralMessaging {
         }
     }
 
-    public static EmbedBuilder addFooter(EmbedBuilder eb, Member author) {
+    public static EmbedBuilder addFooter(@NotNull EmbedBuilder eb, @NotNull Member author) {
         return eb.setFooter(author.getEffectiveName(), author.getUser().getAvatarUrl());
     }
 
-    public static EmbedBuilder addNpFooter(EmbedBuilder eb, Member requester) {
-        return eb.setFooter("Requested by" + requester.getEffectiveName(), requester.getUser().getAvatarUrl());
+    public static EmbedBuilder addNpFooter(@NotNull EmbedBuilder eb, @NotNull Member requester) {
+        return eb.setFooter("Requested by " + requester.getEffectiveName(), requester.getUser().getAvatarUrl());
     }
 
 
