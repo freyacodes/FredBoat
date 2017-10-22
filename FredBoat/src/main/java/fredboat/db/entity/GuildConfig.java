@@ -27,6 +27,7 @@ package fredboat.db.entity;
 
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.ColumnDefault;
 
 import javax.persistence.Cacheable;
 import javax.persistence.Column;
@@ -56,7 +57,8 @@ public class GuildConfig implements IEntity, Serializable {
     private String lang = "en_US";
 
     @Column(name = "topic_channel", nullable = false)
-    private String topicChannel = "";
+    @ColumnDefault("0")
+    private Long topicChannel = 0L;
 
     public GuildConfig(String id) {
         this.guildId = id;
@@ -98,9 +100,9 @@ public class GuildConfig implements IEntity, Serializable {
         this.lang = lang;
     }
 
-    public String getTopicChannel() {return topicChannel; }
+    public Long getTopicChannel() {return topicChannel; }
 
-    public void setTopicChannel(String topicChannel) {this.topicChannel = topicChannel; }
+    public void setTopicChannel(Long topicChannel) {this.topicChannel = topicChannel; }
 
     /*@OneToMany
     @JoinColumn(name = "guildconfig")
