@@ -108,10 +108,10 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                 }
                 break;
             case "topic_channel":
-                String term = ArgumentUtil.getSearchTerm(context.msg, args, 2);
+                String term = context.rawArgs.replaceFirst(context.args[0], "").trim();
                 TextChannel channel = ArgumentUtil.checkSingleFuzzyTextChannelSearchResult(context, term);
                 if (channel != null) {
-                    gc.setTopicChannel(channel.getId());
+                    gc.setTopicChannel(channel.getIdLong());
                     EntityWriter.mergeGuildConfig(gc);
                     context.replyWithName("`topic_channel` " + context.i18nFormat("configSetTo", channel.getName()));
                 }
