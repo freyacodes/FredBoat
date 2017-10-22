@@ -51,7 +51,6 @@ import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.*;
 import net.dv8tion.jda.core.managers.AudioManager;
 import net.dv8tion.jda.core.managers.ChannelManager;
-import net.dv8tion.jda.core.requests.restaction.ChannelAction;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -59,7 +58,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.xml.soap.Text;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -471,8 +469,6 @@ public class GuildPlayer extends AbstractPlayer {
         TextChannel topicChannel = guild.getTextChannelById(gc.getTopicChannel());
 
         if (topicChannel != null) {
-
-
             ChannelManager manager = topicChannel.getManager();
 
             AudioTrackContext playingAtc = getPlayingTrack();
@@ -486,7 +482,5 @@ public class GuildPlayer extends AbstractPlayer {
                 log.warn("Failed to set Topic");
             }
         }
-
-
     }
 }

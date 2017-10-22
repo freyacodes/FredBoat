@@ -29,7 +29,6 @@ import fredboat.commandmeta.abs.CommandContext;
 import net.dv8tion.jda.core.entities.*;
 
 import javax.annotation.Nonnull;
-import javax.xml.soap.Text;
 import java.util.ArrayList;
 import java.util.List;
 
