@@ -72,7 +72,7 @@ public class LanguageCommand extends Command implements IModerationCommand {
 
     private void handleNoArgs(CommandContext context) {
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(context.i18n("langInfo").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()))//todo custom prefix
+                .append(context.i18n("langInfo").replace(Config.DEFAULT_PREFIX, context.getPrefix()))//todo escape markdown
                 .append("\n\n");
 
         List<String> keys = new ArrayList<>(I18n.LANGS.keySet());

@@ -25,7 +25,6 @@
 
 package fredboat.command.music.control;
 
-import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
@@ -52,7 +51,7 @@ public class PauseCommand extends Command implements IMusicCommand, ICommandRest
             context.reply(context.i18n("pauseAlreadyPaused"));
         } else {
             player.pause();
-            context.reply(context.i18nFormat("pauseSuccess", Config.CONFIG.getPrefix()));
+            context.reply(context.i18nFormat("pauseSuccess", context.getPrefix()));//todo escape markdown
         }
     }
 

@@ -27,7 +27,7 @@ package fredboat.command.util;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import fredboat.Config;
+import fredboat.command.moderation.PrefixCommand;
 import fredboat.command.music.control.SelectCommand;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
@@ -94,7 +94,7 @@ public class HelpCommand extends Command implements IUtilCommand {
                     helpReceivedRecently.put(userId, true);
                     String out = context.i18n("helpSent");
                     out += "\n" + context.i18nFormat("helpCommandsPromotion",
-                            "`" + Config.CONFIG.getPrefix() + "commands`");
+                            "`" + context.getPrefix() + "commands`");//todo escape markdown
                     if (context.hasPermissions(Permission.MESSAGE_WRITE)) {
                         context.replyWithName(out);
                     }
@@ -125,7 +125,7 @@ public class HelpCommand extends Command implements IUtilCommand {
         if (command instanceof SelectCommand)
             thirdParam = "play";
 
-        return MessageFormat.format(helpStr, Config.CONFIG.getPrefix(), commandOrAlias, thirdParam);
+        return MessageFormat.format(helpStr, PrefixCommand.giefPrefix(context.getGuild().getIdLong()), commandOrAlias, thirdParam);//todo escape markdown
     }
 
     public static void sendFormattedCommandHelp(CommandContext context) {
@@ -135,9 +135,9 @@ public class HelpCommand extends Command implements IUtilCommand {
     private static void sendFormattedCommandHelp(CommandContext context, String trigger) {
         CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(trigger);
         if (commandEntry == null) {
-            String out = "`" + Config.CONFIG.getPrefix() + trigger + "`: " + context.i18n("helpUnknownCommand");
+            String out = "`" + context.getPrefix() + trigger + "`: " + context.i18n("helpUnknownCommand");//todo escape markdown
             out += "\n" + context.i18nFormat("helpCommandsPromotion",
-                    "`" + Config.CONFIG.getPrefix() + "commands`");
+                    "`" + context.getPrefix() + "commands`");//todo escape markdown
             context.replyWithName(out);
             return;
         }

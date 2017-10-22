@@ -138,7 +138,7 @@ public class CommandsCommand extends Command implements IUtilCommand {
             out += "\n" + owner;
         }
 
-        out += "\n\n" + context.i18nFormat("commandsMoreHelp", "`" + Config.CONFIG.getPrefix() + "help <command>`");
+        out += "\n\n" + context.i18nFormat("commandsMoreHelp", "`" + context.getPrefix() + "help <command>`");//todo escape markdown
         context.reply(out);
     }
 

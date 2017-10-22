@@ -70,6 +70,7 @@ public class ServerInfoCommand extends Command implements IUtilCommand {
         eb.addField(context.i18n("serverinfoGuildID"), guild.getId(), true);
         eb.addField(context.i18n("serverinfoVLv"), guild.getVerificationLevel().name(), true);
         eb.addField(context.i18n("serverinfoOwner"), guild.getOwner().getAsMention(), true);
+        eb.addField(context.i18n("prefix"), context.getPrefix(), true);
 
         context.reply(eb.build());
     }

@@ -156,7 +156,7 @@ public class EventListenerBoat extends AbstractEventListener {
             if (ratelimiterResult.b == SkipCommand.class) { //we can compare classes with == as long as we are using the same classloader (which we are)
                 //add a nice reminder on how to skip more than 1 song
                 out += "\n" + context.i18nFormat("ratelimitedSkipCommand",
-                        "`" + Config.CONFIG.getPrefix() + "skip n-m`");
+                        "`" + context.getPrefix() + "skip n-m`");//todo escape markdown
             }
             context.replyWithMention(out);
         }
