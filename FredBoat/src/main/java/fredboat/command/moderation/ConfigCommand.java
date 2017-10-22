@@ -67,7 +67,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                 .append(context.i18nFormat("configNoArgs", context.guild.getName())).append("\n")
                 .append("track_announce = ").append(gc.isTrackAnnounce()).append("\n")
                 .append("auto_resume = ").append(gc.isAutoResume()).append("\n")
-                .append("topic_channel = ").append(channel != null ? channel.getName() : "Null").append("\n")
+                .append("topic_channel = ").append(channel != null ? channel.getName() : "None").append("\n")
                 .append("```"); //opening ``` is part of the configNoArgs language string
 
         context.reply(mb.build());
