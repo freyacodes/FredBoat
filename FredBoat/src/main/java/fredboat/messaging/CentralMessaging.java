@@ -454,6 +454,10 @@ public class CentralMessaging {
         return eb.setFooter(author.getEffectiveName(), author.getUser().getAvatarUrl());
     }
 
+    public static EmbedBuilder addNpFooter(EmbedBuilder eb, Member requester) {
+        return eb.setFooter("Requested by" + requester.getEffectiveName(), requester.getUser().getAvatarUrl());
+    }
+
 
     // ********************************************************************************
     //                           Class internal methods
