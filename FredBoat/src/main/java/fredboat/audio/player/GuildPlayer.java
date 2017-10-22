@@ -94,12 +94,24 @@ public class GuildPlayer extends AbstractPlayer {
     }
 
     private void announceTrack(AudioTrackContext atc) {
-        if (getRepeatMode() != RepeatMode.SINGLE && isTrackAnnounceEnabled() && !isPaused()) {
-            TextChannel activeTextChannel = getActiveTextChannel();
-            if (activeTextChannel != null) {
-                updateTopic();
-                CentralMessaging.sendMessage(activeTextChannel,
-                        atc.i18nFormat("trackAnnounce", atc.getEffectiveTitle()));
+        Guild guild = getGuild();
+        if (guild == null)
+            return;
+
+        GuildConfig gc = EntityReader.getGuildConfig(guild.getId());
+        if (getRepeatMode() != RepeatMode.SINGLE && !isPaused()) {
+
+            if (isTrackAnnounceEnabled(gc)) {
+                TextChannel activeTextChannel = getActiveTextChannel();
+                if (activeTextChannel != null) {
+                    CentralMessaging.sendMessage(activeTextChannel,
+                            atc.i18nFormat("trackAnnounce", atc.getEffectiveTitle()));
+                }
+            }
+
+            TextChannel topicChannel = getTopicChannel(gc);
+            if (topicChannel != null) {
+                updateTopic(guild, topicChannel);
             }
         }
     }
@@ -436,14 +448,25 @@ public class GuildPlayer extends AbstractPlayer {
         super.onTrackStart(player, track);
     }
 
-    private boolean isTrackAnnounceEnabled() {
+    private boolean isTrackAnnounceEnabled(GuildConfig config) {
         boolean enabled = false;
         try {
-            GuildConfig config = EntityReader.getGuildConfig(Long.toString(guildId));
             enabled = config.isTrackAnnounce();
         } catch (DatabaseNotReadyException ignored) {}
 
         return enabled;
+    }
+
+    @Nullable
+    private TextChannel getTopicChannel(GuildConfig gc) {
+        TextChannel channel = null;
+        try {
+            Guild guild = getGuild();
+            if (guild != null) {
+                channel = getGuild().getTextChannelById(gc.getTopicChannel());
+            }
+        } catch (DatabaseNotReadyException ignored) {}
+        return channel;
     }
 
     @Nonnull
@@ -462,12 +485,7 @@ public class GuildPlayer extends AbstractPlayer {
         VoteSkipCommand.guildSkipVotes.remove(guildId);
     }
 
-    private void updateTopic() {
-        Guild guild = getGuild();
-
-        GuildConfig gc = EntityReader.getGuildConfig(guild.getId());
-        TextChannel topicChannel = guild.getTextChannelById(gc.getTopicChannel());
-
+    private void updateTopic(@Nonnull Guild guild, @Nullable TextChannel topicChannel) {
         if (topicChannel != null) {
             ChannelManager manager = topicChannel.getManager();
 
