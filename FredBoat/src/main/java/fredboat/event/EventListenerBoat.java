@@ -254,6 +254,9 @@ public class EventListenerBoat extends AbstractEventListener {
     }
 
     private void checkForAutoPause(VoiceChannel channelLeft) {
+        if (!FeatureFlags.PAUSE_IF_ALONE.isActive())
+            return;
+
         Guild guild = channelLeft.getGuild();
         GuildPlayer player = PlayerRegistry.getExisting(guild);
 
