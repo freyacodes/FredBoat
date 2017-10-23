@@ -173,7 +173,7 @@ public class AudioLoader implements AudioLoadResultHandler {
     public void trackLoaded(AudioTrack at) {
         Metrics.tracksLoaded.inc();
         try {
-            if (context.isSplit()) {
+            if(context.isSplit()){
                 loadSplit(at, context);
             } else {
 
@@ -204,7 +204,7 @@ public class AudioLoader implements AudioLoadResultHandler {
     public void playlistLoaded(AudioPlaylist ap) {
         Metrics.tracksLoaded.inc(ap.getTracks() == null ? 0 : ap.getTracks().size());
         try {
-            if (context.isSplit()) {
+            if(context.isSplit()){
                 context.reply(context.i18n("loadPlaySplitListFail"));
                 loadNextAsync();
                 return;
@@ -289,8 +289,8 @@ public class AudioLoader implements AudioLoadResultHandler {
         loadNextAsync();
     }
 
-    private void loadSplit(AudioTrack at, IdentifierContext ic) {
-        if (!(at instanceof YoutubeAudioTrack)) {
+    private void loadSplit(AudioTrack at, IdentifierContext ic){
+        if(!(at instanceof YoutubeAudioTrack)){
             ic.reply(ic.i18n("loadSplitNotYouTube"));
             return;
         }
@@ -302,7 +302,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
         ArrayList<Pair<Long, String>> pairs = new ArrayList<>();
 
-        while (m.find()) {
+        while(m.find()) {
             long timestamp;
             try {
                 timestamp = TextUtils.parseTimeString(m.group(2));
@@ -313,7 +313,7 @@ public class AudioLoader implements AudioLoadResultHandler {
             String title1 = m.group(1);
             String title2 = m.group(3);
 
-            if (title1.length() > title2.length()) {
+            if(title1.length() > title2.length()) {
                 pairs.add(new ImmutablePair<>(timestamp, title1));
             } else {
                 pairs.add(new ImmutablePair<>(timestamp, title2));
@@ -322,7 +322,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
         }
 
-        if (pairs.size() < 2) {
+        if(pairs.size() < 2) {
             ic.reply(ic.i18n("loadSplitNotResolves"));
             return;
         }
@@ -330,11 +330,11 @@ public class AudioLoader implements AudioLoadResultHandler {
         ArrayList<SplitAudioTrackContext> list = new ArrayList<>();
 
         int i = 0;
-        for (Pair<Long, String> pair : pairs) {
+        for(Pair<Long, String> pair : pairs){
             long startPos;
             long endPos;
 
-            if (i != pairs.size() - 1) {
+            if(i != pairs.size() - 1){
                 // Not last
                 startPos = pair.getLeft();
                 endPos = pairs.get(i + 1).getLeft();
@@ -357,7 +357,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append(ic.i18n("loadFollowingTracksAdded")).append("\n");
-        for (SplitAudioTrackContext atc : list) {
+        for(SplitAudioTrackContext atc : list) {
             mb.append("`[")
                     .append(TextUtils.formatTime(atc.getEffectiveDuration()))
                     .append("]` ")
@@ -366,7 +366,7 @@ public class AudioLoader implements AudioLoadResultHandler {
         }
 
         //This is pretty spammy .. let's use a shorter one
-        if (mb.length() > 800) {
+        if(mb.length() > 800){
             mb = CentralMessaging.getClearThreadLocalMessageBuilder()
                     .append(ic.i18nFormat("loadPlaylistTooMany", list.size()));
         }
