@@ -148,7 +148,6 @@ public abstract class FredBoat {
 
         MusicCommandInitializer.initCommands();
 
-        // The null check is to ensure we can run this in a test run
         if (FeatureFlags.LEAVE_EMPTY_VC.isActive()) {
             log.info("Starting VoiceChannelCleanupAgent.");
             FredBoatAgent.start(new VoiceChannelCleanupAgent());
