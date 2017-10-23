@@ -27,6 +27,7 @@ package fredboat.db.entity;
 
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.ColumnDefault;
 
 import javax.persistence.Cacheable;
 import javax.persistence.Column;
@@ -56,12 +57,15 @@ public class GuildConfig implements IEntity, Serializable {
     private String lang = "en_US";
 
     @Column(name = "allow_playlist", nullable = false)
+    @ColumnDefault("true")
     private boolean allowPlaylist = true;
 
     @Column(name = "member_track_limit", nullable = false)
+    @ColumnDefault("0")
     private int memberTrackLimit = 0;
 
     @Column(name = "max_track_duration", nullable = false)
+    @ColumnDefault("0")
     private long maxTrackDuration = 0;
 
     public GuildConfig(String id) {
