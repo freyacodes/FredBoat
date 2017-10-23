@@ -277,7 +277,8 @@ public class FredBoatShard extends FredBoat {
                         .setAutoReconnect(true)
                         .setHttpClientBuilder(Http.defaultHttpClient.newBuilder())
                         .setReconnectQueue(connectQueue)
-                        .addEventListener(new EventLogger("216689009110417408"));
+                        .addEventListener(new EventLogger(Config.CONFIG.getEventLogWebhookId(),
+                                Config.CONFIG.getEventLogWebhookToken()));
 
                 if (LavalinkManager.ins.isEnabled()) {
                     builder.addEventListener(LavalinkManager.ins.getLavalink());

@@ -97,6 +97,8 @@ public class Config {
     private List<LavalinkHost> lavalinkHosts = new ArrayList<>();
     private String openWeatherKey;
     private String sentryDsn;
+    private long eventLogWebhookId;
+    private String eventLogWebhookToken;
 
     //testing related stuff
     private String testBotToken;
@@ -189,6 +191,9 @@ public class Config {
             jdbcUrl = (String) creds.getOrDefault("jdbcUrl", "");
 
             openWeatherKey = (String) creds.getOrDefault("openWeatherKey", "");
+
+            eventLogWebhookId = (long) creds.getOrDefault("eventLogWebhookId", 0L);
+            eventLogWebhookToken = (String) creds.getOrDefault("eventLogWebhookToken", "");
 
             Object gkeys = creds.get("googleServerKeys");
             if (gkeys instanceof List) {
@@ -400,6 +405,14 @@ public class Config {
 
     public String getOpenWeatherKey() {
         return openWeatherKey;
+    }
+
+    public long getEventLogWebhookId() {
+        return eventLogWebhookId;
+    }
+
+    public String getEventLogWebhookToken() {
+        return eventLogWebhookToken;
     }
 
     public boolean isRestServerEnabled() {
