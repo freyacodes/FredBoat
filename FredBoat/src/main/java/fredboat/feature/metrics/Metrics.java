@@ -257,9 +257,9 @@ public class Metrics {
     // ##                           Various
     // ################################################################################
 
-    public static final Counter databaseExceptionsCaught = Counter.build()//todo use this
-            .name("fredboat_db_exceptions_caught_total")
-            .help("Total database exceptions caught")
+    public static final Counter databaseExceptionsCreated = Counter.build()
+            .name("fredboat_db_exceptions_created_total")
+            .help("Total database exceptions created")
             .register();
 
     public static final Gauge threadPoolActiveThreads = Gauge.build()//todo use this

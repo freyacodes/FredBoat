@@ -26,24 +26,28 @@
 package fredboat.db;
 
 import fredboat.commandmeta.MessagingException;
+import fredboat.feature.metrics.Metrics;
 
 public class DatabaseNotReadyException extends MessagingException {
+    private static final long serialVersionUID = -3320905078677229733L;
 
     private static final String DEFAULT_MESSAGE = "The database is not available currently. Please try again in a moment.";
 
     DatabaseNotReadyException(String str, Throwable cause) {
         super(str, cause);
+        Metrics.databaseExceptionsCreated.inc();
     }
 
     DatabaseNotReadyException(String str) {
         super(str);
+        Metrics.databaseExceptionsCreated.inc();
     }
 
     public DatabaseNotReadyException(Throwable cause) {
-        super(DEFAULT_MESSAGE, cause);
+        this(DEFAULT_MESSAGE, cause);
     }
 
     public DatabaseNotReadyException() {
-        super(DEFAULT_MESSAGE);
+        this(DEFAULT_MESSAGE);
     }
 }
