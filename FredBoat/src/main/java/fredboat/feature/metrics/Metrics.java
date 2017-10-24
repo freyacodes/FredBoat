@@ -79,9 +79,9 @@ public class Metrics {
 
     //our custom collectors / listeners etc:
     // fredboat stuff
-    public final FredBoatCollector fredBoatCollector = new FredBoatCollector().register();
+    public final FredBoatCollector fredBoatCollector = new FredBoatCollector();
     // threadpools
-    public final ThreadPoolCollector threadPoolCollector = new ThreadPoolCollector().register();
+    public final ThreadPoolCollector threadPoolCollector = new ThreadPoolCollector();
 
     private Metrics() {
         //log metrics
@@ -99,6 +99,13 @@ public class Metrics {
         hikariStats = new PrometheusMetricsTrackerFactory();
 
         cacheMetrics.addCache("videoSelections", VideoSelection.SELECTIONS);
+
+        try {
+            fredBoatCollector.register();
+            threadPoolCollector.register();
+        } catch (IllegalArgumentException e) {
+            log.error("This should not happen outside of tests.", e);
+        }
 
         //register some of our "important" thread pools
         threadPoolCollector.addPool("main-executor", (ThreadPoolExecutor) FredBoat.executor);
