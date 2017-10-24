@@ -40,7 +40,7 @@
 
     <properties>
         <start-class>fredboat.FredBoat</start-class>
-        <prometheus.version>0.0.26</prometheus.version>
+        <prometheus.version>0.1.0</prometheus.version>
     </properties>
 
     <dependencies>
