@@ -33,7 +33,7 @@ import net.dv8tion.jda.core.hooks.ListenerAdapter;
  * <p>
  * Jda listener, drop it into all the shards to get stats on all events received.
  */
-public class MetricsListener extends ListenerAdapter {
+public class JdaEventsMetricsListener extends ListenerAdapter {
 
     @Override
     public void onGenericEvent(Event event) {

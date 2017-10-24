@@ -67,8 +67,9 @@ public class Metrics {
     public final PrometheusMetricsTrackerFactory hikariStats;
 
     public final SparkMetricsServlet metricsServlet = new SparkMetricsServlet();
-    public final MetricsListener metricsListener = new MetricsListener();
     public final CacheMetricsCollector cacheMetrics = new CacheMetricsCollector().register();
+    // collect jda events metrics
+    public final JdaEventsMetricsListener jdaEventsMetricsListener = new JdaEventsMetricsListener();
 
     private Metrics() {
         //log metrics

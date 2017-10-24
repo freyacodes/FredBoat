@@ -282,7 +282,7 @@ public class FredBoatShard extends FredBoat {
                         .setReconnectQueue(connectQueue)
                         .setHttpClientBuilder(new OkHttpClient.Builder()
                                 .eventListener(new OkHttpEventMetrics("jda")))
-                        .addEventListener(Metrics.instance().metricsListener)
+                        .addEventListener(Metrics.instance().jdaEventsMetricsListener)
                         .addEventListener(new EventLogger("216689009110417408"));
 
                 if (LavalinkManager.ins.isEnabled()) {
