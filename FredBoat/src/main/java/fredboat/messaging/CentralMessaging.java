@@ -393,7 +393,7 @@ public class CentralMessaging {
         try {
             channel.sendTyping().queue(
                     __ -> Metrics.successfulRestActions.labels("sendTyping").inc(),
-                    getJdaRestActionFailureHandler("Could not send typing event")
+                    getJdaRestActionFailureHandler("Could not send typing event in channel " + channel.getId())
             );
         } catch (InsufficientPermissionException e) {
             handleInsufficientPermissionsException(channel, e);
@@ -406,7 +406,8 @@ public class CentralMessaging {
             try {
                 channel.deleteMessages(messages).queue(
                         __ -> Metrics.successfulRestActions.labels("bulkDeleteMessages").inc(),
-                        getJdaRestActionFailureHandler("Could not bulk delete messages")
+                        getJdaRestActionFailureHandler(String.format("Could not bulk delete %s messages in channel %s",
+                                messages.size(), channel.getId()))
                 );
             } catch (InsufficientPermissionException e) {
                 handleInsufficientPermissionsException(channel, e);
@@ -428,11 +429,14 @@ public class CentralMessaging {
         }
     }
 
+    //make sure that the message passed in here is actually existing in Discord
+    // e.g. dont pass messages in here that were created with a MessageBuilder in our code
     public static void deleteMessage(@Nonnull Message message) {
         try {
             message.delete().queue(
                     __ -> Metrics.successfulRestActions.labels("deleteMessage").inc(),
-                    getJdaRestActionFailureHandler("Could not delete message")
+                    getJdaRestActionFailureHandler(String.format("Could not delete message %s in channel %s with content\n%s",
+                            message.getId(), message.getChannel().getId(), message.getRawContent()))
             );
         } catch (InsufficientPermissionException e) {
             handleInsufficientPermissionsException(message.getChannel(), e);
@@ -521,7 +525,7 @@ public class CentralMessaging {
             if (onFail != null) {
                 onFail.accept(t);
             } else {
-                String info = String.format("Could not sent file %s to channel %s in guild %s",
+                String info = String.format("Could not send file %s to channel %s in guild %s",
                         file.getAbsolutePath(), channel.getId(),
                         (channel instanceof TextChannel) ? ((TextChannel) channel).getGuild().getIdLong() : "null");
                 getJdaRestActionFailureHandler(info).accept(t);
@@ -565,7 +569,7 @@ public class CentralMessaging {
             if (onFail != null) {
                 onFail.accept(t);
             } else {
-                String info = String.format("Could not edit message %s in channel %s in guild %s wiht new content %s",
+                String info = String.format("Could not edit message %s in channel %s in guild %s with new content %s",
                         oldMessageId, channel.getId(),
                         (channel instanceof TextChannel) ? ((TextChannel) channel).getGuild().getIdLong() : "null",
                         newMessage.getRawContent());

@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CommandManager {
 
@@ -60,13 +61,15 @@ public class CommandManager {
 
     public static final Set<Command> disabledCommands = new HashSet<>(0);
 
+    public static final AtomicInteger totalCommandsExecuted = new AtomicInteger(0);
+
     public static void prefixCalled(CommandContext context) {
         Guild guild = context.guild;
         Command invoked = context.command;
         TextChannel channel = context.channel;
         Member invoker = context.invoker;
 
-        Metrics.totalCommandsExecuted.inc();
+        totalCommandsExecuted.incrementAndGet();
         Metrics.commandsExecuted.labels(invoked.getClass().getSimpleName()).inc();
 
         if (guild.getJDA().getSelfUser().getId().equals(BotConstants.PATRON_BOT_ID)

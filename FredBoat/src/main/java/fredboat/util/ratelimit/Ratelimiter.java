@@ -120,7 +120,7 @@ public class Ratelimiter {
                     allowed = ratelimit.isAllowed(context, weight, autoBlacklist);
                 }
                 if (!allowed) {
-                    Metrics.totalCommandsRatelimited.labels(command.getClass().getSimpleName()).inc();
+                    Metrics.commandsRatelimited.labels(command.getClass().getSimpleName()).inc();
                     return new Tuple2<>(false, ratelimit.getClazz());
                 }
             }

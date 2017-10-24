@@ -37,6 +37,6 @@ public class JdaEventsMetricsListener extends ListenerAdapter {
 
     @Override
     public void onGenericEvent(Event event) {
-        Metrics.totalJdaEvents.labels(event.getClass().getSimpleName()).inc();
+        Metrics.jdaEvents.labels(event.getClass().getSimpleName()).inc();
     }
 }

@@ -30,11 +30,11 @@ import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.agent.FredBoatAgent;
 import fredboat.audio.player.PlayerRegistry;
+import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.feature.I18n;
-import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.AppInfo;
@@ -74,7 +74,7 @@ public class StatsCommand extends Command implements IMaintenanceCommand {
         } else {
             i18n = I18n.DEFAULT.getProps();
         }
-        double commandsExecuted = Metrics.totalCommandsExecuted.get();
+        double commandsExecuted = CommandManager.totalCommandsExecuted.get();
         String str = MessageFormat.format(i18n.getString("statsParagraph"),
                 days, hours, mins, secs, commandsExecuted - 1)
                 + "\n";

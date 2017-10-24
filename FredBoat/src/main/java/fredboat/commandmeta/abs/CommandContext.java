@@ -93,16 +93,17 @@ public class CommandContext extends Context {
         if (mentionMatcher.find() && mentionMatcher.group(2).equals(selfId)) {
             triggeredPrefix = mentionMatcher.group(1);
             input = mentionMatcher.group(3).trim();
+            Metrics.prefixParsed.labels("mention").inc();
         }
         // or starts with our prefix
         else if (raw.startsWith(Config.CONFIG.getPrefix())) {
             triggeredPrefix = Config.CONFIG.getPrefix();
             input = raw.substring(triggeredPrefix.length());
+            Metrics.prefixParsed.labels("default").inc(); //todo count custom prefix usage
         } else {
             //no match
             return null;
         }
-        Metrics.totalMessagesWithPrefixReceived.inc();
         input = input.trim();// eliminate possible whitespace between the mention/prefix and the rest of the input
         if (input.isEmpty()) {
             return null; //no command will be detectable from an empty input

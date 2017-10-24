@@ -83,7 +83,7 @@ public class EventListenerBoat extends AbstractEventListener {
 
         if (FeatureFlags.RATE_LIMITER.isActive()) {
             if (Ratelimiter.getRatelimiter().isBlacklisted(event.getAuthor().getIdLong())) {
-                Metrics.totalBlacklistedMessagesReceived.inc();
+                Metrics.blacklistedMessagesReceived.inc();
                 return;
             }
         }
@@ -123,21 +123,9 @@ public class EventListenerBoat extends AbstractEventListener {
             return;
         }
 
-        String commandClassName = context.command.getClass().getSimpleName();
-        Metrics.totalCommandsReceived.labels(commandClassName).inc();
+        Metrics.commandsReceived.labels(context.command.getClass().getSimpleName()).inc();
 
-        Histogram.Timer processingTimer = null;
-        if (FeatureFlags.FULL_METRICS.isActive()) {
-            processingTimer = Metrics.processingTime.labels(commandClassName).startTimer();
-        }
-        try {
-            limitOrExecuteCommand(context);
-        } finally {
-            //NOTE: Some commands, like ;;mal, run async and will not reflect the real performance of FredBoat
-            if (FeatureFlags.FULL_METRICS.isActive() && processingTimer != null) {
-                processingTimer.observeDuration();
-            }
-        }
+        limitOrExecuteCommand(context);
     }
 
     /**
@@ -148,8 +136,8 @@ public class EventListenerBoat extends AbstractEventListener {
         Tuple2<Boolean, Class> ratelimiterResult = new Tuple2<>(true, null);
         if (FeatureFlags.RATE_LIMITER.isActive()) {
             ratelimiterResult = Ratelimiter.getRatelimiter().isAllowed(context, context.command, 1);
-
         }
+
         if (ratelimiterResult.a) {
             Histogram.Timer executionTimer = null;
             if (FeatureFlags.FULL_METRICS.isActive()) {
@@ -158,6 +146,7 @@ public class EventListenerBoat extends AbstractEventListener {
             try {
                 CommandManager.prefixCalled(context);
             } finally {
+                //NOTE: Some commands, like ;;mal, run async and will not reflect the real performance of FredBoat
                 if (FeatureFlags.FULL_METRICS.isActive() && executionTimer != null) {
                     executionTimer.observeDuration();
                 }
@@ -187,6 +176,8 @@ public class EventListenerBoat extends AbstractEventListener {
 
         if (FeatureFlags.RATE_LIMITER.isActive()) {
             if (Ratelimiter.getRatelimiter().isBlacklisted(event.getAuthor().getIdLong())) {
+                //dont need to inc() the metrics counter here, because private message events are a subset of
+                // MessageReceivedEvents where we inc() the blacklisted messages counter already
                 return;
             }
         }

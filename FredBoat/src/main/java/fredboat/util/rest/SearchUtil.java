@@ -95,7 +95,7 @@ public class SearchUtil {
      */
     public static AudioPlaylist searchForTracks(String query, long cacheMaxAge, int timeoutMillis, List<SearchProvider> providers)
             throws SearchingException {
-        Metrics.totalSearchRequests.inc();
+        Metrics.searchRequests.inc();
 
         List<SearchProvider> provs = new ArrayList<>();
         if (providers == null || providers.isEmpty()) {
