@@ -141,6 +141,7 @@ public class CommandManager {
         try {
             invoked.onInvoke(context);
         } catch (Exception e) {
+            Metrics.commandExceptions.labels(e.getClass().getSimpleName()).inc();
             TextUtils.handleException(e, context);
         }
 

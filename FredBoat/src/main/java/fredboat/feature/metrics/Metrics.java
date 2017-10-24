@@ -204,6 +204,11 @@ public class Metrics {
             .labelNames("class") // use the simple name of the command class: PlayCommand, DanceCommand, ShardsCommand etc
             .register();
 
+    public static final Counter commandExceptions = Counter.build()
+            .name("fredboat_commands_exceptions_total")
+            .help("Total uncaught exceptions thrown by command invocation")
+            .labelNames("class") //class of the exception
+            .register();
 
     // ################################################################################
     // ##                           Http stats
