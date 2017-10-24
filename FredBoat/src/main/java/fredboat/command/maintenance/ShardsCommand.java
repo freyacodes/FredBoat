@@ -73,8 +73,8 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
         int healthyUsers = 0;
         for (FredBoat fb : shards) {
             if (fb.getJda().getStatus() == JDA.Status.CONNECTED && !full) {
-                healthyGuilds += fb.getShardGuildsCount();
-                healthyUsers += fb.getShardUniqueUsersCount();
+                healthyGuilds += fb.getGuildCount();
+                healthyUsers += fb.getUserCount();
             } else {
                 if (borkenShards % SHARDS_PER_MESSAGE == 0) {
                     if (mb != null) {
@@ -90,9 +90,9 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
                         .append(" ")
                         .append(fb.getJda().getStatus())
                         .append(" -- Guilds: ")
-                        .append(String.format("%04d", fb.getShardGuildsCount()))
+                        .append(String.format("%04d", fb.getGuildCount()))
                         .append(" -- Users: ")
-                        .append(fb.getShardUniqueUsersCount())
+                        .append(fb.getUserCount())
                         .append("\n");
                 borkenShards++;
             }

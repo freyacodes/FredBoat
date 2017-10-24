@@ -30,6 +30,7 @@ import com.zaxxer.hikari.metrics.prometheus.PrometheusMetricsTrackerFactory;
 import fredboat.FredBoat;
 import fredboat.agent.FredBoatAgent;
 import fredboat.audio.player.VideoSelection;
+import fredboat.feature.metrics.collectors.FredBoatCollector;
 import fredboat.feature.metrics.collectors.ThreadPoolCollector;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
@@ -76,6 +77,9 @@ public class Metrics {
     // collect jda events metrics
     public final JdaEventsMetricsListener jdaEventsMetricsListener = new JdaEventsMetricsListener();
 
+    //our custom collectors / listeners etc:
+    // fredboat stuff
+    public final FredBoatCollector fredBoatCollector = new FredBoatCollector().register();
     // threadpools
     public final ThreadPoolCollector threadPoolCollector = new ThreadPoolCollector().register();
 
@@ -130,18 +134,6 @@ public class Metrics {
             .labelNames("error_response_code") //Use the error response codes like: 50013, 10008 etc
             .register();
 
-    public static final Gauge jdaEntities = Gauge.build()
-            .name("fredboat_jda_entities_current")
-            .help("Current jda entities per shard")
-            .labelNames("entity", "shard") //use the simple name of the entity class: Guild, User, TextChannel, etc; use the shard id: 0, 1, 2, etc
-            .register();
-
-    public static final Gauge totalJdaEntities = Gauge.build()
-            .name("fredboat_jda_entities_total_current")
-            .help("Current jda entities fredboat wide")
-            .labelNames("entity") //use the simple name of the entity class: Guild, User, TextChannel, etc
-            .register();
-
 
     // ################################################################################
     // ##                        FredBoat Stats
@@ -184,11 +176,6 @@ public class Metrics {
 
 
     //music stuff
-
-    public static final Gauge playingPlayers = new Gauge.Builder()
-            .name("fredboat_music_players_playing_current")
-            .help("Current playing music players")
-            .register();
 
     public static final Counter totalSearchRequests = Counter.build()//search requests issued by users
             .name("fredboat_music_search_requests_total")

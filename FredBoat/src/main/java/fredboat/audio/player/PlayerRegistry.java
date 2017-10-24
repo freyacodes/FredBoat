@@ -25,7 +25,6 @@
 
 package fredboat.audio.player;
 
-import fredboat.feature.metrics.Metrics;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Guild;
 
@@ -34,27 +33,13 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class PlayerRegistry {
 
     public static final float DEFAULT_VOLUME = 1f;
-    private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     private final Map<Long, GuildPlayer> REGISTRY = new ConcurrentHashMap<>();
-
-    private PlayerRegistry() {
-        //update gauge of playing players regularly todo use a fredboat agent?
-        scheduler.scheduleAtFixedRate(() -> {
-            try {
-                Metrics.playingPlayers.set(playingCount());
-            } catch (Exception ignored) {
-            }
-        }, 0, 1, TimeUnit.MINUTES);
-    }
 
     //internal holder pattern
     private static PlayerRegistry instance() {
@@ -131,8 +116,8 @@ public class PlayerRegistry {
         }
     }
 
-    private long playingCount() {
-        return REGISTRY.values().stream()
+    public static long playingCount() {
+        return instance().REGISTRY.values().stream()
                 .filter(GuildPlayer::isPlaying)
                 .count();
     }

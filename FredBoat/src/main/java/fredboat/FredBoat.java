@@ -337,6 +337,8 @@ public abstract class FredBoat {
         return JDAUtil.getGuilds(shards);
     }
 
+
+    //JDA total entity counts
     public static int getTotalUniqueUsersCount() {
         return jdaEntityCountsTotal.uniqueUsersCount;
     }
@@ -344,6 +346,27 @@ public abstract class FredBoat {
     public static int getTotalGuildsCount() {
         return jdaEntityCountsTotal.guildsCount;
     }
+
+    public static int getTotalTextChannelsCount() {
+        return jdaEntityCountsTotal.textChannelsCount;
+    }
+
+    public static int getTotalVoiceChannelsCount() {
+        return jdaEntityCountsTotal.voiceChannelsCount;
+    }
+
+    public static int getTotalCategoriesCount() {
+        return jdaEntityCountsTotal.categoriesCount;
+    }
+
+    public static int getTotalEmotesCount() {
+        return jdaEntityCountsTotal.emotesCount;
+    }
+
+    public static int getTotalRolesCount() {
+        return jdaEntityCountsTotal.rolesCount;
+    }
+
 
 
     // ################################################################################
@@ -441,15 +464,26 @@ public abstract class FredBoat {
     @Nonnull
     public abstract JDA.ShardInfo getShardInfo();
 
-    public abstract int getGuildCount();
-
-    public abstract long getUserCount();
-
     public abstract void onInit(@Nonnull ReadyEvent readyEvent);
 
-    public abstract int getShardUniqueUsersCount();
 
-    public abstract int getShardGuildsCount();
+    //JDA entity counts
+
+    public abstract int getUserCount();
+
+    public abstract int getGuildCount();
+
+    public abstract int getTextChannelCount();
+
+    public abstract int getVoiceChannelCount();
+
+    public abstract int getCategoriesCount();
+
+    public abstract int getEmotesCount();
+
+    public abstract int getRolesCount();
+
+
 
     // ################################################################################
     //                              Counting things

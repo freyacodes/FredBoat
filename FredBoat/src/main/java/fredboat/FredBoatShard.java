@@ -35,7 +35,6 @@ import fredboat.event.EventListenerBoat;
 import fredboat.event.EventLogger;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.metrics.OkHttpEventMetrics;
-import fredboat.util.JDAUtil;
 import fredboat.util.TextUtils;
 import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.AccountType;
@@ -54,7 +53,6 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This class represents a FredBoat shard, containing all non-static FredBoat shard-level logic.
@@ -221,27 +219,40 @@ public class FredBoatShard extends FredBoat {
         return jda;
     }
 
+    //JDA entity counts
     @Override
-    public int getGuildCount() {
-        return JDAUtil.countGuilds(Collections.singletonList(this));
-    }
-
-
-    private final AtomicInteger biggestUserCountShard = new AtomicInteger(-1);
-
-    @Override
-    public long getUserCount() {
-        return JDAUtil.countUniqueUsers(Collections.singletonList(this), biggestUserCountShard);
-    }
-
-    @Override
-    public int getShardUniqueUsersCount() {
+    public int getUserCount() {
         return jdaEntityCountsShard.uniqueUsersCount;
     }
 
     @Override
-    public int getShardGuildsCount() {
+    public int getGuildCount() {
         return jdaEntityCountsShard.guildsCount;
+    }
+
+    @Override
+    public int getTextChannelCount() {
+        return jdaEntityCountsShard.textChannelsCount;
+    }
+
+    @Override
+    public int getVoiceChannelCount() {
+        return jdaEntityCountsShard.voiceChannelsCount;
+    }
+
+    @Override
+    public int getCategoriesCount() {
+        return jdaEntityCountsShard.categoriesCount;
+    }
+
+    @Override
+    public int getEmotesCount() {
+        return jdaEntityCountsShard.emotesCount;
+    }
+
+    @Override
+    public int getRolesCount() {
+        return jdaEntityCountsShard.rolesCount;
     }
 
     private static class ShardStatsCounter implements StatsAgent.Action {
