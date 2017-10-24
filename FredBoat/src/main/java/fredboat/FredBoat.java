@@ -148,11 +148,12 @@ public abstract class FredBoat {
 
         MusicCommandInitializer.initCommands();
 
-        if (FeatureFlags.LEAVE_EMPTY_VC.isActive()) {
+        if (!Config.CONFIG.isPatronDistribution() && Config.CONFIG.useVoiceChannelCleanup()) {
             log.info("Starting VoiceChannelCleanupAgent.");
             FredBoatAgent.start(new VoiceChannelCleanupAgent());
         } else {
-            log.info("Skipped setting up the VoiceChannelCleanupAgent since its disabled in FeatureFlags.");
+            log.info("Skipped setting up the VoiceChannelCleanupAgent, " +
+                    "either running Patron distro or overridden by temp config");
         }
 
         log.info("Loaded commands, registry size is " + CommandRegistry.getSize());

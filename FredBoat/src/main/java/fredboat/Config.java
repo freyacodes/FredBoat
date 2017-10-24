@@ -94,6 +94,7 @@ public class Config {
     private List<String> adminIds = new ArrayList<>();
     private boolean useAutoBlacklist = false;
     private String game = "";
+    private boolean continuePlayback = false;
     private List<LavalinkHost> lavalinkHosts = new ArrayList<>();
     private String openWeatherKey;
     private String sentryDsn;
@@ -120,6 +121,9 @@ public class Config {
     private Boolean mixerAudio;
     private Boolean spotifyAudio;
     private Boolean httpAudio;
+
+    //Temp configs
+    private boolean useVoiceChannelCleanup = true;
 
     @SuppressWarnings("unchecked")
     public Config(File credentialsFile, File configFile) {
@@ -170,6 +174,7 @@ public class Config {
             }
             useAutoBlacklist = (boolean) config.getOrDefault("useAutoBlacklist", useAutoBlacklist);
             game = (String) config.getOrDefault("game", "");
+            continuePlayback = (boolean) config.getOrDefault("continuePlayback", continuePlayback);
 
             log.info("Using prefix: " + prefix);
 
@@ -273,6 +278,9 @@ public class Config {
             mixerAudio = (Boolean) config.getOrDefault("enableMixer", true);
             spotifyAudio = (Boolean) config.getOrDefault("enableSpotify", true);
             httpAudio = (Boolean) config.getOrDefault("enableHttp", false);
+
+            //temp configs
+            useVoiceChannelCleanup = (boolean) config.getOrDefault("tempUseVoiceChannelCleanup", true);
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -435,6 +443,8 @@ public class Config {
         }
     }
 
+    public boolean getContinuePlayback() { return continuePlayback; }
+
     public String getTestBotToken() {
         return testBotToken;
     }
@@ -517,4 +527,6 @@ public class Config {
     public boolean isHttpEnabled() {
         return httpAudio;
     }
+
+    public boolean useVoiceChannelCleanup() {return useVoiceChannelCleanup; }
 }
