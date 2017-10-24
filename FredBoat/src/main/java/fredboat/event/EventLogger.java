@@ -252,23 +252,23 @@ public class EventLogger extends ListenerAdapter {
         String output = TextUtils.getTimeInCentralEurope() + " **Shard Events Summary:**\n";
         if (!readied.isEmpty()) {
             String shards = String.join(", ", readied.stream().map(i -> Integer.toString(i)).collect(Collectors.toList()));
-            output += TextUtils.asCodeBlock("+ " + readied.size() + " Shard ready events:\n+ " + shards, "diff") + "\n";
+            output += TextUtils.asCodeBlock("+ " + readied.size() + " shard ready events:\n+ " + shards, "diff") + "\n";
         }
         if (!resumed.isEmpty()) {
             String shards = String.join(", ", resumed.stream().map(i -> Integer.toString(i)).collect(Collectors.toList()));
-            output += TextUtils.asCodeBlock("+ " + resumed.size() + " Shard resume events:\n+ " + shards, "diff") + "\n";
+            output += TextUtils.asCodeBlock("+ " + resumed.size() + " shard resume events:\n+ " + shards, "diff") + "\n";
         }
         if (!reconnected.isEmpty()) {
             String shards = String.join(", ", reconnected.stream().map(i -> Integer.toString(i)).collect(Collectors.toList()));
-            output += TextUtils.asCodeBlock("+" + reconnected.size() + " Shard reconnect events:\n+ " + shards, "diff") + "\n";
+            output += TextUtils.asCodeBlock("+" + reconnected.size() + " shard reconnect events:\n+ " + shards, "diff") + "\n";
         }
         if (!disconnected.isEmpty()) {
             String shards = String.join(", ", disconnected.stream().map(i -> Integer.toString(i)).collect(Collectors.toList()));
-            output += TextUtils.asCodeBlock("-" + disconnected.size() + "Shard disconnect events:\n- " + shards, "diff") + "\n";
+            output += TextUtils.asCodeBlock("-" + disconnected.size() + " shard disconnect events:\n- " + shards, "diff") + "\n";
         }
         if (!shutdown.isEmpty()) {
             String shards = String.join(", ", shutdown.stream().map(i -> Integer.toString(i)).collect(Collectors.toList()));
-            output += TextUtils.asCodeBlock("- " + shutdown.size() + "Shard shutdown events:\n- " + shards, "diff") + "\n";
+            output += TextUtils.asCodeBlock("- " + shutdown.size() + " shard shutdown events:\n- " + shards, "diff") + "\n";
         }
 
         CentralMessaging.getClearThreadLocalMessageBuilder()
