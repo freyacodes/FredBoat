@@ -27,7 +27,10 @@ package fredboat.feature.metrics;
 
 import ch.qos.logback.classic.LoggerContext;
 import com.zaxxer.hikari.metrics.prometheus.PrometheusMetricsTrackerFactory;
+import fredboat.FredBoat;
+import fredboat.agent.FredBoatAgent;
 import fredboat.audio.player.VideoSelection;
+import fredboat.feature.metrics.collectors.ThreadPoolCollector;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 import io.prometheus.client.Histogram;
@@ -37,6 +40,8 @@ import io.prometheus.client.hotspot.DefaultExports;
 import io.prometheus.client.logback.InstrumentedAppender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Created by napster on 08.09.17.
@@ -71,6 +76,9 @@ public class Metrics {
     // collect jda events metrics
     public final JdaEventsMetricsListener jdaEventsMetricsListener = new JdaEventsMetricsListener();
 
+    // threadpools
+    public final ThreadPoolCollector threadPoolCollector = new ThreadPoolCollector().register();
+
     private Metrics() {
         //log metrics
         final LoggerContext factory = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -87,6 +95,10 @@ public class Metrics {
         hikariStats = new PrometheusMetricsTrackerFactory();
 
         cacheMetrics.addCache("videoSelections", VideoSelection.SELECTIONS);
+
+        //register some of our "important" thread pools
+        threadPoolCollector.addPool("main-executor", (ThreadPoolExecutor) FredBoat.executor);
+        threadPoolCollector.addPool("agents-scheduler", (ThreadPoolExecutor) FredBoatAgent.getScheduler());
     }
 
 
@@ -94,7 +106,6 @@ public class Metrics {
     //todo check for proper label usage
     //todo check for inc() usage
     //todo check FULL_METRICS feature flag
-    //todo agent metrics
     //todo any missing counters n gauges n stuff
 
     // ################################################################################
