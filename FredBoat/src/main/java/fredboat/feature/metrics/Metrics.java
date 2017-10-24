@@ -172,6 +172,16 @@ public class Metrics {
             .labelNames("source") //cache, youtube, soundcloud etc
             .register();
 
+    public static final Counter tracksLoaded = Counter.build()
+            .name("fredboat_music_tracks_loaded_total")
+            .help("Total tracks loaded by the audio loader")
+            .register();
+
+    public static final Counter trackLoadsFailed = Counter.build()
+            .name("fredboat_music_track_loads_failed_total")
+            .help("Total failed track loads by the audio loader")
+            .register();
+
     public static final Counter voiceChannelsCleanedUp = Counter.build()
             .name("fredboat_music_voicechannels_cleanedup_total")
             .help("Total voice channels that were cleaned up by the voice channel agent")
