@@ -42,6 +42,10 @@ import javax.annotation.Nonnull;
 public class LeaveCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(LeaveCommand.class);
+    
+    public LeaveCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {

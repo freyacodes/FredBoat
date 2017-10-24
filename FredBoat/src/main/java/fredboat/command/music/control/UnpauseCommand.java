@@ -40,7 +40,11 @@ import javax.annotation.Nonnull;
 
 public class UnpauseCommand extends Command implements IMusicCommand, ICommandRestricted {
 
-    private static final JoinCommand JOIN_COMMAND = new JoinCommand();
+    private static final JoinCommand JOIN_COMMAND = new JoinCommand("");
+
+    public UnpauseCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {

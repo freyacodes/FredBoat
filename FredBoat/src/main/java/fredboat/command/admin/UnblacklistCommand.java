@@ -42,6 +42,11 @@ import javax.annotation.Nonnull;
  * Lift ratelimit and remove a user from the blacklist
  */
 public class UnblacklistCommand extends Command implements ICommandRestricted {
+
+    public UnblacklistCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         if (!FeatureFlags.RATE_LIMITER.isActive()) {
@@ -49,12 +54,12 @@ public class UnblacklistCommand extends Command implements ICommandRestricted {
             return;
         }
 
-        if (context.msg.getMentionedUsers().isEmpty()) {
+        if (context.getMentionedUsers().isEmpty()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
-        User user = context.msg.getMentionedUsers().get(0);
+        User user = context.getMentionedUsers().get(0);
         String userId = user.getId();
 
         if (userId == null || "".equals(userId)) {

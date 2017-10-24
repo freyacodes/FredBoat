@@ -25,31 +25,17 @@
 
 package fredboat.commandmeta.abs;
 
-import java.util.ArrayList;
+import javax.annotation.Nonnull;
+import java.util.Arrays;
+import java.util.List;
 
 public abstract class Command implements ICommand {
 
-    public static String name = "Undefined";
-    public static ArrayList<String> aliases = new ArrayList<>();
+    public final String name;
+    public final List<String> aliases;
 
-    public static CommandInfo getCommandInfo(){
-        return new CommandInfo(name, "Undefined", "Undefined", aliases);
+    protected Command(@Nonnull String name, String... aliases) {
+        this.name = name;
+        this.aliases = Arrays.asList(aliases);
     }
-
-    public static class CommandInfo {
-
-        public String name;
-        public String desc;
-        public String usage;
-        public ArrayList<String> aliases;
-
-        public CommandInfo(String name, String desc, String usage, ArrayList<String> aliases) {
-            this.name = name;
-            this.desc = desc;
-            this.usage = usage;
-            this.aliases = aliases;
-        }
-
-    }
-
 }

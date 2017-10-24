@@ -48,6 +48,10 @@ public class CompileCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(CompileCommand.class);
 
+    public CompileCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         context.reply("*Now updating...*\n\nRunning `git clone`... ",
@@ -63,12 +67,12 @@ public class CompileCommand extends Command implements ICommandRestricted {
             Runtime rt = Runtime.getRuntime();
 
             String branch = "master";
-            if (context.args.length > 1) {
-                branch = context.args[1];
+            if (context.hasArguments()) {
+                branch = context.args[0];
             }
             String githubUser = "Frederikam";
-            if (context.args.length > 2) {
-                githubUser = context.args[2];
+            if (context.args.length > 1) {
+                githubUser = context.args[1];
             }
 
             //Clear any old update folder if it is still present

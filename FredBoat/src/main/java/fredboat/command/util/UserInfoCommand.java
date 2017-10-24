@@ -44,16 +44,21 @@ import java.util.List;
  * Created by midgard on 17/01/20.
  */
 public class UserInfoCommand extends Command implements IUtilCommand {
+
+    public UserInfoCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         Member target;
         StringBuilder knownServers = new StringBuilder();
         List<String> matchedGuildNames = new ArrayList<>();
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
-        if (context.args.length == 1) {
+        if (!context.hasArguments()) {
             target = context.invoker;
         } else {
-            target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(context, context.args[1], true);
+            target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(context, context.rawArgs, true);
         }
         if (target == null) return;
         FredBoat.getAllGuilds().forEach(guild -> {

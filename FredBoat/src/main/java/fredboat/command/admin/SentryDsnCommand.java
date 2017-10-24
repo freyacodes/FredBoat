@@ -52,15 +52,19 @@ public class SentryDsnCommand extends Command implements ICommandRestricted {
     private static final Logger log = LoggerFactory.getLogger(SentryDsnCommand.class);
     private static final String SENTRY_APPENDER_NAME = "SENTRY";
 
+    public SentryDsnCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        if (context.args.length < 2) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
-        String dsn = context.args[1];
+        String dsn = context.rawArgs;
 
-        if (dsn.equals("stop") || dsn.equals("clear")) {
+        if (dsn.equalsIgnoreCase("stop") || dsn.equalsIgnoreCase("clear")) {
             turnOff();
             context.replyWithName("Sentry service has been stopped");
         } else {

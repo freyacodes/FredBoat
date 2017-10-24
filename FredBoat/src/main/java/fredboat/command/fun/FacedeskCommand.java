@@ -33,12 +33,8 @@ import javax.annotation.Nonnull;
 
 public class FacedeskCommand extends RandomImageCommand implements IFunCommand {
 
-    public FacedeskCommand(String[] urls) {
-        super(urls);
-    }
-
-    public FacedeskCommand(String imgurAlbumUrl) {
-        super(imgurAlbumUrl);
+    public FacedeskCommand(String imgurAlbumUrl, String name, String... aliases) {
+        super(imgurAlbumUrl, name, aliases);
     }
 
     @Override

@@ -36,6 +36,10 @@ import javax.annotation.Nonnull;
 
 public class GensokyoRadioCommand extends Command implements IMusicCommand {
 
+    public GensokyoRadioCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         EmbedBuilder eb = CentralMessaging.addFooter(

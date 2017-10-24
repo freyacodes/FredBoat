@@ -25,10 +25,8 @@
 
 package fredboat.command.music.info;
 
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.audio.queue.AudioTrackContext;
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
@@ -41,13 +39,15 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class ExportCommand extends Command implements IMusicCommand {
 
     private static final Logger log = LoggerFactory.getLogger(ExportCommand.class);
 
+    public ExportCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {

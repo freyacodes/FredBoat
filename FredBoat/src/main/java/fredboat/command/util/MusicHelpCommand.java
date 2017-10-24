@@ -49,6 +49,10 @@ import javax.annotation.Nonnull;
 
 public class MusicHelpCommand extends Command implements IUtilCommand {
 
+    public MusicHelpCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         getFormattedCommandHelp(context);

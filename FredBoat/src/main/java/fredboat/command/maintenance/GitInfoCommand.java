@@ -48,10 +48,14 @@ import java.util.regex.Pattern;
  */
 public class GitInfoCommand extends Command implements IMaintenanceCommand {
 
-    private RandomImageCommand octocats = new RandomImageCommand("https://imgur.com/a/sBkTj");
+    private RandomImageCommand octocats = new RandomImageCommand("https://imgur.com/a/sBkTj", "");
 
     //https://regex101.com/r/wqfWBI/6/tests
     private static final Pattern GITHUB_URL_PATTERN = Pattern.compile("^(git@|https?://)(.+)[:/](.+)/(.+)(\\.git)?$");
+
+    public GitInfoCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {

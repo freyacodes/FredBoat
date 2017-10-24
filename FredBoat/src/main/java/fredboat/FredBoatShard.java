@@ -31,11 +31,13 @@ import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.MusicPersistenceHandler;
+import fredboat.event.EventListenerBoat;
 import fredboat.event.EventLogger;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.metrics.OkHttpEventMetrics;
 import fredboat.util.JDAUtil;
 import fredboat.util.TextUtils;
+import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
@@ -43,7 +45,6 @@ import net.dv8tion.jda.core.entities.Game;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
-import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.managers.AudioManager;
 import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
@@ -61,8 +62,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class FredBoatShard extends FredBoat {
 
     private static final Logger log = LoggerFactory.getLogger(FredBoatShard.class);
+
     private final int shardId;
-    private final EventListener listener;
 
     //For when we need to join a revived shard with it's old GuildPlayers
     protected final ArrayList<String> channelsToRejoin = new ArrayList<>();
@@ -71,64 +72,38 @@ public class FredBoatShard extends FredBoat {
     @Nonnull
     protected volatile JDA jda;
 
-
-    public FredBoatShard(int shardId, EventListener listener) {
+    public FredBoatShard(int shardId, @Nonnull EventListenerBoat mainListener) {
         this.shardId = shardId;
-        this.listener = listener;
         log.info("Building shard " + shardId);
-        jda = buildJDA();
+        jda = buildJDA(ShardBuilder.getDefaultShardBuilder(mainListener));
+
         jdaEntityCountAgent.addAction(new ShardStatsCounter(jda.getShardInfo(),
                 () -> jdaEntityCountsShard.count(Collections.singletonList(this))));
     }
 
-    private JDA buildJDA(boolean... blocking) {
+    private JDA buildJDA(final JDABuilder builder, boolean... blocking) {
         JDA newJda = null;
 
         try {
             boolean success = false;
             while (!success) {
-                JDABuilder builder = new JDABuilder(AccountType.BOT)
-                        .addEventListener(new EventLogger("216689009110417408"))
-                        .addEventListener(Metrics.instance().metricsListener)
-                        .setToken(Config.CONFIG.getBotToken())
-                        .setGame(Game.of(Config.CONFIG.getGame()))
-                        .setBulkDeleteSplittingEnabled(true)
-                        .setEnableShutdownHook(false)
-                        .setHttpClientBuilder(new OkHttpClient.Builder()
-                                .eventListener(new OkHttpEventMetrics("jda")))
-                        .setReconnectQueue(connectQueue);
-
-                if(listener != null) {
-                    builder.addEventListener(listener);
-                } else {
-                    log.warn("Starting a shard without an event listener!");
-                }
-
-                if (LavalinkManager.ins.isEnabled()) {
-                    builder.addEventListener(LavalinkManager.ins.getLavalink());
-                }
-
-                if (!System.getProperty("os.arch").equalsIgnoreCase("arm")
-                        && !System.getProperty("os.arch").equalsIgnoreCase("arm-linux")
-                        && !System.getProperty("os.arch").equalsIgnoreCase("darwin")
-                        && !System.getProperty("os.name").equalsIgnoreCase("Mac OS X")) {
-                    builder.setAudioSendFactory(new NativeAudioSendFactory());
-                }
-                if (Config.CONFIG.getNumShards() > 1) {
+                //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                synchronized (builder) {
                     builder.useSharding(shardId, Config.CONFIG.getNumShards());
-                }
-                try {
-                    connectQueue.requestCoin(shardId);
-                    if (blocking.length > 0 && blocking[0]) {
-                        newJda = builder.buildBlocking();
-                    } else {
-                        newJda = builder.buildAsync();
+
+                    try {
+                        connectQueue.requestCoin(shardId);
+                        if (blocking.length > 0 && blocking[0]) {
+                            newJda = builder.buildBlocking();
+                        } else {
+                            newJda = builder.buildAsync();
+                        }
+                        success = true;
+                    } catch (RateLimitedException e) {
+                        log.error("Got rate limited while building bot JDA instance! Retrying...", e);
+                    } catch (Exception e) {
+                        log.error("Generic exception when building a JDA instance! Retrying...", e);
                     }
-                    success = true;
-                } catch (RateLimitedException e) {
-                    log.error("Got rate limited while building bot JDA instance! Retrying...", e);
-                } catch (Exception e) {
-                    log.error("Generic exception when building a JDA instance! Retrying...", e);
                 }
             }
         } catch (Exception e) {
@@ -209,13 +184,14 @@ public class FredBoatShard extends FredBoat {
                     log.error("Caught exception while saving channels to revive shard {}", shardId, ex);
                 }
 
-                //remove listeners from decommissioned jda for good memory hygiene
-                jda.removeEventListener(listener);
-
                 jda.shutdown();
+
+                //remove listeners from decommissioned jda for good memory hygiene
+                jda.removeEventListener(jda.getRegisteredListeners());
+
                 //a blocking build makes sure the revive task runs until the shard is connected, otherwise the shard may
                 // get revived again accidentally while still connecting
-                jda = buildJDA(true);
+                jda = buildJDA(ShardBuilder.getDefaultShardBuilder(mainEventListener), true);
 
             } catch (Exception e) {
                 log.error("Task to revive shard {} threw an exception after running for {}",
@@ -285,6 +261,48 @@ public class FredBoatShard extends FredBoat {
         @Override
         public void act() throws Exception {
             action.act();
+        }
+    }
+
+    //some static aids around a singleton builder object
+    protected static class ShardBuilder {
+        private static JDABuilder defaultShardBuilder;
+
+        @Nonnull
+        protected synchronized static JDABuilder getDefaultShardBuilder(@Nonnull EventListenerBoat mainListener) {
+            if (defaultShardBuilder == null) {
+                JDABuilder builder = new JDABuilder(AccountType.BOT)
+                        .setToken(Config.CONFIG.getBotToken())
+                        .setGame(Game.of(Config.CONFIG.getGame()))
+                        .setBulkDeleteSplittingEnabled(false)
+                        .setEnableShutdownHook(false)
+                        .setAudioEnabled(true)
+                        .setAutoReconnect(true)
+                        .setHttpClientBuilder(Http.defaultHttpClient.newBuilder())
+                        .setReconnectQueue(connectQueue)
+                        .setHttpClientBuilder(new OkHttpClient.Builder()
+                                .eventListener(new OkHttpEventMetrics("jda")))
+                        .addEventListener(Metrics.instance().metricsListener)
+                        .addEventListener(new EventLogger("216689009110417408"));
+
+                if (LavalinkManager.ins.isEnabled()) {
+                    builder.addEventListener(LavalinkManager.ins.getLavalink());
+                }
+
+                if (!System.getProperty("os.arch").equalsIgnoreCase("arm")
+                        && !System.getProperty("os.arch").equalsIgnoreCase("arm-linux")
+                        && !System.getProperty("os.arch").equalsIgnoreCase("darwin")
+                        && !System.getProperty("os.name").equalsIgnoreCase("Mac OS X")) {
+                    builder.setAudioSendFactory(new NativeAudioSendFactory());
+                }
+
+                defaultShardBuilder = builder;
+            }
+
+            return defaultShardBuilder
+                    .removeEventListener(mainListener) //prevent duplicates
+                    .addEventListener(mainListener);
+
         }
     }
 }

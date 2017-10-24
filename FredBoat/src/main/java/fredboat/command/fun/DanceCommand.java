@@ -51,7 +51,9 @@ public class DanceCommand extends Command implements IFunCommand {
 
     private final Semaphore allowed = new Semaphore(5);
 
-    public DanceCommand() {
+    public DanceCommand(String name, String... aliases) {
+        super(name, aliases);
+
         LoadingCache<String, ReentrantLock> danceLockCache = CacheBuilder.newBuilder()
                 .recordStats()
                 .maximumSize(128) //any value will do, but not too big

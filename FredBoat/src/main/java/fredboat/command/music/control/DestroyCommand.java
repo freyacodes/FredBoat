@@ -37,6 +37,10 @@ import javax.annotation.Nonnull;
 
 public class DestroyCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public DestroyCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         PlayerRegistry.destroyPlayer(context.guild);

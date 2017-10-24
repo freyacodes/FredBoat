@@ -36,7 +36,8 @@ public class TextCommand extends Command implements IFunCommand {
 
     public String msg;
 
-    public TextCommand(String msg) {
+    public TextCommand(String msg, String name, String... aliases) {
+        super(name, aliases);
         this.msg = msg;
     }
     

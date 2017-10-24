@@ -37,6 +37,7 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
+import fredboat.shared.constant.BotConstants;
 import fredboat.util.ArgumentUtil;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.Permission;
@@ -59,7 +60,8 @@ public class PermissionsCommand extends Command implements IModerationCommand {
 
     public final PermissionLevel permissionLevel;
 
-    public PermissionsCommand(PermissionLevel permissionLevel) {
+    public PermissionsCommand(PermissionLevel permissionLevel, String name, String... aliases) {
+        super(name, aliases);
         this.permissionLevel = permissionLevel;
     }
 
@@ -69,13 +71,12 @@ public class PermissionsCommand extends Command implements IModerationCommand {
             context.reply("Permissions are currently disabled.");
             return;
         }
-        String[] args = context.args;
-        if (args.length < 2) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
-        switch (args[1]) {
+        switch (context.args[0]) {
             case "del":
             case "delete":
             case "remove":
@@ -83,7 +84,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
             case "rm":
                 if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, context)) return;
 
-                if (args.length < 3) {
+                if (context.args.length < 2) {
                     HelpCommand.sendFormattedCommandHelp(context);
                     return;
                 }
@@ -93,7 +94,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
             case "add":
                 if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, context)) return;
 
-                if (args.length < 3) {
+                if (context.args.length < 2) {
                     HelpCommand.sendFormattedCommandHelp(context);
                     return;
                 }
@@ -113,7 +114,8 @@ public class PermissionsCommand extends Command implements IModerationCommand {
     public void remove(CommandContext context) {
         Guild guild = context.guild;
         Member invoker = context.invoker;
-        String term = ArgumentUtil.getSearchTerm(context.msg, context.args, 2);
+        //remove the first argument aka add / remove etc to get a nice search term
+        String term = context.rawArgs.replaceFirst(context.args[0], "").trim();
 
         List<IMentionable> search = new ArrayList<>();
         search.addAll(ArgumentUtil.fuzzyRoleSearch(guild, term));
@@ -147,7 +149,8 @@ public class PermissionsCommand extends Command implements IModerationCommand {
 
     public void add(CommandContext context) {
         Guild guild = context.guild;
-        String term = ArgumentUtil.getSearchTerm(context.msg, context.args, 2);
+        //remove the first argument aka add / remove etc to get a nice search term
+        String term = context.rawArgs.replaceFirst(context.args[0], "").trim();
 
         List<IMentionable> list = new ArrayList<>();
         list.addAll(ArgumentUtil.fuzzyRoleSearch(guild, term));
@@ -250,7 +253,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
     @Override
     public String help(@Nonnull Context context) {
         String usage = "{0}{1} add <role/user>\n{0}{1} del <role/user>\n{0}{1} list\n#";
-        return usage + context.i18nFormat("helpPerms", permissionLevel.getName()) + " https://docs.fredboat.com/permissions";
+        return usage + context.i18nFormat("helpPerms", permissionLevel.getName()) + "\n" + BotConstants.DOCS_PERMISSIONS_URL;
     }
 
 }

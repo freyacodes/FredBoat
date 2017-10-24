@@ -33,12 +33,8 @@ import javax.annotation.Nonnull;
 
 public class RollCommand extends RandomImageCommand implements IFunCommand {
 
-    public RollCommand(String[] urls) {
-        super(urls);
-    }
-
-    public RollCommand(String imgurAlbumUrl) {
-        super(imgurAlbumUrl);
+    public RollCommand(String imgurAlbumUrl, String name, String... aliases) {
+        super(imgurAlbumUrl, name, aliases);
     }
 
     @Override

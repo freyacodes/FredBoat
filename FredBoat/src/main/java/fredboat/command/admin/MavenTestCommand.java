@@ -52,6 +52,10 @@ public class MavenTestCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(MavenTestCommand.class);
 
+    public MavenTestCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         context.reply("*Testing now...*",

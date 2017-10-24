@@ -39,15 +39,18 @@ import javax.annotation.Nonnull;
  */
 public class SayCommand extends Command implements IUtilCommand {
 
+    public SayCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        if (context.args.length < 2) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
-        String res = context.msg.getRawContent().substring(context.args[0].length() + 1);
-        context.reply(TextUtils.ZERO_WIDTH_CHAR + res,
-                message1 -> EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), message1.getIdLong())
+        context.reply(TextUtils.ZERO_WIDTH_CHAR + context.rawArgs,
+                message -> EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), message.getIdLong())
         );
 
     }

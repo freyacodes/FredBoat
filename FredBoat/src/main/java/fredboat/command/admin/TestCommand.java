@@ -52,6 +52,10 @@ public class TestCommand extends Command implements ICommandRestricted {
     private final String CREATE_TEST_TABLE = "CREATE TABLE IF NOT EXISTS test (id serial, val integer, PRIMARY KEY (id));";
     private final String INSERT_TEST_TABLE = "INSERT INTO test (val) VALUES (:val) ";
 
+    public TestCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         FredBoat.executor.submit(() -> invoke(FredBoat.getDbManager(), context, context.args));
@@ -63,9 +67,9 @@ public class TestCommand extends Command implements ICommandRestricted {
 
         int t = 20;
         int o = 2000;
-        if (args.length > 2) {
-            t = Integer.valueOf(args[1]);
-            o = Integer.valueOf(args[2]);
+        if (args.length > 1) {
+            t = Integer.valueOf(args[0]);
+            o = Integer.valueOf(args[1]);
         }
         final int threads = t;
         final int operations = o;

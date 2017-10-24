@@ -46,30 +46,33 @@ public class MathCommand extends Command implements IUtilCommand {
 
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
+    public MathCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        String[] args = context.args;
         String output;
 
         try {
-            if(args.length == 3) {
+            if (context.args.length == 2) {
 
-                BigDecimal num1 = new BigDecimal(args[2]);
+                BigDecimal num1 = new BigDecimal(context.args[1]);
 
-                if (args[1].equals("sqrt")) {
+                if (context.args[0].equals("sqrt")) {
                     output = context.i18n("mathOperationResult") + " " + Double.toString(sqrt(num1.doubleValue()));
                 } else {
                     HelpCommand.sendFormattedCommandHelp(context);
                     return;
                 }
 
-            } else if(args.length == 4) {
+            } else if (context.args.length == 3) {
 
-                BigDecimal num1 = new BigDecimal(args[2]);
-                BigDecimal num2 = new BigDecimal(args[3]);
+                BigDecimal num1 = new BigDecimal(context.args[1]);
+                BigDecimal num2 = new BigDecimal(context.args[2]);
                 String resultStr = context.i18n("mathOperationResult") + " ";
 
-                switch(args[1]) {
+                switch (context.args[0]) {
                     case "sum":
                     case "add":
                         output = resultStr + num1.add(num2, MathContext.DECIMAL64).toPlainString();

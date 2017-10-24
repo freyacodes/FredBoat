@@ -25,13 +25,13 @@
 
 package fredboat.audio.player;
 
+import com.google.common.collect.Lists;
 import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.bandcamp.BandcampAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.beam.BeamAudioSourceManager;
-import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
@@ -62,6 +62,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
 public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements AudioSendHandler {
@@ -77,6 +78,10 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
 
     protected Consumer<AudioTrackContext> onPlayHook;
     protected Consumer<Throwable> onErrorHook;
+
+    private static final int MAX_HISTORY_SIZE = 20;
+    private AudioTrackContext queuedTrackInHistory = null;
+    protected ConcurrentLinkedQueue<AudioTrackContext> historyQueue = new ConcurrentLinkedQueue<>();
 
     @SuppressWarnings("LeakingThisInConstructor")
     AbstractPlayer(String guildId) {
@@ -215,6 +220,26 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
         return player.getPlayingTrack() == null && audioTrackProvider.isEmpty();
     }
 
+    public List<AudioTrackContext> getTracksInHistory(int start, int end) {
+        start = Math.max(start, 0);
+        end = Math.max(end, start);
+        List<AudioTrackContext> historyList = new ArrayList<>(historyQueue);
+
+        if (historyList.size() >= end) {
+            return Lists.reverse(new ArrayList<>(historyQueue)).subList(start, end);
+        } else {
+            return new ArrayList<>();
+        }
+    }
+
+    public int getTrackCountInHistory() {
+        return historyQueue.size();
+    }
+
+    public boolean isHistoryQueueEmpty() {
+        return historyQueue.isEmpty();
+    }
+
     public AudioTrackContext getPlayingTrack() {
         log.debug("getPlayingTrack()");
 
@@ -259,6 +284,7 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
         log.debug("onTrackEnd({} {} {}) called", track.getInfo().title, endReason.name(), endReason.mayStartNext);
 
         if (endReason == AudioTrackEndReason.FINISHED || endReason == AudioTrackEndReason.STOPPED) {
+            updateHistoryQueue();
             loadAndPlay();
         } else if(endReason == AudioTrackEndReason.CLEANUP) {
             log.info("Track " + track.getIdentifier() + " was cleaned up");
@@ -284,8 +310,16 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
         }
 
         if (atc != null) {
+            queuedTrackInHistory = atc;
             playTrack(atc);
         }
+    }
+
+    private void updateHistoryQueue() {
+        if (historyQueue.size() == MAX_HISTORY_SIZE) {
+            historyQueue.poll();
+        }
+        historyQueue.add(queuedTrackInHistory);
     }
 
     /**

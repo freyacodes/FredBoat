@@ -42,6 +42,10 @@ import java.util.concurrent.TimeUnit;
 
 public class VolumeCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public VolumeCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
 
@@ -49,7 +53,7 @@ public class VolumeCommand extends Command implements IMusicCommand, ICommandRes
 
             GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
             try {
-                float volume = Float.parseFloat(context.args[1]) / 100;
+                float volume = Float.parseFloat(context.args[0]) / 100;
                 volume = Math.max(0, Math.min(1.5f, volume));
 
                 context.reply(context.i18nFormat("volumeSuccess",

@@ -38,6 +38,10 @@ import javax.annotation.Nonnull;
 
 public class ShuffleCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public ShuffleCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);

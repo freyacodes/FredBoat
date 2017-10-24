@@ -55,11 +55,25 @@ public class Config {
 
     private static final Logger log = LoggerFactory.getLogger(Config.class);
 
-    public static Config CONFIG = null;
-
     public static String DEFAULT_PREFIX = ";;";
     //see https://github.com/brettwooldridge/HikariCP connectionTimeout
     public static int HIKARI_TIMEOUT_MILLISECONDS = 1000;
+
+    public static final Config CONFIG;
+
+    static {
+        Config c;
+        try {
+            c = new Config(
+                    loadConfigFile("credentials"),
+                    loadConfigFile("config")
+            );
+        } catch (final IOException e) {
+            c = null;
+            log.error("Could not load config files!", e);
+        }
+        CONFIG = c;
+    }
 
     private final DistributionEnum distribution;
     private final String botToken;
@@ -221,9 +235,6 @@ public class Config {
                 numShards = DiscordUtil.getRecommendedShardCount(getBotToken());
             }
             log.info("Discord recommends " + numShards + " shard(s)");
-            //overriding to always use sharding. saves us a headache with tons of null checks while keeping the code
-            // usable for selfhosters because we can assume JDA#getShardInfo will never be null
-            if (numShards < 2) numShards = 2;
 
             //more database connections don't help with performance, so use a value based on available cores
             //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
@@ -265,13 +276,6 @@ public class Config {
                     "Try using an online yaml validator.");
             throw e;
         }
-    }
-
-    static void loadDefaultConfig() throws IOException {
-        Config.CONFIG = new Config(
-                loadConfigFile("credentials"),
-                loadConfigFile("config")
-        );
     }
 
     /**

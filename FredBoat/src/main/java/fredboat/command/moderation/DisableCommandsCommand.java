@@ -12,31 +12,34 @@ import fredboat.perms.PermissionLevel;
 import javax.annotation.Nonnull;
 
 public class DisableCommandsCommand extends Command implements ICommandRestricted {
+
+    public DisableCommandsCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
 
-        if (context.args.length  == 2) {
-            try {
-                CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(context.args[1]);
-
-                if (commandEntry.name.equals("enable")
-                        || commandEntry.name.equals("disable")) {
-                    context.reply("Let's not disable this :wink:");
-                    return;
-                }
-
-                if (CommandManager.disabledCommands.contains(commandEntry.command)) {
-                    context.reply("This command is already disabled!");
-                    return;
-                }
-
-                CommandManager.disabledCommands.add(commandEntry.command);
-                context.reply(":ok_hand: Command `" + commandEntry.name + "` disabled!");
-
-            } catch (NullPointerException ex) {
+        if (context.hasArguments()) {
+            CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(context.args[0]);
+            if (commandEntry == null) {
                 context.reply("This command doesn't exist!");
+                return;
             }
 
+            if (commandEntry.name.equals("enable")
+                    || commandEntry.name.equals("disable")) {
+                context.reply("Let's not disable this :wink:");
+                return;
+            }
+
+            if (CommandManager.disabledCommands.contains(commandEntry.command)) {
+                context.reply("This command is already disabled!");
+                return;
+            }
+
+            CommandManager.disabledCommands.add(commandEntry.command);
+            context.reply(":ok_hand: Command `" + commandEntry.name + "` disabled!");
         } else {
             HelpCommand.sendFormattedCommandHelp(context);
         }

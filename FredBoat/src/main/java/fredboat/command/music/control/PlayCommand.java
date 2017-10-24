@@ -40,34 +40,30 @@ import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import fredboat.util.ArgumentUtil;
+import fredboat.shared.constant.BotConstants;
 import fredboat.util.TextUtils;
 import fredboat.util.rest.SearchUtil;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message.Attachment;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class PlayCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(PlayCommand.class);
     private final List<SearchUtil.SearchProvider> searchProviders;
-    private static final JoinCommand JOIN_COMMAND = new JoinCommand();
+    private static final JoinCommand JOIN_COMMAND = new JoinCommand("");
 
-    public PlayCommand(SearchUtil.SearchProvider... searchProviders) {
-        this.searchProviders = Arrays.asList(searchProviders);
+    public PlayCommand(List<SearchUtil.SearchProvider> searchProviders, String name, String... aliases) {
+        super(name, aliases);
+        this.searchProviders = searchProviders;
     }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        String[] args = context.args;
         if (!context.invoker.getVoiceState().inVoiceChannel()) {
             context.reply(context.i18n("playerUserNotInChannel"));
             return;
@@ -87,34 +83,25 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
             return;
         }
 
-        if (args.length < 2) {
+        if (!context.hasArguments()) {
             handleNoArguments(context);
             return;
         }
 
-        // Combine all args except the first part of the arg
-        StringBuilder sb = new StringBuilder();
-        for (int i = 1; i < args.length; i++) {
-            sb.append(args[i]);
-            sb.append(" ");
-        }
-        String argsOptions = sb.toString();
-        argsOptions = ArgumentUtil.combineArgs(new String[]{argsOptions});
-        // What if we want to select a selection instead? or multi-select?
-        if (args.length >= 2 && TextUtils.isSplitSelect(argsOptions)) {
+        if (TextUtils.isSplitSelect(context.rawArgs)) {
             SelectCommand.select(context);
             return;
         }
 
         //Search youtube for videos and let the user select a video
-        if (!args[1].startsWith("http")) {
+        if (!context.args[0].startsWith("http")) {
             searchForVideos(context);
             return;
         }
 
         GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
-        player.queue(args[1], context);
+        player.queue(context.args[0], context);
         player.setPause(false);
 
         context.deleteMessage();
@@ -143,18 +130,13 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
     }
 
     private void searchForVideos(CommandContext context) {
-        Matcher m = Pattern.compile("\\S+\\s+(.*)").matcher(context.msg.getRawContent());
-        m.find();
-        String query = m.group(1);
-        
         //Now remove all punctuation
-        query = query.replaceAll(SearchUtil.PUNCTUATION_REGEX, "");
+        String query = context.rawArgs.replaceAll(SearchUtil.PUNCTUATION_REGEX, "");
 
-        String finalQuery = query;
         context.reply(context.i18n("playSearching").replace("{q}", query), outMsg -> {
             AudioPlaylist list;
             try {
-                list = SearchUtil.searchForTracks(finalQuery, searchProviders);
+                list = SearchUtil.searchForTracks(query, searchProviders);
             } catch (SearchUtil.SearchingException e) {
                 context.reply(context.i18n("playYoutubeSearchError"));
                 log.error("YouTube search exception", e);
@@ -163,13 +145,10 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
 
             if (list == null || list.getTracks().isEmpty()) {
                 CentralMessaging.editMessage(outMsg,
-                        context.i18n("playSearchNoResults").replace("{q}", finalQuery)
+                        context.i18n("playSearchNoResults").replace("{q}", query)
                 );
 
             } else {
-                //Clean up any last search by this user
-                GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
-
                 //Get at most 5 tracks
                 List<AudioTrack> selectable = list.getTracks().subList(0, Math.min(SearchUtil.MAX_RESULTS, list.getTracks().size()));
 
@@ -204,7 +183,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
     @Override
     public String help(@Nonnull Context context) {
         String usage = "{0}{1} <url> OR {0}{1} <search-term>\n#";
-        return usage + context.i18n("helpPlayCommand");
+        return usage + context.i18nFormat("helpPlayCommand", BotConstants.DOCS_URL);
     }
 
     @Nonnull

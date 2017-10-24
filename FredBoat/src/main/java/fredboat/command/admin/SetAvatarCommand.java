@@ -26,6 +26,10 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(SetAvatarCommand.class);
 
+    public SetAvatarCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         String imageUrl = null;
@@ -33,8 +37,8 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
         if (!context.msg.getAttachments().isEmpty()) {
             Attachment attachment = context.msg.getAttachments().get(0);
             imageUrl = attachment.getUrl();
-        } else if (context.args.length > 1) {
-            imageUrl = context.args[1];
+        } else if (context.hasArguments()) {
+            imageUrl = context.args[0];
         }
 
         if (imageUrl != null && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))) {

@@ -45,6 +45,10 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
 
     private static final int SHARDS_PER_MESSAGE = 30;
 
+    public ShardsCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         for (Message message : getShardStatus(context.msg)) {

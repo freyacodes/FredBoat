@@ -45,8 +45,12 @@ import java.util.concurrent.TimeoutException;
 public class UpdateCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(UpdateCommand.class);
-    private static final CompileCommand COMPILE_COMMAND = new CompileCommand();
+    private static final CompileCommand COMPILE_COMMAND = new CompileCommand("");
     private static final long MAX_JAR_AGE = 10 * 60 * 1000;
+
+    public UpdateCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {

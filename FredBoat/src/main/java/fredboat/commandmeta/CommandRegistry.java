@@ -38,11 +38,11 @@ public class CommandRegistry {
 
     private static HashMap<String, CommandEntry> registry = new HashMap<>();
 
-    public static void registerCommand(@Nonnull String name, @Nonnull Command command, String... aliases) {
-        name = name.toLowerCase();
+    public static void registerCommand(@Nonnull Command command) {
+        String name = command.name.toLowerCase();
         CommandEntry entry = new CommandEntry(command, name);
         registry.put(name, entry);
-        for (String alias : aliases) {
+        for (String alias : command.aliases) {
             registry.put(alias.toLowerCase(), entry);
         }
     }
@@ -61,7 +61,7 @@ public class CommandRegistry {
     }
 
     public static void removeCommand(String name) {
-        CommandEntry entry = new CommandEntry(new Command() {
+        CommandEntry entry = new CommandEntry(new Command(name) {
             @Override
             public void onInvoke(@Nonnull CommandContext context) {
                 context.reply("This command is temporarily disabled");

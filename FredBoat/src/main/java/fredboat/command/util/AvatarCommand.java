@@ -34,13 +34,17 @@ import javax.annotation.Nonnull;
 
 public class AvatarCommand extends Command implements IUtilCommand {
 
+    public AvatarCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        if (context.msg.getMentionedUsers().isEmpty()) {
+        if (context.getMentionedUsers().isEmpty()) {
             HelpCommand.sendFormattedCommandHelp(context);
         } else {
             context.replyWithName(context.i18nFormat("avatarSuccess",
-                    context.msg.getMentionedUsers().get(0).getAvatarUrl()));
+                    context.getMentionedUsers().get(0).getAvatarUrl()));
         }
     }
 

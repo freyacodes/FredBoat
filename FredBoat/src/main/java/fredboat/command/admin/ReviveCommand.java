@@ -42,24 +42,34 @@ import javax.annotation.Nonnull;
  */
 public class ReviveCommand extends Command implements ICommandRestricted {
 
+    public ReviveCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
 
         int shardId;
-        try {
-            if (context.args[1].equals("guild")) {
-                long guildId = Long.valueOf(context.args[2]);
-                //https://discordapp.com/developers/docs/topics/gateway#sharding
-                shardId = (int) ((guildId >> 22) % Config.CONFIG.getNumShards());
-            } else
-                shardId = Integer.parseInt(context.args[1]);
 
-        } catch (NumberFormatException | IndexOutOfBoundsException e) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
-        boolean force = (context.msg.getRawContent().toLowerCase().contains("force"));
+        try {
+            if (context.args.length > 1 && context.args[0].equals("guild")) {
+                long guildId = Long.valueOf(context.args[1]);
+                //https://discordapp.com/developers/docs/topics/gateway#sharding
+                shardId = (int) ((guildId >> 22) % Config.CONFIG.getNumShards());
+            } else {
+                shardId = Integer.parseInt(context.args[0]);
+            }
+        } catch (NumberFormatException e) {
+            HelpCommand.sendFormattedCommandHelp(context);
+            return;
+        }
+
+        boolean force = context.rawArgs.toLowerCase().contains("force");
 
         context.replyWithName("Attempting to revive shard " + shardId);
         try {

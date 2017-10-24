@@ -43,6 +43,10 @@ import java.util.concurrent.TimeoutException;
  */
 public class ExitCommand extends Command implements ICommandRestricted {
 
+    public ExitCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
 

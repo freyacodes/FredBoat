@@ -48,18 +48,21 @@ public class SoftbanCommand extends Command implements IModerationCommand {
 
     private static final Logger log = LoggerFactory.getLogger(SoftbanCommand.class);
 
+    public SoftbanCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        String[] args = context.args;
         Guild guild = context.guild;
         //Ensure we have a search term
-        if (args.length == 1) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
         //was there a target provided?
-        Member target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(context, args[1]);
+        Member target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(context, context.args[0]);
         if (target == null) return;
 
         //are we allowed to do that?

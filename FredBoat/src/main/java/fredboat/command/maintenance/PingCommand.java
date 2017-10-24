@@ -13,6 +13,11 @@ import javax.annotation.Nonnull;
  */
 
 public class PingCommand extends Command implements IMaintenanceCommand {
+
+    public PingCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {

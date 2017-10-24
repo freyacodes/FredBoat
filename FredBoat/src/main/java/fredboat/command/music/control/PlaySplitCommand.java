@@ -41,18 +41,21 @@ import javax.annotation.Nonnull;
 
 public class PlaySplitCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public PlaySplitCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
 
-        if (context.args.length < 2) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
         if (!PlayerLimitManager.checkLimitResponsive(context)) return;
 
-        IdentifierContext ic = new IdentifierContext(context.args[1], context.channel, context.invoker);
+        IdentifierContext ic = new IdentifierContext(context.args[0], context.channel, context.invoker);
         ic.setSplit(true);
 
         GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);

@@ -439,8 +439,14 @@ public class CentralMessaging {
         }
     }
 
-    public static EmbedBuilder addFooter(EmbedBuilder eb, Member author) {
+    @Nonnull
+    public static EmbedBuilder addFooter(@Nonnull EmbedBuilder eb, @Nonnull Member author) {
         return eb.setFooter(author.getEffectiveName(), author.getUser().getAvatarUrl());
+    }
+
+    @Nonnull
+    public static EmbedBuilder addNpFooter(@Nonnull EmbedBuilder eb, @Nonnull Member requester) {
+        return eb.setFooter("Requested by " + requester.getEffectiveName(), requester.getUser().getAvatarUrl());
     }
 
 

@@ -55,14 +55,18 @@ public class DiscordUtil {
     private static final Logger log = LoggerFactory.getLogger(DiscordUtil.class);
     private static final String USER_AGENT = "FredBoat DiscordBot (https://github.com/Frederikam/FredBoat, 1.0)";
 
-    private static volatile ApplicationInfo discordAppInfo; //access this object through getApplicationInfo(jda)
-    private static final Object discordAppInfoLock = new Object();
+    private static volatile DiscordAppInfo selfDiscordAppInfo; //access this object through getApplicationInfo(jda)
+    private static final Object selfDiscordAppInfoLock = new Object();
 
     private DiscordUtil() {
     }
 
     public static long getOwnerId(@Nonnull JDA jda) {
-        return getApplicationInfo(jda).getOwner().getIdLong();
+        return getApplicationInfo(jda).ownerIdLong;
+    }
+
+    public static long getSelfId(@Nonnull JDA jda) {
+        return getApplicationInfo(jda).botIdLong;
     }
 
     public static boolean isMainBotPresent(Guild guild) {
@@ -116,14 +120,15 @@ public class DiscordUtil {
     }
 
     @Nonnull
-    public static ApplicationInfo getApplicationInfo(@Nonnull JDA jda) {
+    public static DiscordAppInfo getApplicationInfo(@Nonnull JDA jda) {
         //double checked lock pattern
-        ApplicationInfo info = discordAppInfo;
+        DiscordAppInfo info = selfDiscordAppInfo;
         if (info == null) {
-            synchronized (discordAppInfoLock) {
-                info = discordAppInfo;
+            synchronized (selfDiscordAppInfoLock) {
+                info = selfDiscordAppInfo;
                 if (info == null) {
-                    discordAppInfo = info = jda.asBot().getApplicationInfo().complete();
+                    //todo this method can be improved by reloading the info regularly. possibly some async loading guava cache?
+                    selfDiscordAppInfo = info = new DiscordAppInfo(jda.asBot().getApplicationInfo().complete());
                     Metrics.successfulRestActions.labels("getApplicationInfo").inc();
                 }
             }
@@ -160,8 +165,8 @@ public class DiscordUtil {
     // ########## Moderation related helper functions
     public static String getReasonForModAction(CommandContext context) {
         String r = null;
-        if (context.args.length > 2) {
-            r = String.join(" ", Arrays.copyOfRange(context.args, 2, context.args.length));
+        if (context.args.length > 1) { //ignore the first arg which contains the name/mention of the user
+            r = String.join(" ", Arrays.copyOfRange(context.args, 1, context.args.length));
         }
 
         return context.i18n("modReason") + ": " + (r != null ? r : "No reason provided.");
@@ -173,5 +178,34 @@ public class DiscordUtil {
         int auditLogMaxLength = 512 - i18nAuditLogMessage.length(); //512 is a hard limit by discord
         return i18nAuditLogMessage + (plainReason.length() > auditLogMaxLength ?
                 plainReason.substring(0, auditLogMaxLength) : plainReason);
+    }
+
+
+    //like JDAs ApplicationInfo but without any references to JDA objects to prevent leaks
+    //use this to cache the app info
+    public static class DiscordAppInfo {
+        public final boolean doesBotRequireCodeGrant;
+        public final boolean isBotPublic;
+        public final long botIdLong;
+        public final String botId;
+        public final String iconId;
+        public final String description;
+        public final String appName;
+        public final long ownerIdLong;
+        public final String ownerId;
+        public final String ownerName;
+
+        public DiscordAppInfo(ApplicationInfo applicationInfo) {
+            this.doesBotRequireCodeGrant = applicationInfo.doesBotRequireCodeGrant();
+            this.isBotPublic = applicationInfo.isBotPublic();
+            this.botIdLong = applicationInfo.getIdLong();
+            this.botId = applicationInfo.getId();
+            this.iconId = applicationInfo.getIconId();
+            this.description = applicationInfo.getDescription();
+            this.appName = applicationInfo.getName();
+            this.ownerIdLong = applicationInfo.getOwner().getIdLong();
+            this.ownerId = applicationInfo.getOwner().getId();
+            this.ownerName = applicationInfo.getOwner().getName();
+        }
     }
 }

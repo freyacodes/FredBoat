@@ -37,7 +37,8 @@ public class RemoteFileCommand extends Command implements IFunCommand {
 
     public String url;
 
-    public RemoteFileCommand(String url) {
+    public RemoteFileCommand(String url, String name, String... aliases) {
+        super(name, aliases);
         this.url = url;
     }
 

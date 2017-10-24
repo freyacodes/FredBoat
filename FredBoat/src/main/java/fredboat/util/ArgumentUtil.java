@@ -29,7 +29,6 @@ import fredboat.commandmeta.abs.CommandContext;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.IMentionable;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.Role;
 
 import javax.annotation.Nonnull;
@@ -148,12 +147,6 @@ public class ArgumentUtil {
                         + TextUtils.asCodeBlock(searchResults.toString()));
                 return null;
         }
-    }
-
-    public static String getSearchTerm(Message message, String[] args, int argsToStrip) {
-        String raw = message.getRawContent();
-        raw = raw.substring(args[0].length() + args[1].length() + 2); //arg0 is prefix, arg1 is add / remove and + 2 for the 2 spaces
-        return raw.substring(raw.indexOf(args[argsToStrip]));
     }
 
     /**

@@ -44,11 +44,14 @@ import java.util.List;
 
 public class LanguageCommand extends Command implements IModerationCommand {
 
+    public LanguageCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        String[] args = context.args;
         Guild guild = context.guild;
-        if(args.length != 2) {
+        if (!context.hasArguments()) {
             handleNoArgs(context);
             return;
         }
@@ -58,9 +61,9 @@ public class LanguageCommand extends Command implements IModerationCommand {
         
         //Assume proper usage and that we are about to set a new language
         try {
-            I18n.set(guild, args[1]);
+            I18n.set(guild, context.args[0]);
         } catch (I18n.LanguageNotSupportedException e) {
-            context.replyWithName(context.i18nFormat("langInvalidCode", args[1]));
+            context.replyWithName(context.i18nFormat("langInvalidCode", context.args[0]));
             return;
         }
 
@@ -69,7 +72,7 @@ public class LanguageCommand extends Command implements IModerationCommand {
 
     private void handleNoArgs(CommandContext context) {
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(context.i18n("langInfo").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()))
+                .append(context.i18n("langInfo").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()))//todo custom prefix
                 .append("\n\n");
 
         List<String> keys = new ArrayList<>(I18n.LANGS.keySet());

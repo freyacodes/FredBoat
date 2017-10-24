@@ -26,7 +26,6 @@
 package fredboat.command.music.control;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
@@ -39,7 +38,6 @@ import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import fredboat.util.ArgumentUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
@@ -51,94 +49,90 @@ import java.util.LinkedHashSet;
 
 public class SelectCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public SelectCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         select(context);
     }
 
     static void select(CommandContext context) {
-        String[] args = context.args;
         Member invoker = context.invoker;
         GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         VideoSelection selection = VideoSelection.get(invoker);
-        if (selection != null) {
-            try {
-                // Handle duplicates.
-                LinkedHashSet<Integer> requestChoices = new LinkedHashSet<>();
-                ArrayList<Integer> validChoices = new ArrayList<>();
-
-                if (args.length >= 1) {
-                    // Combine all args except the first part of the arg
-                    StringBuilder sb = new StringBuilder();
-                    for (String value : args) {
-                        sb.append(value);
-                        sb.append(" ");
-                    }
-
-                    String combinedArgs = sb.toString();
-                    String commandOptions = combinedArgs.substring(Config.CONFIG.getPrefix().length());
-                    commandOptions = ArgumentUtil.combineArgs(new String[]{commandOptions});
-
-                    String sanitizedQuery = sanitizeQueryForMultiSelect(commandOptions);
-
-                    if (StringUtils.isNumeric(commandOptions)) {
-                        requestChoices.add(Integer.valueOf(commandOptions));
-
-                    } else if (TextUtils.isSplitSelect(sanitizedQuery)) {
-                        // Remove all non comma or number character.
-                        String[] querySplit = sanitizedQuery.split(",|\\s");
-
-                        for (String value : querySplit) {
-                            if (StringUtils.isNumeric(value)) {
-                                requestChoices.add(Integer.valueOf(value));
-                            }
-                        }
-                    } else {
-                        requestChoices.add(Integer.valueOf(args[1]));
-                    }
-                }
-
-                // Only include the valid values.
-                for (Integer value : requestChoices) {
-                    if (selection.choices.size() >= value && value >= 1) {
-                        validChoices.add(value);
-                    }
-                }
-                // Check if there is a valid request exist.
-                if (validChoices.isEmpty()) {
-                    throw new NumberFormatException();
-
-                } else {
-                    AudioTrack[] selectedTracks = new AudioTrack[validChoices.size()];
-                    StringBuilder outputMsgBuilder = new StringBuilder();
-
-                    for (int i = 0; i < validChoices.size(); i++) {
-                        selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
-
-                        String msg = context.i18nFormat("selectSuccess", validChoices.get(i), selectedTracks[i].getInfo().title,
-                                TextUtils.formatTime(selectedTracks[0].getInfo().length));
-                        if (i < validChoices.size()) {
-                            outputMsgBuilder.append("\n");
-                        }
-                        outputMsgBuilder.append(msg);
-
-                        player.queue(new AudioTrackContext(selectedTracks[i], invoker));
-                    }
-
-                    VideoSelection.remove(invoker);
-                    TextChannel tc = FredBoat.getTextChannelById(selection.channelId);
-                    if (tc != null) {
-                        CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
-                    }
-
-                    player.setPause(false);
-                    context.deleteMessage();
-                }
-            } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-                context.reply(context.i18nFormat("selectInterval", selection.choices.size()));
-            }
-        } else {
+        if (selection == null) {
             context.reply(context.i18n("selectSelectionNotGiven"));
+            return;
+        }
+
+        try {
+            //Step 1: Parse the issued command for numbers
+
+            // LinkedHashSet to handle order of choices + duplicates
+            LinkedHashSet<Integer> requestChoices = new LinkedHashSet<>();
+
+            // Combine all args and the command trigger. if the trigger is not a number it will be sanitized away
+            String commandOptions = (context.trigger + " " + context.rawArgs).trim();
+            String sanitizedQuery = sanitizeQueryForMultiSelect(commandOptions).trim();
+
+            if (StringUtils.isNumeric(commandOptions)) {
+                requestChoices.add(Integer.valueOf(commandOptions));
+            } else if (TextUtils.isSplitSelect(sanitizedQuery)) {
+                // Remove all non comma or number characters
+                String[] querySplit = sanitizedQuery.split(",|\\s");
+
+                for (String value : querySplit) {
+                    if (StringUtils.isNumeric(value)) {
+                        requestChoices.add(Integer.valueOf(value));
+                    }
+                }
+            }
+
+            //Step 2: Use only valid numbers (usually 1-5)
+
+            ArrayList<Integer> validChoices = new ArrayList<>();
+            // Only include valid values which are 1 to <size> of the offered selection
+            for (Integer value : requestChoices) {
+                if (1 <= value && value <= selection.choices.size()) {
+                    validChoices.add(value);
+                }
+            }
+
+            //Step 3: Make a selection based on the order of the valid numbers
+
+            // any valid choices at all?
+            if (validChoices.isEmpty()) {
+                throw new NumberFormatException();
+            } else {
+                AudioTrack[] selectedTracks = new AudioTrack[validChoices.size()];
+                StringBuilder outputMsgBuilder = new StringBuilder();
+
+                for (int i = 0; i < validChoices.size(); i++) {
+                    selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
+
+                    String msg = context.i18nFormat("selectSuccess", validChoices.get(i), selectedTracks[i].getInfo().title,
+                            TextUtils.formatTime(selectedTracks[0].getInfo().length));
+                    if (i < validChoices.size()) {
+                        outputMsgBuilder.append("\n");
+                    }
+                    outputMsgBuilder.append(msg);
+
+                    player.queue(new AudioTrackContext(selectedTracks[i], invoker));
+                }
+
+                VideoSelection.remove(invoker);
+                TextChannel tc = FredBoat.getTextChannelById(selection.channelId);
+                if (tc != null) {
+                    CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
+                }
+
+                player.setPause(false);
+                context.deleteMessage();
+            }
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+            context.reply(context.i18nFormat("selectInterval", selection.choices.size()));
         }
     }
 

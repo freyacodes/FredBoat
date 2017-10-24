@@ -40,34 +40,57 @@ import java.util.stream.Collectors;
 
 public class FuzzyUserSearchCommand extends Command implements IMaintenanceCommand {
 
+    public FuzzyUserSearchCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        if (context.args.length == 1) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
         } else {
-            List<Member> list = ArgumentUtil.fuzzyMemberSearch(context.guild, context.args[1], true);
+            String query = context.rawArgs;
+            List<Member> list = ArgumentUtil.fuzzyMemberSearch(context.guild, query, true);
 
             if(list.isEmpty()){
                 context.replyWithName(context.i18n("fuzzyNoResults"));
                 return;
             }
 
+            int idPadding = list.stream()
+                    .mapToInt(member -> member.getUser().getId().length())
+                    .max()
+                    .orElse(0);
+            int namePadding = list.stream()
+                    .mapToInt(member -> member.getUser().getName().length())
+                    .max()
+                    .orElse(0);
+            int nickPadding = list.stream()
+                    .mapToInt(member -> member.getNickname() != null ? member.getNickname().length() : 0)
+                    .max()
+                    .orElse(0);
+
             List<String> lines = list.stream()
-                    .map(member -> member.getUser().getIdLong() + " " + member.getEffectiveName() + "\n")
+                    .map(member -> TextUtils.padWithSpaces(member.getUser().getId(), idPadding, true)
+                            + " " + TextUtils.padWithSpaces(member.getUser().getName(), namePadding, false)
+                            + " " + TextUtils.padWithSpaces(member.getNickname(), nickPadding, false)
+                            + "\n")
                     .collect(Collectors.toList());
 
 
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder(TextUtils.padWithSpaces("Id", idPadding + 1, false)
+                    + TextUtils.padWithSpaces("Name", namePadding + 1, false)
+                    + TextUtils.padWithSpaces("Nick", nickPadding + 1, false) + "\n");
 
             for (String line : lines) {
-                if (sb.length() + line.length() < 1900) { //respect max message size
+                if (sb.length() + line.length() + query.length() < 1900) { //respect max message size
                     sb.append(line);
                 } else {
                     sb.append("[...]");
                     break;
                 }
             }
-            context.replyWithName(TextUtils.asCodeBlock(sb.toString()));
+            context.replyWithName("Results for `" + query + "`: " + TextUtils.asCodeBlock(sb.toString()));
         }
     }
 

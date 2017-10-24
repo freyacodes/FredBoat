@@ -32,6 +32,10 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
     public static Map<Long, Set<Long>> guildSkipVotes = new HashMap<>();
     private static final float MIN_SKIP_PERCENTAGE = 0.5f;
 
+    public VoteSkipCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
@@ -55,7 +59,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
             guildIdToLastSkip.put(context.guild.getId(), System.currentTimeMillis());
         }
 
-        if (context.args.length == 1) {
+        if (!context.hasArguments()) {
             String response = addVoteWithResponse(context);
             float actualMinSkip = player.getHumanUsersInCurrentVC().size() < 3 ? 1.0f : MIN_SKIP_PERCENTAGE;
 
@@ -77,7 +81,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
                 context.reply(response + "\n" + context.i18nFormat("voteSkipNotEnough", skipPerc, minSkipPerc));
             }
 
-        } else if (context.args.length == 2 && context.args[1].toLowerCase().equals("list")) {
+        } else if (context.args[0].toLowerCase().equals("list")) {
             displayVoteList(context, player);
         } else {
             HelpCommand.sendFormattedCommandHelp(context);

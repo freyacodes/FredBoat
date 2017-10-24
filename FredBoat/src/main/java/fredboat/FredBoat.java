@@ -52,9 +52,9 @@ import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDAInfo;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
-import net.dv8tion.jda.core.hooks.EventListener;
 import okhttp3.Credentials;
 import okhttp3.Response;
 import org.json.JSONObject;
@@ -121,8 +121,6 @@ public abstract class FredBoat {
         }
 
         I18n.start();
-
-        Config.loadDefaultConfig();
 
         try {
             API.start();
@@ -274,11 +272,11 @@ public abstract class FredBoat {
         return isSuccess;
     }
 
-    private static void initBotShards(EventListener listener) {
+    private static void initBotShards(EventListenerBoat mainListener) {
         for (int i = 0; i < Config.CONFIG.getNumShards(); i++) {
             try {
                 //NOTE: This will take a while since creating shards happens in a blocking fashion
-                shards.add(i, new FredBoatShard(i, listener));
+                shards.add(i, new FredBoatShard(i, mainListener));
             } catch (Exception e) {
                 //todo this is fatal and requires a restart to fix, so either remove it by guaranteeing that
                 //todo shard creation never fails, or have a proper handling for it
@@ -375,6 +373,15 @@ public abstract class FredBoat {
         for (FredBoat fb : shards) {
             Guild g = fb.getJda().getGuildById(id);
             if (g != null) return g;
+        }
+        return null;
+    }
+
+    @Nullable
+    public static User getUserById(long id) {
+        for (FredBoat fb : shards) {
+            User u = fb.getJda().getUserById(id);
+            if (u != null) return u;
         }
         return null;
     }

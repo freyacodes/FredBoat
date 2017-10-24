@@ -39,6 +39,10 @@ public class CatgirlCommand extends Command implements IFunCommand {
 
     private static final String BASE_URL = "https://nekos.life/api/neko";
 
+    public CatgirlCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         context.sendTyping();

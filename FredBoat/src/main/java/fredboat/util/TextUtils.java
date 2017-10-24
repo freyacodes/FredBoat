@@ -37,6 +37,7 @@ import org.json.JSONException;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.time.Instant;
@@ -250,6 +251,18 @@ public class TextUtils {
         }
 
         return str;
+    }
+
+    public static String padWithSpaces(@Nullable String str, int totalLength, boolean front) {
+        StringBuilder result = new StringBuilder(str != null ? str : "");
+        while (result.length() < totalLength) {
+            if (front) {
+                result.insert(0, " ");
+            } else {
+                result.append(" ");
+            }
+        }
+        return result.toString();
     }
 
     /**

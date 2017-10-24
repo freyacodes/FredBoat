@@ -26,10 +26,11 @@
 package fredboat.commandmeta.abs;
 
 import fredboat.Config;
-import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.CommandRegistry;
+import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
+import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -40,6 +41,10 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,45 +58,81 @@ import java.util.regex.Pattern;
 public class CommandContext extends Context {
 
     private static final Logger log = LoggerFactory.getLogger(CommandContext.class);
-    private static final Pattern COMMAND_NAME_PREFIX = Pattern.compile("(\\w+)");
 
-    public final Guild guild;
-    public final TextChannel channel;
-    public final Member invoker;
-    public final Message msg;
+    // https://regex101.com/r/ceFMeF/6
+    //group 1 is the mention, group 2 is the id of the mention, group 3 is the rest of the input including new lines
+    public static final Pattern MENTION_PREFIX = Pattern.compile("^(<@!?([0-9]+)>)(.*)$", Pattern.DOTALL);
 
-    public String prefix = Config.CONFIG.getPrefix();  // useless for now but custom prefixes anyone?
-    public String trigger = "";                        // the command trigger, e.g. "play", or "p", or "pLaY", whatever the user typed
-    public String cmdName = "";                        // this is the actual command name
-    public String[] args = new String[0];              // the arguments including prefix + trigger in args[0]
-    public Command command = null;
+    //@formatter:off
+    @Nonnull public final Guild guild;
+    @Nonnull public final TextChannel channel;
+    @Nonnull public final Member invoker;
+    @Nonnull public final Message msg;
+
+    @Nonnull public String prefix = Config.CONFIG.getPrefix();  // the prefix that this context was called with. could be a mention, default prefix or a custom one
+    @Nonnull public String trigger = "";                        // the command trigger, e.g. "play", or "p", or "pLaY", whatever the user typed
+    @Nonnull public String cmdName = "";                        // this is the fredboat internal command name, e.g. "play"
+    @Nonnull public String[] args = new String[0];              // the arguments split by whitespace, excluding prefix and trigger
+    @Nonnull public String rawArgs = "";                        // raw arguments excluding prefix and trigger, trimmed
+    @SuppressWarnings("ConstantConditions")//the parsing code handles setting this to a nonnull value
+    @Nonnull public Command command = null;
+    //@formatter:on
 
     /**
      * @param event the event to be parsed
      * @return The full context for the triggered command, or null if it's not a command that we know.
      */
     public static CommandContext parse(MessageReceivedEvent event) {
-        Matcher matcher = COMMAND_NAME_PREFIX.matcher(event.getMessage().getContent());
-        if (matcher.find()) {
+        String selfId = DiscordUtil.getApplicationInfo(event.getJDA()).botId;
+        String raw = event.getMessage().getRawContent();
+
+        String triggeredPrefix;
+        String input;
+        Matcher mentionMatcher = MENTION_PREFIX.matcher(raw);
+        // either starts with a mention of us
+        if (mentionMatcher.find() && mentionMatcher.group(2).equals(selfId)) {
+            triggeredPrefix = mentionMatcher.group(1);
+            input = mentionMatcher.group(3).trim();
+        }
+        // or starts with our prefix
+        else if (raw.startsWith(Config.CONFIG.getPrefix())) {
+            triggeredPrefix = Config.CONFIG.getPrefix();
+            input = raw.substring(triggeredPrefix.length());
+        } else {
+            //no match
+            return null;
+        }
+        Metrics.totalMessagesWithPrefixReceived.inc();
+        input = input.trim();// eliminate possible whitespace between the mention/prefix and the rest of the input
+        if (input.isEmpty()) {
+            return null; //no command will be detectable from an empty input
+        }
+
+        String[] args = input.split("\\s+"); //split by any length of white space characters (including new lines)
+        if (args.length < 1) {
+            return null; //while this shouldn't technically be possible due to the preprocessing of the input, better be safe than throw exceptions
+        }
+
+        String commandTrigger = args[0];
+
+        CommandRegistry.CommandEntry entry = CommandRegistry.getCommand(commandTrigger.toLowerCase());
+        if (entry == null) {
+            log.info("Unknown command:\t{}", commandTrigger);
+            return null;
+        } else {
             CommandContext context = new CommandContext(
                     event.getGuild(),
                     event.getTextChannel(),
                     event.getMember(),
                     event.getMessage());
 
-            context.trigger = matcher.group();
-            CommandRegistry.CommandEntry entry = CommandRegistry.getCommand(context.trigger.toLowerCase());
-            if (entry != null) {
-                context.cmdName = entry.name;
-                context.command = entry.command;
-                context.args = CommandManager.commandToArguments(context.msg.getRawContent());
-                return context;
-            } else {
-                log.info("Unknown command:\t{}", context.trigger);
-                return null;
-            }
-        } else {
-            return null;
+            context.prefix = triggeredPrefix;
+            context.trigger = commandTrigger;
+            context.cmdName = entry.name;
+            context.command = entry.command;
+            context.args = Arrays.copyOfRange(args, 1, args.length);//exclude args[0] that contains the command trigger
+            context.rawArgs = input.replaceFirst(commandTrigger, "").trim();
+            return context;
         }
     }
 
@@ -112,21 +153,51 @@ public class CommandContext extends Context {
         }
     }
 
+    /**
+     * @return an adjusted list of mentions in case the prefix mention is used to exclude it. This method should always
+     * be used over Message#getMentions()
+     */
+    public List<User> getMentionedUsers() {
+        Matcher mentionInPrefix = MENTION_PREFIX.matcher(prefix);
+        if (!mentionInPrefix.matches()) {
+            // no match in the prefix, we good
+            return msg.getMentionedUsers();
+        } else {
+            //remove the first mention
+            List<User> mentions = new ArrayList<>(msg.getMentionedUsers());
+            if (!mentions.isEmpty()) {
+                mentions.remove(0);
+                //FIXME: this will mess with the mentions if the bot was mentioned at a later place in the messagea second time,
+                // for example @bot hug @bot will not trigger a self hug message
+                // low priority, this is mostly a cosmetic issue
+            }
+            return mentions;
+        }
+    }
+
+    public boolean hasArguments() {
+        return args.length > 0 && !rawArgs.isEmpty();
+    }
+
+    @Nonnull
     @Override
     public TextChannel getTextChannel() {
         return channel;
     }
 
+    @Nonnull
     @Override
     public Guild getGuild() {
         return guild;
     }
 
+    @Nonnull
     @Override
     public Member getMember() {
         return invoker;
     }
 
+    @Nonnull
     @Override
     public User getUser() {
         return invoker.getUser();

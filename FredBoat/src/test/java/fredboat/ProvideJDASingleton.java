@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.LoginException;
 import java.awt.*;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.text.DateFormat;
@@ -143,9 +142,7 @@ public abstract class ProvideJDASingleton {
         try {
             startTime = System.currentTimeMillis();
             log.info("Setting up live testing environment");
-            try {
-                Config.loadDefaultConfig();
-            } catch (FileNotFoundException e) {
+            if (Config.CONFIG == null) {
                 log.info("Credentials and/or config files not found, live tests won't be available");
                 return;
             }

@@ -45,6 +45,7 @@ import fredboat.util.rest.Http;
 import fredboat.util.rest.YoutubeAPI;
 import fredboat.util.rest.YoutubeVideo;
 import net.dv8tion.jda.core.EmbedBuilder;
+import net.dv8tion.jda.core.entities.Member;
 import org.json.JSONObject;
 import org.json.XML;
 
@@ -53,6 +54,10 @@ import java.awt.*;
 import java.io.IOException;
 
 public class NowplayingCommand extends Command implements IMusicCommand {
+
+    public NowplayingCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
@@ -82,7 +87,8 @@ public class NowplayingCommand extends Command implements IMusicCommand {
             } else {
                 builder = getDefaultEmbed(atc, at);
             }
-            builder = CentralMessaging.addFooter(builder, context.guild.getSelfMember());
+            Member requester = atc.getMember() != null ? atc.getMember() : context.guild.getSelfMember();
+            builder = CentralMessaging.addNpFooter(builder, requester);
 
             context.reply(builder.build());
         } else {

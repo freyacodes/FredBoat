@@ -44,7 +44,6 @@ import fredboat.util.DiscordUtil;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
 import io.prometheus.client.Histogram;
-import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -103,40 +102,40 @@ public class EventListenerBoat extends AbstractEventListener {
             return;
         }
 
-        String content = event.getMessage().getContent();
-        if (content.length() <= Config.CONFIG.getPrefix().length()) {
+        TextChannel channel = event.getTextChannel(); //never null since we are filtering private messages out above
+
+        //preliminary permission filter to avoid a ton of parsing
+        //let messages pass on to parsing that contain "help" since we want to answer help requests even from channels
+        // where we can't talk in
+        if (!channel.canTalk() && !event.getMessage().getRawContent().toLowerCase().contains("help")) {
             return;
         }
 
-        if (content.startsWith(Config.CONFIG.getPrefix())) {
-            log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
-            Metrics.totalMessagesWithPrefixReceived.inc();
+        CommandContext context = CommandContext.parse(event);
+        if (context == null) {
+            return;
+        }
+        log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
 
-            CommandContext context = CommandContext.parse(event);
+        //ignore all commands in channels where we can't write, except for the help command
+        if (!channel.canTalk() && !(context.command instanceof HelpCommand)) {
+            log.info("Ignored command because this bot cannot write in that channel");
+            return;
+        }
 
-            if (context == null) {
-                return;
-            }
+        String commandClassName = context.command.getClass().getSimpleName();
+        Metrics.totalCommandsReceived.labels(commandClassName).inc();
 
-            //ignore all commands in channels where we can't write, except for the help command
-            if (!context.hasPermissions(Permission.MESSAGE_WRITE) && !(context.command instanceof HelpCommand)) {
-                log.debug("Ignored command because this bot cannot write in that channel");
-                return;
-            }
-
-            String commandClassName = context.command.getClass().getSimpleName();
-            Histogram.Timer processingTimer = null;
-            if (FeatureFlags.FULL_METRICS.isActive()) {
-                Metrics.totalCommandsReceived.labels(commandClassName).inc();
-                processingTimer = Metrics.processingTime.labels(commandClassName).startTimer();
-            }
-            try {
-                limitOrExecuteCommand(context);
-            } finally {
-                //NOTE: Some commands, like ;;mal, run async and will not reflect the real performance of FredBoat
-                if (FeatureFlags.FULL_METRICS.isActive() && processingTimer != null) {
-                    processingTimer.observeDuration();
-                }
+        Histogram.Timer processingTimer = null;
+        if (FeatureFlags.FULL_METRICS.isActive()) {
+            processingTimer = Metrics.processingTime.labels(commandClassName).startTimer();
+        }
+        try {
+            limitOrExecuteCommand(context);
+        } finally {
+            //NOTE: Some commands, like ;;mal, run async and will not reflect the real performance of FredBoat
+            if (FeatureFlags.FULL_METRICS.isActive() && processingTimer != null) {
+                processingTimer.observeDuration();
             }
         }
     }
@@ -200,7 +199,7 @@ public class EventListenerBoat extends AbstractEventListener {
 
         //quick n dirty bot admin / owner check
         if (Config.CONFIG.getAdminIds().contains(event.getAuthor().getId())
-                || DiscordUtil.getApplicationInfo(event.getJDA()).getOwner().getId().equals(event.getAuthor().getId())) {
+                || DiscordUtil.getOwnerId(event.getJDA()) == event.getAuthor().getIdLong()) {
 
             //hack in / hardcode some commands; this is not meant to look clean
             String raw = event.getMessage().getRawContent().toLowerCase();

@@ -51,6 +51,10 @@ import java.util.ResourceBundle;
 
 public class StatsCommand extends Command implements IMaintenanceCommand {
 
+    public StatsCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         context.reply(getStats(context, context.guild.getJDA()));

@@ -38,6 +38,10 @@ import javax.annotation.Nonnull;
 
 public class AudioDebugCommand extends Command implements IMaintenanceCommand {
 
+    public AudioDebugCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         String msg = "";

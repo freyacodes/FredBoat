@@ -61,15 +61,16 @@ public class HelpCommand extends Command implements IUtilCommand {
             .expireAfterWrite(10, TimeUnit.MINUTES)
             .build();
 
-    public HelpCommand() {
+    public HelpCommand(String name, String... aliases) {
+        super(name, aliases);
         Metrics.instance().cacheMetrics.addCache("helpReceivedRecently", helpReceivedRecently);
     }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
 
-        if (context.args.length > 1) {
-            sendFormattedCommandHelp(context, context.args[1]);
+        if (context.hasArguments()) {
+            sendFormattedCommandHelp(context, context.args[0]);
         } else {
             sendGeneralHelp(context);
         }

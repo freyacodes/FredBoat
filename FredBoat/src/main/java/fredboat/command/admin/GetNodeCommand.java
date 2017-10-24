@@ -39,19 +39,30 @@ import javax.annotation.Nonnull;
 
 public class GetNodeCommand extends Command implements ICommandRestricted {
 
+    public GetNodeCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        Guild guild;
-        String[] args = context.args;
-        if (args.length == 2) {
-            long guildId = Long.parseUnsignedLong(args[1]);
-            guild = FredBoat.getGuildById(guildId);
+        if (!LavalinkManager.ins.isEnabled()) {
+            context.replyWithName("Lavalink is not enabled.");
+            return;
+        }
+
+        Guild guild = null;
+        if (context.hasArguments()) {
+            try {
+                long guildId = Long.parseUnsignedLong(context.args[0]);
+                guild = FredBoat.getGuildById(guildId);
+            } catch (NumberFormatException ignored) {
+            }
+            if (guild == null) {
+                context.reply("Guild not found for id " + context.args[0]);
+                return;
+            }
         } else {
             guild = context.guild;
-        }
-        if (guild == null) {
-            context.reply("Guild not found.");
-            return;
         }
         LavalinkSocket node = LavalinkManager.ins.getLavalink().getLink(guild).getCurrentSocket();
 

@@ -38,6 +38,10 @@ import javax.annotation.Nonnull;
 
 public class RestartCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public RestartCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         GuildPlayer player = PlayerRegistry.getExisting(context.guild);

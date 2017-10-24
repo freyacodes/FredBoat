@@ -46,6 +46,10 @@ public class PlayerDebugCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(PlayerDebugCommand.class);
 
+    public PlayerDebugCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         JSONArray a = new JSONArray();

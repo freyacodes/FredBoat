@@ -38,6 +38,10 @@ import java.io.IOException;
 
 public class AkinatorCommand extends Command implements IFunCommand {
 
+    public AkinatorCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         try {

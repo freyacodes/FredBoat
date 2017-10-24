@@ -66,11 +66,8 @@ public class RandomImageCommand extends Command implements IFunCommand {
     //contains the images that this class randomly serves, default entry is a "my body is not ready" gif
     private volatile String[] urls = {"http://i.imgur.com/NqyOqnj.gif"};
 
-    public RandomImageCommand(String[] urls) {
-        this.urls = urls;
-    }
-
-    public RandomImageCommand(@Nonnull String imgurAlbumUrl) {
+    public RandomImageCommand(@Nonnull String imgurAlbumUrl, String name, String... aliases) {
+        super(name, aliases);
         //update the album every hour
         imgurRefresher.scheduleAtFixedRate(() -> {
             try {

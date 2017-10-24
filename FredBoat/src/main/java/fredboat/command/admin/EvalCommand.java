@@ -55,7 +55,8 @@ public class EvalCommand extends Command implements ICommandRestricted {
     //Thanks Dinos!
     private ScriptEngine engine;
 
-    public EvalCommand() {
+    public EvalCommand(String name, String... aliases) {
+        super(name, aliases);
         engine = new ScriptEngineManager().getEngineByName("nashorn");
         try {
             engine.eval("var imports = new JavaImporter(java.io, java.lang, java.util);");
@@ -71,7 +72,7 @@ public class EvalCommand extends Command implements ICommandRestricted {
         JDA jda = guild.getJDA();
         context.sendTyping();
 
-        final String source = context.msg.getRawContent().substring(context.args[0].length() + 1);
+        final String source = context.rawArgs;
 
         engine.put("jda", jda);
         engine.put("api", jda);

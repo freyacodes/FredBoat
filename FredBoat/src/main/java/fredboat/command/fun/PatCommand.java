@@ -28,30 +28,24 @@ package fredboat.command.fun;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.messaging.internal.Context;
-import net.dv8tion.jda.core.entities.Message;
 
 import javax.annotation.Nonnull;
 
 public class PatCommand extends RandomImageCommand implements IFunCommand {
 
-    public PatCommand(String[] urls) {
-        super(urls);
-    }
-
-    public PatCommand(String imgurAlbumUrl) {
-        super(imgurAlbumUrl);
+    public PatCommand(String imgurAlbumUrl, String name, String... aliases) {
+        super(imgurAlbumUrl, name, aliases);
     }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        Message msg = context.msg;
         String patMessage = null;
-        if (msg.getMentionedUsers().size() > 0) {
-            if (msg.getMentionedUsers().get(0).getIdLong() == msg.getJDA().getSelfUser().getIdLong()) {
+        if (!context.getMentionedUsers().isEmpty()) {
+            if (context.getMentionedUsers().get(0).getIdLong() == context.msg.getJDA().getSelfUser().getIdLong()) {
                 patMessage = context.i18n("patBot");
             } else {
                 patMessage = "_"
-                        + context.i18nFormat("patSuccess", msg.getMentionedUsers().get(0).getAsMention())
+                        + context.i18nFormat("patSuccess", context.getMentionedUsers().get(0).getAsMention())
                         + "_";
             }
         }

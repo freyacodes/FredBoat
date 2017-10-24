@@ -34,9 +34,13 @@ import javax.annotation.Nonnull;
 
 public class RiotCommand extends Command implements IFunCommand {
 
+    public RiotCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        context.reply("ヽ༼ຈل͜ຈ༽ﾉ **" + context.msg.getContent().replaceFirst("\\S*\\s+", "").toUpperCase() + "** ヽ༼ຈل͜ຈ༽ﾉ");
+        context.reply("ヽ༼ຈل͜ຈ༽ﾉ **" + context.rawArgs.toUpperCase() + "** ヽ༼ຈل͜ຈ༽ﾉ"); //todo escape markdown
     }
 
     @Nonnull

@@ -58,6 +58,10 @@ import java.util.Set;
  */
 public class CommandsCommand extends Command implements IUtilCommand {
 
+    public CommandsCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     //design inspiration by Weiss Schnee's bot
     //https://cdn.discordapp.com/attachments/230033957998166016/296356070685671425/unknown.png
     @Override
@@ -68,7 +72,7 @@ public class CommandsCommand extends Command implements IUtilCommand {
         // http://i.imgur.com/511Hb8p.png screenshot from 1st April 2017
         //bot owner and debug commands (+ ;;music and ;;help) missing + the currently defunct config command
         //this is currently fine but might change in the future
-        new MusicHelpCommand().onInvoke(context);
+        new MusicHelpCommand("").onInvoke(context);
         if (Config.CONFIG.isDevDistribution()) {
             mainBotHelp(context); //TODO: decide how to do handle this after unification of main and music bot
         }

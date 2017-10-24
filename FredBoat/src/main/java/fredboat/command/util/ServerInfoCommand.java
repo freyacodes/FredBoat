@@ -42,6 +42,11 @@ import java.time.format.DateTimeFormatter;
  * Created by midgard/Chromaryu/knight-ryu12 on 17/01/18.
  */
 public class ServerInfoCommand extends Command implements IUtilCommand {
+
+    public ServerInfoCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         Guild guild = context.guild;

@@ -35,6 +35,10 @@ import javax.annotation.Nonnull;
 
 public class VersionCommand extends Command implements IMaintenanceCommand {
 
+    public VersionCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         context.reply("JDA Version: " + JDAInfo.VERSION);

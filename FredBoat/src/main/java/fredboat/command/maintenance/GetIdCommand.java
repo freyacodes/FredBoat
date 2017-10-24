@@ -34,6 +34,10 @@ import javax.annotation.Nonnull;
 
 public class GetIdCommand extends Command implements IMaintenanceCommand {
 
+    public GetIdCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         context.reply(context.i18nFormat("getidSuccess", context.guild.getId(), context.channel.getId()));
