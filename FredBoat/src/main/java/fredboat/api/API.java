@@ -102,6 +102,11 @@ public class API {
     }
 
     public static void turnOnMetrics() {
+        if (!Config.CONFIG.isRestServerEnabled()) {
+            log.warn("Rest server is not enabled. Skipping Spark ignition!");
+            return;
+        }
+
         Spark.get("/metrics", (req, resp) -> {
             Metrics.apiServed.labels("/metrics").inc();
             return Metrics.instance().metricsServlet.servletGet(req.raw(), resp.raw());
