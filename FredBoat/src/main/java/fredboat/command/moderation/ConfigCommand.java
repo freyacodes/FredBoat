@@ -126,10 +126,14 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                 }
                 break;
             case "max_track_duration":
-                Long time = TextUtils.parseTimeString(val); // We should handle failed parses better than throwing tbh.
-                gc.setMaxTrackDuration(time);
-                EntityWriter.mergeGuildConfig(gc);
-                context.replyWithName("`max_track_duration` " + context.i18nFormat("configSetTo", val));
+                try {
+                    Long time = TextUtils.parseTimeString(val);
+                    gc.setMaxTrackDuration(time);
+                    EntityWriter.mergeGuildConfig(gc);
+                    context.replyWithName("`max_track_duration` " + context.i18nFormat("configSetTo", val));
+                } catch (NumberFormatException e) {
+                    context.replyWithName("`max_track_duration` " + context.i18n("configMustBeTime"));
+                }
                 break;
             default:
                 context.reply(context.i18nFormat("configUnknownKey", invoker.getEffectiveName()));
