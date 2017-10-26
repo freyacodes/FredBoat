@@ -57,6 +57,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand("test", new TestCommand());
         CommandRegistry.registerCommand("gitinfo", new GitInfoCommand(), "git");
         CommandRegistry.registerCommand("exit", new ExitCommand());
+        CommandRegistry.registerCommand("leaveserver", new LeaveServerCommand());
         
         /* Moderation */
         CommandRegistry.registerCommand("hardban", new HardbanCommand());
