@@ -58,7 +58,7 @@ public class AudioDebugCommand extends Command implements IMaintenanceCommand {
     }
 
     private void handleLavalink(CommandContext context) {
-        context.replyWithName("LavaLink is enabled! showing LavaLink status.");
+        context.replyWithName("LavaLink is enabled! Showing LavaLink status instead.");
         NodesCommand.handleLavalink(context);
     }
 
