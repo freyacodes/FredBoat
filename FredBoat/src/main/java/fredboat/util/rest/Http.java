@@ -25,6 +25,7 @@
 
 package fredboat.util.rest;
 
+import fredboat.feature.metrics.OkHttpEventMetrics;
 import okhttp3.FormBody;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -58,6 +59,7 @@ public class Http {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .eventListener(new OkHttpEventMetrics("default"))
             .build();
 
 

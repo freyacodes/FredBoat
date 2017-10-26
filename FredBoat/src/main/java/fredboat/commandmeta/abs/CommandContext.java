@@ -27,6 +27,7 @@ package fredboat.commandmeta.abs;
 
 import fredboat.Config;
 import fredboat.commandmeta.CommandRegistry;
+import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.DiscordUtil;
@@ -92,11 +93,13 @@ public class CommandContext extends Context {
         if (mentionMatcher.find() && mentionMatcher.group(2).equals(selfId)) {
             triggeredPrefix = mentionMatcher.group(1);
             input = mentionMatcher.group(3).trim();
+            Metrics.prefixParsed.labels("mention").inc();
         }
         // or starts with our prefix
         else if (raw.startsWith(Config.CONFIG.getPrefix())) {
             triggeredPrefix = Config.CONFIG.getPrefix();
             input = raw.substring(triggeredPrefix.length());
+            Metrics.prefixParsed.labels("default").inc(); //todo count custom prefix usage
         } else {
             //no match
             return null;

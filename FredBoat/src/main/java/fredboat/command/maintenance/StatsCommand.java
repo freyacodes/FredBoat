@@ -74,11 +74,12 @@ public class StatsCommand extends Command implements IMaintenanceCommand {
         } else {
             i18n = I18n.DEFAULT.getProps();
         }
+        double commandsExecuted = CommandManager.totalCommandsExecuted.get();
         String str = MessageFormat.format(i18n.getString("statsParagraph"),
-                days, hours, mins, secs, CommandManager.commandsExecuted.get() - 1)
+                days, hours, mins, secs, commandsExecuted - 1)
                 + "\n";
         str = MessageFormat.format(i18n.getString("statsRate"), str,
-                (float) (CommandManager.commandsExecuted.get() - 1) / ((float) totalSecs / (float) (60 * 60)));
+                (float) (commandsExecuted - 1) / ((float) totalSecs / (float) (60 * 60)));
 
         str += "\n\n";
         String content = "";

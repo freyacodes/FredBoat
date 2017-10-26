@@ -23,44 +23,26 @@
  * SOFTWARE.
  */
 
-package fredboat.feature.togglz;
+package fredboat.feature.metrics;
 
-import org.togglz.core.Feature;
-import org.togglz.core.annotation.EnabledByDefault;
-import org.togglz.core.annotation.Label;
+import io.prometheus.client.exporter.MetricsServlet;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
- * Created by napster on 19.05.17.
+ * Created by napster on 18.10.17.
  * <p>
- * Implementation of the feature flag pattern
+ * used to expose the prometheus metrics with a spark api
  */
-public enum FeatureFlags implements Feature {
+public class SparkMetricsServlet extends MetricsServlet {
+    private static final long serialVersionUID = -442447083882925873L;
 
-    //ratelimiter + auto blacklisting features
-    @Label("Rate Limiter")
-    @EnabledByDefault
-    RATE_LIMITER,
-
-    //using the chatbot class
-    @Label("Chatbot")
-    @EnabledByDefault
-    CHATBOT,
-
-    @Label("Permissions")
-    @EnabledByDefault
-    PERMISSIONS,
-
-    @Label("Patron validation")
-    PATRON_VALIDATION,
-
-    @Label("Force soundcloud search instead of youtube")
-    FORCE_SOUNDCLOUD_SEARCH,
-
-    @Label("Full instrumentation, including multidimensional per command stats")
-    FULL_METRICS,
-    ;
-
-    public boolean isActive() {
-        return FeatureConfig.getTheFeatureManager().isActive(this);
+    //wrapping http methods
+    public HttpServletResponse servletGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        doGet(req, resp);
+        return resp;
     }
 }

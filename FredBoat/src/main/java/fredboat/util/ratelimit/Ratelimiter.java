@@ -31,6 +31,7 @@ import fredboat.command.maintenance.ShardsCommand;
 import fredboat.command.music.control.SkipCommand;
 import fredboat.command.util.WeatherCommand;
 import fredboat.commandmeta.abs.Command;
+import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.internal.Context;
 import fredboat.util.DiscordUtil;
 import fredboat.util.Tuple2;
@@ -118,7 +119,10 @@ public class Ratelimiter {
                 } else {
                     allowed = ratelimit.isAllowed(context, weight, autoBlacklist);
                 }
-                if (!allowed) return new Tuple2<>(false, ratelimit.getClazz());
+                if (!allowed) {
+                    Metrics.commandsRatelimited.labels(command.getClass().getSimpleName()).inc();
+                    return new Tuple2<>(false, ratelimit.getClazz());
+                }
             }
         }
         return new Tuple2<>(true, null);

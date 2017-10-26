@@ -48,6 +48,10 @@ public abstract class FredBoatAgent implements Runnable {
         return thread;
     });
 
+    public static ScheduledExecutorService getScheduler() {
+        return AGENTS;
+    }
+
     //only one of each agent, non-static is fine
     private final Logger log = LoggerFactory.getLogger(getClass());
 

@@ -74,12 +74,12 @@ public class MusicPersistenceHandler {
                 return;
             }
         }
-        Map<String, GuildPlayer> reg = PlayerRegistry.getRegistry();
+        Map<Long, GuildPlayer> reg = PlayerRegistry.getRegistry();
 
         boolean isUpdate = code == ExitCodes.EXIT_CODE_UPDATE;
         boolean isRestart = code == ExitCodes.EXIT_CODE_RESTART;
 
-        for (String gId : reg.keySet()) {
+        for (long gId : reg.keySet()) {
             try {
                 GuildPlayer player = reg.get(gId);
 
@@ -140,7 +140,7 @@ public class MusicPersistenceHandler {
                 data.put("sources", identifiers);
 
                 try {
-                    FileUtils.writeStringToFile(new File(dir, gId), data.toString(), Charset.forName("UTF-8"));
+                    FileUtils.writeStringToFile(new File(dir, Long.toString(gId)), data.toString(), Charset.forName("UTF-8"));
                 } catch (IOException ex) {
                     if (activeTextChannel != null) {
                         CentralMessaging.sendMessage(activeTextChannel,
@@ -193,7 +193,6 @@ public class MusicPersistenceHandler {
                 boolean shuffle = data.getBoolean("shuffle");
 
                 GuildPlayer player = PlayerRegistry.getOrCreate(guild);
-
 
                 if (vc != null) {
                     player.joinChannel(vc);

@@ -4,6 +4,8 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.feature.metrics.Metrics;
+import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.rest.Http;
@@ -60,9 +62,14 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
                 //noinspection ConstantConditions
                 InputStream avatarData = response.body().byteStream();
                 context.guild.getJDA().getSelfUser().getManager().setAvatar(Icon.from(avatarData))
-                        .queue(
-                                success -> context.reply("Avatar has been set successfully!"),
-                                failure -> context.reply("Error setting avatar. Please try again later.")
+                        .queue(__ -> {
+                                    Metrics.successfulRestActions.labels("setAvatar").inc();
+                                    context.reply("Avatar has been set successfully!");
+                                },
+                                t -> {
+                                    CentralMessaging.getJdaRestActionFailureHandler("Failed to set avatar " + imageUrl).accept(t);
+                                    context.reply("Error setting avatar. Please try again later.");
+                                }
                         );
             } else {
                 context.reply("Provided link/attachment is not an image.");

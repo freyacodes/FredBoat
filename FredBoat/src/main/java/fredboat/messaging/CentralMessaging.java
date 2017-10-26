@@ -26,9 +26,9 @@
 package fredboat.messaging;
 
 import fredboat.feature.I18n;
+import fredboat.feature.metrics.Metrics;
 import fredboat.shared.constant.BotConstants;
 import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Member;
@@ -36,13 +36,10 @@ import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.exceptions.ErrorResponseException;
 import net.dv8tion.jda.core.exceptions.InsufficientPermissionException;
-import net.dv8tion.jda.core.requests.Request;
-import net.dv8tion.jda.core.requests.Response;
-import net.dv8tion.jda.core.requests.RestAction;
-import net.dv8tion.jda.core.requests.Route;
+import net.dv8tion.jda.core.requests.ErrorResponse;
 import org.apache.commons.io.FileUtils;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,8 +47,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.ResourceBundle;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 
 /**
@@ -65,8 +65,14 @@ public class CentralMessaging {
 
     //this is needed for when we absolutely don't care about a rest action failing (use this only after good consideration!)
     // because if we pass null for a failure handler to JDA it uses a default handler that results in a warning/error level log
-    private static final Consumer<Throwable> NOOP_EXCEPTION_HANDLER = __ -> {
+    public static final Consumer<Throwable> NOOP_EXCEPTION_HANDLER = __ -> {
     };
+
+    //use this to schedule rest actions whenever queueAfter() or similar JDA methods would be used
+    // this makes it way easier to track stats + handle failures of such delayed RestActions
+    // instead of implementing a ton of overloaded methods in this class
+    public static final ScheduledExecutorService restService = Executors.newScheduledThreadPool(10,
+            runnable -> new Thread(runnable, "central-messaging-scheduler"));
 
 
     // ********************************************************************************
@@ -220,26 +226,6 @@ public class CentralMessaging {
                 null,
                 null
         );
-    }
-
-    // for the adventurers among us
-    public static void sendShardlessMessage(long channelId, Message msg) {
-        sendShardlessMessage(msg.getJDA(), channelId, msg.getRawContent());
-    }
-
-    // for the adventurers among us
-    public static void sendShardlessMessage(JDA jda, long channelId, String content) {
-        JSONObject body = new JSONObject();
-        body.put("content", content);
-        new RestAction<Void>(jda, Route.Messages.SEND_MESSAGE.compile(Long.toString(channelId)), body) {
-            @Override
-            protected void handleResponse(Response response, Request<Void> request) {
-                if (response.isOk())
-                    request.onSuccess(null);
-                else
-                    request.onFailure(response);
-            }
-        }.queue();
     }
 
     // ********************************************************************************
@@ -406,8 +392,8 @@ public class CentralMessaging {
     public static void sendTyping(MessageChannel channel) {
         try {
             channel.sendTyping().queue(
-                    null,
-                    t -> log.warn("Could not send typing event", t)
+                    __ -> Metrics.successfulRestActions.labels("sendTyping").inc(),
+                    getJdaRestActionFailureHandler("Could not send typing event in channel " + channel.getId())
             );
         } catch (InsufficientPermissionException e) {
             handleInsufficientPermissionsException(channel, e);
@@ -419,8 +405,9 @@ public class CentralMessaging {
         if (!messages.isEmpty()) {
             try {
                 channel.deleteMessages(messages).queue(
-                        null,
-                        t -> log.warn("Could not bulk delete messages", t)
+                        __ -> Metrics.successfulRestActions.labels("bulkDeleteMessages").inc(),
+                        getJdaRestActionFailureHandler(String.format("Could not bulk delete %s messages in channel %s",
+                                messages.size(), channel.getId()))
                 );
             } catch (InsufficientPermissionException e) {
                 handleInsufficientPermissionsException(channel, e);
@@ -431,19 +418,25 @@ public class CentralMessaging {
     public static void deleteMessageById(@Nonnull MessageChannel channel, long messageId) {
         try {
             channel.getMessageById(messageId).queue(
-                    CentralMessaging::deleteMessage,
-                    NOOP_EXCEPTION_HANDLER //do nothing if that message could not be found in the first place
+                    message -> {
+                        Metrics.successfulRestActions.labels("getMessageById").inc();
+                        CentralMessaging.deleteMessage(message);
+                    },
+                    NOOP_EXCEPTION_HANDLER //prevent logging an error if that message could not be found in the first place
             );
         } catch (InsufficientPermissionException e) {
             handleInsufficientPermissionsException(channel, e);
         }
     }
 
+    //make sure that the message passed in here is actually existing in Discord
+    // e.g. dont pass messages in here that were created with a MessageBuilder in our code
     public static void deleteMessage(@Nonnull Message message) {
         try {
             message.delete().queue(
-                    null,
-                    t -> log.warn("Could not delete message", t)
+                    __ -> Metrics.successfulRestActions.labels("deleteMessage").inc(),
+                    getJdaRestActionFailureHandler(String.format("Could not delete message %s in channel %s with content\n%s",
+                            message.getId(), message.getChannel().getId(), message.getRawContent()))
             );
         } catch (InsufficientPermissionException e) {
             handleInsufficientPermissionsException(message.getChannel(), e);
@@ -478,6 +471,7 @@ public class CentralMessaging {
         MessageFuture result = new MessageFuture();
         Consumer<Message> successWrapper = m -> {
             result.complete(m);
+            Metrics.successfulRestActions.labels("sendMessage").inc();
             if (onSuccess != null) {
                 onSuccess.accept(m);
             }
@@ -486,6 +480,11 @@ public class CentralMessaging {
             result.completeExceptionally(t);
             if (onFail != null) {
                 onFail.accept(t);
+            } else {
+                String info = String.format("Could not sent message\n%s\nto channel %s in guild %s",
+                        message.getRawContent(), channel.getId(),
+                        (channel instanceof TextChannel) ? ((TextChannel) channel).getGuild().getIdLong() : "null");
+                getJdaRestActionFailureHandler(info).accept(t);
             }
         };
 
@@ -516,6 +515,7 @@ public class CentralMessaging {
         MessageFuture result = new MessageFuture();
         Consumer<Message> successWrapper = m -> {
             result.complete(m);
+            Metrics.successfulRestActions.labels("sendFile").inc();
             if (onSuccess != null) {
                 onSuccess.accept(m);
             }
@@ -524,6 +524,11 @@ public class CentralMessaging {
             result.completeExceptionally(t);
             if (onFail != null) {
                 onFail.accept(t);
+            } else {
+                String info = String.format("Could not send file %s to channel %s in guild %s",
+                        file.getAbsolutePath(), channel.getId(),
+                        (channel instanceof TextChannel) ? ((TextChannel) channel).getGuild().getIdLong() : "null");
+                getJdaRestActionFailureHandler(info).accept(t);
             }
         };
 
@@ -554,6 +559,7 @@ public class CentralMessaging {
         MessageFuture result = new MessageFuture();
         Consumer<Message> successWrapper = m -> {
             result.complete(m);
+            Metrics.successfulRestActions.labels("editMessage").inc();
             if (onSuccess != null) {
                 onSuccess.accept(m);
             }
@@ -562,6 +568,12 @@ public class CentralMessaging {
             result.completeExceptionally(t);
             if (onFail != null) {
                 onFail.accept(t);
+            } else {
+                String info = String.format("Could not edit message %s in channel %s in guild %s with new content %s",
+                        oldMessageId, channel.getId(),
+                        (channel instanceof TextChannel) ? ((TextChannel) channel).getGuild().getIdLong() : "null",
+                        newMessage.getRawContent());
+                getJdaRestActionFailureHandler(info).accept(t);
             }
         };
 
@@ -584,6 +596,22 @@ public class CentralMessaging {
         }
         //only ever try sending a simple string from here so we don't end up handling a loop of insufficient permissions
         sendMessage(channel, i18n.getString("permissionMissingBot") + " **" + e.getPermission().getName() + "**");
+    }
+
+
+    //handles failed JDA rest actions by logging them with an informational string and optionally ignoring some error response codes
+    public static Consumer<Throwable> getJdaRestActionFailureHandler(String info, ErrorResponse... ignored) {
+        return t -> {
+            if (t instanceof ErrorResponseException) {
+                ErrorResponseException e = (ErrorResponseException) t;
+                Metrics.failedRestActions.labels(Integer.toString(e.getErrorCode())).inc();
+                if (Arrays.asList(ignored).contains(e.getErrorResponse())
+                        || e.getErrorCode() == -1) { //socket timeout, fuck those
+                    return;
+                }
+            }
+            log.warn(info, t);
+        };
     }
 
 }

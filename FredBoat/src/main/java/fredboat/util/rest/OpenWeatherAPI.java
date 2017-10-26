@@ -7,6 +7,8 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import fredboat.Config;
+import fredboat.feature.metrics.Metrics;
+import fredboat.feature.metrics.OkHttpEventMetrics;
 import fredboat.util.rest.models.weather.OpenWeatherCurrent;
 import fredboat.util.rest.models.weather.RetrievedWeather;
 import fredboat.util.rest.models.weather.WeatherError;
@@ -14,7 +16,11 @@ import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Bucket4j;
 import io.github.bucket4j.Refill;
-import okhttp3.*;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +44,9 @@ public class OpenWeatherAPI implements Weather {
     private HttpUrl currentWeatherBaseUrl;
 
     public OpenWeatherAPI() {
-        client = new OkHttpClient();
+        client = new OkHttpClient.Builder()
+                .eventListener(new OkHttpEventMetrics("openWeatherApi"))
+                .build();
         objectMapper = new ObjectMapper();
 
         currentWeatherBaseUrl = HttpUrl.parse(OPEN_WEATHER_BASE_URL + "/weather");
@@ -51,6 +59,7 @@ public class OpenWeatherAPI implements Weather {
         limitBucket = Bucket4j.builder().addLimit(limit).build();
 
         weatherCache = CacheBuilder.newBuilder()
+                .recordStats()
                 .expireAfterWrite(MAX_CACHE_HOUR, TimeUnit.HOURS)
                 .build(new CacheLoader<String, RetrievedWeather>() {
                     @Override
@@ -58,6 +67,7 @@ public class OpenWeatherAPI implements Weather {
                         return processGetWeatherByCity(key);
                     }
                 });
+        Metrics.instance().cacheMetrics.addCache("openWeatherApi", weatherCache);
     }
 
     /**

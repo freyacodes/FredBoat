@@ -35,6 +35,7 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
+import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
@@ -56,11 +57,13 @@ public class HelpCommand extends Command implements IUtilCommand {
 
     //keeps track of whether a user received help lately to avoid spamming/clogging up DMs which are rather harshly ratelimited
     private static final Cache<Long, Boolean> helpReceivedRecently = CacheBuilder.newBuilder()
+            .recordStats()
             .expireAfterWrite(10, TimeUnit.MINUTES)
             .build();
 
     public HelpCommand(String name, String... aliases) {
         super(name, aliases);
+        Metrics.instance().cacheMetrics.addCache("helpReceivedRecently", helpReceivedRecently);
     }
 
     @Override

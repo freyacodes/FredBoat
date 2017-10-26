@@ -43,7 +43,8 @@ import java.util.concurrent.TimeUnit;
 
 public final class AkinatorListener extends UserListener {
 
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
+    private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
+            runnable -> new Thread(runnable, "akinator-timeout-checker"));
 
     private static final String NEW_SESSION_URL = "http://api-en4.akinator.com/ws/new_session?partner=1";
     private static final String ANSWER_URL = "http://api-en4.akinator.com/ws/answer";

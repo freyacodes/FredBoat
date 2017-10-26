@@ -35,6 +35,7 @@ import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.PlaylistImporter;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
+import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
 import fredboat.util.TextUtils;
@@ -166,6 +167,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     @Override
     public void trackLoaded(AudioTrack at) {
+        Metrics.tracksLoaded.inc();
         try {
             if(context.isSplit()){
                 loadSplit(at, context);
@@ -196,6 +198,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     @Override
     public void playlistLoaded(AudioPlaylist ap) {
+        Metrics.tracksLoaded.inc(ap.getTracks() == null ? 0 : ap.getTracks().size());
         try {
             if(context.isSplit()){
                 context.reply(context.i18n("loadPlaySplitListFail"));
@@ -230,6 +233,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     @Override
     public void loadFailed(FriendlyException fe) {
+        Metrics.trackLoadsFailed.inc();
         handleThrowable(context, fe);
 
         loadNextAsync();

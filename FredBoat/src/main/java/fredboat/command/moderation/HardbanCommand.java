@@ -28,6 +28,8 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
+import fredboat.feature.metrics.Metrics;
+import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.DiscordUtil;
@@ -83,12 +85,16 @@ public class HardbanCommand extends Command implements IModerationCommand {
         String successOutput = context.i18nFormat("hardbanSuccess",
                 target.getUser().getName(), target.getUser().getDiscriminator(), target.getUser().getId())
                 + "\n" + plainReason;
-        Consumer<Void> onSuccess = aVoid -> context.replyWithName(successOutput);
+        Consumer<Void> onSuccess = aVoid -> {
+            Metrics.successfulRestActions.labels("ban").inc();
+            context.replyWithName(successOutput);
+        };
 
         //on fail
         String failOutput = context.i18nFormat("modBanFail", target.getUser());
         Consumer<Throwable> onFail = t -> {
-            log.error("Failed to ban user {} in guild {}", target.getUser().getIdLong(), guild.getIdLong(), t);
+            CentralMessaging.getJdaRestActionFailureHandler(String.format("Failed to ban user %s in guild %s",
+                    target.getUser().getId(), guild.getId())).accept(t);
             context.replyWithName(failOutput);
         };
 

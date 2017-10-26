@@ -34,7 +34,9 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.PatronageChecker;
+import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
+import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
@@ -57,8 +59,9 @@ public class CommandManager {
 
     private static final Logger log = LoggerFactory.getLogger(CommandManager.class);
 
-    public static final AtomicInteger commandsExecuted = new AtomicInteger(0);
     public static final Set<Command> disabledCommands = new HashSet<>(0);
+
+    public static final AtomicInteger totalCommandsExecuted = new AtomicInteger(0);
 
     public static void prefixCalled(CommandContext context) {
         Guild guild = context.guild;
@@ -66,7 +69,8 @@ public class CommandManager {
         TextChannel channel = context.channel;
         Member invoker = context.invoker;
 
-        commandsExecuted.getAndIncrement();
+        totalCommandsExecuted.incrementAndGet();
+        Metrics.commandsExecuted.labels(invoked.getClass().getSimpleName()).inc();
 
         if (guild.getJDA().getSelfUser().getId().equals(BotConstants.PATRON_BOT_ID)
                 && Config.CONFIG.getDistribution() == DistributionEnum.PATRON
@@ -108,7 +112,8 @@ public class CommandManager {
                     && !invoker.getUser().getId().equals("81011298891993088")) { // Fre_d
                 context.deleteMessage();
                 context.replyWithName("Please don't spam music commands outside of <#174821093633294338>.",
-                        msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS));
+                        msg -> CentralMessaging.restService.schedule(() -> CentralMessaging.deleteMessage(msg),
+                                5, TimeUnit.SECONDS));
                 return;
             }
         }
@@ -136,6 +141,7 @@ public class CommandManager {
         try {
             invoked.onInvoke(context);
         } catch (Exception e) {
+            Metrics.commandExceptions.labels(e.getClass().getSimpleName()).inc();
             TextUtils.handleException(e, context);
         }
 

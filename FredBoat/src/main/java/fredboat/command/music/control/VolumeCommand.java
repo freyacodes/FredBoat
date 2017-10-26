@@ -33,6 +33,7 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 
@@ -64,8 +65,9 @@ public class VolumeCommand extends Command implements IMusicCommand, ICommandRes
                         100 * PlayerRegistry.DEFAULT_VOLUME, Math.floor(player.getVolume() * 100)));
             }
         } else {
-            context.reply(context.i18n("volumeApology"),
-                    msg -> msg.delete().queueAfter(2, TimeUnit.MINUTES));
+            context.reply(context.i18n("volumeApology"), msg -> CentralMessaging.restService.schedule(
+                    () -> CentralMessaging.deleteMessage(msg), 2, TimeUnit.MINUTES));
+
         }
     }
 

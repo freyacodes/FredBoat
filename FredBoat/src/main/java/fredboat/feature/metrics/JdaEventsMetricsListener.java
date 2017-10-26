@@ -1,4 +1,5 @@
 /*
+ *
  * MIT License
  *
  * Copyright (c) 2017 Frederik Ar. Mikkelsen
@@ -20,21 +21,22 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-package fredboat.util.rest;
+package fredboat.feature.metrics;
 
-import net.dv8tion.jda.core.requests.RestAction;
+import net.dv8tion.jda.core.events.Event;
+import net.dv8tion.jda.core.hooks.ListenerAdapter;
 
-import java.util.concurrent.*;
+/**
+ * Created by napster on 18.10.17.
+ * <p>
+ * Jda listener, drop it into all the shards to get stats on all events received.
+ */
+public class JdaEventsMetricsListener extends ListenerAdapter {
 
-public class RestActionScheduler {
-
-    private static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(1);
-
-    public static void schedule(RestAction action, long time, TimeUnit unit) {
-        SCHEDULER.schedule((Runnable) action::queue, time, unit);
+    @Override
+    public void onGenericEvent(Event event) {
+        Metrics.jdaEvents.labels(event.getClass().getSimpleName()).inc();
     }
-
 }

@@ -29,6 +29,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import fredboat.Config;
+import fredboat.feature.metrics.Metrics;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.entities.Guild;
@@ -44,8 +45,8 @@ public class PatronageChecker {
 
     private static final Logger log = LoggerFactory.getLogger(PatronageChecker.class);
 
-    private final LoadingCache<String, Status> cache = CacheBuilder
-            .newBuilder()
+    private final LoadingCache<String, Status> cache = CacheBuilder.newBuilder()
+            .recordStats()
             .expireAfterWrite(120, TimeUnit.MINUTES)
             .build(new Loader());
 
@@ -66,6 +67,7 @@ public class PatronageChecker {
                 , 0, 1, TimeUnit.MINUTES);
 
         log.info("Began patronage checker");
+        Metrics.instance().cacheMetrics.addCache("patronageChecker", cache);
     }
 
     public Status getStatus(Guild guild) {

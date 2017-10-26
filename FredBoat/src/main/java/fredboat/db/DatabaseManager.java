@@ -27,11 +27,15 @@ package fredboat.db;
 
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
+import com.zaxxer.hikari.HikariDataSource;
 import fredboat.Config;
 import fredboat.FredBoat;
+import fredboat.feature.metrics.Metrics;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.config.CacheConfiguration;
 import net.sf.ehcache.config.PersistenceConfiguration;
+import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
+import org.hibernate.internal.SessionFactoryImpl;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +49,8 @@ import java.util.Properties;
 public class DatabaseManager {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseManager.class);
+
+    private static final String DEFAULT_PERSISTENCE_UNIT_NAME = "fredboat.default";
 
     private EntityManagerFactory emf;
     private Session sshTunnel;
@@ -128,7 +134,7 @@ public class DatabaseManager {
             emfb.setPackagesToScan("fredboat.db.entity");
             emfb.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
             emfb.setJpaProperties(properties);
-            emfb.setPersistenceUnitName("fredboat.test");
+            emfb.setPersistenceUnitName(DEFAULT_PERSISTENCE_UNIT_NAME);
             emfb.setPersistenceProviderClass(HibernatePersistenceProvider.class);
             emfb.afterPropertiesSet();
 
@@ -136,6 +142,18 @@ public class DatabaseManager {
             closeEntityManagerFactory();
 
             emf = emfb.getObject();
+
+            try {
+                //add metrics to hikari and hibernate
+                SessionFactoryImpl sessionFactory = emf.unwrap(SessionFactoryImpl.class);
+                sessionFactory.getServiceRegistry().getService(ConnectionProvider.class)
+                        .unwrap(HikariDataSource.class)
+                        .setMetricsTrackerFactory(Metrics.instance().hikariStats);
+                //NOTE the register() on the HibernateCollector may only be called once so this will break in case we create 2 connections
+                Metrics.instance().hibernateStats.add(sessionFactory, DEFAULT_PERSISTENCE_UNIT_NAME).register();
+            } catch (Exception e) {
+                log.warn("Exception when registering database metrics. This is not expected to happen outside of tests.", e);
+            }
 
             //adjusting the ehcache config
             if (!Config.CONFIG.isUseSshTunnel()) {

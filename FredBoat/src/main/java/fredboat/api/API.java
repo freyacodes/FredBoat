@@ -28,6 +28,7 @@ package fredboat.api;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.audio.player.PlayerRegistry;
+import fredboat.feature.metrics.Metrics;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -61,6 +62,7 @@ public class API {
         });
 
         Spark.get("/stats", (req, res) -> {
+            Metrics.apiServed.labels("/stats").inc();
             res.type("application/json");
 
             JSONObject root = new JSONObject();
@@ -69,8 +71,8 @@ public class API {
             for (FredBoat fb : FredBoat.getShards()) {
                 JSONObject fbStats = new JSONObject();
                 fbStats.put("id", fb.getShardInfo().getShardId())
-                        .put("guilds", fb.getShardGuildsCount())
-                        .put("users", fb.getShardUniqueUsersCount())
+                        .put("guilds", fb.getGuildCount())
+                        .put("users", fb.getUserCount())
                         .put("status", fb.getJda().getStatus());
 
                 a.put(fbStats);
@@ -96,6 +98,18 @@ public class API {
             response.body(ExceptionUtils.getStackTrace(e));
             response.type("text/plain");
             response.status(500);
+        });
+    }
+
+    public static void turnOnMetrics() {
+        if (!Config.CONFIG.isRestServerEnabled()) {
+            log.warn("Rest server is not enabled. Skipping Spark ignition!");
+            return;
+        }
+
+        Spark.get("/metrics", (req, resp) -> {
+            Metrics.apiServed.labels("/metrics").inc();
+            return Metrics.instance().metricsServlet.servletGet(req.raw(), resp.raw());
         });
     }
 

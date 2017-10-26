@@ -37,11 +37,13 @@ import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityReader;
 import fredboat.feature.I18n;
+import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
 import fredboat.util.DiscordUtil;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
+import io.prometheus.client.Histogram;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -67,11 +69,13 @@ public class EventListenerBoat extends AbstractEventListener {
     //first string is the users message ID, second string the id of fredboat's message that should be deleted if the
     // user's message is deleted
     public static final Cache<Long, Long> messagesToDeleteIfIdDeleted = CacheBuilder.newBuilder()
+            .recordStats()
             .expireAfterWrite(6, TimeUnit.HOURS)
             .build();
 
 
     public EventListenerBoat() {
+        Metrics.instance().cacheMetrics.addCache("messagesToDeleteIfIdDeleted", messagesToDeleteIfIdDeleted);
     }
 
     @Override
@@ -79,6 +83,7 @@ public class EventListenerBoat extends AbstractEventListener {
 
         if (FeatureFlags.RATE_LIMITER.isActive()) {
             if (Ratelimiter.getRatelimiter().isBlacklisted(event.getAuthor().getIdLong())) {
+                Metrics.blacklistedMessagesReceived.inc();
                 return;
             }
         }
@@ -112,11 +117,13 @@ public class EventListenerBoat extends AbstractEventListener {
         }
         log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
 
-        //ignore all commands in channels where we can't talk, except for the help command
+        //ignore all commands in channels where we can't write, except for the help command
         if (!channel.canTalk() && !(context.command instanceof HelpCommand)) {
-            log.debug("Ignored command because this bot cannot write in that channel");
+            log.info("Ignored command because this bot cannot write in that channel");
             return;
         }
+
+        Metrics.commandsReceived.labels(context.command.getClass().getSimpleName()).inc();
 
         limitOrExecuteCommand(context);
     }
@@ -129,11 +136,22 @@ public class EventListenerBoat extends AbstractEventListener {
         Tuple2<Boolean, Class> ratelimiterResult = new Tuple2<>(true, null);
         if (FeatureFlags.RATE_LIMITER.isActive()) {
             ratelimiterResult = Ratelimiter.getRatelimiter().isAllowed(context, context.command, 1);
-
         }
-        if (ratelimiterResult.a)
-            CommandManager.prefixCalled(context);
-        else {
+
+        if (ratelimiterResult.a) {
+            Histogram.Timer executionTimer = null;
+            if (FeatureFlags.FULL_METRICS.isActive()) {
+                executionTimer = Metrics.executionTime.labels(context.command.getClass().getSimpleName()).startTimer();
+            }
+            try {
+                CommandManager.prefixCalled(context);
+            } finally {
+                //NOTE: Some commands, like ;;mal, run async and will not reflect the real performance of FredBoat
+                if (FeatureFlags.FULL_METRICS.isActive() && executionTimer != null) {
+                    executionTimer.observeDuration();
+                }
+            }
+        } else {
             String out = context.i18n("ratelimitedGeneralInfo");
             if (ratelimiterResult.b == SkipCommand.class) { //we can compare classes with == as long as we are using the same classloader (which we are)
                 //add a nice reminder on how to skip more than 1 song
@@ -158,6 +176,8 @@ public class EventListenerBoat extends AbstractEventListener {
 
         if (FeatureFlags.RATE_LIMITER.isActive()) {
             if (Ratelimiter.getRatelimiter().isBlacklisted(event.getAuthor().getIdLong())) {
+                //dont need to inc() the metrics counter here, because private message events are a subset of
+                // MessageReceivedEvents where we inc() the blacklisted messages counter already
                 return;
             }
         }

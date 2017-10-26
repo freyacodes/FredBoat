@@ -30,6 +30,7 @@ import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
+import fredboat.feature.metrics.OkHttpEventMetrics;
 import fredboat.messaging.internal.Context;
 import fredboat.util.rest.Http;
 import okhttp3.Credentials;
@@ -69,6 +70,7 @@ public class MALCommand extends Command implements IUtilCommand {
             .connectTimeout(120, TimeUnit.SECONDS)
             .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)
+            .eventListener(new OkHttpEventMetrics("myAnimeListApi"))
             .build();
 
     @Override

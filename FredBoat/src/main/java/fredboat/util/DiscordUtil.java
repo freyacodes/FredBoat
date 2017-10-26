@@ -27,6 +27,7 @@ package fredboat.util;
 
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.feature.I18n;
+import fredboat.feature.metrics.Metrics;
 import fredboat.shared.constant.BotConstants;
 import fredboat.util.rest.Http;
 import net.dv8tion.jda.bot.entities.ApplicationInfo;
@@ -128,6 +129,7 @@ public class DiscordUtil {
                 if (info == null) {
                     //todo this method can be improved by reloading the info regularly. possibly some async loading guava cache?
                     selfDiscordAppInfo = info = new DiscordAppInfo(jda.asBot().getApplicationInfo().complete());
+                    Metrics.successfulRestActions.labels("getApplicationInfo").inc();
                 }
             }
         }

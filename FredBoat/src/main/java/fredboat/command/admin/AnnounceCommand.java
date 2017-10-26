@@ -27,6 +27,7 @@ package fredboat.command.admin;
 
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
@@ -65,8 +66,14 @@ public class AnnounceCommand extends Command implements ICommandRestricted {
         List<GuildPlayer> players = PlayerRegistry.getPlayingPlayers();
 
         if (players.isEmpty()) {
+            context.reply("No currently playing players.");
             return;
         }
+        if (!context.hasArguments()) {
+            HelpCommand.sendFormattedCommandHelp(context);
+            return;
+        }
+
         String msg = HEAD + context.rawArgs;
 
         context.reply(String.format("[0/%d]", players.size()),
@@ -136,7 +143,7 @@ public class AnnounceCommand extends Command implements ICommandRestricted {
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1}\n#Broadcasts an announcement to GuildPlayer TextChannels.";
+        return "{0}{1} <announcement>\n#Broadcast an announcement to active textchannels of playing GuildPlayers.";
     }
 
     @Nonnull

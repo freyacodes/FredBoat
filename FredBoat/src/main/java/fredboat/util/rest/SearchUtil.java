@@ -38,6 +38,7 @@ import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.entity.SearchResult;
+import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -94,6 +95,7 @@ public class SearchUtil {
      */
     public static AudioPlaylist searchForTracks(String query, long cacheMaxAge, int timeoutMillis, List<SearchProvider> providers)
             throws SearchingException {
+        Metrics.searchRequests.inc();
 
         List<SearchProvider> provs = new ArrayList<>();
         if (providers == null || providers.isEmpty()) {
@@ -111,6 +113,7 @@ public class SearchUtil {
             AudioPlaylist cacheResult = fromCache(provider, query, cacheMaxAge);
             if (cacheResult != null && !cacheResult.getTracks().isEmpty()) {
                 log.debug("Loaded search result {} {} from cache", provider, query);
+                Metrics.searchHits.labels("cache").inc();
                 return cacheResult;
             }
 
@@ -122,6 +125,7 @@ public class SearchUtil {
                         log.debug("Loaded search result {} {} from lavaplayer", provider, query);
                         // got a search result? cache and return it
                         FredBoat.executor.execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, lavaplayerResult).save());
+                        Metrics.searchHits.labels("lavaplayer-" + provider.name().toLowerCase()).inc();
                         return lavaplayerResult;
                     }
                 } catch (Http503Exception e) {
@@ -144,6 +148,7 @@ public class SearchUtil {
                         log.debug("Loaded search result {} {} from Youtube API", provider, query);
                         // got a search result? cache and return it
                         FredBoat.executor.execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, youtubeApiResult).save());
+                        Metrics.searchHits.labels("youtube-api").inc();
                         return youtubeApiResult;
                     }
                 } catch (SearchingException e) {
@@ -154,9 +159,11 @@ public class SearchUtil {
 
         //did we run into searching exceptions that made us end up here?
         if (searchingException != null) {
+            Metrics.searchHits.labels("exception").inc();
             throw searchingException;
         }
         //no result with any of the search providers
+        Metrics.searchHits.labels("empty").inc();
         return new BasicAudioPlaylist("Search result for: " + query, Collections.emptyList(), null, true);
     }
 

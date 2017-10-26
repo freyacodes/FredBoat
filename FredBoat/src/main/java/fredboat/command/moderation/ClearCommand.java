@@ -29,18 +29,20 @@ import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
+import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.*;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
+import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.MessageHistory;
+import net.dv8tion.jda.core.entities.TextChannel;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.List;
 
 public class ClearCommand extends Command implements IModerationCommand {
 
@@ -61,37 +63,38 @@ public class ClearCommand extends Command implements IModerationCommand {
             context.replyWithName("You must have Manage Messages to do that!");
             return;
         }
-        
+
         MessageHistory history = new MessageHistory(channel);
-        List<Message> msgs;
-        try {
-            msgs = history.retrievePast(50).complete(true);
+        history.retrievePast(50).queue(msgs -> {
+                    Metrics.successfulRestActions.labels("retrieveMessageHistory").inc();
+                    ArrayList<Message> myMessages = new ArrayList<>();
 
-            ArrayList<Message> myMessages = new ArrayList<>();
+                    for (Message msg : msgs) {
+                        if (msg.getAuthor().equals(jda.getSelfUser())) {
+                            myMessages.add(msg);
+                        }
+                    }
 
-            for (Message msg : msgs) {
-                if(msg.getAuthor().equals(jda.getSelfUser())){
-                    myMessages.add(msg);
-                }
-            }
+                    if (myMessages.isEmpty()) {
+                        throw new MessagingException("No messages found.");
+                    } else if (myMessages.size() == 1) {
+                        context.reply("Found one message, deleting.");
+                        CentralMessaging.deleteMessage(myMessages.get(0));
+                    } else {
 
-            if(myMessages.isEmpty()){
-                throw new MessagingException("No messages found.");
-            } else if(myMessages.size() == 1) {
-                context.reply("Found one message, deleting.");
-                CentralMessaging.deleteMessage(myMessages.get(0));
-            } else {
+                        if (!context.hasPermissions(Permission.MESSAGE_MANAGE)) {
+                            context.reply("I must have the `Manage Messages` permission to delete my own messages in bulk.");
+                        }
 
-                if (!context.hasPermissions(Permission.MESSAGE_MANAGE)) {
-                    throw new MessagingException("I must have the `Manage Messages` permission to delete my own messages in bulk.");
-                }
-
-                context.reply("Deleting **" + myMessages.size() + "** messages.");
-                CentralMessaging.deleteMessages(channel, myMessages);
-            }
-        } catch (RateLimitedException e) {
-            throw new RuntimeException(e);
-        }
+                        context.reply("Deleting **" + myMessages.size() + "** messages.");
+                        CentralMessaging.deleteMessages(channel, myMessages);
+                    }
+                },
+                CentralMessaging.getJdaRestActionFailureHandler(
+                        String.format("Failed to retrieve message history in channel %s in guild %s",
+                                channel.getId(), context.guild.getId())
+                )
+        );
     }
 
     @Nonnull

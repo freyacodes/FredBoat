@@ -25,15 +25,16 @@
 
 package fredboat;
 
+import com.sedmelluq.discord.lavaplayer.jdaudp.NativeAudioSendFactory;
 import fredboat.agent.StatsAgent;
-import fredboat.audio.nas.NativeAudioSendFactory;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.MusicPersistenceHandler;
 import fredboat.event.EventListenerBoat;
 import fredboat.event.EventLogger;
-import fredboat.util.JDAUtil;
+import fredboat.feature.metrics.Metrics;
+import fredboat.feature.metrics.OkHttpEventMetrics;
 import fredboat.util.TextUtils;
 import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.AccountType;
@@ -44,6 +45,7 @@ import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.managers.AudioManager;
+import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +53,6 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This class represents a FredBoat shard, containing all non-static FredBoat shard-level logic.
@@ -218,27 +219,40 @@ public class FredBoatShard extends FredBoat {
         return jda;
     }
 
+    //JDA entity counts
     @Override
-    public int getGuildCount() {
-        return JDAUtil.countGuilds(Collections.singletonList(this));
-    }
-
-
-    private final AtomicInteger biggestUserCountShard = new AtomicInteger(-1);
-
-    @Override
-    public long getUserCount() {
-        return JDAUtil.countUniqueUsers(Collections.singletonList(this), biggestUserCountShard);
-    }
-
-    @Override
-    public int getShardUniqueUsersCount() {
+    public int getUserCount() {
         return jdaEntityCountsShard.uniqueUsersCount;
     }
 
     @Override
-    public int getShardGuildsCount() {
+    public int getGuildCount() {
         return jdaEntityCountsShard.guildsCount;
+    }
+
+    @Override
+    public int getTextChannelCount() {
+        return jdaEntityCountsShard.textChannelsCount;
+    }
+
+    @Override
+    public int getVoiceChannelCount() {
+        return jdaEntityCountsShard.voiceChannelsCount;
+    }
+
+    @Override
+    public int getCategoriesCount() {
+        return jdaEntityCountsShard.categoriesCount;
+    }
+
+    @Override
+    public int getEmotesCount() {
+        return jdaEntityCountsShard.emotesCount;
+    }
+
+    @Override
+    public int getRolesCount() {
+        return jdaEntityCountsShard.rolesCount;
     }
 
     private static class ShardStatsCounter implements StatsAgent.Action {
@@ -277,8 +291,12 @@ public class FredBoatShard extends FredBoat {
                         .setAutoReconnect(true)
                         .setHttpClientBuilder(Http.defaultHttpClient.newBuilder())
                         .setReconnectQueue(connectQueue)
+                        .setHttpClientBuilder(new OkHttpClient.Builder()
+                                .eventListener(new OkHttpEventMetrics("jda")))
+                        .addEventListener(Metrics.instance().jdaEventsMetricsListener)
                         .addEventListener(new EventLogger(Config.CONFIG.getEventLogWebhookId(),
                                 Config.CONFIG.getEventLogWebhookToken()));
+
 
                 if (LavalinkManager.ins.isEnabled()) {
                     builder.addEventListener(LavalinkManager.ins.getLavalink());
@@ -288,7 +306,7 @@ public class FredBoatShard extends FredBoat {
                         && !System.getProperty("os.arch").equalsIgnoreCase("arm-linux")
                         && !System.getProperty("os.arch").equalsIgnoreCase("darwin")
                         && !System.getProperty("os.name").equalsIgnoreCase("Mac OS X")) {
-                    builder.setAudioSendFactory(new NativeAudioSendFactory());
+                    builder.setAudioSendFactory(new NativeAudioSendFactory(800));
                 }
 
                 defaultShardBuilder = builder;
