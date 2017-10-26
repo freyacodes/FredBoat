@@ -131,4 +131,8 @@ public interface ITrackProvider {
      */
     boolean isUserTrackOwner(long userId, Collection<Long> trackIds);
 
+    /**
+     * @return amount of tracks a user has in the current queue
+     */
+    int getUserTrackCount(long userId);
 }

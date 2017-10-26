@@ -46,10 +46,7 @@ import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.entities.VoiceChannel;
+import net.dv8tion.jda.core.entities.*;
 import net.dv8tion.jda.core.managers.AudioManager;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -219,20 +216,8 @@ public class GuildPlayer extends AbstractPlayer {
         return result;
     }
 
-    public List<AudioTrackContext> getAllTracks() {
-        return getTracksInRange(0, getTrackCount());
-    }
-
-    public int getMemberTrackCount(Member member) {
-        List<AudioTrackContext> atcList = getAllTracks();
-
-
-        Integer count = 0;
-        for (AudioTrackContext atc : atcList) {
-            if (atc.getMember() == member)
-                count++;
-        }
-        return count;
+    public int getMemberTrackCount(@Nonnull Member member) {
+        return audioTrackProvider.getUserTrackCount(member.getUser().getIdLong());
     }
 
     //similar to getTracksInRange, but only gets the trackIds

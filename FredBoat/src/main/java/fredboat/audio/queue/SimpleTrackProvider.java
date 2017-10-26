@@ -254,4 +254,14 @@ public class SimpleTrackProvider extends AbstractTrackProvider {
         }
         return true;
     }
+
+    @Override
+    public int getUserTrackCount(long userId) {
+        int trackCount = 0;
+        for (AudioTrackContext atc : getAsList()) {
+            if (atc.getUserId() == userId)
+                trackCount++;
+        }
+        return trackCount;
+    }
 }
