@@ -34,8 +34,13 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
+import lavalink.client.io.Lavalink;
+import lavalink.client.io.LavalinkSocket;
+import lavalink.client.io.RemoteStats;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AudioDebugCommand extends Command implements IMaintenanceCommand {
 
@@ -53,7 +58,8 @@ public class AudioDebugCommand extends Command implements IMaintenanceCommand {
     }
 
     private void handleLavalink(CommandContext context) {
-        context.replyWithName("LavaLink is enabled! please use ;;debug instead.");
+        context.replyWithName("LavaLink is enabled! showing LavaLink status.");
+        NodesCommand.handleLavalink(context);
     }
 
     private void handleLavaplayer(CommandContext context) {
