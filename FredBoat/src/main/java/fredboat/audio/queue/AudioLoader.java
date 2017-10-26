@@ -36,6 +36,7 @@ import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.PlaylistImporter;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
 import fredboat.feature.metrics.Metrics;
+import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.EntityReader;
 import fredboat.db.entity.GuildConfig;
 import fredboat.feature.togglz.FeatureFlags;
@@ -47,10 +48,12 @@ import fredboat.util.ratelimit.Ratelimiter;
 import fredboat.util.rest.YoutubeAPI;
 import fredboat.util.rest.YoutubeVideo;
 import net.dv8tion.jda.core.MessageBuilder;
+import net.dv8tion.jda.core.entities.Member;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -171,8 +174,34 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     @Override
     public void trackLoaded(AudioTrack at) {
-        Metrics.tracksLoaded.inc();
+        long maxDuration = 0;
+        int memberTrackLimit = 0;
+
+        // Try load db entries here to ensure even if the db is unreachable we can continue
         try {
+            if (context.getGuild() != null) {
+                GuildConfig gc = EntityReader.getGuildConfig(context.getGuild().getId());
+                maxDuration = gc.getMaxTrackDuration();
+                memberTrackLimit = gc.getMemberTrackLimit();
+            }
+            //Should we ignore this or let the user know that the db could not be accessed ?
+        } catch (DatabaseNotReadyException ignored) {}
+
+        try {
+            Member member = context.getMember();
+            if (member == null) {
+                log.info("silently dropping loaded AudioTrack " + at.getInfo().identifier +
+                        " since requester is no longer part of this server");
+                return;
+            }
+
+            // Check MaxMemberTracks & MaxTrackDuration
+            if (checkMaxMemberTracksWithResponse(member, memberTrackLimit) ||
+                    checkMaxTrackDurationWithResponse(maxDuration, at)) {
+                return;
+            }
+
+        Metrics.tracksLoaded.inc();
             if(context.isSplit()){
                 loadSplit(at, context);
             } else {
@@ -202,8 +231,36 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     @Override
     public void playlistLoaded(AudioPlaylist ap) {
-        Metrics.tracksLoaded.inc(ap.getTracks() == null ? 0 : ap.getTracks().size());
+        long maxDuration = 0;
+        boolean allowPlaylist = true;
+        int memberTrackLimit = 0;
+
+        // Try load db entries here to ensure even if the db is unreachable we can continue
         try {
+            if (context.getGuild() != null) {
+                GuildConfig gc = EntityReader.getGuildConfig(context.getGuild().getId());
+                maxDuration = gc.getMaxTrackDuration();
+                allowPlaylist = gc.isAllowPlaylist();
+                memberTrackLimit = gc.getMemberTrackLimit();
+            }
+            //Should we ignore this or let the user know that the db could not be accessed ?
+        } catch (DatabaseNotReadyException ignored) {}
+
+
+        try {
+            Member member = context.getMember();
+            if (member == null) {
+                log.info("silently dropping loaded AudioPlaylist " + ap.getName() +
+                        " since requester is no longer part of this server");
+                return;
+            }
+
+            if (checkAllowPlaylistWithResponse(member, allowPlaylist) ||
+                    checkMaxMemberTracksWithResponse(member, memberTrackLimit, ap.getTracks().size())) {
+                return;
+            }
+
+        Metrics.tracksLoaded.inc(ap.getTracks() == null ? 0 : ap.getTracks().size());
             if(context.isSplit()){
                 context.reply(context.i18n("loadPlaySplitListFail"));
                 loadNextAsync();
@@ -212,10 +269,11 @@ public class AudioLoader implements AudioLoadResultHandler {
 
             List<AudioTrackContext> toAdd = new ArrayList<>();
             List<AudioTrack> failedToAdd = new ArrayList<>();
+
             for (AudioTrack at : ap.getTracks()) {
 
-                if (gc.getMaxTrackDuration() > 0) {
-                    if (at.getDuration() > gc.getMaxTrackDuration()) {
+                if (maxDuration > 0) {
+                    if (at.getDuration() > maxDuration) {
                         failedToAdd.add(at);
                         continue;
                     }
@@ -232,33 +290,42 @@ public class AudioLoader implements AudioLoadResultHandler {
             String failed = failedToAdd.size() > 1
                     ? "`" + failedToAdd.size() + "`"
                     : "**" + failedToAdd.get(0).getInfo().title + "**";
-            String maxDuration = "`" + TextUtils.formatTime(gc.getMaxTrackDuration()) + "`";
+            String maxDur = "`" + TextUtils.formatTime(maxDuration) + "`";
             String playlistName = "**" + ap.getName() + "**";
 
+            // Added more than one ?
             if (toAdd.size() > 1) {
+                // Did any fail ?
                 if (failedToAdd.size() > 0) {
                     context.reply(context.i18nFormat("loadListSuccess", added, playlistName) + "\n" +
+                            // How many failed ?
                             (failedToAdd.size() > 1
-                                    ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDuration)
-                                    : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDuration)));
+                                    ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDur)
+                                    : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDur)));
+                    // None failed
                 } else {
                     context.reply(context.i18nFormat("loadListSuccess", added, playlistName));
                 }
-
+                // Added only 1 ?
             } else if (toAdd.size() == 1){
+                // Did any fail ?
                 if (failedToAdd.size() > 0) {
                     context.reply(context.i18nFormat("loadSingleTrack", added) + "\n" +
+                            // How many failed ?
                             (failedToAdd.size() > 1
-                                    ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDuration)
-                                    : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDuration)));
+                                    ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDur)
+                                    : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDur)));
+                    // None failed
                 } else {
                     context.reply(context.i18nFormat("loadSingleTrack", added));
                 }
             }
+            // No track was added, only failed
             else {
+                //How many failed ?
                 context.reply(failedToAdd.size() > 1
-                        ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDuration)
-                        : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDuration));
+                        ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDur)
+                        : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDur));
 
             }
 
@@ -287,6 +354,51 @@ public class AudioLoader implements AudioLoadResultHandler {
         handleThrowable(context, fe);
 
         loadNextAsync();
+    }
+
+    private boolean checkAllowPlaylistWithResponse(Member member, boolean allowPlaylist) {
+        boolean isAllowed = true;
+        if (!allowPlaylist) {
+            if (!PermsUtil.checkPerms(PermissionLevel.DJ, member)) {
+                context.replyWithName(context.i18nFormat("cantQueuePlaylist", ("`" + PermissionLevel.DJ + "`")));
+                isAllowed = false;
+            }
+        }
+        return isAllowed;
+    }
+
+    private boolean checkMaxMemberTracksWithResponse(@Nonnull Member member, int maxTracks) {
+        return checkMaxMemberTracksWithResponse(member, maxTracks, 1);
+    }
+
+    private boolean checkMaxMemberTracksWithResponse(@Nonnull Member member, int maxTracks, int addedTracks) {
+        boolean isAllowed = true;
+        if (maxTracks > 0) {
+            if ((gplayer.getMemberTrackCount(member) + addedTracks) > maxTracks) {
+                if (addedTracks > 1)
+                    context.replyWithName(context.i18nFormat("exceedsMemberTrackLimitSingle",
+                            ("`" + maxTracks + "`")));
+                else
+                    context.replyWithName(context.i18nFormat("exceedsMemberTrackLimitMultiple",
+                            ("`" + maxTracks + "`")));
+
+                isAllowed = false;
+            }
+        }
+        return isAllowed;
+    }
+
+    private boolean checkMaxTrackDurationWithResponse(long maxDuration, AudioTrack at) {
+        boolean isAllowed = true;
+        if (maxDuration > 0) {
+            if (at.getDuration() > maxDuration) {
+                context.replyWithName(context.i18nFormat("exceedsTrackDurationLimitSingle",
+                        "**" + at.getInfo().title + "**",
+                        "`" + TextUtils.formatTime(maxDuration) + "`"));
+                isAllowed = false;
+            }
+        }
+        return isAllowed;
     }
 
     private void loadSplit(AudioTrack at, IdentifierContext ic){
