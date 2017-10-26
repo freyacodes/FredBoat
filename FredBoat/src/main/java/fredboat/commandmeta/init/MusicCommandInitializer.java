@@ -103,6 +103,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand(new GitInfoCommand("mgitinfo", "mgit"));
         CommandRegistry.registerCommand(new UnblacklistCommand("munblacklist", "munlimit"));
         CommandRegistry.registerCommand(new ExitCommand("mexit"));
+        CommandRegistry.registerCommand(new LeaveServerCommand("mleaveserver"));
         CommandRegistry.registerCommand(new BotRestartCommand("mbotrestart"));
         CommandRegistry.registerCommand(new StatsCommand("mstats"));
         CommandRegistry.registerCommand(new EvalCommand("meval"));
