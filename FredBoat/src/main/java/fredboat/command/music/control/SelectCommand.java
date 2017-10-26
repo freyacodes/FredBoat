@@ -112,14 +112,15 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                 StringBuilder outputMsgBuilder = new StringBuilder();
 
                 GuildConfig gc = EntityReader.getGuildConfig(context.getGuild().getId());
-                Integer memberTrackLimit = gc.getMemberTrackLimit();
-                Long maxTrackDuration = gc.getMaxTrackDuration();
+                int memberTrackLimit = gc.getMemberTrackLimit();
+                long maxTrackDuration = gc.getMaxTrackDuration();
 
                 for (int i = 0; i < validChoices.size(); i++) {
                     // Check how many and if too many songs a user queued
                     if (memberTrackLimit > 0) {
                         if ((player.getMemberTrackCount(context.getMember()) + 1) > memberTrackLimit) {
-                            context.replyWithName(context.i18nFormat("exceedsMemberTrackLimitSingle", ("`" + memberTrackLimit + "`")));
+                            context.replyWithName(context.i18nFormat("exceedsMemberTrackLimitSingle",
+                                    ("`" + memberTrackLimit + "`")));
                             break;
                         }
                     }
