@@ -109,7 +109,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                 break;
             case "allow_playlist":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
-                    gc.setAllowPlaylist(Boolean.valueOf(val));
+                    gc.setAllowPlaylist(Boolean.parseBoolean(val));
                     EntityWriter.mergeGuildConfig(gc);
                     context.replyWithName("`allow_playlist` " + context.i18nFormat("configSetTo", val));
                 } else {
@@ -118,7 +118,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                 break;
             case "member_track_limit":
                 if (val.matches("^\\d+$")) {
-                    gc.setMemberTrackLimit(Integer.valueOf(val));
+                    gc.setMemberTrackLimit(Integer.parseUnsignedInt(val));
                     EntityWriter.mergeGuildConfig(gc);
                     context.replyWithName("`member_track_limit` " + context.i18nFormat("configSetTo", val));
                 } else {
