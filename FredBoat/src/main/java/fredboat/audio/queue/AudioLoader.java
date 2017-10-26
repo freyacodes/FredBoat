@@ -356,13 +356,11 @@ public class AudioLoader implements AudioLoadResultHandler {
         loadNextAsync();
     }
 
-    private boolean checkAllowPlaylistWithResponse(Member member, boolean allowPlaylist) {
+    private boolean checkAllowPlaylistWithResponse(boolean allowPlaylist) {
         boolean isAllowed = true;
         if (!allowPlaylist) {
-            if (!PermsUtil.checkPerms(PermissionLevel.DJ, member)) {
-                context.replyWithName(context.i18nFormat("cantQueuePlaylist", ("`" + PermissionLevel.DJ + "`")));
-                isAllowed = false;
-            }
+            context.replyWithName(context.i18n("cantQueuePlaylist"));
+            isAllowed = false;
         }
         return isAllowed;
     }
