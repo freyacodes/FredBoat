@@ -27,6 +27,7 @@ package fredboat.command.maintenance;
 
 import fredboat.audio.player.AudioLossCounter;
 import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
@@ -44,6 +45,33 @@ public class AudioDebugCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
+        if (LavalinkManager.ins.isEnabled()) {
+            //handleLavalink(context);
+            context.replyWithName("Lavalink is enabled");
+        } else {
+            handleLavaplayer(context);
+        }
+
+
+        /*String msg = "";
+        GuildPlayer guildPlayer = PlayerRegistry.getExisting(context.guild);
+
+        if(guildPlayer == null) {
+            msg = msg + "No GuildPlayer found.\n";
+        } else {
+            int deficit = AudioLossCounter.EXPECTED_PACKET_COUNT_PER_MIN - (guildPlayer.getAudioLossCounter().getLastMinuteLoss() + guildPlayer.getAudioLossCounter().getLastMinuteSuccess());
+
+            msg = msg + "Last minute's packet stats:\n" + TextUtils.asCodeBlock(
+                              "Packets sent:   " + guildPlayer.getAudioLossCounter().getLastMinuteSuccess() + "\n"
+                            + "Null packets:   " + guildPlayer.getAudioLossCounter().getLastMinuteLoss() + "\n"
+                            + "Packet deficit: " + deficit);
+        }
+
+        context.replyWithName(msg);
+        */
+
+    }
+    private void handleLavaplayer(CommandContext context) {
         String msg = "";
         GuildPlayer guildPlayer = PlayerRegistry.getExisting(context.guild);
 
@@ -61,7 +89,6 @@ public class AudioDebugCommand extends Command implements IMaintenanceCommand {
         context.replyWithName(msg);
 
     }
-
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
