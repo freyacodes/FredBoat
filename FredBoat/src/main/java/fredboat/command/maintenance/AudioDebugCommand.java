@@ -46,31 +46,16 @@ public class AudioDebugCommand extends Command implements IMaintenanceCommand {
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         if (LavalinkManager.ins.isEnabled()) {
-            //handleLavalink(context);
-            context.replyWithName("Lavalink is enabled");
+            handleLavalink(context);
         } else {
             handleLavaplayer(context);
         }
-
-
-        /*String msg = "";
-        GuildPlayer guildPlayer = PlayerRegistry.getExisting(context.guild);
-
-        if(guildPlayer == null) {
-            msg = msg + "No GuildPlayer found.\n";
-        } else {
-            int deficit = AudioLossCounter.EXPECTED_PACKET_COUNT_PER_MIN - (guildPlayer.getAudioLossCounter().getLastMinuteLoss() + guildPlayer.getAudioLossCounter().getLastMinuteSuccess());
-
-            msg = msg + "Last minute's packet stats:\n" + TextUtils.asCodeBlock(
-                              "Packets sent:   " + guildPlayer.getAudioLossCounter().getLastMinuteSuccess() + "\n"
-                            + "Null packets:   " + guildPlayer.getAudioLossCounter().getLastMinuteLoss() + "\n"
-                            + "Packet deficit: " + deficit);
-        }
-
-        context.replyWithName(msg);
-        */
-
     }
+
+    private void handleLavalink(CommandContext context) {
+        context.replyWithName("LavaLink is enabled! please use ;;debug instead.");
+    }
+
     private void handleLavaplayer(CommandContext context) {
         String msg = "";
         GuildPlayer guildPlayer = PlayerRegistry.getExisting(context.guild);
