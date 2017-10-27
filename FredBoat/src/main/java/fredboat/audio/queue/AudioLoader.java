@@ -35,6 +35,7 @@ import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.PlaylistImporter;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
+import fredboat.feature.I18n;
 import fredboat.feature.metrics.Metrics;
 import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.EntityReader;
@@ -195,23 +196,37 @@ public class AudioLoader implements AudioLoadResultHandler {
                 return;
             }
 
-            // Check MaxMemberTracks & MaxTrackDuration
-            if (checkMaxMemberTracksWithResponse(member, memberTrackLimit) ||
-                    checkMaxTrackDurationWithResponse(maxDuration, at)) {
-                return;
-            }
-
-        Metrics.tracksLoaded.inc();
             if(context.isSplit()){
                 loadSplit(at, context);
             } else {
-
+                // Only do the player limitation checks for non Quiet as i don't know the full implications
                 if (!context.isQuiet()) {
-                    context.reply(gplayer.isPlaying() ?
-                            context.i18nFormat("loadSingleTrack", "**" + at.getInfo().title + "**")
-                            :
-                            context.i18nFormat("loadSingleTrackAndPlay", at.getInfo().title)
-                    );
+
+                    // Check & Respond if a User reached the memberTrackLimit
+                    if (memberTrackLimit > 0) {
+                        if (gplayer.getTrackCount() + 1 > memberTrackLimit) {
+                            context.reply(context.i18nFormat("exceedsMemberTrackLimitSingle",
+                                    "`" + memberTrackLimit + "`"));
+                            return;
+                        }
+                    }
+
+                    // Check & Respond if a Track is too long
+                    if (maxDuration > 0) {
+                        if (at.getDuration() > maxDuration) {
+                            context.reply(context.i18nFormat("exceedsTrackDurationLimitSingle",
+                                    "**" + at.getInfo().title + "**",
+                                    "`" + TextUtils.formatTime(maxDuration) + "`"));
+                            return;
+                        }
+                    }
+
+                    // Move Napstes Metrics Magic so it only increments on successful loaded tracks
+                    Metrics.tracksLoaded.inc();
+
+                    context.reply(gplayer.isPlaying()
+                            ? context.i18nFormat("loadSingleTrack", "**" + at.getInfo().title + "**")
+                            : context.i18nFormat("loadSingleTrackAndPlay", at.getInfo().title));
                 } else {
                     log.info("Quietly loaded " + at.getIdentifier());
                 }
@@ -231,7 +246,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     @Override
     public void playlistLoaded(AudioPlaylist ap) {
-        long maxDuration = 0;
+        long maxDurationLong = 0;
         boolean allowPlaylist = true;
         int memberTrackLimit = 0;
 
@@ -239,7 +254,7 @@ public class AudioLoader implements AudioLoadResultHandler {
         try {
             if (context.getGuild() != null) {
                 GuildConfig gc = EntityReader.getGuildConfig(context.getGuild().getId());
-                maxDuration = gc.getMaxTrackDuration();
+                maxDurationLong = gc.getMaxTrackDuration();
                 allowPlaylist = gc.isAllowPlaylist();
                 memberTrackLimit = gc.getMemberTrackLimit();
             }
@@ -255,12 +270,11 @@ public class AudioLoader implements AudioLoadResultHandler {
                 return;
             }
 
-            if (checkAllowPlaylistWithResponse(member, allowPlaylist) ||
-                    checkMaxMemberTracksWithResponse(member, memberTrackLimit, ap.getTracks().size())) {
+            // If playlists are disabled we don't need to continue
+            if (!checkAllowPlaylistWithResponse(allowPlaylist)) {
                 return;
             }
 
-        Metrics.tracksLoaded.inc(ap.getTracks() == null ? 0 : ap.getTracks().size());
             if(context.isSplit()){
                 context.reply(context.i18n("loadPlaySplitListFail"));
                 loadNextAsync();
@@ -268,66 +282,83 @@ public class AudioLoader implements AudioLoadResultHandler {
             }
 
             List<AudioTrackContext> toAdd = new ArrayList<>();
-            List<AudioTrack> failedToAdd = new ArrayList<>();
+            List<AudioTrack> failedToOLong = new ArrayList<>();
+            List<AudioTrack> failedToOMany = new ArrayList<>();
 
-            for (AudioTrack at : ap.getTracks()) {
+            List<AudioTrack> tracks = ap.getTracks();
+            for (AudioTrack at : tracks) {
 
-                if (maxDuration > 0) {
-                    if (at.getDuration() > maxDuration) {
-                        failedToAdd.add(at);
+                if (maxDurationLong > 0) {
+                    if (at.getDuration() > maxDurationLong) {
+                        failedToOLong.add(at);
                         continue;
                     }
                 }
 
+                if (memberTrackLimit > 0) {
+                    if (gplayer.getTrackCount() + toAdd.size() >= memberTrackLimit) {
+                        failedToOMany = tracks.subList(tracks.indexOf(at), tracks.size() - 1);
+                        break;
+                    }
+                }
                 toAdd.add(new AudioTrackContext(at, context.getMember()));
             }
-
             trackProvider.addAll(toAdd);
 
-            String added = toAdd.size() > 1
-                    ? "`" + toAdd.size() + "`"
-                    : "**" + ap.getTracks().get(0).getInfo().title + "**";
-            String failed = failedToAdd.size() > 1
-                    ? "`" + failedToAdd.size() + "`"
-                    : "**" + failedToAdd.get(0).getInfo().title + "**";
-            String maxDur = "`" + TextUtils.formatTime(maxDuration) + "`";
-            String playlistName = "**" + ap.getName() + "**";
+            MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder();
+            // Did we add any tracks at all ?
+            if (toAdd.size() > 0) {
 
-            // Added more than one ?
-            if (toAdd.size() > 1) {
-                // Did any fail ?
-                if (failedToAdd.size() > 0) {
-                    context.reply(context.i18nFormat("loadListSuccess", added, playlistName) + "\n" +
-                            // How many failed ?
-                            (failedToAdd.size() > 1
-                                    ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDur)
-                                    : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDur)));
-                    // None failed
-                } else {
-                    context.reply(context.i18nFormat("loadListSuccess", added, playlistName));
-                }
-                // Added only 1 ?
-            } else if (toAdd.size() == 1){
-                // Did any fail ?
-                if (failedToAdd.size() > 0) {
-                    context.reply(context.i18nFormat("loadSingleTrack", added) + "\n" +
-                            // How many failed ?
-                            (failedToAdd.size() > 1
-                                    ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDur)
-                                    : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDur)));
-                    // None failed
-                } else {
-                    context.reply(context.i18nFormat("loadSingleTrack", added));
-                }
-            }
-            // No track was added, only failed
-            else {
-                //How many failed ?
-                context.reply(failedToAdd.size() > 1
-                        ? context.i18nFormat("exceedsTrackDurationLimitMultiple", failed, maxDur)
-                        : context.i18nFormat("exceedsTrackDurationLimitSingle", failed, maxDur));
+                // Handle Napsters Metrics magic only for successful Tracks
+                Metrics.tracksLoaded.inc(toAdd.size());
 
+                // Create strings for Success added
+                String playlistName = "**" + ap.getName() + "**";
+                String added = toAdd.size() > 1
+                        ? "`" + toAdd.size() + "`"
+                        : "**" + toAdd.get(0).getTrack().getInfo().title + "**";
+
+                // How many did we add ?
+                mb.append(toAdd.size() > 1
+                        ? context.i18nFormat("loadListSuccess", added, playlistName)
+                        : context.i18nFormat("loadSingleTrack", added));
+                mb.append("\n");
             }
+
+            // Did we skip any songs that were to long ?
+            if (failedToOLong.size() > 0) {
+
+                // Create string for failed track/s too long
+                String maxDuration = "`" + TextUtils.formatTime(maxDurationLong) + "`";
+                String failedDuration = failedToOLong.size() > 1
+                        ? "`" + failedToOLong.size() + "`"
+                        : "**" + failedToOLong.get(0).getInfo().title + "**";
+
+                // How many were to long adn got skipped ?
+                mb.append(context.i18nFormat(failedToOLong.size() > 1
+                        ? "exceedsTrackDurationLimitMultiple"
+                        : "exceedsTrackDurationLimitSingle", failedDuration, maxDuration));
+                mb.append("\n");
+            }
+
+            // Did we break cause the user reached the member max track limit ?
+            if (failedToOMany.size() > 0) {
+
+                // Create strings for failed to many tracks
+                String maxTracks = "`" + memberTrackLimit + "`";
+                String failedSize = failedToOMany.size() > 1
+                        ? "`" + failedToOMany.size() + "`"
+                        : "**" + failedToOMany.get(0).getInfo().title + "**";
+
+                // How many did we end up not adding ?
+                mb.append(context.i18nFormat(failedToOMany.size() > 1
+                        ? "exceedsMemberTrackLimitMultiple"
+                        : "exceedsMemberTrackLimitSingle", failedSize, maxTracks));
+                mb.append("\n");
+            }
+
+            // Actually send the message
+            context.reply(mb.build());
 
             if (!gplayer.isPaused()) {
                 gplayer.play();
@@ -361,40 +392,6 @@ public class AudioLoader implements AudioLoadResultHandler {
         if (!allowPlaylist) {
             context.replyWithName(context.i18n("cantQueuePlaylist"));
             isAllowed = false;
-        }
-        return isAllowed;
-    }
-
-    private boolean checkMaxMemberTracksWithResponse(@Nonnull Member member, int maxTracks) {
-        return checkMaxMemberTracksWithResponse(member, maxTracks, 1);
-    }
-
-    private boolean checkMaxMemberTracksWithResponse(@Nonnull Member member, int maxTracks, int addedTracks) {
-        boolean isAllowed = true;
-        if (maxTracks > 0) {
-            if ((gplayer.getMemberTrackCount(member) + addedTracks) > maxTracks) {
-                if (addedTracks > 1)
-                    context.replyWithName(context.i18nFormat("exceedsMemberTrackLimitSingle",
-                            ("`" + maxTracks + "`")));
-                else
-                    context.replyWithName(context.i18nFormat("exceedsMemberTrackLimitMultiple",
-                            ("`" + maxTracks + "`")));
-
-                isAllowed = false;
-            }
-        }
-        return isAllowed;
-    }
-
-    private boolean checkMaxTrackDurationWithResponse(long maxDuration, AudioTrack at) {
-        boolean isAllowed = true;
-        if (maxDuration > 0) {
-            if (at.getDuration() > maxDuration) {
-                context.replyWithName(context.i18nFormat("exceedsTrackDurationLimitSingle",
-                        "**" + at.getInfo().title + "**",
-                        "`" + TextUtils.formatTime(maxDuration) + "`"));
-                isAllowed = false;
-            }
         }
         return isAllowed;
     }
