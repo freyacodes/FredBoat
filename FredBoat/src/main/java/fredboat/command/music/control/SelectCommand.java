@@ -35,6 +35,7 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.EntityReader;
 import fredboat.db.entity.GuildConfig;
 import fredboat.messaging.CentralMessaging;
@@ -48,6 +49,7 @@ import org.apache.commons.lang3.StringUtils;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 
 public class SelectCommand extends Command implements IMusicCommand, ICommandRestricted {
 
@@ -111,28 +113,45 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                 AudioTrack[] selectedTracks = new AudioTrack[validChoices.size()];
                 StringBuilder outputMsgBuilder = new StringBuilder();
 
-                GuildConfig gc = EntityReader.getGuildConfig(context.getGuild().getId());
-                int memberTrackLimit = gc.getMemberTrackLimit();
-                long maxTrackDuration = gc.getMaxTrackDuration();
+                int memberTrackLimit = 0;
+                long maxTrackDuration = 0;
+
+                try {
+                    GuildConfig gc = EntityReader.getGuildConfig(context.getGuild().getId());
+                    memberTrackLimit = gc.getMemberTrackLimit();
+                    maxTrackDuration = gc.getMaxTrackDuration();
+                } catch (DatabaseNotReadyException ignored) {}
 
                 for (int i = 0; i < validChoices.size(); i++) {
-                    // Check how many and if too many songs a user queued
-                    if (memberTrackLimit > 0) {
-                        if ((player.getMemberTrackCount(context.getMember()) + 1) > memberTrackLimit) {
-                            context.replyWithName(context.i18nFormat("exceedsMemberTrackLimitSingle",
-                                    ("`" + memberTrackLimit + "`")));
-                            break;
-                        }
-                    }
-
                     selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
+
                     // Check the song length and continue to the next song if to long
                     if (maxTrackDuration > 0) {
                         if (selectedTracks[i].getDuration() > maxTrackDuration) {
+
+                            String failed = "**" + selectedTracks[i].getInfo().title + "**";
+                            String maxDuration = "`" + TextUtils.formatTime(maxTrackDuration) + "`";
+
                             outputMsgBuilder.append(context.i18nFormat("exceedsTrackDurationLimitSingle",
-                                    "**" + selectedTracks[i].getInfo().title + "**",
-                                    "`" + TextUtils.formatTime(maxTrackDuration) + "`")).append("\n");
+                                    failed, maxDuration)).append("\n");
                             continue;
+                        }
+                    }
+
+                    // Check how many and if too many songs a user queued
+                    if (memberTrackLimit > 0) {
+                        if ((player.getMemberTrackCount(context.getMember()) + 1) >= memberTrackLimit) {
+
+                            List<AudioTrack> skipped = selection.choices.subList(i, validChoices.size());
+                            String trackLimit = "`" + memberTrackLimit + "`";
+                            String failedToMany = skipped.size() > 1
+                                    ? "`" + skipped.size() + "`"
+                                    : "**" + skipped.get(0).getInfo().title + "**";
+
+                            outputMsgBuilder.append(context.i18nFormat(skipped.size() > 1
+                                    ? "exceedsMemberTrackLimitMultiple"
+                                    : "exceedsMemberTrackLimitSingle", failedToMany, trackLimit)).append("\n");
+                            break;
                         }
                     }
 
@@ -146,12 +165,7 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                 VideoSelection.remove(invoker);
                 TextChannel tc = FredBoat.getTextChannelById(selection.channelId);
                 if (tc != null) {
-                    // outputMsgBuilder can be empty if no song was valid after limitation checks so delete to not throw
-                    if (!outputMsgBuilder.toString().isEmpty()) {
-                        CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
-                    } else {
-                        CentralMessaging.deleteMessageById(tc, selection.outMsgId);
-                    }
+                    CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
                 }
 
                 player.setPause(false);
