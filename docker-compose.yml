@@ -9,6 +9,7 @@ services:
     volumes:
       - ./config.yaml:/opt/FredBoat/config.yaml
       - ./credentials.yaml:/opt/FredBoat/credentials.yaml
+      - ./logs:/opt/FredBoat/logs
     ports:
       - 1356:1356
     depends_on:
