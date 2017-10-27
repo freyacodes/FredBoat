@@ -26,7 +26,11 @@
 package fredboat;
 
 import com.sedmelluq.discord.lavaplayer.tools.PlayerLibrary;
-import fredboat.agent.*;
+import fredboat.agent.CarbonitexAgent;
+import fredboat.agent.DBConnectionWatchdogAgent;
+import fredboat.agent.FredBoatAgent;
+import fredboat.agent.StatsAgent;
+import fredboat.agent.VoiceChannelCleanupAgent;
 import fredboat.api.API;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.queue.MusicPersistenceHandler;
@@ -126,17 +130,8 @@ public abstract class FredBoat {
             log.info("Failed to ignite Spark, FredBoat API unavailable", e);
         }
 
-        if (!Config.CONFIG.getJdbcUrl().equals("")) {
-            dbManager = DatabaseManager.postgres();
-            dbManager.startup();
-            FredBoatAgent.start(new DBConnectionWatchdogAgent(dbManager));
-        } else if (Config.CONFIG.getNumShards() > 2) {
-            log.warn("No JDBC URL and more than 2 shard found! Initializing the SQLi DB is potentially dangerous too. Skipping...");
-        } else {
-            log.warn("No JDBC URL found, skipped database connection, falling back to internal SQLite db.");
-            dbManager = DatabaseManager.sqlite();
-            dbManager.startup();
-        }
+        dbManager = DatabaseManager.postgres().startup();
+        FredBoatAgent.start(new DBConnectionWatchdogAgent(dbManager));
 
         //Initialise event listeners
         mainEventListener = new EventListenerBoat();

@@ -60,37 +60,25 @@ public class DatabaseManager {
     private static final int SSH_TUNNEL_PORT = 9333;
 
     private final String jdbcUrl;
-    private final String dialect;
-    private final String driverClassName;
     private final int poolSize;
 
     /**
      * @param jdbcUrl         connection to the database
-     * @param dialect         set to null or empty String to have it auto detected by Hibernate, chosen jdbc driver must support that
-     * @param driverClassName help hikari autodetect the driver
      * @param poolSize        max size of the connection pool
      */
-    private DatabaseManager(String jdbcUrl, String dialect, String driverClassName, int poolSize) {
+    private DatabaseManager(String jdbcUrl, int poolSize) {
         this.jdbcUrl = jdbcUrl;
-        this.dialect = dialect;
-        this.driverClassName = driverClassName;
         this.poolSize = poolSize;
     }
 
 
     public static DatabaseManager postgres() {
-        return new DatabaseManager(Config.CONFIG.getJdbcUrl(),
-                "org.hibernate.dialect.PostgreSQL95Dialect",
-                "org.postgresql.Driver",
-                Config.CONFIG.getHikariPoolSize());
-    }
-
-    public static DatabaseManager sqlite() {
-        return new DatabaseManager(
-                "jdbc:sqlite:fredboat.db",
-                "org.hibernate.dialect.SQLiteDialect",
-                "org.sqlite.JDBC",
-                Config.CONFIG.getHikariPoolSize());
+        String jdbc = Config.CONFIG.getJdbcUrl();
+        if (jdbc == null || jdbc.isEmpty()) {
+            log.info("No JDBC URL found, assuming this is a docker environment. Trying default docker JDBC url");
+            jdbc = "jdbc:postgresql://db:5432/fredboat?user=fredboat";
+        }
+        return new DatabaseManager(jdbc, Config.CONFIG.getHikariPoolSize());
     }
 
     /**
@@ -98,7 +86,7 @@ public class DatabaseManager {
      *
      * @throws IllegalStateException if trying to start a database that is READY or INITIALIZING
      */
-    public synchronized void startup() {
+    public synchronized DatabaseManager startup() {
         if (state == DatabaseState.READY || state == DatabaseState.INITIALIZING) {
             throw new IllegalStateException("Can't start the database, when it's current state is " + state);
         }
@@ -119,7 +107,7 @@ public class DatabaseManager {
 
             properties.put("hibernate.connection.provider_class", "org.hibernate.hikaricp.internal.HikariCPConnectionProvider");
             properties.put("hibernate.connection.url", jdbcUrl);
-            if (dialect != null && !"".equals(dialect)) properties.put("hibernate.dialect", dialect);
+            properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQL95Dialect");
             properties.put("hibernate.cache.use_second_level_cache", "true");
             properties.put("hibernate.cache.provider_configuration_file_resource_path", "ehcache.xml");
             properties.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
@@ -148,7 +136,7 @@ public class DatabaseManager {
             //timeout the validation query (will be done automatically through Connection.isValid())
             properties.put("hibernate.hikari.validationTimeout", "1000");
 
-            properties.put("hibernate.hikari.driverClassName", driverClassName);
+            properties.put("hibernate.hikari.driverClassName", "org.postgresql.Driver");
 
 
             LocalContainerEntityManagerFactoryBean emfb = new LocalContainerEntityManagerFactoryBean();
@@ -196,6 +184,7 @@ public class DatabaseManager {
             state = DatabaseState.FAILED;
             throw new RuntimeException("Failed starting database connection", ex);
         }
+        return this;
     }
 
     public void reconnectSSH() {
