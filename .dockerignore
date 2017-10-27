@@ -1,7 +1,7 @@
 **
 #ignore everything except the following files, they are used in the Dockerfile
 !Dockerfile
-!FredBoat/target/FredBoat.jar
-!FredBoat-Bootloader/target/FredBoat-Bootloader.jar
-!FredBoat-Bootloader/bootloader.json
-!FredBoat/config.yaml
+!FredBoat.jar
+!FredBoat-Bootloader.jar
+!bootloader.json
+!config.yaml

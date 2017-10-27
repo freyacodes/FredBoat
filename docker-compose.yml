@@ -7,8 +7,8 @@ services:
   bot:
     build: .
     volumes:
-      - ./FredBoat/config.yaml:/opt/FredBoat/config.yaml
-      - ./FredBoat/credentials.yaml:/opt/FredBoat/credentials.yaml
+      - ./config.yaml:/opt/FredBoat/config.yaml
+      - ./credentials.yaml:/opt/FredBoat/credentials.yaml
     ports:
       - 1356:1356
     depends_on:
