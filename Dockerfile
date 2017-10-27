@@ -1,9 +1,15 @@
-FROM azul/zulu-openjdk:8
+FROM sgrio/java-oracle:jre_8
 
-COPY FredBoat/target/FredBoat.jar /FredBoat.jar
-COPY FredBoat-Bootloader/target/FredBoat-Bootloader.jar /FredBoat-Bootloader.jar
-COPY FredBoat/config.yaml /config.yaml
-COPY FredBoat/credentials.yaml.example /credentials.yaml
-COPY FredBoat-Bootloader/bootloader.json /bootloader.json
+ENV ENV docker
 
+RUN mkdir /opt/FredBoat
+
+COPY FredBoat/target/FredBoat.jar /opt/FredBoat/FredBoat.jar
+COPY FredBoat-Bootloader/target/FredBoat-Bootloader.jar /opt/FredBoat/FredBoat-Bootloader.jar
+COPY FredBoat/config.yaml /opt/FredBoat/config.yaml
+COPY FredBoat-Bootloader/bootloader.json /opt/FredBoat/bootloader.json
+
+EXPOSE 1356
+
+WORKDIR /opt/FredBoat
 ENTRYPOINT java -jar FredBoat-Bootloader.jar
