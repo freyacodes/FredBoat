@@ -53,11 +53,12 @@ public class PrefixCommand extends Command implements IModerationCommand {
         super(name, aliases);
     }
 
-    private static LoadingCache<Long, Optional<String>> CUSTOM_PREFIXES = CacheBuilder.newBuilder()
+    public static final LoadingCache<Long, Optional<String>> CUSTOM_PREFIXES = CacheBuilder.newBuilder()
             //it is fine to check the db for updates occasionally, as we currently dont have any use case where we change
             //the value saved there through other means. in case we add such a thing (like a dashboard), consider lowering
             //the refresh value to have the changes reflect faster in the bot, or consider implementing a FredBoat wide
             //Listen/Notify system for changes to in memory cached values backed by the db
+            .recordStats()
             .refreshAfterWrite(1, TimeUnit.MINUTES) //NOTE: never use refreshing without async reloading
             .expireAfterAccess(1, TimeUnit.MINUTES) //evict inactive guilds
             .concurrencyLevel(Config.CONFIG.getNumShards())  //each shard has a thread (main JDA thread) accessing this cache many times
