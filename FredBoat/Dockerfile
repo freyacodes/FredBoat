@@ -8,10 +8,10 @@ ENV ENV docker
 
 RUN mkdir /opt/FredBoat
 
-COPY FredBoat/target/FredBoat.jar /opt/FredBoat/FredBoat.jar
-COPY FredBoat-Bootloader/target/FredBoat-Bootloader.jar /opt/FredBoat/FredBoat-Bootloader.jar
-COPY FredBoat/config.yaml /opt/FredBoat/config.yaml
-COPY FredBoat-Bootloader/bootloader.json /opt/FredBoat/bootloader.json
+COPY docker/FredBoat.jar /opt/FredBoat/FredBoat.jar
+COPY docker/config.yaml /opt/FredBoat/config.yaml
+COPY docker/FredBoat-Bootloader.jar /opt/FredBoat/FredBoat-Bootloader.jar
+COPY docker/bootloader.json /opt/FredBoat/bootloader.json
 
 EXPOSE 1356
 

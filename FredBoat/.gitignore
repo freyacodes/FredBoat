@@ -3,3 +3,7 @@
 /music_persistence/
 /credentials_test.json
 /credentials.json.old
+
+# these are supposed to be copied over
+/docker/bootloader.json
+/docker/config.yaml

@@ -4,7 +4,7 @@
 version: '3'
 services:
   db:
-    build: ./docker/database/
+    build: ./FredBoat/docker/database/
     restart: always
 
     # if you are running under windows you need to comment out the following two lines:
@@ -17,7 +17,7 @@ services:
       #- postgres-data-volume:/var/lib/postgresql/data
 
   bot:
-    build: .
+    build: ./FredBoat/
     volumes:
       - ./config.yaml:/opt/FredBoat/config.yaml
       - ./credentials.yaml:/opt/FredBoat/credentials.yaml
