@@ -86,7 +86,7 @@ public class Bootloader {
 
         if (recentBoots >= 4) {
             System.out.println("[BOOTLOADER] Failed to restart 3 times, probably due to login errors. Exiting...");
-            System.exit(-1);
+            System.exit(ExitCodes.EXIT_CODE_ERROR);
         }
 
         //ProcessBuilder pb = new ProcessBuilder(System.getProperty("java.home") + "/bin/java -jar "+new File("FredBoat-1.0.jar").getAbsolutePath())
