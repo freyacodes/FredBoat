@@ -31,14 +31,22 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
+
 import net.dv8tion.jda.core.requests.RestAction;
+import net.dv8tion.jda.core.entities.Message;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 
 public class LeaveServerCommand extends Command implements ICommandRestricted {
+
+    private static final Logger log = LoggerFactory.getLogger(LeaveServerCommand.class);
 
     public LeaveServerCommand(String name, String... aliases) {
         super(name, aliases);
@@ -46,19 +54,15 @@ public class LeaveServerCommand extends Command implements ICommandRestricted {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-
-        try {
-            context.replyWithName("Thanks for having me!").getWithDefaultTimeout();
-        } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
-        }
-        RestAction<Void> action = context.guild.leave();
-        action.queue();
+        Consumer<Message> callback = aVoid -> context.guild.leave().queue();
+        Consumer<Throwable> throwConsumer = ex -> log.error("Error leaving server: " + ex);
+        context.channel.sendMessage("Thanks for having me!").queue(callback, throwConsumer);
     }
 
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1}\n#Leave the guild.";
+        return "{0}{1}\n#Leave the server.";
     }
 
     @Nonnull
