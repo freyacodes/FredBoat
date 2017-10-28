@@ -5,9 +5,17 @@ version: '3'
 services:
   db:
     build: ./docker/database/
-    volumes:
-      - ./.pg_data:/var/lib/postgresql/data
     restart: always
+
+    # if you are running under windows you need to comment out the following two lines:
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+
+    # if you are running under windows and want to take manual backups of the database
+    # via a docker volume, uncomment the following two lines and read the snippet at the bottom of this file
+    #volumes:
+      #- postgres-data-volume:/var/lib/postgresql/data
+
   bot:
     build: .
     volumes:
@@ -19,3 +27,13 @@ services:
     restart: on-failure:3
     depends_on:
       - db
+
+# If you are running on Windows and want to be able to backup the postgres data volume, run
+#
+#   docker volume create --name postgres-data-volume -d local
+#
+# and uncomment the following lines:
+#
+#volumes:
+#  postgres-data-volume:
+#    external: true
