@@ -138,3 +138,4 @@ gc-*.log
 *.ppk
 /feature_flags.properties
 .gradle/*
+*/out/*

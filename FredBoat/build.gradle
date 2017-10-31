@@ -16,9 +16,16 @@ dependencies {
     compile group: 'net.dv8tion', name: 'JDA', version: '3.3.1_300'
     compile group: 'com.sedmelluq', name: 'lavaplayer', version: '1.2.44'
     compile group: 'com.github.FredBoat', name: 'jda-nas', version: '1.0.5.1-JDA'
-    compile(group: 'com.github.Frederikam', name: 'Lavalink', version: '264316ab8ef9c833e233b2321b5eb49a7c482ba3') {
-        exclude(module: 'Lavalink-Server')
+
+    if (System.getenv('dev') == 'true') {
+        compile(group: 'lavalink', name: 'Lavalink-Client', version: '-SNAPSHOT')
+    } else {
+        //production
+        compile(group: 'com.github.Frederikam', name: 'Lavalink', version: '69c54a9c0efa0e364dd45e837c97ed4990ce460c') {
+            exclude(module: 'Lavalink-Server')
+        }
     }
+
     compile group: 'org.apache.commons', name: 'commons-text', version: '1.1'
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
     compile group: 'commons-codec', name: 'commons-codec', version: '1.11'
