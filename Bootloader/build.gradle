@@ -1,0 +1,8 @@
+description = 'Runs and updates FredBoat'
+version '1.0'
+ext {
+    moduleName = 'Bootloader'
+}
+dependencies {
+    compile project(':Shared')
+}

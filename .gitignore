@@ -137,3 +137,4 @@ gc-*.log
 *fredboat.db
 *.ppk
 /feature_flags.properties
+.gradle/*

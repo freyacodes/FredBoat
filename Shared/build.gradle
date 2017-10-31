@@ -1,0 +1,8 @@
+description = 'Shared code between FredBoat modules'
+version '1.0'
+ext {
+    moduleName = 'Shared'
+}
+dependencies {
+    compile group: 'org.json', name: 'json', version: '20171018'
+}
