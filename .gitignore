@@ -129,6 +129,7 @@ target/
 /youtube-dl
 /logs/
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 /music_persistence/
 /bootloader.json
 gc-*.log
