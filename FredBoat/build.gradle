@@ -18,6 +18,10 @@ ext {
     moduleName = 'FredBoat'
 }
 
+shadowJar {
+    archiveName = "FredBoat.jar"
+}
+
 dependencies {
     compile project(':Shared')
     compile group: 'net.dv8tion', name: 'JDA', version: '3.3.1_300'
