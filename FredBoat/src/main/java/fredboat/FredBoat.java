@@ -45,6 +45,7 @@ import fredboat.util.AppInfo;
 import fredboat.util.ConnectQueue;
 import fredboat.util.GitRepoState;
 import fredboat.util.JDAUtil;
+import fredboat.util.TextUtils;
 import fredboat.util.rest.Http;
 import fredboat.util.rest.OpenWeatherAPI;
 import fredboat.util.rest.models.weather.RetrievedWeather;
@@ -441,7 +442,7 @@ public abstract class FredBoat {
                 + "\n\tVersion:       " + AppInfo.getAppInfo().VERSION
                 + "\n\tBuild:         " + AppInfo.getAppInfo().BUILD_NUMBER
                 + "\n\tCommit:        " + GitRepoState.getGitRepositoryState().commitIdAbbrev + " (" + GitRepoState.getGitRepositoryState().branch + ")"
-                + "\n\tCommit time:   " + GitRepoState.getGitRepositoryState().commitTime
+                + "\n\tCommit time:   " + TextUtils.asTimeInCentralEurope(GitRepoState.getGitRepositoryState().commitTime)
                 + "\n\tJVM:           " + System.getProperty("java.version")
                 + "\n\tJDA:           " + JDAInfo.VERSION
                 + "\n\tLavaplayer     " + PlayerLibrary.VERSION

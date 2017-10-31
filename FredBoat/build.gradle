@@ -1,7 +1,8 @@
 plugins {
     id 'application'
-    id 'com.github.johnrengelman.shadow' version '2.0.1'
+    id "com.gorylenko.gradle-git-properties" version "1.4.17"
     id 'com.sedmelluq.jdaction' version '1.0.2' //check for unused RestActions
+    id 'com.github.johnrengelman.shadow' version '2.0.1'
 }
 description = 'FredBoat Discord Music Bot'
 mainClassName = "fredboat.FredBoat"
@@ -49,4 +50,16 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava', version: '23.0'
     compile group: 'com.github.vladimir-bukhtoyarov', name: 'bucket4j-core', version: '3.0.2'
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.1'
+}
+
+import org.apache.tools.ant.filters.ReplaceTokens
+
+processResources {
+    //inject values into app.properties
+    filter ReplaceTokens, tokens: [
+            "project.version"   : project.version,
+            "project.groupId"   : project.group,
+            "project.artifactId": project.ext.moduleName,
+            "env.BUILD_NUMBER"  : (System.getenv('CI') ? System.getenv('BUILD_NUMBER') : 'DEV')
+    ]
 }

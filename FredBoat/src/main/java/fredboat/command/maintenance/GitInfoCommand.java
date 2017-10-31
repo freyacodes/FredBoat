@@ -31,13 +31,12 @@ import fredboat.commandmeta.abs.IMaintenanceCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.GitRepoState;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -67,27 +66,24 @@ public class GitInfoCommand extends Command implements IMaintenanceCommand {
         }
 
         String url = getGithubCommitLink();
-        //times look like this: 31.05.2017 @ 01:17:17 CEST
-        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy @ hh:mm:ss z");
 
         EmbedBuilder embedBuilder = CentralMessaging.getClearThreadLocalEmbedBuilder();
-        embedBuilder.setTitle("Build & git info");
-        embedBuilder.addField("Commit info", gitRepoState.describe + "\n\n" + gitRepoState.commitMessageFull, false);
-        embedBuilder.addField("Commit timestamp", gitRepoState.commitTime, false);
+        embedBuilder.setTitle("Git info of this build");
+        embedBuilder.addField("Commit info", gitRepoState.commitMessageFull, false);
         embedBuilder.addField("Commit on Github", url, false);
 
-        embedBuilder.addField("Version", gitRepoState.buildVersion, true);
+        embedBuilder.addField("Commit timestamp", TextUtils.asTimeInCentralEurope(gitRepoState.commitTime), true);
         embedBuilder.addField("Branch", gitRepoState.branch, true);
-        embedBuilder.addField("Built by", gitRepoState.buildUserName, true);
+        embedBuilder.addField("Commited by", gitRepoState.commitUserName, true);
 
         embedBuilder.setColor(new Color(240, 81, 51));//git-scm color
         embedBuilder.setThumbnail(octocats.getRandomImageUrl());//github octocat thumbnail
 
         try {
-            Date built = sdf.parse(gitRepoState.buildTime);
-            embedBuilder.setTimestamp(built.toInstant());
+            long epochMillis = Long.parseLong(gitRepoState.commitTime);
+            embedBuilder.setTimestamp(Instant.ofEpochMilli(epochMillis));
             embedBuilder.setFooter("Built on", "http://i.imgur.com/RjWwxlg.png");
-        } catch (ParseException ignored) {
+        } catch (NumberFormatException ignored) {
         }
 
         context.reply(embedBuilder.build());
@@ -97,7 +93,7 @@ public class GitInfoCommand extends Command implements IMaintenanceCommand {
         String result = "Could not find or create a valid Github url.";
         GitRepoState gitRepoState = GitRepoState.getGitRepositoryState();
         if (gitRepoState != null) {
-            String originUrl = gitRepoState.remoteOriginUrl;
+            String originUrl = "git@github.com:Frederikam/FredBoat.git";// gitRepoState.remoteOriginUrl; FIXME unhardcode this. probably requires some gradle/groovy magic or a PR to the git info plugin were using
 
             Matcher m = GITHUB_URL_PATTERN.matcher(originUrl);
 

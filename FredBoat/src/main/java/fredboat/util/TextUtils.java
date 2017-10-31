@@ -284,4 +284,14 @@ public class TextUtils {
     public static String asTimeInCentralEurope(final long epochMillis) {
         return TIME_IN_CENTRAL_EUROPE.format(Instant.ofEpochMilli(epochMillis));
     }
+
+    public static String asTimeInCentralEurope(final String epochMillis) {
+        long millis = 0;
+        try {
+            millis = Long.parseLong(epochMillis);
+        } catch (NumberFormatException e) {
+            log.error("Could not parse epoch millis as long, returning 0", e);
+        }
+        return TIME_IN_CENTRAL_EUROPE.format(Instant.ofEpochMilli(millis));
+    }
 }
