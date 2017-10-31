@@ -2,7 +2,8 @@
     "command": [
         "java",
         "-jar",
-        "FredBoat-1.0.jar"
+	"-Xmx128m",
+        "FredBoat.jar"
     ],
-    "jarName": "FredBoat-1.0.jar"
+    "jarName": "FredBoat.jar"
 }
