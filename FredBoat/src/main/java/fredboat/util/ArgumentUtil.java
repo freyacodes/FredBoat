@@ -26,18 +26,18 @@
 package fredboat.util;
 
 import fredboat.commandmeta.abs.CommandContext;
-import fredboat.feature.I18n;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.IMentionable;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.Role;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ArgumentUtil {
+
+    public static final int FUZZY_RESULT_LIMIT = 10;
 
     private ArgumentUtil() {
     }
@@ -84,22 +84,26 @@ public class ArgumentUtil {
 
         switch (list.size()) {
             case 0:
-                context.reply(MessageFormat.format(I18n.get(context, "fuzzyNothingFound"), term));
+                context.reply(context.i18nFormat("fuzzyNothingFound", term));
                 return null;
             case 1:
                 return list.get(0);
             default:
-                String msg = I18n.get(context, "fuzzyMultiple") + "\n```";
-
-                for (int i = 0; i < 5; i++) {
-                    if (list.size() == i) break;
-                    msg = msg + "\n" + list.get(i).getUser().getName() + "#" + list.get(i).getUser().getDiscriminator();
+                StringBuilder searchResults = new StringBuilder();
+                int maxIndex = Math.min(FUZZY_RESULT_LIMIT, list.size());
+                for (int i = 0; i < maxIndex; i++) {
+                    searchResults.append("\n")
+                            .append(list.get(i).getUser().getName())
+                            .append("#")
+                            .append(list.get(i).getUser().getDiscriminator());
                 }
 
-                msg = list.size() > 5 ? msg + "\n[...]" : msg;
-                msg = msg + "```";
+                if (list.size() > FUZZY_RESULT_LIMIT) {
+                    searchResults.append("\n[...]");
+                }
 
-                context.reply(msg);
+                context.reply(context.i18n("fuzzyMultiple") + "\n"
+                        + TextUtils.asCodeBlock(searchResults.toString()));
                 return null;
         }
     }
@@ -107,41 +111,57 @@ public class ArgumentUtil {
     public static IMentionable checkSingleFuzzySearchResult(List<IMentionable> list, CommandContext context, String term) {
         switch (list.size()) {
             case 0:
-                context.reply(MessageFormat.format(I18n.get(context, "fuzzyNothingFound"), term));
+                context.reply(context.i18nFormat("fuzzyNothingFound", term));
                 return null;
             case 1:
                 return list.get(0);
             default:
-                String msg = I18n.get(context, "fuzzyMultiple") + "\n```";
-
+                StringBuilder searchResults = new StringBuilder();
                 int i = 0;
                 for (IMentionable mentionable : list) {
-                    if (i == 5) break;
+                    if (i == FUZZY_RESULT_LIMIT) break;
 
                     if (mentionable instanceof Member) {
                         Member member = (Member) mentionable;
-                        msg = msg + "\n" + "USER " + member.getUser().getId() + " " + member.getEffectiveName();
+                        searchResults.append("\nUSER ")
+                                .append(member.getUser().getId())
+                                .append(" ")
+                                .append(member.getEffectiveName());
                     } else if (mentionable instanceof Role) {
                         Role role = (Role) mentionable;
-                        msg = msg + "\n" + "ROLE " + role.getId() + " " + role.getName();
+                        searchResults.append("\nROLE ")
+                                .append(role.getId())
+                                .append(" ")
+                                .append(role.getName());
                     } else {
                         throw new IllegalArgumentException("Expected Role or Member, got " + mentionable);
                     }
                     i++;
                 }
 
-                msg = list.size() > 5 ? msg + "\n[...]" : msg;
-                msg = msg + "```";
+                if (list.size() > FUZZY_RESULT_LIMIT) {
+                    searchResults.append("\n[...]");
+                }
 
-                context.reply(msg);
+                context.reply(context.i18n("fuzzyMultiple") + "\n"
+                        + TextUtils.asCodeBlock(searchResults.toString()));
                 return null;
         }
     }
 
-    public static String getSearchTerm(Message message, String[] args, int argsToStrip) {
-        String raw = message.getRawContent();
-        raw = raw.substring(args[0].length());
-        return raw.substring(raw.indexOf(args[argsToStrip]));
+    /**
+     * Helper method to combine all the options from command into a single String.
+     * Will call trim on each combine.
+     *
+     * @param args Command arguments.
+     * @return String object of the combined args or empty string.
+     */
+    public static String combineArgs(@Nonnull String[] args) {
+        StringBuilder sb = new StringBuilder();
+        for (String arg : args) {
+            sb.append(arg.trim());
+        }
+        return sb.toString().trim();
     }
 
 }

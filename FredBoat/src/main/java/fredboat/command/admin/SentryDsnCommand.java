@@ -32,13 +32,15 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.GitRepoState;
 import io.sentry.Sentry;
 import io.sentry.logback.SentryAppender;
-import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
 
 /**
  * Created by napster on 07.09.17.
@@ -50,15 +52,19 @@ public class SentryDsnCommand extends Command implements ICommandRestricted {
     private static final Logger log = LoggerFactory.getLogger(SentryDsnCommand.class);
     private static final String SENTRY_APPENDER_NAME = "SENTRY";
 
+    public SentryDsnCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
-        if (context.args.length < 2) {
+    public void onInvoke(@Nonnull CommandContext context) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
-        String dsn = context.args[1];
+        String dsn = context.rawArgs;
 
-        if (dsn.equals("stop") || dsn.equals("clear")) {
+        if (dsn.equalsIgnoreCase("stop") || dsn.equalsIgnoreCase("clear")) {
             turnOff();
             context.replyWithName("Sentry service has been stopped");
         } else {
@@ -100,12 +106,14 @@ public class SentryDsnCommand extends Command implements ICommandRestricted {
         return sentryAppender;
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} <sentry DSN> OR {0}{1} stop\n#Set a temporary sentry DSN overriding the one from the config until" +
                 " the next restart, or stop the sentry service.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_ADMIN;

@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 public class VideoSelection {
 
     public final List<AudioTrack> choices;
-    public final long outMsgId;
+    public final long outMsgId; //our own message
     public final long channelId;
 
     public VideoSelection(List<AudioTrack> choices, Message outMsg) {
@@ -52,8 +52,10 @@ public class VideoSelection {
     }
 
     public void deleteMessage() {
-        TextChannel tc = FredBoat.getTextChannelById(Long.toString(channelId));
+        TextChannel tc = FredBoat.getTextChannelById(channelId);
         if (tc != null) {
+            //we can call this without an additional permission check, as this should be our own message that we are
+            //deleting
             CentralMessaging.deleteMessageById(tc, outMsgId);
         }
     }
@@ -65,6 +67,7 @@ public class VideoSelection {
 
     //the key looks like this: guildId:userId
     public static final Cache<String, VideoSelection> SELECTIONS = CacheBuilder.newBuilder()
+            .recordStats()
             .expireAfterWrite(60, TimeUnit.MINUTES)
             .build();
 

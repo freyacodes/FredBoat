@@ -27,6 +27,7 @@ package fredboat.util.ratelimit;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
 import fredboat.db.entity.BlacklistEntry;
+import fredboat.feature.metrics.Metrics;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import java.util.ArrayList;
@@ -126,6 +127,7 @@ public class Blacklist {
             if (blEntry.rateLimitReached >= rateLimitHitsBeforeBlacklist) {
                 //issue blacklist incident
                 blEntry.level++;
+                Metrics.autoBlacklistsIssued.labels(Integer.toString(blEntry.level)).inc();
                 if (blEntry.level < 0) blEntry.level = 0;
                 blEntry.blacklistedTimestamp = now;
                 blEntry.rateLimitReached = 0; //reset these for the next time

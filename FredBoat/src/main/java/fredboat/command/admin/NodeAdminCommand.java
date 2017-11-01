@@ -30,32 +30,46 @@ import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
 
+import javax.annotation.Nonnull;
 import java.net.URI;
 import java.net.URISyntaxException;
 
 public class NodeAdminCommand extends Command implements ICommandRestricted {
+
+    public NodeAdminCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         if (!LavalinkManager.ins.isEnabled()) {
             context.reply("Lavalink is disabled");
         }
-        if (context.args.length == 1) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
-        switch (context.args[1]) {
+        switch (context.args[0]) {
             case "del":
             case "delete":
             case "remove":
             case "rem":
             case "rm":
-                remove(context);
+                if (context.args.length < 2) {
+                    HelpCommand.sendFormattedCommandHelp(context);
+                } else {
+                    remove(context);
+                }
                 break;
             case "add":
-                add(context);
+                if (context.args.length < 3) {
+                    HelpCommand.sendFormattedCommandHelp(context);
+                } else {
+                    add(context);
+                }
                 break;
             case "list":
             default:
@@ -65,7 +79,7 @@ public class NodeAdminCommand extends Command implements ICommandRestricted {
     }
 
     private void remove(CommandContext context) {
-        int key = Integer.valueOf(context.args[2]);
+        int key = Integer.valueOf(context.args[1]);
         LavalinkManager.ins.getLavalink().removeNode(key);
         context.reply("Removed node #" + key);
     }
@@ -73,21 +87,23 @@ public class NodeAdminCommand extends Command implements ICommandRestricted {
     private void add(CommandContext context) {
         URI uri;
         try {
-            uri = new URI(context.args[2]);
+            uri = new URI(context.args[1]);
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
-        String password = context.args[3];
+        String password = context.args[2];
         LavalinkManager.ins.getLavalink().addNode(uri, password);
         context.reply("Added node: " + uri.toString());
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Add or remove lavalink nodes.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_ADMIN;

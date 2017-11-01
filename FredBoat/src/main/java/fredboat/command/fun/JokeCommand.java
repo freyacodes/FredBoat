@@ -25,47 +25,56 @@
 
 package fredboat.command.fun;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
+import fredboat.util.rest.Http;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import javax.annotation.Nonnull;
+import java.io.IOException;
 
 public class JokeCommand extends Command implements IFunCommand {
 
+    private static final Logger log = LoggerFactory.getLogger(JokeCommand.class);
+
+    public JokeCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         try {
-            JSONObject object = Unirest.get("http://api.icndb.com/jokes/random").asJson().getBody().getObject();
+            JSONObject object = Http.get("http://api.icndb.com/jokes/random").asJson();
 
             if (!"success".equals(object.getString("type"))) {
                 throw new RuntimeException("Couldn't gather joke ;|");
             }
             
             String joke = object.getJSONObject("value").getString("joke");
-            String remainder = context.msg.getContent().substring(context.args[0].length()).trim();
 
-            if (context.msg.getMentionedUsers().size() > 0) {
-                joke = joke.replaceAll("Chuck Norris", context.msg.getMentionedUsers().get(0).getAsMention());
-            } else if (remainder.length() > 0){
-                joke = joke.replaceAll("Chuck Norris", remainder);
+            if (!context.getMentionedUsers().isEmpty()) {
+                joke = joke.replaceAll("Chuck Norris", context.getMentionedUsers().get(0).getAsMention());
+            } else if (context.hasArguments()) {
+                joke = joke.replaceAll("Chuck Norris", context.rawArgs);
             }
             
             joke = joke.replaceAll("&quot;", "\"");
 
             context.reply(joke);
-        } catch (UnirestException ex) {
-            Logger.getLogger(JokeCommand.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException | JSONException e) {
+            log.error("Failed to fetch joke", e);
+            context.reply(context.i18n("Please try again later."));//todo i18n a generic try again error message for api dependent commands
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} @<username>\n#Tell a joke about a user.";
     }
 }

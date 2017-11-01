@@ -29,11 +29,12 @@ import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
 import fredboat.db.entity.GuildConfig;
-import fredboat.messaging.internal.Context;
 import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.MissingResourceException;
@@ -80,12 +81,8 @@ public class I18n {
         log.info("Loaded " + LANGS.size() + " languages: " + LANGS);
     }
 
-    //TODO introduce this
-    public static String get(Context context, String key) {
-        return get(context.getGuild()).getString(key);
-    }
-
-    public static ResourceBundle get(Guild guild) {
+    @Nonnull
+    public static ResourceBundle get(@Nullable Guild guild) {
         if (guild == null) {
             return DEFAULT.getProps();
         }

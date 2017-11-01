@@ -25,40 +25,75 @@
 
 package fredboat.command.fun;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.event.EventListenerBoat;
+import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 public class DanceCommand extends Command implements IFunCommand {
 
+    private final Function<Guild, ReentrantLock> locks;
+
+    private final Semaphore allowed = new Semaphore(5);
+
+    public DanceCommand(String name, String... aliases) {
+        super(name, aliases);
+
+        LoadingCache<String, ReentrantLock> danceLockCache = CacheBuilder.newBuilder()
+                .recordStats()
+                .maximumSize(128) //any value will do, but not too big
+                .build(CacheLoader.from(() -> new ReentrantLock()));
+        Metrics.instance().cacheMetrics.addCache("danceLockCache", danceLockCache);
+        locks = danceLockCache.compose(Guild::getId); //mapping guild id to a lock
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
+        //locking by use of java.util.concurrent.locks
+
+        //in most cases we would need to use a fair lock, but since
+        // any one lock is only set-up by one thread we can get away with a naive isLocked check
+        ReentrantLock lock = locks.apply(context.getGuild());
+        if (lock.isLocked() || !allowed.tryAcquire()) {
+            //already in progress or not allowed
+            context.reply(context.i18n("tryLater"));
+            return;
+        }
         Runnable func = new Runnable() {
             @Override
             public void run() {
-                synchronized (context.channel) {
-                    context.reply('\u200b' + "\\o\\", msg -> {
-                        try {
-                            EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), msg.getIdLong());
-                            long start = System.currentTimeMillis();
-                            synchronized (this) {
-                                while (start + 60000 > System.currentTimeMillis()) {
-                                    wait(1000);
-                                    msg = CentralMessaging.editMessage(msg, "/o/").getWithDefaultTimeout();
-                                    wait(1000);
-                                    msg = CentralMessaging.editMessage(msg, "\\o\\").getWithDefaultTimeout();
-                                }
-                            }
-                        } catch (TimeoutException | ExecutionException | InterruptedException ignored) {
+                context.reply(TextUtils.ZERO_WIDTH_CHAR + "\\o\\", msg -> {
+                    try {
+                        lock.lock();
+                        EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), msg.getIdLong());
+                        long start = System.currentTimeMillis();
+                        while (start + 60000 > System.currentTimeMillis()) {
+                            Thread.sleep(1000);
+                            msg = CentralMessaging.editMessage(msg, "/o/").getWithDefaultTimeout();
+                            Thread.sleep(1000);
+                            msg = CentralMessaging.editMessage(msg, "\\o\\").getWithDefaultTimeout();
                         }
-                    });
-                }
+                    } catch (TimeoutException | ExecutionException | InterruptedException ignored) {
+                    } finally {
+                        allowed.release();
+                        lock.unlock();
+                    }
+                });
             }
         };
 
@@ -66,8 +101,9 @@ public class DanceCommand extends Command implements IFunCommand {
         thread.start();
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Dance for a minute.";
     }
 }

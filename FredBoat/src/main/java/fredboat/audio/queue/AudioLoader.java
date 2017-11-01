@@ -35,7 +35,7 @@ import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.source.PlaylistImportSourceManager;
 import fredboat.audio.source.PlaylistImporter;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
-import fredboat.feature.I18n;
+import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
 import fredboat.util.TextUtils;
@@ -47,7 +47,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -93,7 +92,7 @@ public class AudioLoader implements AudioLoadResultHandler {
                 context = ic;
 
                 if (gplayer.getTrackCount() >= QUEUE_TRACK_LIMIT) {
-                    context.replyWithName(MessageFormat.format(I18n.get(context, "loadQueueTrackLimit"), QUEUE_TRACK_LIMIT));
+                    context.replyWithName(context.i18nFormat("loadQueueTrackLimit", QUEUE_TRACK_LIMIT));
                     isLoading = false;
                     return;
                 }
@@ -128,14 +127,12 @@ public class AudioLoader implements AudioLoadResultHandler {
             if (result) {
                 //inform user we are possibly about to do nasty time consuming work
                 if (playlistInfo.getTotalTracks() > 50) {
-                    String out = MessageFormat.format(I18n.get(ic, "loadAnnouncePlaylist"),
-                            playlistInfo.getName(),
-                            playlistInfo.getTotalTracks());
-                    ic.replyWithName(out);
+                    ic.replyWithName(ic.i18nFormat("loadAnnouncePlaylist",
+                            playlistInfo.getName(), playlistInfo.getTotalTracks()));
                 }
                 return true;
             } else {
-                ic.replyWithMention(I18n.get(ic, "ratelimitedGuildSlowLoadingPlaylist"));
+                ic.replyWithMention(ic.i18n("ratelimitedGuildSlowLoadingPlaylist"));
                 return false;
             }
         }
@@ -170,6 +167,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     @Override
     public void trackLoaded(AudioTrack at) {
+        Metrics.tracksLoaded.inc();
         try {
             if(context.isSplit()){
                 loadSplit(at, context);
@@ -177,9 +175,9 @@ public class AudioLoader implements AudioLoadResultHandler {
 
                 if (!context.isQuiet()) {
                     context.reply(gplayer.isPlaying() ?
-                            MessageFormat.format(I18n.get(context, "loadSingleTrack"), at.getInfo().title)
+                            context.i18nFormat("loadSingleTrack", at.getInfo().title)
                             :
-                            MessageFormat.format(I18n.get(context, "loadSingleTrackAndPlay"), at.getInfo().title)
+                            context.i18nFormat("loadSingleTrackAndPlay", at.getInfo().title)
                     );
                 } else {
                     log.info("Quietly loaded " + at.getIdentifier());
@@ -200,9 +198,10 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     @Override
     public void playlistLoaded(AudioPlaylist ap) {
+        Metrics.tracksLoaded.inc(ap.getTracks() == null ? 0 : ap.getTracks().size());
         try {
             if(context.isSplit()){
-                context.reply(I18n.get(context, "loadPlaySplitListFail"));
+                context.reply(context.i18n("loadPlaySplitListFail"));
                 loadNextAsync();
                 return;
             }
@@ -212,12 +211,7 @@ public class AudioLoader implements AudioLoadResultHandler {
                 toAdd.add(new AudioTrackContext(at, context.getMember()));
             }
             trackProvider.addAll(toAdd);
-
-
-            context.reply(
-                    MessageFormat.format(I18n.get(context, "loadListSuccess"), ap.getTracks().size(), ap.getName())
-            );
-
+            context.reply(context.i18nFormat("loadListSuccess", ap.getTracks().size(), ap.getName()));
             if (!gplayer.isPaused()) {
                 gplayer.play();
             }
@@ -230,7 +224,7 @@ public class AudioLoader implements AudioLoadResultHandler {
     @Override
     public void noMatches() {
         try {
-            context.reply(MessageFormat.format(I18n.get(context, "loadNoMatches"), context.identifier));
+            context.reply(context.i18nFormat("loadNoMatches", context.identifier));
         } catch (Throwable th) {
             handleThrowable(context, th);
         }
@@ -239,6 +233,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     @Override
     public void loadFailed(FriendlyException fe) {
+        Metrics.trackLoadsFailed.inc();
         handleThrowable(context, fe);
 
         loadNextAsync();
@@ -246,7 +241,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
     private void loadSplit(AudioTrack at, IdentifierContext ic){
         if(!(at instanceof YoutubeAudioTrack)){
-            ic.reply(I18n.get(ic, "loadSplitNotYouTube"));
+            ic.reply(ic.i18n("loadSplitNotYouTube"));
             return;
         }
         YoutubeAudioTrack yat = (YoutubeAudioTrack) at;
@@ -278,7 +273,7 @@ public class AudioLoader implements AudioLoadResultHandler {
         }
 
         if(pairs.size() < 2) {
-            ic.reply(I18n.get(ic, "loadSplitNotResolves"));
+            ic.reply(ic.i18n("loadSplitNotResolves"));
             return;
         }
 
@@ -311,7 +306,7 @@ public class AudioLoader implements AudioLoadResultHandler {
         }
 
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(I18n.get(ic, "loadFollowingTracksAdded") + "\n");
+                .append(ic.i18n("loadFollowingTracksAdded")).append("\n");
         for(SplitAudioTrackContext atc : list) {
             mb.append("`[")
                     .append(TextUtils.formatTime(atc.getEffectiveDuration()))
@@ -323,7 +318,7 @@ public class AudioLoader implements AudioLoadResultHandler {
         //This is pretty spammy .. let's use a shorter one
         if(mb.length() > 800){
             mb = CentralMessaging.getClearThreadLocalMessageBuilder()
-                    .append(MessageFormat.format(I18n.get(ic, "loadPlaylistTooMany"), list.size()));
+                    .append(ic.i18nFormat("loadPlaylistTooMany", list.size()));
         }
 
         context.reply(mb.build());
@@ -336,19 +331,19 @@ public class AudioLoader implements AudioLoadResultHandler {
                 FriendlyException fe = (FriendlyException) th;
                 if (fe.severity == FriendlyException.Severity.COMMON) {
                     if (ic.getTextChannel() != null) {
-                        context.reply(MessageFormat.format(I18n.get(ic, "loadErrorCommon"), context.identifier, fe.getMessage()));
+                        context.reply(ic.i18nFormat("loadErrorCommon", context.identifier, fe.getMessage()));
                     } else {
                         log.error("Error while loading track ", th);
                     }
                 } else if (ic.getTextChannel() != null) {
-                    context.reply(MessageFormat.format(I18n.get(ic, "loadErrorSusp"), context.identifier));
+                    context.reply(ic.i18nFormat("loadErrorSusp", context.identifier));
                     Throwable exposed = fe.getCause() == null ? fe : fe.getCause();
                     TextUtils.handleException(exposed, context);
                 } else {
                     log.error("Error while loading track ", th);
                 }
             } else if (ic.getTextChannel() != null) {
-                context.reply(I18n.get(ic, "loadErrorSusp"));
+                context.reply(ic.i18n("loadErrorSusp"));
                 TextUtils.handleException(th, context);
             } else {
                 log.error("Error while loading track ", th);

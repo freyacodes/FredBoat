@@ -1,0 +1,88 @@
+buildscript {
+    dependencies {
+        classpath 'org.junit.platform:junit-platform-gradle-plugin:1.0.1'
+    }
+}
+plugins {
+    id 'application'
+    id 'com.gorylenko.gradle-git-properties' version '1.4.17'
+    id 'com.sedmelluq.jdaction' version '1.0.2' //check for unused RestActions
+    id 'com.github.johnrengelman.shadow' version '2.0.1'
+}
+apply plugin: 'org.junit.platform.gradle.plugin'
+
+description = 'FredBoat Discord Music Bot'
+mainClassName = "fredboat.FredBoat"
+version '1.1'
+ext {
+    moduleName = 'FredBoat'
+}
+
+shadowJar {
+    archiveName = "FredBoat.jar"
+}
+
+dependencies {
+    compile project(':Shared')
+    compile group: 'net.dv8tion', name: 'JDA', version: '3.3.1_300'
+    compile group: 'com.sedmelluq', name: 'lavaplayer', version: '1.2.44'
+    compile group: 'com.github.FredBoat', name: 'jda-nas', version: '1.0.5.1-JDA'
+
+    if (System.getenv('dev') == 'true') {
+        compile(group: 'lavalink', name: 'Lavalink-Client', version: '-SNAPSHOT')
+    } else {
+        //production
+        compile(group: 'com.github.Frederikam', name: 'Lavalink', version: '69c54a9c0efa0e364dd45e837c97ed4990ce460c') {
+            exclude(module: 'Lavalink-Server')
+        }
+    }
+
+    compile group: 'org.apache.commons', name: 'commons-text', version: '1.1'
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    compile group: 'commons-codec', name: 'commons-codec', version: '1.11'
+    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.3'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    compile group: 'io.sentry', name: 'sentry-logback', version: '1.6.1'
+    compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.9.0'
+    compile group: 'com.sparkjava', name: 'spark-core', version: '2.6.0'
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.19'
+    compile group: 'it.unimi.dsi', name: 'fastutil', version: '8.1.0'
+    compile group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: '3.1.0'
+    compile group: 'io.prometheus', name: 'simpleclient', version: '0.1.0'
+    compile group: 'io.prometheus', name: 'simpleclient_hotspot', version: '0.1.0'
+    compile group: 'io.prometheus', name: 'simpleclient_logback', version: '0.1.0'
+    compile group: 'io.prometheus', name: 'simpleclient_hibernate', version: '0.1.0'
+    compile group: 'io.prometheus', name: 'simpleclient_guava', version: '0.1.0'
+    compile group: 'io.prometheus', name: 'simpleclient_servlet', version: '0.1.0'
+
+    compile group: 'org.hibernate', name: 'hibernate-core', version: '5.2.12.Final'
+    compile group: 'org.hibernate', name: 'hibernate-ehcache', version: '5.2.12.Final'
+    compile group: 'org.hibernate', name: 'hibernate-hikaricp', version: '5.2.12.Final'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '1.5.8.RELEASE'
+    compile group: 'org.springframework', name: 'spring-orm', version: '4.3.11.RELEASE'
+    compile group: 'org.postgresql', name: 'postgresql', version: '42.1.4'
+    compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.20.1'
+    compile group: 'com.github.gwenn', name: 'sqlite-dialect', version: '24970986d0'
+    compile group: 'com.jcraft', name: 'jsch', version: '0.1.54'
+    compile group: 'org.togglz', name: 'togglz-core', version: '2.4.1.Final'
+    compile group: 'com.google.guava', name: 'guava', version: '23.0'
+    compile group: 'com.github.vladimir-bukhtoyarov', name: 'bucket4j-core', version: '3.0.2'
+
+    //tests
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.1'
+    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.1'
+    // To avoid compiler warnings about @API annotations in JUnit code.
+    testCompileOnly group: 'org.apiguardian', name: 'apiguardian-api', version: '1.0.0'
+}
+
+import org.apache.tools.ant.filters.ReplaceTokens
+
+processResources {
+    //inject values into app.properties
+    filter ReplaceTokens, tokens: [
+            "project.version"   : project.version,
+            "project.groupId"   : project.group,
+            "project.artifactId": project.ext.moduleName,
+            "env.BUILD_NUMBER"  : (System.getenv('CI') ? System.getenv('BUILD_NUMBER') : 'DEV')
+    ]
+}

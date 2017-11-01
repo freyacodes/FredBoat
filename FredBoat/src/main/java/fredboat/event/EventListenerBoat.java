@@ -29,21 +29,25 @@ import com.google.common.cache.CacheBuilder;
 import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
+import fredboat.command.maintenance.ShardsCommand;
+import fredboat.command.maintenance.StatsCommand;
 import fredboat.command.music.control.SkipCommand;
 import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityReader;
 import fredboat.feature.I18n;
+import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
+import fredboat.util.DiscordUtil;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
-import net.dv8tion.jda.core.Permission;
+import io.prometheus.client.Histogram;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceJoinEvent;
@@ -56,7 +60,6 @@ import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
 import java.util.concurrent.TimeUnit;
 
 public class EventListenerBoat extends AbstractEventListener {
@@ -66,12 +69,13 @@ public class EventListenerBoat extends AbstractEventListener {
     //first string is the users message ID, second string the id of fredboat's message that should be deleted if the
     // user's message is deleted
     public static final Cache<Long, Long> messagesToDeleteIfIdDeleted = CacheBuilder.newBuilder()
+            .recordStats()
             .expireAfterWrite(6, TimeUnit.HOURS)
             .build();
 
-    private User lastUserToReceiveHelp;
 
     public EventListenerBoat() {
+        Metrics.instance().cacheMetrics.addCache("messagesToDeleteIfIdDeleted", messagesToDeleteIfIdDeleted);
     }
 
     @Override
@@ -79,6 +83,7 @@ public class EventListenerBoat extends AbstractEventListener {
 
         if (FeatureFlags.RATE_LIMITER.isActive()) {
             if (Ratelimiter.getRatelimiter().isBlacklisted(event.getAuthor().getIdLong())) {
+                Metrics.blacklistedMessagesReceived.inc();
                 return;
             }
         }
@@ -97,28 +102,30 @@ public class EventListenerBoat extends AbstractEventListener {
             return;
         }
 
-        String content = event.getMessage().getContent();
-        if (content.length() <= Config.CONFIG.getPrefix().length()) {
+        TextChannel channel = event.getTextChannel(); //never null since we are filtering private messages out above
+
+        //preliminary permission filter to avoid a ton of parsing
+        //let messages pass on to parsing that contain "help" since we want to answer help requests even from channels
+        // where we can't talk in
+        if (!channel.canTalk() && !event.getMessage().getRawContent().toLowerCase().contains("help")) {
             return;
         }
 
-        if (content.startsWith(Config.CONFIG.getPrefix())) {
-            log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
-
-            CommandContext context = CommandContext.parse(event);
-
-            if (context == null) {
-                return;
-            }
-
-            //ignore all commands in channels where we can't write, except for the help command
-            if (!context.hasPermissions(Permission.MESSAGE_WRITE) && !(context.command instanceof HelpCommand)) {
-                log.debug("Ignored command because this bot cannot write in that channel");
-                return;
-            }
-
-            limitOrExecuteCommand(context);
+        CommandContext context = CommandContext.parse(event);
+        if (context == null) {
+            return;
         }
+        log.info(event.getGuild().getName() + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
+
+        //ignore all commands in channels where we can't write, except for the help command
+        if (!channel.canTalk() && !(context.command instanceof HelpCommand)) {
+            log.info("Ignored command because this bot cannot write in that channel");
+            return;
+        }
+
+        Metrics.commandsReceived.labels(context.command.getClass().getSimpleName()).inc();
+
+        limitOrExecuteCommand(context);
     }
 
     /**
@@ -129,15 +136,26 @@ public class EventListenerBoat extends AbstractEventListener {
         Tuple2<Boolean, Class> ratelimiterResult = new Tuple2<>(true, null);
         if (FeatureFlags.RATE_LIMITER.isActive()) {
             ratelimiterResult = Ratelimiter.getRatelimiter().isAllowed(context, context.command, 1);
-
         }
-        if (ratelimiterResult.a)
-            CommandManager.prefixCalled(context);
-        else {
-            String out = I18n.get(context, "ratelimitedGeneralInfo");
+
+        if (ratelimiterResult.a) {
+            Histogram.Timer executionTimer = null;
+            if (FeatureFlags.FULL_METRICS.isActive()) {
+                executionTimer = Metrics.executionTime.labels(context.command.getClass().getSimpleName()).startTimer();
+            }
+            try {
+                CommandManager.prefixCalled(context);
+            } finally {
+                //NOTE: Some commands, like ;;mal, run async and will not reflect the real performance of FredBoat
+                if (FeatureFlags.FULL_METRICS.isActive() && executionTimer != null) {
+                    executionTimer.observeDuration();
+                }
+            }
+        } else {
+            String out = context.i18n("ratelimitedGeneralInfo");
             if (ratelimiterResult.b == SkipCommand.class) { //we can compare classes with == as long as we are using the same classloader (which we are)
                 //add a nice reminder on how to skip more than 1 song
-                out += "\n" + MessageFormat.format(I18n.get(context, "ratelimitedSkipCommand"),
+                out += "\n" + context.i18nFormat("ratelimitedSkipCommand",
                         "`" + Config.CONFIG.getPrefix() + "skip n-m`");
             }
             context.replyWithMention(out);
@@ -158,22 +176,36 @@ public class EventListenerBoat extends AbstractEventListener {
 
         if (FeatureFlags.RATE_LIMITER.isActive()) {
             if (Ratelimiter.getRatelimiter().isBlacklisted(event.getAuthor().getIdLong())) {
+                //dont need to inc() the metrics counter here, because private message events are a subset of
+                // MessageReceivedEvents where we inc() the blacklisted messages counter already
                 return;
             }
         }
 
-        if (event.getAuthor() == lastUserToReceiveHelp) {
-            //Ignore, they just got help! Stops any bot chain reactions
+        //technically not possible anymore to receive private messages from bots but better safe than sorry
+        //also ignores our own messages since we're a bot
+        if (event.getAuthor().isBot()) {
             return;
         }
 
-        if (event.getAuthor().equals(event.getJDA().getSelfUser())) {
-            //Don't reply to ourselves
-            return;
+        //quick n dirty bot admin / owner check
+        if (Config.CONFIG.getAdminIds().contains(event.getAuthor().getId())
+                || DiscordUtil.getOwnerId(event.getJDA()) == event.getAuthor().getIdLong()) {
+
+            //hack in / hardcode some commands; this is not meant to look clean
+            String raw = event.getMessage().getRawContent().toLowerCase();
+            if (raw.contains("shard")) {
+                for (Message message : ShardsCommand.getShardStatus(event.getMessage())) {
+                    CentralMessaging.sendMessage(event.getChannel(), message);
+                }
+                return;
+            } else if (raw.contains("stats")) {
+                CentralMessaging.sendMessage(event.getChannel(), StatsCommand.getStats(null, event.getJDA()));
+                return;
+            }
         }
 
-        CentralMessaging.sendMessage(event.getChannel(), HelpCommand.getHelpDmMsg(null));
-        lastUserToReceiveHelp = event.getAuthor();
+        HelpCommand.sendGeneralHelp(event);
     }
 
     /* music related */

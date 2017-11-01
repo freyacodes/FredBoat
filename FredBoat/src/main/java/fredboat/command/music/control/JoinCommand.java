@@ -31,40 +31,43 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 public class JoinCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public JoinCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
+    public void onInvoke(@Nonnull CommandContext context) {
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         VoiceChannel vc = player.getUserCurrentVoiceChannel(context.invoker);
-        player.setCurrentTC(context.channel);
         try {
             player.joinChannel(vc);
             if (vc != null) {
-                context.reply(MessageFormat.format(I18n.get(context, "joinJoining"), vc.getName()));
+                context.reply(context.i18nFormat("joinJoining", vc.getName()));
             }
         } catch (IllegalStateException ex) {
             if(vc != null) {
-                context.reply(MessageFormat.format(I18n.get(context, "joinErrorAlreadyJoining"), vc.getName()));
+                context.reply(context.i18nFormat("joinErrorAlreadyJoining", vc.getName()));
             } else {
                 throw ex;
             }
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpJoinCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpJoinCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.USER;

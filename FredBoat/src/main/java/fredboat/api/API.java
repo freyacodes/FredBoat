@@ -28,6 +28,7 @@ package fredboat.api;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.audio.player.PlayerRegistry;
+import fredboat.feature.metrics.Metrics;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -35,8 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Spark;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class API {
 
@@ -63,14 +62,13 @@ public class API {
         });
 
         Spark.get("/stats", (req, res) -> {
+            Metrics.apiServed.labels("/stats").inc();
             res.type("application/json");
 
             JSONObject root = new JSONObject();
             JSONArray a = new JSONArray();
 
-            //make a copy to avoid concurrent modification errors
-            List<FredBoat> shards = new ArrayList<>(FredBoat.getShards());
-            for (FredBoat fb : shards) {
+            for (FredBoat fb : FredBoat.getShards()) {
                 JSONObject fbStats = new JSONObject();
                 fbStats.put("id", fb.getShardInfo().getShardId())
                         .put("guilds", fb.getGuildCount())
@@ -84,8 +82,8 @@ public class API {
             g.put("playingPlayers", PlayerRegistry.getPlayingPlayers().size())
                     .put("totalPlayers", PlayerRegistry.getRegistry().size())
                     .put("distribution", Config.CONFIG.getDistribution())
-                    .put("guilds", FredBoat.countAllGuilds())
-                    .put("users", FredBoat.countAllUniqueUsers());
+                    .put("guilds", FredBoat.getTotalGuildsCount())
+                    .put("users", FredBoat.getTotalUniqueUsersCount());
 
             root.put("shards", a);
             root.put("global", g);
@@ -100,6 +98,18 @@ public class API {
             response.body(ExceptionUtils.getStackTrace(e));
             response.type("text/plain");
             response.status(500);
+        });
+    }
+
+    public static void turnOnMetrics() {
+        if (!Config.CONFIG.isRestServerEnabled()) {
+            log.warn("Rest server is not enabled. Skipping Spark ignition!");
+            return;
+        }
+
+        Spark.get("/metrics", (req, resp) -> {
+            Metrics.apiServed.labels("/metrics").inc();
+            return Metrics.instance().metricsServlet.servletGet(req.raw(), resp.raw());
         });
     }
 

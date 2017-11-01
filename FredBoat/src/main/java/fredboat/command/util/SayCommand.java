@@ -28,8 +28,10 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.event.EventListenerBoat;
-import fredboat.feature.I18n;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
+import fredboat.util.TextUtils;
+
+import javax.annotation.Nonnull;
 
 /**
  *
@@ -37,22 +39,25 @@ import net.dv8tion.jda.core.entities.Guild;
  */
 public class SayCommand extends Command implements IUtilCommand {
 
+    public SayCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
-        if (context.args.length < 2) {
+    public void onInvoke(@Nonnull CommandContext context) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
-        String res = context.msg.getRawContent().substring(context.args[0].length() + 1);
-        context.reply('\u200b' + res,
-                message1 -> EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), message1.getIdLong())
+        context.reply(TextUtils.ZERO_WIDTH_CHAR + context.rawArgs,
+                message -> EventListenerBoat.messagesToDeleteIfIdDeleted.put(context.msg.getIdLong(), message.getIdLong())
         );
 
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} <text>\n#";
-        return usage + I18n.get(guild).getString("helpSayCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} <text>\n#" + context.i18n("helpSayCommand");
     }
 }

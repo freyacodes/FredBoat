@@ -129,6 +129,7 @@ target/
 /youtube-dl
 /logs/
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 /music_persistence/
 /bootloader.json
 gc-*.log
@@ -137,3 +138,5 @@ gc-*.log
 *fredboat.db
 *.ppk
 /feature_flags.properties
+.gradle/*
+*/out/*

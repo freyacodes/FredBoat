@@ -37,6 +37,8 @@ import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.shared.constant.ExitCodes;
+import net.dv8tion.jda.core.JDA;
+import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.VoiceChannel;
@@ -46,6 +48,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -53,8 +56,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Map;
 
 public class MusicPersistenceHandler {
 
@@ -66,14 +68,18 @@ public class MusicPersistenceHandler {
     public static void handlePreShutdown(int code) {
         File dir = new File("music_persistence");
         if (!dir.exists()) {
-            dir.mkdir();
+            boolean created = dir.mkdir();
+            if (!created) {
+                log.error("Failed to create music persistence directory");
+                return;
+            }
         }
-        HashMap<String, GuildPlayer> reg = PlayerRegistry.getRegistry();
+        Map<Long, GuildPlayer> reg = PlayerRegistry.getRegistry();
 
         boolean isUpdate = code == ExitCodes.EXIT_CODE_UPDATE;
         boolean isRestart = code == ExitCodes.EXIT_CODE_RESTART;
 
-        for (String gId : reg.keySet()) {
+        for (long gId : reg.keySet()) {
             try {
                 GuildPlayer player = reg.get(gId);
 
@@ -97,7 +103,7 @@ public class MusicPersistenceHandler {
                 }
 
                 JSONObject data = new JSONObject();
-                data.put("vc", player.getUserCurrentVoiceChannel(player.getGuild().getSelfMember()).getId());
+                data.put("vc", player.getCurrentVoiceChannel().getId());
                 data.put("tc", activeTextChannel != null ? activeTextChannel.getId() : "");
                 data.put("isPaused", player.isPaused());
                 data.put("volume", Float.toString(player.getVolume()));
@@ -134,7 +140,7 @@ public class MusicPersistenceHandler {
                 data.put("sources", identifiers);
 
                 try {
-                    FileUtils.writeStringToFile(new File(dir, gId), data.toString(), Charset.forName("UTF-8"));
+                    FileUtils.writeStringToFile(new File(dir, Long.toString(gId)), data.toString(), Charset.forName("UTF-8"));
                 } catch (IOException ex) {
                     if (activeTextChannel != null) {
                         CentralMessaging.sendMessage(activeTextChannel,
@@ -148,47 +154,49 @@ public class MusicPersistenceHandler {
         }
     }
 
-    public static void reloadPlaylists() {
+    public static void reloadPlaylists(FredBoat shard) {
         File dir = new File("music_persistence");
 
         if(Config.CONFIG.getDistribution() == DistributionEnum.MUSIC) {
-            log.warn("Music persistence loading is currently disabled!");
-
-            File[] files = dir.listFiles();
-            if (files != null) {
-                for (File f : files) {
-                    boolean deleted = f.delete();
-                    log.info(deleted ? "Deleted persistence file: " + f : "Failed to delete persistence file: " + f);
-                }
-
-                dir.delete();
-            }
+            log.warn("Music persistence loading is disabled on the MUSIC distribution! Use PATRON or DEVELOPMENT instead"
+                    + "How did this call end up in here anyways?");
             return;
         }
 
-        log.info("Began reloading playlists");
+        log.info("Began reloading playlists for shard {}", shard.getShardInfo().getShardId());
         if (!dir.exists()) {
+            log.info("No music persistence directory found.");
             return;
         }
-        log.info("Found persistence data: " + Arrays.toString(dir.listFiles()));
+        File[] files = dir.listFiles();
+        if (files == null || files.length == 0) {
+            log.info("No files present in music persistence directory");
+            return;
+        }
 
-        for (File file : dir.listFiles()) {
+        JDA jda = shard.getJda();
+        for (File file : files) {
             try {
-                String gId = file.getName();
+                Guild guild = jda.getGuildById(file.getName());
+                if (guild == null) {
+                    //only load guilds that are part of this shard
+                    continue;
+                }
                 JSONObject data = new JSONObject(FileUtils.readFileToString(file, Charset.forName("UTF-8")));
 
-                //TODO: Make shard in-specific
                 boolean isPaused = data.getBoolean("isPaused");
                 final JSONArray sources = data.getJSONArray("sources");
-                VoiceChannel vc = FredBoat.getVoiceChannelById(data.getString("vc"));
-                TextChannel tc = FredBoat.getTextChannelById(data.getString("tc"));
+                @Nullable VoiceChannel vc = jda.getVoiceChannelById(data.getString("vc"));
+                @Nullable TextChannel tc = jda.getTextChannelById(data.getString("tc"));
                 float volume = Float.parseFloat(data.getString("volume"));
                 RepeatMode repeatMode = data.getEnum(RepeatMode.class, "repeatMode");
                 boolean shuffle = data.getBoolean("shuffle");
 
-                GuildPlayer player = PlayerRegistry.get(vc.getJDA(), gId);
+                GuildPlayer player = PlayerRegistry.getOrCreate(guild);
 
-                player.joinChannel(vc);
+                if (vc != null) {
+                    player.joinChannel(vc);
+                }
                 if (tc != null) {
                     player.setCurrentTC(tc);
                 }
@@ -203,9 +211,9 @@ public class MusicPersistenceHandler {
                 sources.forEach((Object t) -> {
                     JSONObject json = (JSONObject) t;
                     byte[] message = Base64.decodeBase64(json.getString("message"));
-                    Member member = vc.getGuild().getMember(vc.getJDA().getUserById(json.getString("user")));
+                    Member member = guild.getMemberById(json.getLong("user"));
                     if (member == null)
-                        member = vc.getGuild().getSelfMember(); //member left the guild meanwhile, set ourselves as the one who added the song
+                        member = guild.getSelfMember(); //member left the guild meanwhile, set ourselves as the one who added the song
 
                     AudioTrack at;
                     try {
@@ -252,18 +260,15 @@ public class MusicPersistenceHandler {
                 });
 
                 player.setPause(isPaused);
-                CentralMessaging.sendMessage(tc, MessageFormat.format(I18n.get(player.getGuild()).getString("reloadSuccess"), sources.length()));
+                if (tc != null) {
+                    CentralMessaging.sendMessage(tc, MessageFormat.format(I18n.get(player.getGuild()).getString("reloadSuccess"), sources.length()));
+                }
             } catch (Exception ex) {
                 log.error("Error when loading persistence file", ex);
             }
+            boolean deleted = file.delete();
+            log.info(deleted ? "Deleted persistence file: " + file : "Failed to delete persistence file: " + file);
         }
-
-        for (File f : dir.listFiles()) {
-            boolean deleted = f.delete();
-            log.info(deleted ? "Deleted persistence file: " + f : "Failed to delete persistence file: " + f);
-        }
-
-        dir.delete();
     }
 
 }

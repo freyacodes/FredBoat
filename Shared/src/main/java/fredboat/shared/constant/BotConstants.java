@@ -35,7 +35,12 @@ public class BotConstants {
     public static final String PATRON_BOT_ID = "241950106125860865";
 
     public static final String FREDBOAT_HANGOUT_ID = "174820236481134592";
-    public static final Color FREDBOAT_COLOR = new Color(28, 191, 226);
+    public static final Color FREDBOAT_COLOR = new Color(28, 191, 226); //#1CBFE2
+
+    public static final String FREDBOAT_URL = "https://fredboat.com";
+    public static final String DOCS_URL = FREDBOAT_URL + "/docs";
+    public static final String DOCS_PERMISSIONS_URL = DOCS_URL + "/permissions";
+    public static final String DOCS_DONATE_URL = DOCS_URL + "/donate";
 
     private BotConstants() {
     }

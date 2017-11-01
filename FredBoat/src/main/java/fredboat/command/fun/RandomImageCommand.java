@@ -25,31 +25,38 @@
 
 package fredboat.command.fun;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
+import fredboat.messaging.internal.Context;
 import fredboat.util.rest.CacheUtil;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.util.rest.Http;
+import okhttp3.Response;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RandomImageCommand extends Command implements IFunCommand {
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(RandomImageCommand.class);
+
+    private static final Logger log = LoggerFactory.getLogger(RandomImageCommand.class);
+    private static final ScheduledExecutorService imgurRefresher = Executors.newSingleThreadScheduledExecutor(
+            runnable -> new Thread(runnable, "imgur-refresher"));
 
     //https://regex101.com/r/0TDxsu/2
     private static final Pattern IMGUR_ALBUM = Pattern.compile("^https?://imgur\\.com/a/([a-zA-Z0-9]+)$");
@@ -59,28 +66,20 @@ public class RandomImageCommand extends Command implements IFunCommand {
     //contains the images that this class randomly serves, default entry is a "my body is not ready" gif
     private volatile String[] urls = {"http://i.imgur.com/NqyOqnj.gif"};
 
-    public RandomImageCommand(String[] urls) {
-        this.urls = urls;
-    }
-
-    public RandomImageCommand(String imgurAlbum) {
-        //update the album every hour or so
-        new Thread(() -> {
-            boolean run = true;
-            while (run) {
-                populateItems(imgurAlbum);
-                try {
-                    Thread.sleep(1000 * 60 * 60);
-                } catch (InterruptedException e) {
-                    log.info("Update thread for " + imgurAlbum + " has been interrupted.");
-                    run = false;
-                }
+    public RandomImageCommand(@Nonnull String imgurAlbumUrl, String name, String... aliases) {
+        super(name, aliases);
+        //update the album every hour
+        imgurRefresher.scheduleAtFixedRate(() -> {
+            try {
+                populateItems(imgurAlbumUrl);
+            } catch (Exception e) {
+                log.error("Populating imgur album {} failed", imgurAlbumUrl, e);
             }
-        }, RandomImageCommand.class.getSimpleName() + " imgur updater").start();
+        }, 0, 1, TimeUnit.HOURS);
     }
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         context.replyImage(getRandomImageUrl());
     }
 
@@ -106,48 +105,49 @@ public class RandomImageCommand extends Command implements IFunCommand {
         Matcher m = IMGUR_ALBUM.matcher(imgurAlbumUrl);
 
         if (!m.find()) {
-            log.error("Not a valid imgur album url " + imgurAlbumUrl);
+            log.error("Not a valid imgur album url {}", imgurAlbumUrl);
             return;
         }
 
         String albumId = m.group(1);
-        HttpResponse<JsonNode> response;
-        try {
-            synchronized (this) {
-                response = Unirest.get("https://api.imgur.com/3/album/" + albumId)
-                        .header("Authorization", "Client-ID " + Config.CONFIG.getImgurClientId())
-                        .header("If-None-Match", etag)
-                        .asJson();
-            }
-        } catch (UnirestException e) {
-            log.error("Imgur down? Could not fetch imgur album " + imgurAlbumUrl, e);
-            return;
-        }
+        Http.SimpleRequest request = Http.get("https://api.imgur.com/3/album/" + albumId)
+                .auth("Client-ID " + Config.CONFIG.getImgurClientId())
+                .header("If-None-Match", etag);
 
-        if (response.getStatus() == 200) {
-            JSONArray images = response.getBody().getObject().getJSONObject("data").getJSONArray("images");
-            List<String> imageUrls = new ArrayList<>();
-            images.forEach(o -> imageUrls.add(((JSONObject) o).getString("link")));
+        try (Response response = request.execute()) {
+            //etag implementation: nothing has changed
+            //https://api.imgur.com/performancetips
+            //NOTE: imgur's implementation of this is wonky. occasionally they will return a new Etag without a
+            // data change, and on the next fetch they will return the old Etag again.
+            if (response.code() == 304) {
+                //nothing to do here
+                log.info("Refreshed imgur album {}, no update.", imgurAlbumUrl);
+            } else if (response.isSuccessful()) {
+                //noinspection ConstantConditions
+                JSONArray images = new JSONObject(response.body().string()).getJSONObject("data").getJSONArray("images");
+                List<String> imageUrls = new ArrayList<>();
+                images.forEach(o -> imageUrls.add(((JSONObject) o).getString("link")));
 
-            synchronized (this) {
-                urls = imageUrls.toArray(urls);
-                etag = response.getHeaders().getFirst("ETag");
+                synchronized (this) {
+                    urls = imageUrls.toArray(urls);
+                    etag = response.header("ETag");
+                }
+                log.info("Refreshed imgur album {}, new data found.", imgurAlbumUrl);
+            } else {
+                //some other status
+                //noinspection ConstantConditions
+                log.warn("Unexpected http status for imgur album request {}, response: {}\n{}",
+                        imgurAlbumUrl, response.toString(), response.body().string());
             }
-            log.info("Refreshed imgur album " + imgurAlbumUrl + ", new data found.");
-        }
-        //etag implementation: nothing has changed
-        //https://api.imgur.com/performancetips
-        else if (response.getStatus() == 304) {
-            //nothing to do here
-            log.info("Refreshed imgur album " + imgurAlbumUrl + ", no update.");
-        } else {
-            //some other status
-            log.warn("Unexpected http status for imgur album request " + imgurAlbumUrl + ", response: " + response.getBody().toString());
+
+        } catch (IOException e) {
+            log.error("Imgur down? Could not fetch imgur album {}", imgurAlbumUrl, e);
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Post a random image.";
     }
 }

@@ -34,40 +34,44 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
+
+import javax.annotation.Nonnull;
 
 public class PlaySplitCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public PlaySplitCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
 
-        if (context.args.length < 2) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
         if (!PlayerLimitManager.checkLimitResponsive(context)) return;
 
-        IdentifierContext ic = new IdentifierContext(context.args[1], context.channel, context.invoker);
+        IdentifierContext ic = new IdentifierContext(context.args[0], context.channel, context.invoker);
         ic.setSplit(true);
 
-        GuildPlayer player = PlayerRegistry.get(context.guild);
-        player.setCurrentTC(context.channel);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         player.queue(ic);
         player.setPause(false);
 
         context.deleteMessage();
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} <url>\n#";
-        return usage + I18n.get(guild).getString("helpPlaySplitCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} <url>\n#" + context.i18n("helpPlaySplitCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.USER;

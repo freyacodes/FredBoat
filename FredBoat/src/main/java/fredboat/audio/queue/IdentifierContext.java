@@ -42,7 +42,7 @@ public class IdentifierContext extends LeakSafeContext {
 
     public IdentifierContext(String identifier, TextChannel textChannel, Member member) {
         super(textChannel, member);
-        this.shard = FredBoat.getInstance(textChannel.getJDA());
+        this.shard = FredBoat.getShard(textChannel.getJDA());
         this.identifier = identifier;
     }
 

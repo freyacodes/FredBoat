@@ -25,13 +25,11 @@
 
 package fredboat.util;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.feature.I18n;
+import fredboat.feature.metrics.Metrics;
 import fredboat.shared.constant.BotConstants;
+import fredboat.util.rest.Http;
 import net.dv8tion.jda.bot.entities.ApplicationInfo;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.OnlineStatus;
@@ -39,13 +37,15 @@ import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Role;
 import net.dv8tion.jda.core.entities.User;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.requests.Requester;
+import okhttp3.Response;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
@@ -55,14 +55,14 @@ public class DiscordUtil {
     private static final Logger log = LoggerFactory.getLogger(DiscordUtil.class);
     private static final String USER_AGENT = "FredBoat DiscordBot (https://github.com/Frederikam/FredBoat, 1.0)";
 
-    private static volatile ApplicationInfo discordAppInfo; //access this object through getApplicationInfo(jda)
-    private static final Object discordAppInfoLock = new Object();
+    private static volatile DiscordAppInfo selfDiscordAppInfo; //access this object through getApplicationInfo(jda)
+    private static final Object selfDiscordAppInfoLock = new Object();
 
     private DiscordUtil() {
     }
-    
-    public static String getOwnerId(JDA jda) {
-        return getApplicationInfo(jda).getOwner().getId();
+
+    public static long getOwnerId(@Nonnull JDA jda) {
+        return getApplicationInfo(jda).ownerIdLong;
     }
 
     public static boolean isMainBotPresent(Guild guild) {
@@ -99,70 +99,73 @@ public class DiscordUtil {
         return top.getPosition();
     }
 
-    public static int getRecommendedShardCount(String token) throws UnirestException {
-        HttpResponse<JsonNode> response = Unirest.get(Requester.DISCORD_API_PREFIX + "gateway/bot")
-                .header("Authorization", "Bot " + token)
-                .header("User-agent", USER_AGENT)
-                .asJson();
-        if (response.getStatus() == 401) {
-            throw new IllegalArgumentException("Invalid discord bot token provided!");
-        } else if (response.getStatus() >= 400) {
-            log.error("Unexpected response from discord: {} {}", response.getStatus(), response.getStatusText());
-        }
-        return response.getBody().getObject().getInt("shards");
-    }
+    public static int getRecommendedShardCount(@Nonnull String token) throws IOException, JSONException {
+        Http.SimpleRequest request = Http.get(Requester.DISCORD_API_PREFIX + "gateway/bot")
+                .auth("Bot " + token)
+                .header("User-agent", USER_AGENT);
 
-    public static User getUserFromBearer(JDA jda, String token) {
-        try {
-            JSONObject user = Unirest.get(Requester.DISCORD_API_PREFIX + "/users/@me")
-                    .header("Authorization", "Bearer " + token)
-                    .header("User-agent", USER_AGENT)
-                    .asJson()
-                    .getBody()
-                    .getObject();
-
-            if (user.has("id")) {
-                return jda.retrieveUserById(user.getString("id")).complete(true);
+        try (Response response = request.execute()) {
+            if (response.code() == 401) {
+                throw new IllegalArgumentException("Invalid discord bot token provided!");
+            } else if (!response.isSuccessful()) {
+                log.error("Unexpected response from discord: {} {}", response.code(), response.toString());
             }
-        } catch (UnirestException | RateLimitedException ignored) {
+            //noinspection ConstantConditions
+            return new JSONObject(response.body().string()).getInt("shards");
         }
-
-        return null;
     }
 
     @Nonnull
-    public static ApplicationInfo getApplicationInfo(@Nonnull JDA jda) {
+    public static DiscordAppInfo getApplicationInfo(@Nonnull JDA jda) {
         //double checked lock pattern
-        ApplicationInfo info = discordAppInfo;
+        DiscordAppInfo info = selfDiscordAppInfo;
         if (info == null) {
-            synchronized (discordAppInfoLock) {
-                info = discordAppInfo;
+            synchronized (selfDiscordAppInfoLock) {
+                info = selfDiscordAppInfo;
                 if (info == null) {
-                    discordAppInfo = info = jda.asBot().getApplicationInfo().complete();
+                    //todo this method can be improved by reloading the info regularly. possibly some async loading guava cache?
+                    selfDiscordAppInfo = info = new DiscordAppInfo(jda.asBot().getApplicationInfo().complete());
+                    Metrics.successfulRestActions.labels("getApplicationInfo").inc();
                 }
             }
         }
         return info;
     }
 
-    public static String getUserId(String token) throws UnirestException {
-        return Unirest.get(Requester.DISCORD_API_PREFIX + "/users/@me")
-                .header("Authorization", "Bot " + token)
-                .header("User-agent", USER_AGENT)
-                .asJson()
-                .getBody()
-                .getObject()
-                .getString("id");
+    @Nonnull
+    public static String getUserId(@Nonnull String token) {
+        Http.SimpleRequest request = Http.get(Requester.DISCORD_API_PREFIX + "/users/@me")
+                .auth("Bot " + token)
+                .header("User-agent", USER_AGENT);
+
+        String result = "";
+        int attempt = 0;
+        while (result.isEmpty() && attempt++ < 5) {
+            try {
+                result = request.asJson().getString("id");
+            } catch (Exception e) {
+                log.error("Could not request my own userId from Discord, will retry a few times", e);
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+        if (result.isEmpty()) {
+            throw new RuntimeException("Failed to retrieve my own userId from Discord");
+        }
+        return result;
     }
 
     // ########## Moderation related helper functions
     public static String getReasonForModAction(CommandContext context) {
         String r = null;
-        if (context.args.length > 2) {
-            r = String.join(" ", Arrays.copyOfRange(context.args, 2, context.args.length));
+        if (context.args.length > 1) { //ignore the first arg which contains the name/mention of the user
+            r = String.join(" ", Arrays.copyOfRange(context.args, 1, context.args.length));
         }
 
-        return I18n.get(context, "modReason") + ": " + (r != null ? r : "No reason provided.");
+        return context.i18n("modReason") + ": " + (r != null ? r : "No reason provided.");
     }
 
     public static String formatReasonForAuditLog(String plainReason, Member invoker) {
@@ -171,5 +174,39 @@ public class DiscordUtil {
         int auditLogMaxLength = 512 - i18nAuditLogMessage.length(); //512 is a hard limit by discord
         return i18nAuditLogMessage + (plainReason.length() > auditLogMaxLength ?
                 plainReason.substring(0, auditLogMaxLength) : plainReason);
+    }
+
+
+    //like JDAs ApplicationInfo but without any references to JDA objects to prevent leaks
+    //use this to cache the app info
+    public static class DiscordAppInfo {
+        public final boolean doesBotRequireCodeGrant;
+        public final boolean isBotPublic;
+        //public final long botIdLong;
+        //public final String botId;
+        public final String iconId;
+        public final String description;
+        public final String appName;
+        public final long ownerIdLong;
+        public final String ownerId;
+        public final String ownerName;
+
+        public DiscordAppInfo(ApplicationInfo applicationInfo) {
+            this.doesBotRequireCodeGrant = applicationInfo.doesBotRequireCodeGrant();
+            this.isBotPublic = applicationInfo.isBotPublic();
+            //for old accounts, like the public FredBoat♪♪ one, this does not return the public bot id that one gets
+            // when rightclick -> copy Id or mentioning, but a different one, an application id. due to risks of
+            // introducing bugs on the public boat when using this (as happened with the mention prefix) it has been
+            // commented out and shall stay this way as a warning to not use it. Usually the JDA#getSelfUser() method is
+            // accessible to gain access to our own bot id
+            //this.botIdLong = applicationInfo.getIdLong();
+            //this.botId = applicationInfo.getId();
+            this.iconId = applicationInfo.getIconId();
+            this.description = applicationInfo.getDescription();
+            this.appName = applicationInfo.getName();
+            this.ownerIdLong = applicationInfo.getOwner().getIdLong();
+            this.ownerId = applicationInfo.getOwner().getId();
+            this.ownerName = applicationInfo.getOwner().getName();
+        }
     }
 }

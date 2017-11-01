@@ -1,12 +1,14 @@
 # Contributing
-FredBoat is built using Maven, so you should just be able to import the project in your favorite IDE and download all dependencies while building. Check out the [issues](https://github.com/Frederikam/FredBoat/issues) to find out what needs to be done.
+FredBoat is built using Gradle, so you should just be able to import the project in your favorite IDE and download all dependencies while building. Check out the [issues](https://github.com/Frederikam/FredBoat/issues) to find out what needs to be done.
 
 When submitting a pull request, please submit against the `development` branch, or you will have to reopen your PR. 
 
 ## Code conventions
 Code is indented with 4 spaces and without brackets on newlines. Please use the logging system (SLF4J) instead of `System.out` or `System.err`.
 
-It is a good practice to make use of the default code formatter of your IDE to adhere to existing conventions of the project.
+It is a good practice to make use of the default code formatter of your IDE to adhere to existing conventions of the project. However, please do not reformat any lines that you aren't actually changing.
+
+This project makes use of additional annotations to improve quality and cleanliness of the code, most notably `javax.annotation.Nonnull` & `javax.annotation.Nullable` for parameters and return values of methods. Please use these to describe the contracts of any methods you are adding. Feel invited to add these when you spot missing ones in the existing code base.
 
 ## Issue labels
 * **Beginner** Means that the issue should be suitable for new contributors.
@@ -50,9 +52,13 @@ The [ShuffleCommand.java](https://github.com/Frederikam/FredBoat/blob/master/Fre
 ```java
 public class ShuffleCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public ShuffleCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         player.setShuffle(!player.isShuffle());
 
         if (player.isShuffle()) {
@@ -68,24 +74,28 @@ public class ShuffleCommand extends Command implements IMusicCommand, ICommandRe
         return "{0}{1}\n#" + context.i18n("helpShuffleCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;
     }
 }
 ```
+To be fully usable, the command is registered in one of the CommandInitializers with its name and aliases:
+```java
+MusicCommandInitializer.java
+        [...]
+        CommandRegistry.registerCommand(new ShuffleCommand("shuffle", "sh", "random"));
+        [...]
+```
 </details>
 
 
 ## Translations
 
-If you just want to fix existing translations, you are welcome to contribute over at [FredBoat's Crowdin project](https://crowdin.com/project/fredboat).
+If you want to fix existing translations, you are welcome to contribute over at [FredBoat's Crowdin project](https://crowdin.com/project/fredboat).
 
-Adding new translation strings to FredBoat requires the following steps:
-1. Check out the [FredBoat translation repo](https://github.com/Frederikam/FredBoat-i13n)
-2. Edit the `en_US.properties`, and only that file. Make sure to keep your style as close as possible to the existing strings and place new strings at the topically appropriate place
-3. Open a PR to the [FredBoat translation repo](https://github.com/Frederikam/FredBoat-i13n) with your edits/additions to the `en_US.properties` file.
-4. If you are writing a PR for FredBoat, that relies on the new strings, you will have to await a successful review of both PRs. A collaborateur will then import your new strings into crowdin, make a build, and update the translation repo. After that has happened, your FredBoat PR will need to point to the new head commit of the translation project, and will then be merged.
+To include new translation strings, add them to the `en_US.properties` file that you can find in the `resources/lang` folder. A collaborator will take care of regularly syncing and updating the other translation files through [Crowdin](https://crowdin.com/project/fredboat).
 
 ### Rules for translations
 - present tense, imperative verbs
@@ -109,17 +119,25 @@ To run the FredBoat bot in IntelliJ IDEA, find the little green play button in t
 </details>
 <br/>
 
+Alternatively you can set up a gradle task to run or debug FredBoat:
+<details><summary>Click me</summary>
+
+[![Edit config of gradle task in IDEA](https://fred.moe/uIk.png)](https://fred.moe/uIk.png)
+[![Running with gradle in IDEA](https://fred.moe/iPb.png)](https://fred.moe/iPb.png)
+</details>
+<br/>
+
 This also allows you to take advantage of Java hotswapping, which you can enable in IDEA like so:
 <details><summary>Click me</summary>
 
-[![Hot swapping settings](https://fred.moe/XhC.png)](https://fred.moe/XhC.png)
+[![Hot swapping settings in IDEA](https://fred.moe/XhC.png)](https://fred.moe/XhC.png)
 </details>
 <br/>
 
 Reloading while the bot is running will have your changes hot swapped, so there is no need to fully restart it each time when you are rapidly testing out a lot of small changes.
 <details><summary>Click me</summary>
 
-[![Reloading changed classes](https://fred.moe/pFG.png)](https://fred.moe/pFG.png)
+[![Reloading changed classes in IDEA](https://fred.moe/pFG.png)](https://fred.moe/pFG.png)
 </details>
 <br/>
 

@@ -25,58 +25,56 @@
 
 package fredboat.command.music.info;
 
-import com.mashape.unirest.http.exceptions.UnirestException;
-import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.audio.queue.AudioTrackContext;
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.entities.Guild;
+import org.json.JSONException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
-import java.util.List;
+import javax.annotation.Nonnull;
+import java.io.IOException;
+import java.util.stream.Collectors;
 
 public class ExportCommand extends Command implements IMusicCommand {
 
+    private static final Logger log = LoggerFactory.getLogger(ExportCommand.class);
+
+    public ExportCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
+    public void onInvoke(@Nonnull CommandContext context) {
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         
         if (player.isQueueEmpty()) {
-            throw new MessagingException(I18n.get(context, "exportEmpty"));
+            throw new MessagingException(context.i18n("exportEmpty"));
         }
-        
-        List<AudioTrackContext> tracks = player.getRemainingTracks();
-        String out = "";
-        
-        for(AudioTrackContext atc : tracks){
-            AudioTrack at = atc.getTrack();
-            if(at instanceof YoutubeAudioTrack){
-                out = out + "https://www.youtube.com/watch?v=" + at.getIdentifier() + "\n";
-            } else {
-                out = out + at.getIdentifier() + "\n";
-            }
-        }
-        
+
+        String out = player.getRemainingTracks().stream()
+                .map(atc -> atc.getTrack().getInfo().uri)
+                .collect(Collectors.joining("\n"));
+
         try {
             String url = TextUtils.postToPasteService(out) + ".fredboat";
-            context.reply(MessageFormat.format(I18n.get(context, "exportPlaylistResulted"), url));
-        } catch (UnirestException ex) {
-            throw new MessagingException(I18n.get(context, "exportPlaylistFail"));
+            context.reply(context.i18nFormat("exportPlaylistResulted", url));
+        } catch (IOException | JSONException e) {
+            log.error("Failed to upload to any pasteservice.", e);
+            throw new MessagingException(context.i18n("exportPlaylistFail"));
         }
         
         
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpExportCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpExportCommand");
     }
 }

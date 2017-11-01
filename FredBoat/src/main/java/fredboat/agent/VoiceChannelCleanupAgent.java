@@ -30,7 +30,7 @@ import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.command.music.control.VoteSkipCommand;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.feature.metrics.Metrics;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import org.slf4j.Logger;
@@ -39,81 +39,77 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class VoiceChannelCleanupAgent extends Thread {
+public class VoiceChannelCleanupAgent extends FredBoatAgent {
 
     private static final Logger log = LoggerFactory.getLogger(VoiceChannelCleanupAgent.class);
     private static final HashMap<String, Long> VC_LAST_USED = new HashMap<>();
-    private static final int CLEANUP_INTERVAL_MILLIS = 60000 * 10;
     private static final int UNUSED_CLEANUP_THRESHOLD = 60000 * 60; // Effective when users are in the VC, but the player is not playing
 
     public VoiceChannelCleanupAgent() {
-        super("voice-cleanup");
-        setDaemon(true);
-        setPriority(4);
+        super("voice-cleanup", 10, TimeUnit.MINUTES);
     }
 
     @Override
-    public void run() {
-        log.info("Started voice-cleanup");
-        //noinspection InfiniteLoopStatement
-        while (true) {
-            try {
-                cleanup();
-                sleep(CLEANUP_INTERVAL_MILLIS);
-            } catch (Exception e) {
-                log.error("Caught an exception while trying to clean up voice channels!", e);
-                try {
-                    sleep(1000);
-                } catch (InterruptedException e1) {
-                    throw new RuntimeException(e1);
-                }
-            }
+    public void doRun() {
+        try {
+            cleanup();
+        } catch (Exception e) {
+            log.error("Caught an exception while trying to clean up voice channels!", e);
         }
     }
 
     private void cleanup(){
-        List<Guild> guilds = FredBoat.getAllGuilds();
-        log.info("Checking " + guilds.size() + " guilds for stale voice connections.");
+        log.info("Checking guilds for stale voice connections.");
 
-        int total = 0;
-        int closed = 0;
+        final AtomicInteger totalGuilds = new AtomicInteger(0);
+        final AtomicInteger totalVcs = new AtomicInteger(0);
+        final AtomicInteger closedVcs = new AtomicInteger(0);
 
-        for(Guild guild : guilds) {
-            if (guild != null
-                    && guild.getSelfMember() != null
-                    && guild.getSelfMember().getVoiceState() != null
-                    && guild.getSelfMember().getVoiceState().getChannel() != null) {
+        FredBoat.getAllGuilds().forEach(guild -> {
+            try {
+                totalGuilds.incrementAndGet();
+                if (guild != null
+                        && guild.getSelfMember() != null
+                        && guild.getSelfMember().getVoiceState() != null
+                        && guild.getSelfMember().getVoiceState().getChannel() != null) {
 
-                total++;
-                VoiceChannel vc = guild.getSelfMember().getVoiceState().getChannel();
+                    totalVcs.incrementAndGet();
+                    VoiceChannel vc = guild.getSelfMember().getVoiceState().getChannel();
 
-                if (getHumanMembersInVC(vc).size() == 0){
-                    closed++;
-                    VoteSkipCommand.guildSkipVotes.remove(guild.getIdLong());
-                    LavalinkManager.ins.closeConnection(guild);
-                    VC_LAST_USED.remove(vc.getId());
-                } else if(isBeingUsed(vc)) {
-                    VC_LAST_USED.put(vc.getId(), System.currentTimeMillis());
-                } else {
-                    // Not being used! But there are users in te VC. Check if we've been here for a while.
-
-                    if(!VC_LAST_USED.containsKey(vc.getId())) {
-                        VC_LAST_USED.put(vc.getId(), System.currentTimeMillis());
-                    }
-
-                    long lastUsed = VC_LAST_USED.get(vc.getId());
-
-                    if (System.currentTimeMillis() - lastUsed > UNUSED_CLEANUP_THRESHOLD) {
-                        closed++;
+                    if (getHumanMembersInVC(vc).size() == 0) {
+                        closedVcs.incrementAndGet();
+                        VoteSkipCommand.guildSkipVotes.remove(guild.getIdLong());
                         LavalinkManager.ins.closeConnection(guild);
                         VC_LAST_USED.remove(vc.getId());
+                    } else if (isBeingUsed(vc)) {
+                        VC_LAST_USED.put(vc.getId(), System.currentTimeMillis());
+                    } else {
+                        // Not being used! But there are users in te VC. Check if we've been here for a while.
+
+                        if (!VC_LAST_USED.containsKey(vc.getId())) {
+                            VC_LAST_USED.put(vc.getId(), System.currentTimeMillis());
+                        }
+
+                        long lastUsed = VC_LAST_USED.get(vc.getId());
+
+                        if (System.currentTimeMillis() - lastUsed > UNUSED_CLEANUP_THRESHOLD) {
+                            closedVcs.incrementAndGet();
+                            LavalinkManager.ins.closeConnection(guild);
+                            VC_LAST_USED.remove(vc.getId());
+                        }
                     }
                 }
+            } catch (Exception e) {
+                log.error("Failed to check guild {} for stale voice connections", guild.getIdLong(), e);
             }
-        }
+        });
 
-        log.info("Closed " + closed + " of " + total + " voice connections.");
+        log.info("Checked {} guilds for stale voice connections.", totalGuilds.get());
+        log.info("Closed {} of {} voice connections.", closedVcs.get(), totalVcs.get());
+        Metrics.voiceChannelsCleanedUp.inc(closedVcs.get());
     }
 
     private List<Member> getHumanMembersInVC(VoiceChannel vc){

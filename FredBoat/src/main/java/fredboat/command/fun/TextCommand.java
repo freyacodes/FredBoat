@@ -28,23 +28,27 @@ package fredboat.command.fun;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
+
+import javax.annotation.Nonnull;
 
 public class TextCommand extends Command implements IFunCommand {
 
     public String msg;
 
-    public TextCommand(String msg) {
+    public TextCommand(String msg, String name, String... aliases) {
+        super(name, aliases);
         this.msg = msg;
     }
     
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         context.reply(msg);
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Send a funny text.";
     }
 }

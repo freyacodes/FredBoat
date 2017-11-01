@@ -1,10 +1,8 @@
 package fredboat.audio.player;
 
 import fredboat.commandmeta.abs.CommandContext;
-import fredboat.feature.I18n;
+import fredboat.shared.constant.BotConstants;
 import net.dv8tion.jda.core.entities.Guild;
-
-import java.text.MessageFormat;
 
 public class PlayerLimitManager {
 
@@ -26,8 +24,8 @@ public class PlayerLimitManager {
         boolean b = checkLimit(context.guild);
 
         if (!b) {
-            String patronUrl = "<https://fredboat.com/docs/donate>";
-            String msg = MessageFormat.format(I18n.get(context, "playersLimited"), limit, patronUrl);
+            String patronUrl = "<" + BotConstants.DOCS_DONATE_URL + ">";
+            String msg = context.i18nFormat("playersLimited", limit, patronUrl);
             context.reply(msg);
         }
 

@@ -25,8 +25,6 @@
 
 package fredboat.command.music.info;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.sedmelluq.discord.lavaplayer.source.bandcamp.BandcampAudioTrack;
 import com.sedmelluq.discord.lavaplayer.source.beam.BeamAudioTrack;
 import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioTrack;
@@ -40,28 +38,30 @@ import fredboat.audio.queue.AudioTrackContext;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
-import fredboat.shared.constant.BotConstants;
+import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
+import fredboat.util.rest.Http;
 import fredboat.util.rest.YoutubeAPI;
 import fredboat.util.rest.YoutubeVideo;
 import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Member;
 import org.json.JSONObject;
 import org.json.XML;
 
+import javax.annotation.Nonnull;
 import java.awt.*;
-import java.text.MessageFormat;
-import java.util.ResourceBundle;
+import java.io.IOException;
 
 public class NowplayingCommand extends Command implements IMusicCommand {
 
+    public NowplayingCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
-        player.setCurrentTC(context.channel);
-        ResourceBundle i18n = I18n.get(context.guild);
+    public void onInvoke(@Nonnull CommandContext context) {
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
         if (player.isPlaying()) {
 
@@ -70,32 +70,33 @@ public class NowplayingCommand extends Command implements IMusicCommand {
 
             EmbedBuilder builder;
             if (at instanceof YoutubeAudioTrack) {
-                builder = getYoutubeEmbed(i18n, atc, (YoutubeAudioTrack) at);
+                builder = getYoutubeEmbed(atc, (YoutubeAudioTrack) at);
             } else if (at instanceof SoundCloudAudioTrack) {
-                builder = getSoundcloudEmbed(i18n, atc, (SoundCloudAudioTrack) at);
+                builder = getSoundcloudEmbed(atc, (SoundCloudAudioTrack) at);
             } else if (at instanceof HttpAudioTrack && at.getIdentifier().contains("gensokyoradio.net")){
                 //Special handling for GR
-                builder = getGensokyoRadioEmbed(i18n);
+                builder = getGensokyoRadioEmbed(context);
             } else if (at instanceof HttpAudioTrack) {
-                builder = getHttpEmbed(i18n, atc, (HttpAudioTrack) at);
+                builder = getHttpEmbed(atc, (HttpAudioTrack) at);
             } else if (at instanceof BandcampAudioTrack) {
-                builder = getBandcampResponse(i18n, atc, (BandcampAudioTrack) at);
+                builder = getBandcampResponse(atc, (BandcampAudioTrack) at);
             } else if (at instanceof TwitchStreamAudioTrack) {
-                builder = getTwitchEmbed(i18n, atc, (TwitchStreamAudioTrack) at);
+                builder = getTwitchEmbed(atc, (TwitchStreamAudioTrack) at);
             } else if (at instanceof BeamAudioTrack) {
                 builder = getBeamEmbed(atc, (BeamAudioTrack) at);
             } else {
-                builder = getDefaultEmbed(i18n, atc, at);
+                builder = getDefaultEmbed(atc, at);
             }
-            builder = CentralMessaging.addFooter(builder, context.guild.getSelfMember());
+            Member requester = atc.getMember() != null ? atc.getMember() : context.guild.getSelfMember();
+            builder = CentralMessaging.addNpFooter(builder, requester);
 
             context.reply(builder.build());
         } else {
-            context.reply(I18n.get(context, "npNotPlaying"));
+            context.reply(context.i18n("npNotPlaying"));
         }
     }
 
-    private EmbedBuilder getYoutubeEmbed(ResourceBundle i18n, AudioTrackContext atc, YoutubeAudioTrack at) {
+    private EmbedBuilder getYoutubeEmbed(AudioTrackContext atc, YoutubeAudioTrack at) {
         YoutubeVideo yv = YoutubeAPI.getVideoFromID(at.getIdentifier(), true);
         String timeField = "["
                 + TextUtils.formatTime(atc.getEffectivePosition())
@@ -115,7 +116,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
                 .addField("Time", timeField, true);
 
         if(!desc.equals("")) {
-            eb.addField(i18n.getString("npDescription"), desc, false);
+            eb.addField(atc.i18n("npDescription"), desc, false);
         }
 
         eb.setColor(new Color(205, 32, 31))
@@ -125,17 +126,16 @@ public class NowplayingCommand extends Command implements IMusicCommand {
         return eb;
     }
 
-    private EmbedBuilder getSoundcloudEmbed(ResourceBundle i18n, AudioTrackContext atc, SoundCloudAudioTrack at) {
+    private EmbedBuilder getSoundcloudEmbed(AudioTrackContext atc, SoundCloudAudioTrack at) {
         return CentralMessaging.getClearThreadLocalEmbedBuilder()
                 .setAuthor(at.getInfo().author, null, null)
                 .setTitle(atc.getEffectiveTitle(), null)
-                .setDescription(MessageFormat.format(
-                        i18n.getString("npLoadedSoundcloud"),
+                .setDescription(atc.i18nFormat("npLoadedSoundcloud",
                         TextUtils.formatTime(atc.getEffectivePosition()), TextUtils.formatTime(atc.getEffectiveDuration()))) //TODO: Gather description, thumbnail, etc
                 .setColor(new Color(255, 85, 0));
     }
 
-    private EmbedBuilder getBandcampResponse(ResourceBundle i18n, AudioTrackContext atc, BandcampAudioTrack at) {
+    private EmbedBuilder getBandcampResponse(AudioTrackContext atc, BandcampAudioTrack at) {
         String desc = at.getDuration() == Long.MAX_VALUE ?
                 "[LIVE]" :
                 "["
@@ -147,21 +147,21 @@ public class NowplayingCommand extends Command implements IMusicCommand {
         return CentralMessaging.getClearThreadLocalEmbedBuilder()
                 .setAuthor(at.getInfo().author, null, null)
                 .setTitle(atc.getEffectiveTitle(), null)
-                .setDescription(MessageFormat.format(i18n.getString("npLoadedBandcamp"), desc))
+                .setDescription(atc.i18nFormat("npLoadedBandcamp", desc))
                 .setColor(new Color(99, 154, 169));
     }
 
-    private EmbedBuilder getTwitchEmbed(ResourceBundle i18n, AudioTrackContext atc, TwitchStreamAudioTrack at) {
+    private EmbedBuilder getTwitchEmbed(AudioTrackContext atc, TwitchStreamAudioTrack at) {
         return CentralMessaging.getClearThreadLocalEmbedBuilder()
                 .setAuthor(at.getInfo().author, at.getIdentifier(), null) //TODO: Add thumb
                 .setTitle(atc.getEffectiveTitle(), null)
-                .setDescription(i18n.getString("npLoadedTwitch"))
+                .setDescription(atc.i18n("npLoadedTwitch"))
                 .setColor(new Color(100, 65, 164));
     }
 
     private EmbedBuilder getBeamEmbed(AudioTrackContext atc, BeamAudioTrack at) {
         try {
-            JSONObject json = Unirest.get("https://beam.pro/api/v1/channels/" + at.getInfo().author).asJson().getBody().getObject();
+            JSONObject json = Http.get("https://beam.pro/api/v1/channels/" + at.getInfo().author).asJson();
 
             return CentralMessaging.getClearThreadLocalEmbedBuilder()
                     .setAuthor(at.getInfo().author, "https://beam.pro/" + at.getInfo().author, json.getJSONObject("user").getString("avatarUrl"))
@@ -170,21 +170,21 @@ public class NowplayingCommand extends Command implements IMusicCommand {
                     .setImage(json.getJSONObject("thumbnail").getString("url"))
                     .setColor(new Color(77, 144, 244));
 
-        } catch (UnirestException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static EmbedBuilder getGensokyoRadioEmbed(ResourceBundle i18n) {
+    static EmbedBuilder getGensokyoRadioEmbed(Context context) {
         try {
-            JSONObject data = XML.toJSONObject(Unirest.get("https://gensokyoradio.net/xml/").asString().getBody()).getJSONObject("GENSOKYORADIODATA");
+            JSONObject data = XML.toJSONObject(Http.get("https://gensokyoradio.net/xml/").asString()).getJSONObject("GENSOKYORADIODATA");
 
             String rating = data.getJSONObject("MISC").getInt("TIMESRATED") == 0 ?
-                    i18n.getString("noneYet") :
-                    MessageFormat.format(i18n.getString("npRatingRange"), data.getJSONObject("MISC").getInt("RATING"), data.getJSONObject("MISC").getInt("TIMESRATED"));
+                    context.i18n("noneYet") :
+                    context.i18nFormat("npRatingRange", data.getJSONObject("MISC").getInt("RATING"), data.getJSONObject("MISC").getInt("TIMESRATED"));
 
             String albumArt = data.getJSONObject("MISC").getString("ALBUMART").equals("") ?
-                    "https://gensokyoradio.net/images/albums/c200/gr6_circular.png" :
+                    "https://cdn.discordapp.com/attachments/240116420946427905/373019550725177344/gr-logo-placeholder.png" :
                     "https://gensokyoradio.net/images/albums/original/" + data.getJSONObject("MISC").getString("ALBUMART");
 
             String titleUrl = data.getJSONObject("MISC").getString("CIRCLELINK").equals("") ?
@@ -193,25 +193,28 @@ public class NowplayingCommand extends Command implements IMusicCommand {
 
             EmbedBuilder eb = CentralMessaging.getClearThreadLocalEmbedBuilder()
                     .setTitle(data.getJSONObject("SONGINFO").getString("TITLE"), titleUrl)
-                    .addField(i18n.getString("album"), data.getJSONObject("SONGINFO").getString("ALBUM"), true)
-                    .addField(i18n.getString("artist"), data.getJSONObject("SONGINFO").getString("ARTIST"), true)
-                    .addField(i18n.getString("circle"), data.getJSONObject("SONGINFO").getString("CIRCLE"), true);
+                    .addField(context.i18n("album"), data.getJSONObject("SONGINFO").getString("ALBUM"), true)
+                    .addField(context.i18n("artist"), data.getJSONObject("SONGINFO").getString("ARTIST"), true)
+                    .addField(context.i18n("circle"), data.getJSONObject("SONGINFO").getString("CIRCLE"), true);
 
             if(data.getJSONObject("SONGINFO").optInt("YEAR") != 0){
-                eb.addField(i18n.getString("year"), Integer.toString(data.getJSONObject("SONGINFO").getInt("YEAR")), true);
+                eb.addField(context.i18n("year"), Integer.toString(data.getJSONObject("SONGINFO").getInt("YEAR")), true);
             }
 
-            return eb.addField(i18n.getString("rating"), rating, true)
-                    .addField(i18n.getString("listeners"), Integer.toString(data.getJSONObject("SERVERINFO").getInt("LISTENERS")), true)
+            return eb.addField(context.i18n("rating"), rating, true)
+                    .addField(context.i18n("listeners"), Integer.toString(data.getJSONObject("SERVERINFO").getInt("LISTENERS")), true)
                     .setImage(albumArt)
-                    .setColor(new Color(66, 16, 80));
+                    .setColor(new Color(66, 16, 80))
+                    .setFooter("Content provided by gensokyoradio.net.\n" +
+                            "The GR logo is a trademark of Gensokyo Radio." +
+                            "\nGensokyo Radio is © LunarSpotlight.", null);
 
-        } catch (UnirestException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private EmbedBuilder getHttpEmbed(ResourceBundle i18n, AudioTrackContext atc, HttpAudioTrack at) {
+    private EmbedBuilder getHttpEmbed(AudioTrackContext atc, HttpAudioTrack at) {
         String desc = at.getDuration() == Long.MAX_VALUE ?
                 "[LIVE]" :
                 "["
@@ -220,14 +223,13 @@ public class NowplayingCommand extends Command implements IMusicCommand {
                         + TextUtils.formatTime(atc.getEffectiveDuration())
                         + "]";
 
-        return CentralMessaging.getClearThreadLocalEmbedBuilder()
+        return CentralMessaging.getColoredEmbedBuilder()
                 .setAuthor(at.getInfo().author, null, null)
                 .setTitle(atc.getEffectiveTitle(), at.getIdentifier())
-                .setDescription(MessageFormat.format(i18n.getString("npLoadedFromHTTP"), desc, at.getIdentifier())) //TODO: Probe data
-                .setColor(BotConstants.FREDBOAT_COLOR);
+                .setDescription(atc.i18nFormat("npLoadedFromHTTP", desc, at.getIdentifier())); //TODO: Probe data
     }
 
-    private EmbedBuilder getDefaultEmbed(ResourceBundle i18n, AudioTrackContext atc, AudioTrack at) {
+    private EmbedBuilder getDefaultEmbed(AudioTrackContext atc, AudioTrack at) {
         String desc = at.getDuration() == Long.MAX_VALUE ?
                 "[LIVE]" :
                 "["
@@ -236,16 +238,15 @@ public class NowplayingCommand extends Command implements IMusicCommand {
                         + TextUtils.formatTime(atc.getEffectiveDuration())
                         + "]";
 
-        return CentralMessaging.getClearThreadLocalEmbedBuilder()
+        return CentralMessaging.getColoredEmbedBuilder()
                 .setAuthor(at.getInfo().author, null, null)
                 .setTitle(atc.getEffectiveTitle(), null)
-                .setDescription(MessageFormat.format(i18n.getString("npLoadedDefault"), desc, at.getSourceManager().getSourceName()))
-                .setColor(BotConstants.FREDBOAT_COLOR);
+                .setDescription(atc.i18nFormat("npLoadedDefault", desc, at.getSourceManager().getSourceName()));
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpNowplayingCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpNowplayingCommand");
     }
 }

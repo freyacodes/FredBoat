@@ -26,9 +26,9 @@
 package fredboat;
 
 import com.google.common.base.CharMatcher;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.audio.player.PlayerLimitManager;
 import fredboat.command.admin.SentryDsnCommand;
+import fredboat.commandmeta.MessagingException;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.DiscordUtil;
 import org.apache.commons.io.FileUtils;
@@ -54,12 +54,26 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 public class Config {
 
     private static final Logger log = LoggerFactory.getLogger(Config.class);
-    
-    public static Config CONFIG = null;
 
     public static String DEFAULT_PREFIX = ";;";
     //see https://github.com/brettwooldridge/HikariCP connectionTimeout
     public static int HIKARI_TIMEOUT_MILLISECONDS = 1000;
+
+    public static final Config CONFIG;
+
+    static {
+        Config c;
+        try {
+            c = new Config(
+                    loadConfigFile("credentials"),
+                    loadConfigFile("config")
+            );
+        } catch (final IOException e) {
+            c = null;
+            log.error("Could not load config files!", e);
+        }
+        CONFIG = c;
+    }
 
     private final DistributionEnum distribution;
     private final String botToken;
@@ -81,7 +95,10 @@ public class Config {
     private boolean useAutoBlacklist = false;
     private String game = "";
     private List<LavalinkHost> lavalinkHosts = new ArrayList<>();
+    private String openWeatherKey;
     private String sentryDsn;
+    private long eventLogWebhookId;
+    private String eventLogWebhookToken;
 
     //testing related stuff
     private String testBotToken;
@@ -115,14 +132,10 @@ public class Config {
             configFileStr = cleanTabs(configFileStr, "config.yaml");
             Map<String, Object> creds;
             Map<String, Object> config;
-            try {
-                creds = (Map<String, Object>) yaml.load(credsFileStr);
-                config = (Map<String, Object>) yaml.load(configFileStr);
-            } catch (YAMLException e) {
-                log.error("Could not parse the credentials and/or config yaml files! There are probably misformatted. " +
-                        "Try using an online yaml format checker.");
-                throw e;
-            }
+
+            creds = (Map<String, Object>) yaml.load(credsFileStr);
+            config = (Map<String, Object>) yaml.load(configFileStr);
+
             //avoid null values, rather change them to empty strings
             creds.keySet().forEach((String key) -> creds.putIfAbsent(key, ""));
             config.keySet().forEach((String key) -> config.putIfAbsent(key, ""));
@@ -177,6 +190,11 @@ public class Config {
 
             jdbcUrl = (String) creds.getOrDefault("jdbcUrl", "");
 
+            openWeatherKey = (String) creds.getOrDefault("openWeatherKey", "");
+
+            eventLogWebhookId = (long) creds.getOrDefault("eventLogWebhookId", 0L);
+            eventLogWebhookToken = (String) creds.getOrDefault("eventLogWebhookToken", "");
+
             Object gkeys = creds.get("googleServerKeys");
             if (gkeys instanceof List) {
                 ((List) gkeys).forEach((Object str) -> googleKeys.add((String) str));
@@ -187,7 +205,7 @@ public class Config {
             }
 
             List<String> nodesArray = (List) creds.get("lavaplayerNodes");
-            if(nodesArray != null) {
+            if (nodesArray != null) {
                 lavaplayerNodesEnabled = true;
                 log.info("Using lavaplayer nodes");
                 lavaplayerNodes = nodesArray.toArray(new String[nodesArray.size()]);
@@ -209,24 +227,19 @@ public class Config {
                 });
             }
 
-            if(getDistribution() == DistributionEnum.DEVELOPMENT) {
-                log.info("Development distribution; forcing 2 shards");
-                numShards = 2;
-            } else {
-                //this is the first request on start
-                //it sometimes fails cause network isn'T set up yet. wait 10 sec and try one more time in that case
+            //this is the first request on start
+            //it sometimes fails cause network isn't set up yet. wait 10 sec and try one more time in that case
+            try {
+                numShards = DiscordUtil.getRecommendedShardCount(getBotToken());
+            } catch (Exception e) {
                 try {
-                    numShards = DiscordUtil.getRecommendedShardCount(getBotToken());
-                } catch (Exception e) {
-                    try {
-                        Thread.sleep(10000);
-                    } catch (InterruptedException ex) {
-                        //duh
-                    }
-                    numShards = DiscordUtil.getRecommendedShardCount(getBotToken());
+                    Thread.sleep(10000);
+                } catch (InterruptedException ex) {
+                    //duh
                 }
-                log.info("Discord recommends " + numShards + " shard(s)");
+                numShards = DiscordUtil.getRecommendedShardCount(getBotToken());
             }
+            log.info("Discord recommends " + numShards + " shard(s)");
 
             //more database connections don't help with performance, so use a value based on available cores
             //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
@@ -261,16 +274,13 @@ public class Config {
             spotifyAudio = (Boolean) config.getOrDefault("enableSpotify", true);
             httpAudio = (Boolean) config.getOrDefault("enableHttp", false);
 
-        } catch (IOException | UnirestException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
+        } catch (YAMLException | ClassCastException e) {
+            log.error("Could not parse the credentials and/or config yaml files! They are probably misformatted. " +
+                    "Try using an online yaml validator.");
+            throw e;
         }
-    }
-
-    static void loadDefaultConfig() throws IOException {
-        Config.CONFIG = new Config(
-                loadConfigFile("credentials"),
-                loadConfigFile("config")
-        );
     }
 
     /**
@@ -319,7 +329,10 @@ public class Config {
     }
 
     public String getRandomGoogleKey() {
-        return getGoogleKeys().get((int) Math.floor(Math.random() * getGoogleKeys().size()));
+        if (googleKeys.isEmpty()) {
+            throw new MessagingException("No Youtube API key detected. Please read the documentation of the credentials file on how to obtain one.");
+        }
+        return googleKeys.get((int) Math.floor(Math.random() * getGoogleKeys().size()));
     }
 
     public DistributionEnum getDistribution() {
@@ -388,6 +401,18 @@ public class Config {
 
     public String getPrefix() {
         return prefix;
+    }
+
+    public String getOpenWeatherKey() {
+        return openWeatherKey;
+    }
+
+    public long getEventLogWebhookId() {
+        return eventLogWebhookId;
+    }
+
+    public String getEventLogWebhookToken() {
+        return eventLogWebhookToken;
     }
 
     public boolean isRestServerEnabled() {

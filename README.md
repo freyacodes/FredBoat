@@ -1,3 +1,5 @@
+![FredBoat](https://fred.moe/YY1.png)
+
 # FredBoat [![Build Status](https://travis-ci.org/Frederikam/FredBoat.svg?branch=master)](https://travis-ci.org/Frederikam/FredBoat) [![Crowdin](https://d322cqt584bo4o.cloudfront.net/fredboat/localized.svg)](https://crowdin.com/project/fredboat) [![Twitter Follow](https://img.shields.io/twitter/follow/DiscordFredBoat.svg?style=social&label=Follow)]() [![Dependency Status](https://www.versioneye.com/user/projects/590c78649e070f00594b7101/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/590c78649e070f00594b7101)
 FredBoat is a bot that has various features, but most notably is that it can play music. Pull requests are welcome and please report any issues you find in [issues](https://github.com/Frederikam/FredBoat/issues).
 
@@ -14,4 +16,4 @@ For installation instructions, go to https://fredboat.com/docs/selfhosting
 If you are interested, you can read about contributing to this project [here](https://github.com/Frederikam/FredBoat/blob/master/CONTRIBUTING.md).
 
 ## Code of Conduct
-The code of conduct for this project can be found [here](https://github.com/Frederikam/FredBoat/blob/master/CODE_OF_CONDUCT.md)
+The code of conduct for this project can be found [here](https://github.com/Frederikam/FredBoat/blob/master/CODE_OF_CONDUCT.md).

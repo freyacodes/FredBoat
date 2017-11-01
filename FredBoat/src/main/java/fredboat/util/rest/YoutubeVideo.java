@@ -25,13 +25,13 @@
 
 package fredboat.util.rest;
 
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -126,23 +126,21 @@ public class YoutubeVideo {
     }
 
     public String getChannelThumbUrl() {
+        Http.SimpleRequest request = Http.get(YoutubeAPI.YOUTUBE_CHANNEL,
+                Http.Params.of(
+                        "id", channelId,
+                        "key", Config.CONFIG.getRandomGoogleKey()
+                ));
         try {
-            JSONObject json = Unirest.get("https://www.googleapis.com/youtube/v3/channels?part=snippet&fields=items(snippet/thumbnails)")
-                    .queryString("id", channelId)
-                    .queryString("key", Config.CONFIG.getRandomGoogleKey())
-                    .asJson()
-                    .getBody()
-                    .getObject();
-
-            log.debug("Channel thumb response", json);
-
+            JSONObject json = request.asJson();
+            log.debug("Channel thumb response");
             return json.getJSONArray("items")
                     .getJSONObject(0)
                     .getJSONObject("snippet")
                     .getJSONObject("thumbnails")
                     .getJSONObject("default")
                     .getString("url");
-        } catch (UnirestException e) {
+        } catch (JSONException | IOException e) {
             log.error("Failed to get channel thumbnail", e);
             return null;
         }

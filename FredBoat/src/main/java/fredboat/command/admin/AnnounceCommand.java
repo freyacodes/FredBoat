@@ -27,18 +27,20 @@ package fredboat.command.admin;
 
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
+import fredboat.command.util.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.Phaser;
@@ -55,15 +57,24 @@ public class AnnounceCommand extends Command implements ICommandRestricted {
 
     private static final String HEAD = "__**[BROADCASTED MESSAGE]**__\n";
 
+    public AnnounceCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         List<GuildPlayer> players = PlayerRegistry.getPlayingPlayers();
 
         if (players.isEmpty()) {
+            context.reply("No currently playing players.");
             return;
         }
-        String input = context.msg.getRawContent().substring(context.args[0].length() + 1);
-        String msg = HEAD + input;
+        if (!context.hasArguments()) {
+            HelpCommand.sendFormattedCommandHelp(context);
+            return;
+        }
+
+        String msg = HEAD + context.rawArgs;
 
         context.reply(String.format("[0/%d]", players.size()),
                 //success handler
@@ -129,11 +140,13 @@ public class AnnounceCommand extends Command implements ICommandRestricted {
         );
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        return "{0}{1}\n#Broadcasts an announcement to GuildPlayer TextChannels.";
+    public String help(@Nonnull Context context) {
+        return "{0}{1} <announcement>\n#Broadcast an announcement to active textchannels of playing GuildPlayers.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_ADMIN;

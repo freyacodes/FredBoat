@@ -30,12 +30,15 @@ import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -52,7 +55,8 @@ public class EvalCommand extends Command implements ICommandRestricted {
     //Thanks Dinos!
     private ScriptEngine engine;
 
-    public EvalCommand() {
+    public EvalCommand(String name, String... aliases) {
+        super(name, aliases);
         engine = new ScriptEngineManager().getEngineByName("nashorn");
         try {
             engine.eval("var imports = new JavaImporter(java.io, java.lang, java.util);");
@@ -63,12 +67,12 @@ public class EvalCommand extends Command implements ICommandRestricted {
     }
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         Guild guild = context.guild;
         JDA jda = guild.getJDA();
         context.sendTyping();
 
-        final String source = context.msg.getRawContent().substring(context.args[0].length() + 1);
+        final String source = context.rawArgs;
 
         engine.put("jda", jda);
         engine.put("api", jda);
@@ -81,6 +85,7 @@ public class EvalCommand extends Command implements ICommandRestricted {
         engine.put("guild", guild);
         engine.put("player", PlayerRegistry.getExisting(guild));
         engine.put("pm", AbstractPlayer.getPlayerManager());
+        engine.put("context", context);
 
         ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
         ScheduledFuture<?> future = service.schedule(() -> {
@@ -94,7 +99,7 @@ public class EvalCommand extends Command implements ICommandRestricted {
 
             } catch (Exception ex) {
                 context.reply("`" + ex.getMessage() + "`");
-                log.error("Error occurred in eval", ex);
+                log.info("Error occurred in eval", ex);
                 return;
             }
 
@@ -102,12 +107,12 @@ public class EvalCommand extends Command implements ICommandRestricted {
             if (out == null) {
                 outputS = ":ok_hand::skin-tone-3:";
             } else if (out.toString().contains("\n")) {
-                outputS = "\nEval: ```\n" + out.toString() + "```";
+                outputS = "\nEval: " + TextUtils.asCodeBlock(out.toString());
             } else {
                 outputS = "\nEval: `" + out.toString() + "`";
             }
 
-            context.reply("```java\n" + source + "```" + "\n" + outputS);
+            context.reply(TextUtils.asCodeBlock(source, "java") + "\n" + outputS);
 
         }, 0, TimeUnit.MILLISECONDS);
 
@@ -128,11 +133,13 @@ public class EvalCommand extends Command implements ICommandRestricted {
         script.start();
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} <Java-code>\\n#Run the provided Java code.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_OWNER;

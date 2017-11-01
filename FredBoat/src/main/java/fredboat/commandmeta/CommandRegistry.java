@@ -27,8 +27,10 @@ package fredboat.commandmeta;
 
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -36,16 +38,17 @@ public class CommandRegistry {
 
     private static HashMap<String, CommandEntry> registry = new HashMap<>();
 
-    public static void registerCommand(String name, Command command, String... aliases) {
-        name = name.toLowerCase();
+    public static void registerCommand(@Nonnull Command command) {
+        String name = command.name.toLowerCase();
         CommandEntry entry = new CommandEntry(command, name);
         registry.put(name, entry);
-        for (String alias : aliases) {
+        for (String alias : command.aliases) {
             registry.put(alias.toLowerCase(), entry);
         }
     }
 
-    public static CommandEntry getCommand(String name) {
+    @Nullable
+    public static CommandEntry getCommand(@Nonnull String name) {
         return registry.get(name);
     }
 
@@ -58,14 +61,15 @@ public class CommandRegistry {
     }
 
     public static void removeCommand(String name) {
-        CommandEntry entry = new CommandEntry(new Command() {
+        CommandEntry entry = new CommandEntry(new Command(name) {
             @Override
-            public void onInvoke(CommandContext context) {
+            public void onInvoke(@Nonnull CommandContext context) {
                 context.reply("This command is temporarily disabled");
             }
 
+            @Nonnull
             @Override
-            public String help(Guild guild) {
+            public String help(@Nonnull Context context) {
                 return "Temporarily disabled command";
             }
         }, name);

@@ -27,7 +27,6 @@ package fredboat.audio.player;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import fredboat.FredBoat;
 import fredboat.audio.queue.AbstractTrackProvider;
 import fredboat.audio.queue.AudioLoader;
@@ -59,7 +58,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -84,7 +82,7 @@ public class GuildPlayer extends AbstractPlayer {
         onPlayHook = this::announceTrack;
         onErrorHook = this::handleError;
 
-        this.shard = FredBoat.getInstance(guild.getJDA());
+        this.shard = FredBoat.getShard(guild.getJDA());
         this.guildId = guild.getIdLong();
 
         if (!LavalinkManager.ins.isEnabled()) {
@@ -100,7 +98,7 @@ public class GuildPlayer extends AbstractPlayer {
             TextChannel activeTextChannel = getActiveTextChannel();
             if (activeTextChannel != null) {
                 CentralMessaging.sendMessage(activeTextChannel,
-                        MessageFormat.format(I18n.get(getGuild()).getString("trackAnnounce"), atc.getEffectiveTitle()));
+                        atc.i18nFormat("trackAnnounce", atc.getEffectiveTitle()));
             }
         }
     }
@@ -149,10 +147,9 @@ public class GuildPlayer extends AbstractPlayer {
         if (!silent) {
             VoiceChannel currentVc = LavalinkManager.ins.getConnectedChannel(commandContext.guild);
             if (currentVc == null) {
-                commandContext.reply(I18n.get(getGuild()).getString("playerNotInChannel"));
+                commandContext.reply(commandContext.i18n("playerNotInChannel"));
             } else {
-                commandContext.reply(MessageFormat.format(I18n.get(getGuild()).getString("playerLeftChannel"),
-                        currentVc.getName()));
+                commandContext.reply(commandContext.i18nFormat("playerLeftChannel", currentVc.getName()));
             }
         }
         LavalinkManager.ins.closeConnection(getGuild());
@@ -268,7 +265,10 @@ public class GuildPlayer extends AbstractPlayer {
     }
 
     /**
-     * @return the text channel currently used for music commands, if there is none return the default channel
+     * @return The text channel currently used for music commands.
+     *
+     * May return null if the channel was deleted.
+     * Do not use the default channel, because that one doesnt give us write permissions.
      */
     @Nullable
     public TextChannel getActiveTextChannel() {
@@ -276,10 +276,17 @@ public class GuildPlayer extends AbstractPlayer {
         if (currentTc != null) {
             return currentTc;
         } else {
-            log.warn("No currentTC in " + getGuild() + "! Returning default channel...");
-            return getGuild().getDefaultChannel();
+            log.warn("No currentTC in guild {}! Trying to look up a channel where we can talk...", guildId);
+            Guild g = getGuild();
+            if (g != null) {
+                for (TextChannel tc : g.getTextChannels()) {
+                    if (tc.canTalk()) {
+                        return tc;
+                    }
+                }
+            }
+            return null;
         }
-
     }
 
     @Nonnull
@@ -309,6 +316,7 @@ public class GuildPlayer extends AbstractPlayer {
         return "[GP:" + getGuild().getId() + "]";
     }
 
+    @Nullable
     public Guild getGuild() {
         return getJda().getGuildById(guildId);
     }
@@ -347,7 +355,7 @@ public class GuildPlayer extends AbstractPlayer {
         }
     }
 
-    public void setCurrentTC(TextChannel tc) {
+    public void setCurrentTC(@Nonnull TextChannel tc) {
         if (this.currentTCId != tc.getIdLong()) {
             this.currentTCId = tc.getIdLong();
         }
@@ -437,6 +445,7 @@ public class GuildPlayer extends AbstractPlayer {
         return enabled;
     }
 
+    @Nonnull
     public JDA getJda() {
         return shard.getJda();
     }

@@ -29,43 +29,39 @@ import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
-import fredboat.feature.I18n;
-import fredboat.util.rest.CacheUtil;
-import fredboat.util.rest.CloudFlareScraper;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
+import fredboat.util.rest.Http;
 
-import java.io.File;
-import java.text.MessageFormat;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import javax.annotation.Nonnull;
+import java.io.IOException;
 
 public class CatgirlCommand extends Command implements IFunCommand {
 
-    private static final Pattern IMAGE_PATTERN = Pattern.compile("src=\"([^\"]+)");
-    private static final String BASE_URL = "http://catgirls.brussell98.tk/";
+    private static final String BASE_URL = "https://nekos.life/api/neko";
+
+    public CatgirlCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         context.sendTyping();
         FredBoat.executor.submit(() -> postCatgirl(context));
     }
 
     private void postCatgirl(CommandContext context) {
-        String str = CloudFlareScraper.get(BASE_URL);
-        Matcher m = IMAGE_PATTERN.matcher(str);
 
-        if (!m.find()) {
-            context.reply(MessageFormat.format(I18n.get(context, "catgirlFail"), BASE_URL));
-            return;
+        try {
+            String nekoUrl = Http.get(BASE_URL).asJson().getString("neko");
+            context.replyImage(nekoUrl);
+        } catch (IOException e) {
+            context.reply(context.i18nFormat("catgirlFail", BASE_URL));
         }
-
-        File tmp = CacheUtil.getImageFromURL(BASE_URL + m.group(1));
-        //NOTE: we cannot send this as a URL because discord cant access it (cloudflare etc)
-        context.replyFile(tmp, null);
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Post a catgirl pic.";
     }
 }

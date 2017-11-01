@@ -29,13 +29,14 @@ import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.ExitCodes;
-import net.dv8tion.jda.core.entities.Guild;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -44,11 +45,15 @@ import java.util.concurrent.TimeoutException;
 public class UpdateCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(UpdateCommand.class);
-    private static final CompileCommand COMPILE_COMMAND = new CompileCommand();
+    private static final CompileCommand COMPILE_COMMAND = new CompileCommand("");
     private static final long MAX_JAR_AGE = 10 * 60 * 1000;
 
+    public UpdateCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         try {
             File homeJar = new File(System.getProperty("user.home") + "/FredBoat-1.0.jar");
 
@@ -85,11 +90,13 @@ public class UpdateCommand extends Command implements ICommandRestricted {
         FredBoat.shutdown(ExitCodes.EXIT_CODE_UPDATE);
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} [branch [repo]]\n#Update the bot by checking out the provided branch from the provided github repo and compiling it. Default github repo is Frederikam, default branch is master. Restart with the fresh build.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_OWNER;

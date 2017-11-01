@@ -25,25 +25,33 @@
 
 package fredboat.command.admin;
 
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.entities.Guild;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import javax.annotation.Nonnull;
+import java.io.IOException;
 
 public class PlayerDebugCommand extends Command implements ICommandRestricted {
 
+    private static final Logger log = LoggerFactory.getLogger(PlayerDebugCommand.class);
+
+    public PlayerDebugCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         JSONArray a = new JSONArray();
         
         for(GuildPlayer gp : PlayerRegistry.getRegistry().values()){
@@ -60,16 +68,20 @@ public class PlayerDebugCommand extends Command implements ICommandRestricted {
         
         try {
             context.reply(TextUtils.postToPasteService(a.toString()));
-        } catch (UnirestException ex) {
-            Logger.getLogger(PlayerDebugCommand.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException | JSONException e) {
+            String message = "Failed to upload to any pasteservice.";
+            log.error(message, e);
+            context.reply(message);
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Show debug information about the music player of this guild.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_OWNER;

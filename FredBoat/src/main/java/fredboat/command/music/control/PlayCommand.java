@@ -37,46 +37,42 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
+import fredboat.shared.constant.BotConstants;
 import fredboat.util.TextUtils;
 import fredboat.util.rest.SearchUtil;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message.Attachment;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
-import java.util.Arrays;
+import javax.annotation.Nonnull;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class PlayCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(PlayCommand.class);
     private final List<SearchUtil.SearchProvider> searchProviders;
-    private static final JoinCommand JOIN_COMMAND = new JoinCommand();
+    private static final JoinCommand JOIN_COMMAND = new JoinCommand("");
 
-    public PlayCommand(SearchUtil.SearchProvider... searchProviders) {
-        this.searchProviders = Arrays.asList(searchProviders);
+    public PlayCommand(List<SearchUtil.SearchProvider> searchProviders, String name, String... aliases) {
+        super(name, aliases);
+        this.searchProviders = searchProviders;
     }
 
     @Override
-    public void onInvoke(CommandContext context) {
-        String[] args = context.args;
+    public void onInvoke(@Nonnull CommandContext context) {
         if (!context.invoker.getVoiceState().inVoiceChannel()) {
-            context.reply(I18n.get(context, "playerUserNotInChannel"));
+            context.reply(context.i18n("playerUserNotInChannel"));
             return;
         }
 
         if (!PlayerLimitManager.checkLimitResponsive(context)) return;
 
         if (!context.msg.getAttachments().isEmpty()) {
-            GuildPlayer player = PlayerRegistry.get(context.guild);
-            player.setCurrentTC(context.channel);
+            GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
             for (Attachment atc : context.msg.getAttachments()) {
                 player.queue(atc.getUrl(), context);
@@ -87,27 +83,25 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
             return;
         }
 
-        if (args.length < 2) {
+        if (!context.hasArguments()) {
             handleNoArguments(context);
             return;
         }
 
-        //What if we want to select a selection instead?
-        if (args.length == 2 && StringUtils.isNumeric(args[1])){
+        if (TextUtils.isSplitSelect(context.rawArgs)) {
             SelectCommand.select(context);
             return;
         }
 
         //Search youtube for videos and let the user select a video
-        if (!args[1].startsWith("http")) {
+        if (!context.args[0].startsWith("http")) {
             searchForVideos(context);
             return;
         }
 
-        GuildPlayer player = PlayerRegistry.get(context.guild);
-        player.setCurrentTC(context.channel);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
-        player.queue(args[1], context);
+        player.queue(context.args[0], context);
         player.setPause(false);
 
         context.deleteMessage();
@@ -115,55 +109,46 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
 
     private void handleNoArguments(CommandContext context) {
         Guild guild = context.guild;
-        GuildPlayer player = PlayerRegistry.get(guild);
-        player.setCurrentTC(context.channel);
+        GuildPlayer player = PlayerRegistry.getOrCreate(guild);
         if (player.isQueueEmpty()) {
-            context.reply(I18n.get(context, "playQueueEmpty"));
+            context.reply(context.i18n("playQueueEmpty"));
         } else if (player.isPlaying()) {
-            context.reply(I18n.get(context, "playAlreadyPlaying"));
+            context.reply(context.i18n("playAlreadyPlaying"));
         } else if (player.getHumanUsersInCurrentVC().isEmpty() && LavalinkManager.ins.getConnectedChannel(guild) != null) {
-            context.reply(I18n.get(context, "playVCEmpty"));
+            context.reply(context.i18n("playVCEmpty"));
         } else if(LavalinkManager.ins.getConnectedChannel(guild) == null) {
             // When we just want to continue playing, but the user is not in a VC
             JOIN_COMMAND.onInvoke(context);
             if(LavalinkManager.ins.getConnectedChannel(guild) != null || guild.getAudioManager().isAttemptingToConnect()) {
                 player.play();
-                context.reply(I18n.get(context, "playWillNowPlay"));
+                context.reply(context.i18n("playWillNowPlay"));
             }
         } else {
             player.play();
-            context.reply(I18n.get(context, "playWillNowPlay"));
+            context.reply(context.i18n("playWillNowPlay"));
         }
     }
 
     private void searchForVideos(CommandContext context) {
-        Matcher m = Pattern.compile("\\S+\\s+(.*)").matcher(context.msg.getRawContent());
-        m.find();
-        String query = m.group(1);
-        
         //Now remove all punctuation
-        query = query.replaceAll(SearchUtil.PUNCTUATION_REGEX, "");
+        String query = context.rawArgs.replaceAll(SearchUtil.PUNCTUATION_REGEX, "");
 
-        String finalQuery = query;
-        context.reply(I18n.get(context, "playSearching").replace("{q}", query), outMsg -> {
+        context.reply(context.i18n("playSearching").replace("{q}", query), outMsg -> {
             AudioPlaylist list;
             try {
-                list = SearchUtil.searchForTracks(finalQuery, searchProviders);
+                list = SearchUtil.searchForTracks(query, searchProviders);
             } catch (SearchUtil.SearchingException e) {
-                context.reply(I18n.get(context, "playYoutubeSearchError"));
+                context.reply(context.i18n("playYoutubeSearchError"));
                 log.error("YouTube search exception", e);
                 return;
             }
 
             if (list == null || list.getTracks().isEmpty()) {
                 CentralMessaging.editMessage(outMsg,
-                        I18n.get(context, "playSearchNoResults").replace("{q}", finalQuery)
+                        context.i18n("playSearchNoResults").replace("{q}", query)
                 );
 
             } else {
-                //Clean up any last search by this user
-                GuildPlayer player = PlayerRegistry.get(context.guild);
-
                 //Get at most 5 tracks
                 List<AudioTrack> selectable = list.getTracks().subList(0, Math.min(SearchUtil.MAX_RESULTS, list.getTracks().size()));
 
@@ -173,7 +158,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
                 }
 
                 MessageBuilder builder = CentralMessaging.getClearThreadLocalMessageBuilder();
-                builder.append(MessageFormat.format(I18n.get(context, "playSelectVideo"), Config.CONFIG.getPrefix()));
+                builder.append(context.i18nFormat("playSelectVideo", Config.CONFIG.getPrefix()));
 
                 int i = 1;
                 for (AudioTrack track : selectable) {
@@ -189,18 +174,19 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
                 }
 
                 CentralMessaging.editMessage(outMsg, builder.build());
-                player.setCurrentTC(context.channel);
                 VideoSelection.put(context.invoker, new VideoSelection(selectable, outMsg));
             }
         });
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         String usage = "{0}{1} <url> OR {0}{1} <search-term>\n#";
-        return usage + I18n.get(guild).getString("helpPlayCommand");
+        return usage + context.i18nFormat("helpPlayCommand", BotConstants.DOCS_URL);
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.USER;

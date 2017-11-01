@@ -58,7 +58,7 @@ public class EntityReader {
 
     private static <E extends IEntity> E getEntity(String id, Class<E> clazz) throws DatabaseNotReadyException {
         DatabaseManager dbManager = FredBoat.getDbManager();
-        if (!dbManager.isAvailable()) {
+        if (dbManager == null || !dbManager.isAvailable()) {
             throw new DatabaseNotReadyException();
         }
 
@@ -91,7 +91,7 @@ public class EntityReader {
 
     public static List<BlacklistEntry> loadBlacklist() {
         DatabaseManager dbManager = FredBoat.getDbManager();
-        if (!dbManager.isAvailable()) {
+        if (dbManager == null || !dbManager.isAvailable()) {
             throw new DatabaseNotReadyException("The database is not available currently. Please try again later.");
         }
         EntityManager em = dbManager.getEntityManager();

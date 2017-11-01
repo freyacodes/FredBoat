@@ -31,10 +31,13 @@ import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.impl.JDAImpl;
 
-import java.util.ArrayList;
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 /**
  * JDA methods/hacks that had merit to put in its own class.
@@ -43,16 +46,32 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class JDAUtil {
 
-    public static int countAllGuilds(List<FredBoat> shards) {
-        return shards.stream()
-                // don't do this at home, we only use it for the size()
-                .mapToInt(shard -> ((JDAImpl) shard.getJda()).getGuildMap().size())
+    /**
+     * @return Sum of amount of guilds in the provided shards. The result will be a unique count if the provided
+     * shards are unique since each guild can only be present in one shard.
+     */
+    @CheckReturnValue
+    public static int countGuilds(@Nonnull Collection<FredBoat> shards) {
+        long result = shards.stream()
+                .mapToLong(shard -> shard.getJda().getGuildCache().size())
                 .sum();
+        return Math.toIntExact(result); //the day where there are more than 2^32 guilds served by fredboat will be a glorious one. until then this is fine
     }
 
-    public static long countAllUniqueUsers(List<FredBoat> shards, AtomicInteger biggestUserCount) {
-        int expected = biggestUserCount.get() > 0 ? biggestUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
-        LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 100000); //add 100k for good measure
+    /**
+     * A count of unique users over the provided shards. This is an expensive operation given FredBoats scale.
+     * <p>
+     * Optionally pass in a value of value of previous counts / expected size to that we can initialize the set used
+     * to count the unique values with an approriate size reducing expensive resizing operations.
+     */
+    @CheckReturnValue
+    public static int countUniqueUsers(@Nonnull Collection<FredBoat> shards, @Nullable AtomicInteger expectedUserCount) {
+        if (shards.size() == 1) { //a single shard provides a cheap call for getting user cardinality
+            return Math.toIntExact(shards.iterator().next().getJda().getUserCache().size());
+        }
+
+        int expected = expectedUserCount != null && expectedUserCount.get() > 0 ? expectedUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
+        LongOpenHashSet uniqueUsers = new LongOpenHashSet(expected + 10000); //add 10k for good measure
         TObjectProcedure<User> adder = user -> {
             uniqueUsers.add(user.getIdLong());
             return true;
@@ -64,19 +83,84 @@ public class JDAUtil {
                 // this means however, that for the (small) duration, the map cannot be used by other threads (if there are any)
                 shard -> ((JDAImpl) shard.getJda()).getUserMap().forEachValue(adder)
         );
-        //never shrink the user count (might happen due to not connected shards)
-        biggestUserCount.accumulateAndGet(uniqueUsers.size(), Math::max);
         return uniqueUsers.size();
     }
 
-    public static List<Guild> getAllGuilds(List<FredBoat> shards) {
-        ArrayList<Guild> list = new ArrayList<>();
+    /**
+     * @return Sum of amount of TextChannels in the provided shards. The result will be a unique count if the provided
+     * shards are unique since each TextChannel can only be present in one guild which can only be present in one shard.
+     */
+    @CheckReturnValue
+    public static int countTextChannels(@Nonnull Collection<FredBoat> shards) {
+        long result = shards.stream()
+                .mapToLong(shard -> shard.getJda().getTextChannelCache().size())
+                .sum();
+        return Math.toIntExact(result);
+    }
 
-        for (FredBoat fb : shards) {
-            // addAll() does actually need to use .toArray() but 1 copy is better than 2
-            list.addAll(((JDAImpl)fb.getJda()).getGuildMap().valueCollection());
-        }
+    /**
+     * @return Sum of amount of VoiceChannels in the provided shards. The result will be a unique count if the provided
+     * shards are unique since each VoiceChannel can only be present in one guild which can only be present in one shard.
+     */
+    @CheckReturnValue
+    public static int countVoiceChannels(@Nonnull Collection<FredBoat> shards) {
+        long result = shards.stream()
+                .mapToLong(shard -> shard.getJda().getVoiceChannelCache().size())
+                .sum();
+        return Math.toIntExact(result);
+    }
 
-        return list;
+    /**
+     * @return Sum of amount of Category in the provided shards. The result will be a unique count if the provided
+     * shards are unique since each Category can only be present in one guild which can only be present in one shard.
+     */
+    @CheckReturnValue
+    public static int countCategories(@Nonnull Collection<FredBoat> shards) {
+        long result = shards.stream()
+                .mapToLong(shard -> shard.getJda().getCategoryCache().size())
+                .sum();
+        return Math.toIntExact(result);
+    }
+
+    /**
+     * @return Sum of amount of Emotes in the provided shards. The result will be a unique count if the provided
+     * shards are unique since each Emote can only be present in one guild which can only be present in one shard.
+     */
+    @CheckReturnValue
+    public static int countEmotes(@Nonnull Collection<FredBoat> shards) {
+        long result = shards.stream()
+                .mapToLong(shard -> shard.getJda().getEmoteCache().size())
+                .sum();
+        return Math.toIntExact(result);
+    }
+
+    /**
+     * @return Sum of amount of Roles in the provided shards. The result will be a unique count if the provided
+     * shards are unique since each Role can only be present in one guild which can only be present in one shard.
+     */
+    @CheckReturnValue
+    public static int countRoles(@Nonnull Collection<FredBoat> shards) {
+        long result = shards.stream()
+                .mapToLong(shard -> shard.getJda().getRoleCache().size())
+                .sum();
+        return Math.toIntExact(result);
+    }
+
+    /**
+     * @return Returns a non-distinct stream over all Guild entities in the provided shards.
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static Stream<Guild> getGuilds(@Nonnull Collection<FredBoat> shards) {
+        return shards.stream().flatMap(fb -> fb.getJda().getGuildCache().stream());
+    }
+
+    /**
+     * @return Returns a non-distinct stream over all User entities in the provided shards.
+     */
+    @Nonnull
+    @CheckReturnValue
+    public static Stream<User> getUsers(@Nonnull Collection<FredBoat> shards) {
+        return shards.stream().flatMap(fb -> fb.getJda().getUserCache().stream());
     }
 }

@@ -30,9 +30,10 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
+
+import javax.annotation.Nonnull;
 
 /**
  * Created by napster on 17.03.17.
@@ -41,23 +42,28 @@ import net.dv8tion.jda.core.entities.Guild;
  */
 public class ReshuffleCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public ReshuffleCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
-        GuildPlayer player = PlayerRegistry.get(context.guild);
+    public void onInvoke(@Nonnull CommandContext context) {
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         if (!player.isShuffle()) {
-            context.replyWithName(I18n.get(context, "reshufflePlayerNotShuffling"));
+            context.replyWithName(context.i18n("reshufflePlayerNotShuffling"));
             return;
         }
         player.reshuffle();
-        context.reply(I18n.get(context, "reshufflePlaylist"));
+        context.reply(context.i18n("reshufflePlaylist"));
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1}\n#";
-        return usage + I18n.get(guild).getString("helpReshuffleCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1}\n#" + context.i18n("helpReshuffleCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;

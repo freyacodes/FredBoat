@@ -26,7 +26,7 @@
 package fredboat.audio.player;
 
 
-import fredboat.FredBoat;
+import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.audio.hooks.ConnectionListener;
 import net.dv8tion.jda.core.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.core.entities.User;
@@ -39,9 +39,9 @@ class DebugConnectionListener implements ConnectionListener {
 
     private ConnectionStatus oldStatus = null;
     private final long guildId;
-    private final FredBoat.ShardInfo shardInfo;
+    private final JDA.ShardInfo shardInfo;
 
-    DebugConnectionListener(long guildId, FredBoat.ShardInfo shardInfo) {
+    DebugConnectionListener(long guildId, JDA.ShardInfo shardInfo) {
         this.guildId = guildId;
         this.shardInfo = shardInfo;
     }

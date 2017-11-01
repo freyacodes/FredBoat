@@ -48,7 +48,7 @@ public abstract class AbstractEventListener extends ListenerAdapter {
 
     @Override
     public void onReady(ReadyEvent event) {
-        FredBoat.getInstance(event.getJDA()).onInit(event);
+        FredBoat.getShard(event.getJDA()).onInit(event);
     }
 
     @Override

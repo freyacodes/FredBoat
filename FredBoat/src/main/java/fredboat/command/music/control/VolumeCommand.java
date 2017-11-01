@@ -33,43 +33,51 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
+import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.util.concurrent.TimeUnit;
 
 public class VolumeCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public VolumeCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
 
         if(Config.CONFIG.getDistribution().volumeSupported()) {
 
-            GuildPlayer player = PlayerRegistry.get(context.guild);
+            GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
             try {
-                float volume = Float.parseFloat(context.args[1]) / 100;
+                float volume = Float.parseFloat(context.args[0]) / 100;
                 volume = Math.max(0, Math.min(1.5f, volume));
 
-                context.reply(MessageFormat.format(I18n.get(context, "volumeSuccess"), Math.floor(player.getVolume() * 100), Math.floor(volume * 100)));
+                context.reply(context.i18nFormat("volumeSuccess",
+                        Math.floor(player.getVolume() * 100), Math.floor(volume * 100)));
 
                 player.setVolume(volume);
             } catch (NumberFormatException | ArrayIndexOutOfBoundsException ex) {
-                throw new MessagingException(MessageFormat.format(I18n.get(context, "volumeSyntax"), 100 * PlayerRegistry.DEFAULT_VOLUME, Math.floor(player.getVolume() * 100)));
+                throw new MessagingException(context.i18nFormat("volumeSyntax",
+                        100 * PlayerRegistry.DEFAULT_VOLUME, Math.floor(player.getVolume() * 100)));
             }
         } else {
-            context.reply(I18n.get(context, "volumeApology"),
-                    msg -> msg.delete().queueAfter(2, TimeUnit.MINUTES));
+            context.reply(context.i18n("volumeApology"), msg -> CentralMessaging.restService.schedule(
+                    () -> CentralMessaging.deleteMessage(msg), 2, TimeUnit.MINUTES));
+
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} <0-150>\n#";
-        return usage + I18n.get(guild).getString("helpVolumeCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} <0-150>\n#" + context.i18n("helpVolumeCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.DJ;

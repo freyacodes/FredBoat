@@ -26,7 +26,6 @@
 package fredboat.command.music.control;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
@@ -36,73 +35,127 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 import org.apache.commons.lang3.StringUtils;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 
 public class SelectCommand extends Command implements IMusicCommand, ICommandRestricted {
 
+    public SelectCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         select(context);
     }
 
     static void select(CommandContext context) {
-        String[] args = context.args;
         Member invoker = context.invoker;
-        GuildPlayer player = PlayerRegistry.get(context.guild);
-        player.setCurrentTC(context.channel);
+        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
         VideoSelection selection = VideoSelection.get(invoker);
-        if (selection != null) {
-            try {
-                int i = 1;
+        if (selection == null) {
+            context.reply(context.i18n("selectSelectionNotGiven"));
+            return;
+        }
 
-                if (args.length >= 1) {
-                    String contentWithoutPrefix = args[0].substring(Config.CONFIG.getPrefix().length());
-                    if (StringUtils.isNumeric(contentWithoutPrefix)) {
-                        i = Integer.valueOf(contentWithoutPrefix);
-                    } else {
-                        i = Integer.valueOf(args[1]);
+        try {
+            //Step 1: Parse the issued command for numbers
+
+            // LinkedHashSet to handle order of choices + duplicates
+            LinkedHashSet<Integer> requestChoices = new LinkedHashSet<>();
+
+            // Combine all args and the command trigger. if the trigger is not a number it will be sanitized away
+            String commandOptions = (context.trigger + " " + context.rawArgs).trim();
+            String sanitizedQuery = sanitizeQueryForMultiSelect(commandOptions).trim();
+
+            if (StringUtils.isNumeric(commandOptions)) {
+                requestChoices.add(Integer.valueOf(commandOptions));
+            } else if (TextUtils.isSplitSelect(sanitizedQuery)) {
+                // Remove all non comma or number characters
+                String[] querySplit = sanitizedQuery.split(",|\\s");
+
+                for (String value : querySplit) {
+                    if (StringUtils.isNumeric(value)) {
+                        requestChoices.add(Integer.valueOf(value));
                     }
                 }
-
-                if (selection.choices.size() < i || i < 1) {
-                    throw new NumberFormatException();
-                } else {
-                    AudioTrack selected = selection.choices.get(i - 1);
-                    VideoSelection.remove(invoker);
-                    TextChannel tc = FredBoat.getTextChannelById(Long.toString(selection.channelId));
-                    if (tc != null) {
-                        String msg = MessageFormat.format(I18n.get(context, "selectSuccess"), i, selected.getInfo().title, TextUtils.formatTime(selected.getInfo().length));
-                        CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(msg));
-                    }
-                    player.queue(new AudioTrackContext(selected, invoker));
-                    player.setPause(false);
-                    context.deleteMessage();
-                }
-            } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-                context.reply(MessageFormat.format(I18n.get(context, "selectInterval"), selection.choices.size()));
             }
-        } else {
-            context.reply(I18n.get(context, "selectSelectionNotGiven"));
+
+            //Step 2: Use only valid numbers (usually 1-5)
+
+            ArrayList<Integer> validChoices = new ArrayList<>();
+            // Only include valid values which are 1 to <size> of the offered selection
+            for (Integer value : requestChoices) {
+                if (1 <= value && value <= selection.choices.size()) {
+                    validChoices.add(value);
+                }
+            }
+
+            //Step 3: Make a selection based on the order of the valid numbers
+
+            // any valid choices at all?
+            if (validChoices.isEmpty()) {
+                throw new NumberFormatException();
+            } else {
+                AudioTrack[] selectedTracks = new AudioTrack[validChoices.size()];
+                StringBuilder outputMsgBuilder = new StringBuilder();
+
+                for (int i = 0; i < validChoices.size(); i++) {
+                    selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
+
+                    String msg = context.i18nFormat("selectSuccess", validChoices.get(i), selectedTracks[i].getInfo().title,
+                            TextUtils.formatTime(selectedTracks[0].getInfo().length));
+                    if (i < validChoices.size()) {
+                        outputMsgBuilder.append("\n");
+                    }
+                    outputMsgBuilder.append(msg);
+
+                    player.queue(new AudioTrackContext(selectedTracks[i], invoker));
+                }
+
+                VideoSelection.remove(invoker);
+                TextChannel tc = FredBoat.getTextChannelById(selection.channelId);
+                if (tc != null) {
+                    CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
+                }
+
+                player.setPause(false);
+                context.deleteMessage();
+            }
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+            context.reply(context.i18nFormat("selectInterval", selection.choices.size()));
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} n OR {0}{2} n\n#";
-        return usage + I18n.get(guild).getString("helpSelectCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} n OR {0}{2} n\n#" + context.i18n("helpSelectCommand");
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.USER;
     }
+
+    /**
+     * Helper method to remove all characters from arg that is not numerical or comma.
+     *
+     * @param arg String to be sanitized.
+     * @return Sanitized string.
+     */
+    private static String sanitizeQueryForMultiSelect(@Nonnull String arg) {
+        return arg.replaceAll("[^0-9$., ]", "");
+    }
+
 }

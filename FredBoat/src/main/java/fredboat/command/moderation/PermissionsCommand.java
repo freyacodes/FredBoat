@@ -32,9 +32,9 @@ import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
 import fredboat.db.entity.GuildPermissions;
-import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
+import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
@@ -50,7 +50,7 @@ import net.dv8tion.jda.core.utils.PermissionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,23 +60,23 @@ public class PermissionsCommand extends Command implements IModerationCommand {
 
     public final PermissionLevel permissionLevel;
 
-    public PermissionsCommand(PermissionLevel permissionLevel) {
+    public PermissionsCommand(PermissionLevel permissionLevel, String name, String... aliases) {
+        super(name, aliases);
         this.permissionLevel = permissionLevel;
     }
 
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         if (!FeatureFlags.PERMISSIONS.isActive()) {
             context.reply("Permissions are currently disabled.");
             return;
         }
-        String[] args = context.args;
-        if (args.length < 2) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
-        switch (args[1]) {
+        switch (context.args[0]) {
             case "del":
             case "delete":
             case "remove":
@@ -84,7 +84,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
             case "rm":
                 if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, context)) return;
 
-                if (args.length < 3) {
+                if (context.args.length < 2) {
                     HelpCommand.sendFormattedCommandHelp(context);
                     return;
                 }
@@ -94,7 +94,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
             case "add":
                 if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, context)) return;
 
-                if (args.length < 3) {
+                if (context.args.length < 2) {
                     HelpCommand.sendFormattedCommandHelp(context);
                     return;
                 }
@@ -114,23 +114,21 @@ public class PermissionsCommand extends Command implements IModerationCommand {
     public void remove(CommandContext context) {
         Guild guild = context.guild;
         Member invoker = context.invoker;
-        String term = ArgumentUtil.getSearchTerm(context.msg, context.args, 2);
+        //remove the first argument aka add / remove etc to get a nice search term
+        String term = context.rawArgs.replaceFirst(context.args[0], "").trim();
 
-        List<IMentionable> curList = new ArrayList<>();
         List<IMentionable> search = new ArrayList<>();
         search.addAll(ArgumentUtil.fuzzyRoleSearch(guild, term));
         search.addAll(ArgumentUtil.fuzzyMemberSearch(guild, term, false));
         GuildPermissions gp = EntityReader.getGuildPermissions(guild);
-        curList.addAll(idsToMentionables(guild, gp.getFromEnum(permissionLevel)));
 
-        List<IMentionable> itemsInBothLists = new ArrayList<>();
-
-        curList.forEach(mentionable -> {
-            if (search.contains(mentionable)) itemsInBothLists.add(mentionable);
-        });
-
-        IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(itemsInBothLists, context, term);
+        IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(search, context, term);
         if (selected == null) return;
+
+        if (!gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
+            context.replyWithName(context. i18nFormat("permsNotAdded", "`" + mentionableToName(selected) + "`", "`" + permissionLevel + "`"));
+            return;
+        }
 
         List<String> newList = new ArrayList<>(gp.getFromEnum(permissionLevel));
         newList.remove(mentionableToId(selected));
@@ -139,35 +137,40 @@ public class PermissionsCommand extends Command implements IModerationCommand {
                 && PermissionLevel.BOT_ADMIN.getLevel() > PermsUtil.getPerms(invoker).getLevel()
                 && !PermissionUtil.checkPermission(invoker, Permission.ADMINISTRATOR)
                 && !PermsUtil.checkList(newList, invoker)) {
-            context.replyWithName(I18n.get(context, "permsFailSelfDemotion"));
+            context.replyWithName(context.i18n("permsFailSelfDemotion"));
             return;
         }
 
         gp.setFromEnum(permissionLevel, newList);
         EntityWriter.mergeGuildPermissions(gp);
 
-        context.replyWithName(MessageFormat.format(I18n.get(context, "permsRemoved"), mentionableToName(selected), permissionLevel));
+        context.replyWithName(context.i18nFormat("permsRemoved", mentionableToName(selected), permissionLevel));
     }
 
     public void add(CommandContext context) {
         Guild guild = context.guild;
-        String term = ArgumentUtil.getSearchTerm(context.msg, context.args, 2);
+        //remove the first argument aka add / remove etc to get a nice search term
+        String term = context.rawArgs.replaceFirst(context.args[0], "").trim();
 
         List<IMentionable> list = new ArrayList<>();
         list.addAll(ArgumentUtil.fuzzyRoleSearch(guild, term));
         list.addAll(ArgumentUtil.fuzzyMemberSearch(guild, term, false));
         GuildPermissions gp = EntityReader.getGuildPermissions(guild);
-        list.removeAll(idsToMentionables(guild, gp.getFromEnum(permissionLevel)));
 
         IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(list, context, term);
         if (selected == null) return;
+
+        if (gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
+            context.replyWithName(context.i18nFormat("permsAlreadyAdded", "`" + mentionableToName(selected) + "`", "`" + permissionLevel + "`"));
+            return;
+        }
 
         List<String> newList = new ArrayList<>(gp.getFromEnum(permissionLevel));
         newList.add(mentionableToId(selected));
         gp.setFromEnum(permissionLevel, newList);
         EntityWriter.mergeGuildPermissions(gp);
 
-        context.replyWithName(MessageFormat.format(I18n.get(guild).getString("permsAdded"), mentionableToName(selected), permissionLevel));
+        context.replyWithName(context.i18nFormat("permsAdded", mentionableToName(selected), permissionLevel));
     }
 
     public void list(CommandContext context) {
@@ -198,9 +201,8 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         if (roleMentions.isEmpty()) roleMentions = "<none>";
         if (memberMentions.isEmpty()) memberMentions = "<none>";
 
-        EmbedBuilder eb = CentralMessaging.getClearThreadLocalEmbedBuilder()
-                .setColor(BotConstants.FREDBOAT_COLOR)
-                .setTitle(MessageFormat.format(I18n.get(guild).getString("permsListTitle"), permissionLevel))
+        EmbedBuilder eb = CentralMessaging.getColoredEmbedBuilder()
+                .setTitle(context.i18nFormat("permsListTitle", permissionLevel))
                 .setAuthor(invoker.getEffectiveName(), null, invoker.getUser().getAvatarUrl())
                 .addField("Roles", roleMentions, true)
                 .addField("Members", memberMentions, true)
@@ -247,10 +249,11 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         return out;
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         String usage = "{0}{1} add <role/user>\n{0}{1} del <role/user>\n{0}{1} list\n#";
-        return usage + MessageFormat.format(I18n.get(guild).getString("helpPerms"), permissionLevel.getName()) + " https://docs.fredboat.com/permissions";
+        return usage + context.i18nFormat("helpPerms", permissionLevel.getName()) + "\n" + BotConstants.DOCS_PERMISSIONS_URL;
     }
 
 }

@@ -25,15 +25,15 @@
 package fredboat.commandmeta.init;
 
 import fredboat.Config;
+import fredboat.agent.FredBoatAgent;
 import fredboat.agent.VoiceChannelCleanupAgent;
 import fredboat.command.admin.*;
 import fredboat.command.maintenance.*;
-import fredboat.command.moderation.ConfigCommand;
-import fredboat.command.moderation.LanguageCommand;
-import fredboat.command.moderation.PermissionsCommand;
+import fredboat.command.moderation.*;
 import fredboat.command.music.control.*;
 import fredboat.command.music.info.ExportCommand;
 import fredboat.command.music.info.GensokyoRadioCommand;
+import fredboat.command.music.info.HistoryCommand;
 import fredboat.command.music.info.ListCommand;
 import fredboat.command.music.info.NowplayingCommand;
 import fredboat.command.music.seeking.ForwardCommand;
@@ -51,82 +51,93 @@ import fredboat.util.rest.SearchUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.Collections;
+
 public class MusicCommandInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(MusicCommandInitializer.class);
 
     public static void initCommands() {
-        CommandRegistry.registerCommand("help", new HelpCommand(), "info");
-        CommandRegistry.registerCommand("music", new MusicHelpCommand(), "musichelp");
-        CommandRegistry.registerCommand("commands", new CommandsCommand(), "comms", "cmds");
+        CommandRegistry.registerCommand(new HelpCommand("help", "info"));
+        CommandRegistry.registerCommand(new MusicHelpCommand("music", "musichelp"));
+        CommandRegistry.registerCommand(new CommandsCommand("commands", "comms", "cmds"));
         
         /* Control */
-        CommandRegistry.registerCommand("play", new PlayCommand(SearchUtil.SearchProvider.YOUTUBE, SearchUtil.SearchProvider.SOUNDCLOUD), "p");
-        CommandRegistry.registerCommand("yt", new PlayCommand(SearchUtil.SearchProvider.YOUTUBE), "youtube");
-        CommandRegistry.registerCommand("sc", new PlayCommand(SearchUtil.SearchProvider.SOUNDCLOUD), "soundcloud");
-        CommandRegistry.registerCommand("skip", new SkipCommand(), "sk", "s");
-        CommandRegistry.registerCommand("voteSkip", new VoteSkipCommand(), "vsk", "v");
-        CommandRegistry.registerCommand("join", new JoinCommand(), "summon", "jn", "j");
-        CommandRegistry.registerCommand("leave", new LeaveCommand(), "lv");
-        CommandRegistry.registerCommand("select", new SelectCommand(), buildNumericalSelectAllias("sel"));
-        CommandRegistry.registerCommand("stop", new StopCommand(), "st");
-        CommandRegistry.registerCommand("pause", new PauseCommand(), "pa", "ps");
-        CommandRegistry.registerCommand("shuffle", new ShuffleCommand(), "sh","random");
-        CommandRegistry.registerCommand("reshuffle", new ReshuffleCommand(), "resh");
-        CommandRegistry.registerCommand("repeat", new RepeatCommand(), "rep");
-        CommandRegistry.registerCommand("volume", new VolumeCommand(), "vol");
-        CommandRegistry.registerCommand("unpause", new UnpauseCommand(), "unp", "resume");
-        CommandRegistry.registerCommand("split", new PlaySplitCommand());
-        CommandRegistry.registerCommand("destroy", new DestroyCommand());
+        CommandRegistry.registerCommand(new PlayCommand(Arrays.asList(SearchUtil.SearchProvider.YOUTUBE, SearchUtil.SearchProvider.SOUNDCLOUD),
+                "play", "p"));
+        CommandRegistry.registerCommand(new PlayCommand(Collections.singletonList(SearchUtil.SearchProvider.YOUTUBE),
+                "youtube", "yt"));
+        CommandRegistry.registerCommand(new PlayCommand(Collections.singletonList(SearchUtil.SearchProvider.SOUNDCLOUD),
+                "soundcloud", "sc"));
+        CommandRegistry.registerCommand(new SkipCommand("skip", "sk", "s"));
+        CommandRegistry.registerCommand(new VoteSkipCommand("voteskip", "vsk", "v"));
+        CommandRegistry.registerCommand(new JoinCommand("join", "summon", "jn", "j"));
+        CommandRegistry.registerCommand(new LeaveCommand("leave", "lv"));
+        CommandRegistry.registerCommand(new SelectCommand("select", buildNumericalSelectAllias("sel")));
+        CommandRegistry.registerCommand(new StopCommand("stop", "st"));
+        CommandRegistry.registerCommand(new PauseCommand("pause", "pa", "ps"));
+        CommandRegistry.registerCommand(new ShuffleCommand("shuffle", "sh", "random"));
+        CommandRegistry.registerCommand(new ReshuffleCommand("reshuffle", "resh"));
+        CommandRegistry.registerCommand(new RepeatCommand("repeat", "rep"));
+        CommandRegistry.registerCommand(new VolumeCommand("volume", "vol"));
+        CommandRegistry.registerCommand(new UnpauseCommand("unpause", "unp", "resume"));
+        CommandRegistry.registerCommand(new PlaySplitCommand("split"));
+        CommandRegistry.registerCommand(new DestroyCommand("destroy"));
         
         /* Info */
-        CommandRegistry.registerCommand("nowplaying", new NowplayingCommand(), "np");
-        CommandRegistry.registerCommand("list", new ListCommand(), "queue", "q", "l");
-        CommandRegistry.registerCommand("export", new ExportCommand(), "ex");
-        CommandRegistry.registerCommand("gr", new GensokyoRadioCommand(), "gensokyo", "gensokyoradio");
-        CommandRegistry.registerCommand("muserinfo", new UserInfoCommand());
+        CommandRegistry.registerCommand(new NowplayingCommand("nowplaying", "np"));
+        CommandRegistry.registerCommand(new ListCommand("list", "queue", "q", "l"));
+        CommandRegistry.registerCommand(new HistoryCommand("history", "hist", "h"));
+        CommandRegistry.registerCommand(new ExportCommand("export", "ex"));
+        CommandRegistry.registerCommand(new GensokyoRadioCommand("gensokyo", "gr", "gensokyoradio"));
+        CommandRegistry.registerCommand(new UserInfoCommand("muserinfo"));
 
         /* Seeking */
-        CommandRegistry.registerCommand("seek", new SeekCommand());
-        CommandRegistry.registerCommand("forward", new ForwardCommand(), "fwd");
-        CommandRegistry.registerCommand("rewind", new RewindCommand(), "rew");
-        CommandRegistry.registerCommand("restart", new RestartCommand());
+        CommandRegistry.registerCommand(new SeekCommand("seek"));
+        CommandRegistry.registerCommand(new ForwardCommand("forward", "fwd"));
+        CommandRegistry.registerCommand(new RewindCommand("rewind", "rew"));
+        CommandRegistry.registerCommand(new RestartCommand("restart", "replay"));
         
         /* Bot Maintenance Commands */
-        CommandRegistry.registerCommand("mgitinfo", new GitInfoCommand(), "mgit");
-        CommandRegistry.registerCommand("munblacklist", new UnblacklistCommand(), "munlimit");
-        CommandRegistry.registerCommand("mexit", new ExitCommand());
-        CommandRegistry.registerCommand("mbotrestart", new BotRestartCommand());
-        CommandRegistry.registerCommand("mstats", new StatsCommand());
-        CommandRegistry.registerCommand("meval", new EvalCommand());
-        CommandRegistry.registerCommand("mupdate", new UpdateCommand());
-        CommandRegistry.registerCommand("mcompile", new CompileCommand());
-        CommandRegistry.registerCommand("mmvntest", new MavenTestCommand());
-        CommandRegistry.registerCommand("getid", new GetIdCommand());
-        CommandRegistry.registerCommand("playerdebug", new PlayerDebugCommand());
-        CommandRegistry.registerCommand("nodes", new NodesCommand());
-        CommandRegistry.registerCommand("mshards", new ShardsCommand());
-        CommandRegistry.registerCommand("mrevive", new ReviveCommand());
-        CommandRegistry.registerCommand("msentrydsn", new SentryDsnCommand());
-        CommandRegistry.registerCommand("adebug", new AudioDebugCommand());
-        CommandRegistry.registerCommand("announce", new AnnounceCommand());
-        CommandRegistry.registerCommand("mping", new PingCommand());
-        CommandRegistry.registerCommand("node", new NodeAdminCommand());
+        CommandRegistry.registerCommand(new GitInfoCommand("mgitinfo", "mgit"));
+        CommandRegistry.registerCommand(new UnblacklistCommand("munblacklist", "munlimit"));
+        CommandRegistry.registerCommand(new ExitCommand("mexit"));
+        CommandRegistry.registerCommand(new LeaveServerCommand("mleaveserver"));
+        CommandRegistry.registerCommand(new BotRestartCommand("mbotrestart"));
+        CommandRegistry.registerCommand(new StatsCommand("mstats"));
+        CommandRegistry.registerCommand(new EvalCommand("meval"));
+        CommandRegistry.registerCommand(new UpdateCommand("mupdate"));
+        CommandRegistry.registerCommand(new CompileCommand("mcompile"));
+        CommandRegistry.registerCommand(new MavenTestCommand("mmvntest"));
+        CommandRegistry.registerCommand(new GetIdCommand("getid"));
+        CommandRegistry.registerCommand(new PlayerDebugCommand("playerdebug"));
+        CommandRegistry.registerCommand(new NodesCommand("nodes"));
+        CommandRegistry.registerCommand(new ShardsCommand("mshards"));
+        CommandRegistry.registerCommand(new ReviveCommand("mrevive"));
+        CommandRegistry.registerCommand(new SentryDsnCommand("msentrydsn"));
+        CommandRegistry.registerCommand(new AudioDebugCommand("adebug"));
+        CommandRegistry.registerCommand(new AnnounceCommand("announce"));
+        CommandRegistry.registerCommand(new PingCommand("mping"));
+        CommandRegistry.registerCommand(new NodeAdminCommand("node"));
+        CommandRegistry.registerCommand(new GetNodeCommand("getnode"));
+        CommandRegistry.registerCommand(new DisableCommandsCommand("disable"));
+        CommandRegistry.registerCommand(new EnableCommandsCommand("enable"));
+        CommandRegistry.registerCommand(new DebugCommand("debug"));
+        CommandRegistry.registerCommand(new SetAvatarCommand("setavatar"));
 
-        CommandRegistry.registerCommand("getnode", new GetNodeCommand());
-        
         /* Bot configuration */
-        CommandRegistry.registerCommand("config", new ConfigCommand(), "cfg");
-        CommandRegistry.registerCommand("lang", new LanguageCommand(), "language");
+        CommandRegistry.registerCommand(new ConfigCommand("config", "cfg"));
+        CommandRegistry.registerCommand(new LanguageCommand("language", "lang"));
         
         /* Perms */
-        CommandRegistry.registerCommand("admin", new PermissionsCommand(PermissionLevel.ADMIN));
-        CommandRegistry.registerCommand("dj", new PermissionsCommand(PermissionLevel.DJ));
-        CommandRegistry.registerCommand("user", new PermissionsCommand(PermissionLevel.USER));
+        CommandRegistry.registerCommand(new PermissionsCommand(PermissionLevel.ADMIN, "admin"));
+        CommandRegistry.registerCommand(new PermissionsCommand(PermissionLevel.DJ, "dj"));
+        CommandRegistry.registerCommand(new PermissionsCommand(PermissionLevel.USER, "user"));
 
         // The null check is to ensure we can run this in a test run
         if (Config.CONFIG == null || Config.CONFIG.getDistribution() != DistributionEnum.PATRON) {
-            new VoiceChannelCleanupAgent().start();
+            FredBoatAgent.start(new VoiceChannelCleanupAgent());
         } else {
             log.info("Skipped setting up the VoiceChannelCleanupAgent since we are running as PATRON distribution.");
         }

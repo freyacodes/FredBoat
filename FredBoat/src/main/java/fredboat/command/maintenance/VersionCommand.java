@@ -28,18 +28,25 @@ package fredboat.command.maintenance;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
+import fredboat.messaging.internal.Context;
 import net.dv8tion.jda.core.JDAInfo;
-import net.dv8tion.jda.core.entities.Guild;
+
+import javax.annotation.Nonnull;
 
 public class VersionCommand extends Command implements IMaintenanceCommand {
 
-    @Override
-    public void onInvoke(CommandContext context) {
-        context.reply("JDA Version: " + JDAInfo.VERSION);
+    public VersionCommand(String name, String... aliases) {
+        super(name, aliases);
     }
 
     @Override
-    public String help(Guild guild) {
+    public void onInvoke(@Nonnull CommandContext context) {
+        context.reply("JDA Version: " + JDAInfo.VERSION);
+    }
+
+    @Nonnull
+    @Override
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Show the JDA version.";
     }
 }

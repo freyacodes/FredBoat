@@ -40,7 +40,7 @@ public class SplitAudioTrackContext extends AudioTrackContext {
     }
 
     public SplitAudioTrackContext(AudioTrack at, long userId, long guildId, long startPos, long endPos, String title) {
-        super(at, userId, guildId);
+        super(at, guildId, userId);
         this.startPos = startPos;
         this.endPos = endPos;
         this.title = title;

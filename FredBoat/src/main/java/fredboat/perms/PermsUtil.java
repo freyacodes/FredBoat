@@ -29,24 +29,21 @@ import fredboat.Config;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityReader;
 import fredboat.db.entity.GuildPermissions;
-import fredboat.feature.I18n;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Role;
-import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.utils.PermissionUtil;
 
-import java.text.MessageFormat;
 import java.util.List;
 
 public class PermsUtil {
 
     public static PermissionLevel getPerms(Member member) {
-        if (isUserBotOwner(member.getUser())) {
+        if (DiscordUtil.getOwnerId(member.getJDA()) == member.getUser().getIdLong()) {
             return PermissionLevel.BOT_OWNER; // https://fred.moe/Q-EB.png
-        } else if (isAdmin(member)) {
+        } else if (isBotAdmin(member)) {
             return PermissionLevel.BOT_ADMIN;
         } else if (PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR)) {
             return PermissionLevel.ADMIN;
@@ -65,6 +62,9 @@ public class PermsUtil {
         return PermissionLevel.BASE;
     }
 
+    /**
+     * @return True if the provided member has at least the requested PermissionLevel or higher. False if not.
+     */
     public static boolean checkPerms(PermissionLevel minLevel, Member member) {
         return getPerms(member).getLevel() >= minLevel.getLevel();
     }
@@ -78,8 +78,7 @@ public class PermsUtil {
         if (actual.getLevel() >= minLevel.getLevel()) {
             return true;
         } else {
-            context.replyWithName(MessageFormat.format(I18n.get(context, "cmdPermsTooLow"),
-                    minLevel, actual));
+            context.replyWithName(context.i18nFormat("cmdPermsTooLow", minLevel, actual));
             return false;
         }
     }
@@ -87,22 +86,17 @@ public class PermsUtil {
     /**
      * returns true if the member is or holds a role defined as admin in the configuration file
      */
-    private static boolean isAdmin(Member member) {
-        boolean admin = false;
+    private static boolean isBotAdmin(Member member) {
+        boolean botAdmin = false;
         for (String id : Config.CONFIG.getAdminIds()) {
             Role r = member.getGuild().getRoleById(id);
             if (member.getUser().getId().equals(id)
                     || (r != null && member.getRoles().contains(r))) {
-                admin = true;
+                botAdmin = true;
                 break;
             }
         }
-        return admin;
-    }
-
-    // TODO: Make private and use getPerms() instead
-    public static boolean isUserBotOwner(User user) {
-        return DiscordUtil.getOwnerId(user.getJDA()).equals(user.getId());
+        return botAdmin;
     }
 
     public static boolean checkList(List<String> list, Member member) {

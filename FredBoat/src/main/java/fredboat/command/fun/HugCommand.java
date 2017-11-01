@@ -26,11 +26,9 @@ package fredboat.command.fun;
 
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
-import fredboat.feature.I18n;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Message;
+import fredboat.messaging.internal.Context;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 /**
  * Created by napster on 30.04.17.
@@ -39,32 +37,28 @@ import java.text.MessageFormat;
  */
 public class HugCommand extends RandomImageCommand implements IFunCommand {
 
-    public HugCommand(String[] urls) {
-        super(urls);
-    }
-
-    public HugCommand(String imgurAlbumUrl) {
-        super(imgurAlbumUrl);
+    public HugCommand(String imgurAlbumUrl, String name, String... aliases) {
+        super(imgurAlbumUrl, name, aliases);
     }
 
     @Override
-    public void onInvoke(CommandContext context) {
-        Message msg = context.msg;
+    public void onInvoke(@Nonnull CommandContext context) {
         String hugMessage = null;
-        if (msg.getMentionedUsers().size() > 0) {
-            if (msg.getMentionedUsers().get(0).getIdLong() == msg.getJDA().getSelfUser().getIdLong()) {
-                hugMessage = I18n.get(context, "hugBot");
+        if (!context.getMentionedUsers().isEmpty()) {
+            if (context.getMentionedUsers().get(0).getIdLong() == context.guild.getJDA().getSelfUser().getIdLong()) {
+                hugMessage = context.i18n("hugBot");
             } else {
                 hugMessage = "_"
-                        + MessageFormat.format(I18n.get(context, "hugSuccess"), msg.getMentionedUsers().get(0).getAsMention())
+                        + context.i18nFormat("hugSuccess", context.getMentionedUsers().get(0).getAsMention())
                         + "_";
             }
         }
         context.replyImage(super.getRandomImageUrl(), hugMessage);
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} @<username>\n#Hug someone.";
     }
 }

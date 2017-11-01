@@ -25,84 +25,103 @@
 
 package fredboat.command.util;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
-import fredboat.feature.I18n;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.feature.metrics.OkHttpEventMetrics;
+import fredboat.messaging.internal.Context;
+import fredboat.util.rest.Http;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
 import org.apache.commons.text.StringEscapeUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.XML;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.ResourceBundle;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * @deprecated The mal API is broken af. After an unsuccessful search it will answer requests after one full minute only,
+ * until one does a successful search. This is unacceptable.
+ * Reworking this should also include a cache of some kind.
+ */
+@Deprecated
 public class MALCommand extends Command implements IUtilCommand {
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(MALCommand.class);
-    private static Pattern regex = Pattern.compile("^\\S+\\s+([\\W\\w]*)");
+    private static final Logger log = LoggerFactory.getLogger(MALCommand.class);
+
+    public MALCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
+    //MALs API is wonky af and loves to take its time to answer requests, so we are setting rather high time outs
+    private static OkHttpClient malHttpClient = new OkHttpClient.Builder()
+            .connectTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .writeTimeout(120, TimeUnit.SECONDS)
+            .eventListener(new OkHttpEventMetrics("myAnimeListApi"))
+            .build();
 
     @Override
-    public void onInvoke(CommandContext context) {
-        Matcher matcher = regex.matcher(context.msg.getContent());
-
-        if (!matcher.find()) {
+    public void onInvoke(@Nonnull CommandContext context) {
+        if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
-        String term = matcher.group(1).replace(' ', '+').trim();
+        String term = context.rawArgs.replace(' ', '+').trim();
         log.debug("TERM:" + term);
 
-        //MALs API is currently wonky af, so we are setting rather strict timeouts for its requests
-        Unirest.setTimeouts(5000, 10000);
         FredBoat.executor.submit(() -> requestAsync(term, context));
-        //back to defaults
-        Unirest.setTimeouts(10000, 60000);
     }
 
+    //attempts to find an anime with the provided search term, and if that's not possible looks for a user
     private void requestAsync(String term, CommandContext context) {
+        Http.SimpleRequest request = Http.get("https://myanimelist.net/api/anime/search.xml",
+                Http.Params.of(
+                        "q", term
+                ))
+                .auth(Credentials.basic(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword()))
+                .client(malHttpClient);
+
         try {
-            HttpResponse<String> response = Unirest.get("https://myanimelist.net/api/anime/search.xml")
-                    .queryString("q", term)
-                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
-                    .asString();
-
-            String body = response.getBody();
-            if (body != null && body.length() > 0) {
-                if (handleAnime(context, term, body)) {
-                    return;
-                }
+            if (handleAnime(context, term, request.asString())) {
+                return; //success
             }
-            response = Unirest.get("http://myanimelist.net/search/prefix.json")
-                    .queryString("type", "user")
-                    .queryString("keyword", term)
-                    .basicAuth(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword())
-                    .asString();
-            body = response.getBody();
-
-            handleUser(context, body);
-        } catch (UnirestException ex) {
-            context.reply(MessageFormat.format(I18n.get(context, "malNoResults"), context.invoker.getEffectiveName()));
-            log.warn("MAL request blew up", ex);
+        } catch (IOException | JSONException ignored) {
+            // we will try a user search instead
         }
+
+        request = request.url("http://myanimelist.net/search/prefix.json",
+                Http.Params.of(
+                        "type", "user",
+                        "keyword", term
+                ));
+
+        try {
+            if (handleUser(context, request.asString())) {
+                return; //succcess
+            }
+        } catch (IOException | JSONException e) {
+            log.warn("MAL request blew up", e);
+        }
+
+        context.reply(context.i18nFormat("malNoResults", context.invoker.getEffectiveName()));
     }
 
     private boolean handleAnime(CommandContext context, String terms, String body) {
-        ResourceBundle i18n = I18n.get(context.guild);
-        String msg = MessageFormat.format(i18n.getString("malRevealAnime"), context.invoker.getEffectiveName());
+        String msg = context.i18nFormat("malRevealAnime", context.invoker.getEffectiveName());
 
         //Read JSON
         log.info(body);
@@ -142,20 +161,20 @@ public class MALCommand extends Command implements IUtilCommand {
             return false;
         }
 
-        msg = data.has("title") ? MessageFormat.format(i18n.getString("malTitle"), msg, data.get("title")) : msg;
-        msg = data.has("english") ? MessageFormat.format(i18n.getString("malEnglishTitle"), msg, data.get("english")) : msg;
-        msg = data.has("synonyms") ? MessageFormat.format(i18n.getString("malSynonyms"), msg, data.get("synonyms")) : msg;
-        msg = data.has("episodes") ? MessageFormat.format(i18n.getString("malEpisodes"), msg, data.get("episodes")) : msg;
-        msg = data.has("score") ? MessageFormat.format(i18n.getString("malScore"), msg, data.get("score")) : msg;
-        msg = data.has("type") ? MessageFormat.format(i18n.getString("malType"), msg, data.get("type")) : msg;
-        msg = data.has("status") ? MessageFormat.format(i18n.getString("malStatus"), msg, data.get("status")) : msg;
-        msg = data.has("start_date") ? MessageFormat.format(i18n.getString("malStartDate"), msg, data.get("start_date")) : msg;
-        msg = data.has("end_date") ? MessageFormat.format(i18n.getString("malEndDate"), msg, data.get("end_date")) + "\n" : msg;
+        msg = data.has("title") ? context.i18nFormat("malTitle", msg, data.get("title")) : msg;
+        msg = data.has("english") ? context.i18nFormat("malEnglishTitle", msg, data.get("english")) : msg;
+        msg = data.has("synonyms") ? context.i18nFormat("malSynonyms", msg, data.get("synonyms")) : msg;
+        msg = data.has("episodes") ? context.i18nFormat("malEpisodes", msg, data.get("episodes")) : msg;
+        msg = data.has("score") ? context.i18nFormat("malScore", msg, data.get("score")) : msg;
+        msg = data.has("type") ? context.i18nFormat("malType", msg, data.get("type")) : msg;
+        msg = data.has("status") ? context.i18nFormat("malStatus", msg, data.get("status")) : msg;
+        msg = data.has("start_date") ? context.i18nFormat("malStartDate", msg, data.get("start_date")) : msg;
+        msg = data.has("end_date") ? context.i18nFormat("malEndDate", msg, data.get("end_date")) + "\n" : msg;
 
         if (data.has("synopsis")) {
             Matcher m = Pattern.compile("^[^\\n\\r<]+").matcher(StringEscapeUtils.unescapeHtml4(data.getString("synopsis")));
             m.find();
-            msg = data.has("synopsis") ? MessageFormat.format(i18n.getString("malSynopsis"), msg, m.group(0)) : msg;
+            msg = data.has("synopsis") ? context.i18nFormat("malSynopsis", msg, m.group(0)) : msg;
         }
 
         msg = data.has("id") ? msg + "http://myanimelist.net/anime/" + data.get("id") + "/" : msg;
@@ -165,21 +184,20 @@ public class MALCommand extends Command implements IUtilCommand {
     }
 
     private boolean handleUser(CommandContext context, String body) {
-        ResourceBundle i18n = I18n.get(context.guild);
-        String msg = MessageFormat.format(i18n.getString("malUserReveal"), context.invoker.getEffectiveName());
+        String msg = context.i18nFormat("malUserReveal", context.invoker.getEffectiveName());
 
         //Read JSON
         JSONObject root = new JSONObject(body);
         JSONArray items = root.getJSONArray("categories").getJSONObject(0).getJSONArray("items");
         if (items.length() == 0) {
-            context.reply(MessageFormat.format(i18n.getString("malNoResults"), context.invoker.getEffectiveName()));
+            context.reply(context.i18nFormat("malNoResults", context.invoker.getEffectiveName()));
             return false;
         }
 
         JSONObject data = items.getJSONObject(0);
 
-        msg = data.has("name") ? MessageFormat.format(i18n.getString("malUserName"), msg, data.get("name")) : msg;
-        msg = data.has("url") ? MessageFormat.format(i18n.getString("malUrl"), msg, data.get("url")) : msg;
+        msg = data.has("name") ? context.i18nFormat("malUserName", msg, data.get("name")) : msg;
+        msg = data.has("url") ? context.i18nFormat("malUrl", msg, data.get("url")) : msg;
         msg = data.has("image_url") ? msg + data.get("image_url") : msg;
 
         log.debug(msg);
@@ -188,9 +206,9 @@ public class MALCommand extends Command implements IUtilCommand {
         return true;
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
-        String usage = "{0}{1} <search-term>\n#";
-        return usage + I18n.get(guild).getString("helpMALCommand");
+    public String help(@Nonnull Context context) {
+        return "{0}{1} <search-term>\n#" + context.i18n("helpMALCommand");
     }
 }

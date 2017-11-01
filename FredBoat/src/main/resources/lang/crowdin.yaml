@@ -1,0 +1,3 @@
+files:
+  - source: /en_US.properties
+    translation: /%locale_with_underscore%.properties

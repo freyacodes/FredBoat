@@ -25,29 +25,37 @@
 
 package fredboat.command.fun;
 
-import com.mashape.unirest.http.exceptions.UnirestException;
 import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.AkinatorListener;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
+import org.json.JSONException;
+
+import javax.annotation.Nonnull;
+import java.io.IOException;
 
 public class AkinatorCommand extends Command implements IFunCommand {
 
-    @Override
-    public void onInvoke(CommandContext context) {
-        try {
-            String userId = context.invoker.getUser().getId();
-            AkinatorListener akinator = new AkinatorListener(context);
-            FredBoat.getListenerBot().putListener(userId, akinator);
-        } catch (UnirestException ex) {
-            throw new RuntimeException(ex);
-        }
+    public AkinatorCommand(String name, String... aliases) {
+        super(name, aliases);
     }
 
     @Override
-    public String help(Guild guild) {
+    public void onInvoke(@Nonnull CommandContext context) {
+        try {
+            String userId = context.invoker.getUser().getId();
+            AkinatorListener akinator = new AkinatorListener(context);
+            FredBoat.getMainEventListener().putListener(userId, akinator);
+        } catch (IOException | JSONException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Nonnull
+    @Override
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Play a guessing game with Akinator.";
     }
 }

@@ -28,23 +28,24 @@ package fredboat.command.maintenance;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMaintenanceCommand;
-import fredboat.feature.I18n;
-import net.dv8tion.jda.core.entities.Guild;
+import fredboat.messaging.internal.Context;
 
-import java.text.MessageFormat;
+import javax.annotation.Nonnull;
 
 public class GetIdCommand extends Command implements IMaintenanceCommand {
 
-    @Override
-    public void onInvoke(CommandContext context) {
-        context.reply(MessageFormat.format(
-                I18n.get(context, "getidSuccess"),
-                context.guild.getId(), context.channel.getId())
-        );
+    public GetIdCommand(String name, String... aliases) {
+        super(name, aliases);
     }
 
     @Override
-    public String help(Guild guild) {
+    public void onInvoke(@Nonnull CommandContext context) {
+        context.reply(context.i18nFormat("getidSuccess", context.guild.getId(), context.channel.getId()));
+    }
+
+    @Nonnull
+    @Override
+    public String help(@Nonnull Context context) {
         return "{0}{1}\n#Show ids of the current guild and the current text channel.";
     }
 }

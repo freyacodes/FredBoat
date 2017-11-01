@@ -1,8 +1,0 @@
-{
-    "command": [
-        "java",
-        "-jar",
-        "FredBoat-1.0.jar"
-    ],
-    "jarName": "FredBoat-1.0.jar"
-}

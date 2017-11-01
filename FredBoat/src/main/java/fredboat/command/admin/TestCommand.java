@@ -32,10 +32,10 @@ import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.db.DatabaseManager;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.persistence.EntityManager;
 
 /**
@@ -52,8 +52,12 @@ public class TestCommand extends Command implements ICommandRestricted {
     private final String CREATE_TEST_TABLE = "CREATE TABLE IF NOT EXISTS test (id serial, val integer, PRIMARY KEY (id));";
     private final String INSERT_TEST_TABLE = "INSERT INTO test (val) VALUES (:val) ";
 
+    public TestCommand(String name, String... aliases) {
+        super(name, aliases);
+    }
+
     @Override
-    public void onInvoke(CommandContext context) {
+    public void onInvoke(@Nonnull CommandContext context) {
         FredBoat.executor.submit(() -> invoke(FredBoat.getDbManager(), context, context.args));
     }
 
@@ -63,9 +67,9 @@ public class TestCommand extends Command implements ICommandRestricted {
 
         int t = 20;
         int o = 2000;
-        if (args.length > 2) {
-            t = Integer.valueOf(args[1]);
-            o = Integer.valueOf(args[2]);
+        if (args.length > 1) {
+            t = Integer.valueOf(args[0]);
+            o = Integer.valueOf(args[1]);
         }
         final int threads = t;
         final int operations = o;
@@ -191,11 +195,13 @@ public class TestCommand extends Command implements ICommandRestricted {
         }
     }
 
+    @Nonnull
     @Override
-    public String help(Guild guild) {
+    public String help(@Nonnull Context context) {
         return "{0}{1} [n m]\n#Stress test the database with n threads each doing m operations. Results will be shown after max 10 minutes.";
     }
 
+    @Nonnull
     @Override
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.BOT_OWNER;
