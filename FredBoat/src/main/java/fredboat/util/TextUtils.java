@@ -51,12 +51,7 @@ public class TextUtils {
 
     private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^(\\d?\\d)(?::([0-5]?\\d))?(?::([0-5]?\\d))?$");
 
-    private static final ArrayList<Character> markdownList = new ArrayList<Character>() {{
-        add('*');
-        add('`');
-        add('~');
-        add('_');
-    }};
+    private static final List<Character> markdownChars = Arrays.asList('*', '`', '~', '_');
 
     public static final DateTimeFormatter TIME_IN_CENTRAL_EUROPE = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss z")
             .withZone(ZoneId.of("Europe/Copenhagen"));
@@ -255,11 +250,10 @@ public class TextUtils {
     public static String escapeMarkdown(String str) {
         StringBuilder revisedString = new StringBuilder(str.length());
         for (Character n : str.toCharArray()) {
-            if (markdownList.contains(n)) {
-                revisedString.append("\\" + n);
-            } else {
-                revisedString.append(n);
+            if (markdownChars.contains(n)) {
+                revisedString.append("\\");
             }
+            revisedString.append(n);
         }
         return revisedString.toString();
     }
