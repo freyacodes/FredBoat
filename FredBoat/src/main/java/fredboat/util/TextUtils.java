@@ -234,7 +234,7 @@ public class TextUtils {
     }
 
     public static String escapeMarkdown(String str) {
-        StringBuilder revisedString = new StringBuilder();
+        StringBuilder revisedString = new StringBuilder(str.length());
         for (Character n : str.toCharArray()) {
             if (markdownList.contains(n)) {
                 revisedString.append("\\" + n);
