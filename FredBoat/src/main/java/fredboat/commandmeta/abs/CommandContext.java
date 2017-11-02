@@ -104,8 +104,14 @@ public class CommandContext extends Context {
                     Metrics.prefixParsed.labels("custom").inc();
                 }
             } else {
-                //no match neither mention nor custom/default prefix
-                return null;
+                //hardcoded check for the help command that is always displayed as FredBoat status
+                if (raw.startsWith(Config.CONFIG.getPrefix() + "help")) {
+                    Metrics.prefixParsed.labels("default").inc();
+                    input = raw.substring(Config.CONFIG.getPrefix().length());
+                } else {
+                    //no match neither mention nor custom/default prefix
+                    return null;
+                }
             }
         }
         input = input.trim();// eliminate possible whitespace between the mention/prefix and the rest of the input

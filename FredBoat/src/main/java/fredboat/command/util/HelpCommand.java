@@ -97,6 +97,7 @@ public class HelpCommand extends Command implements IUtilCommand {
                             "`" + TextUtils.escapeMarkdown(context.getPrefix()) + "commands`");
                     if (context.hasPermissions(Permission.MESSAGE_WRITE)) {
                         context.replyWithName(out);
+                        PrefixCommand.showPrefix(context, context.getPrefix());
                     }
                 },
                 failure -> {

@@ -55,6 +55,11 @@ public class MusicHelpCommand extends Command implements IUtilCommand {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
+        invoke(context);
+    }
+
+
+    public static void invoke(@Nonnull CommandContext context) {
         getFormattedCommandHelp(context);
     }
 

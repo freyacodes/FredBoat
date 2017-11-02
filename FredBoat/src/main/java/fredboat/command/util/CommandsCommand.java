@@ -73,7 +73,7 @@ public class CommandsCommand extends Command implements IUtilCommand {
         // http://i.imgur.com/511Hb8p.png screenshot from 1st April 2017
         //bot owner and debug commands (+ ;;music and ;;help) missing + the currently defunct config command
         //this is currently fine but might change in the future
-        new MusicHelpCommand("").onInvoke(context);
+        MusicHelpCommand.invoke(context);
         if (Config.CONFIG.isDevDistribution()) {
             mainBotHelp(context); //TODO: decide how to do handle this after unification of main and music bot
         }
