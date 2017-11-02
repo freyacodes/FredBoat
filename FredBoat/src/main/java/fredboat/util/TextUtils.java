@@ -45,10 +45,15 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.List;
+import java.util.Arrays;
 
 public class TextUtils {
 
     private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^(\\d?\\d)(?::([0-5]?\\d))?(?::([0-5]?\\d))?$");
+
+    private static final List<Character> markdownChars = Arrays.asList('*', '`', '~', '_');
+
     public static final DateTimeFormatter TIME_IN_CENTRAL_EUROPE = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss z")
             .withZone(ZoneId.of("Europe/Copenhagen"));
 
@@ -190,7 +195,7 @@ public class TextUtils {
         Pattern pattern = Pattern.compile("^([\\w\\W]{" + len + "}\\S+?)\\s");
         Matcher matcher = pattern.matcher(str);
 
-        if(matcher.find()){
+        if (matcher.find()){
             return matcher.group(1);
         } else {
             //Oh well
@@ -243,6 +248,18 @@ public class TextUtils {
         return "```" + sty + "\n" + str + "\n```";
     }
 
+    public static String escapeMarkdown(String str) {
+        StringBuilder revisedString = new StringBuilder(str.length());
+        for (Character n : str.toCharArray()) {
+            if (markdownChars.contains(n)) {
+                revisedString.append("\\");
+            }
+            revisedString.append(n);
+        }
+        return revisedString.toString();
+    }
+
+
     public static String forceNDigits(int i, int n) {
         String str = Integer.toString(i);
 
@@ -283,5 +300,15 @@ public class TextUtils {
 
     public static String asTimeInCentralEurope(final long epochMillis) {
         return TIME_IN_CENTRAL_EUROPE.format(Instant.ofEpochMilli(epochMillis));
+    }
+
+    public static String asTimeInCentralEurope(final String epochMillis) {
+        long millis = 0;
+        try {
+            millis = Long.parseLong(epochMillis);
+        } catch (NumberFormatException e) {
+            log.error("Could not parse epoch millis as long, returning 0", e);
+        }
+        return TIME_IN_CENTRAL_EUROPE.format(Instant.ofEpochMilli(millis));
     }
 }

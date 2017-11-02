@@ -1,5 +1,5 @@
 # Contributing
-FredBoat is built using Maven, so you should just be able to import the project in your favorite IDE and download all dependencies while building. Check out the [issues](https://github.com/Frederikam/FredBoat/issues) to find out what needs to be done.
+FredBoat is built using Gradle, so you should just be able to import the project in your favorite IDE and download all dependencies while building. Check out the [issues](https://github.com/Frederikam/FredBoat/issues) to find out what needs to be done.
 
 When submitting a pull request, please submit against the `development` branch, or you will have to reopen your PR. 
 
@@ -119,17 +119,25 @@ To run the FredBoat bot in IntelliJ IDEA, find the little green play button in t
 </details>
 <br/>
 
+Alternatively you can set up a gradle task to run or debug FredBoat:
+<details><summary>Click me</summary>
+
+[![Edit config of gradle task in IDEA](https://fred.moe/uIk.png)](https://fred.moe/uIk.png)
+[![Running with gradle in IDEA](https://fred.moe/iPb.png)](https://fred.moe/iPb.png)
+</details>
+<br/>
+
 This also allows you to take advantage of Java hotswapping, which you can enable in IDEA like so:
 <details><summary>Click me</summary>
 
-[![Hot swapping settings](https://fred.moe/XhC.png)](https://fred.moe/XhC.png)
+[![Hot swapping settings in IDEA](https://fred.moe/XhC.png)](https://fred.moe/XhC.png)
 </details>
 <br/>
 
 Reloading while the bot is running will have your changes hot swapped, so there is no need to fully restart it each time when you are rapidly testing out a lot of small changes.
 <details><summary>Click me</summary>
 
-[![Reloading changed classes](https://fred.moe/pFG.png)](https://fred.moe/pFG.png)
+[![Reloading changed classes in IDEA](https://fred.moe/pFG.png)](https://fred.moe/pFG.png)
 </details>
 <br/>
 

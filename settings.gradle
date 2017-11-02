@@ -1,0 +1,8 @@
+rootProject.name = 'FredBoat-Root'
+include ':FredBoat'
+include ':Bootloader'
+include ':Shared'
+
+project(':FredBoat').projectDir = "$rootDir/FredBoat" as File
+project(':Bootloader').projectDir = "$rootDir/Bootloader" as File
+project(':Shared').projectDir = "$rootDir/Shared" as File

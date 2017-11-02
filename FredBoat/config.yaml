@@ -6,6 +6,7 @@ restServerEnabled: true        # Set this to false if you are running multiple F
 admins:            []          # Add comma separated userIds and roleIds that should have access to bot admin commands
 useAutoBlacklist:  true        # Set to true to automatically blacklist users who frequently hit the rate limits
 game:              ""          # Set the displayed game/status. Leave empty quote marks for the default status
+continuePlayback:  false        # Set to true to force the player to continue playback even if left alone
 
 enableYouTube:     true        # Set to true to enable playing YouTube links
 enableSoundCloud:  true        # Set to true to enable playing SoundCloud links
@@ -16,3 +17,5 @@ enableMixer:       true        # Set to true to enable playing Mixer links
 enableSpotify:     true        # Set to true to enable playing Spotify links
 enableHttp:        true        # Set to true to enable playing direct links
 
+# THIS IS TEMPORARY UNTIL COMMANDS ARE MODULARIZED
+tempUseVoiceChannelCleanup: true # This acts as an override if set to false no vcCleanupAgent will be run

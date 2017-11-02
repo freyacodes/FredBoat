@@ -1,0 +1,38 @@
+allprojects {
+    repositories {
+        mavenCentral()                     // main maven repo
+        jcenter()                          // JDA and some other stuff
+        mavenLocal()                       // useful for developing
+        maven { url "https://jitpack.io" } // build projects directly from github
+    }
+
+    apply plugin: 'idea'
+    group = 'com.fredboat'
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    compileJava.dependsOn 'clean'
+    compileJava.options.encoding = 'UTF-8'
+    compileJava.options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+}
+
+version = '1.0'
+ext {
+    moduleName = 'FredBoat-Root'
+}
+
+import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.2.1'
+    distributionType = DistributionType.ALL
+}

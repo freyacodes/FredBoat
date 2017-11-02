@@ -27,6 +27,7 @@ package fredboat.command.maintenance;
 
 import fredboat.audio.player.AudioLossCounter;
 import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
@@ -36,6 +37,7 @@ import fredboat.util.TextUtils;
 
 import javax.annotation.Nonnull;
 
+
 public class AudioDebugCommand extends Command implements IMaintenanceCommand {
 
     public AudioDebugCommand(String name, String... aliases) {
@@ -44,6 +46,19 @@ public class AudioDebugCommand extends Command implements IMaintenanceCommand {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
+        if (LavalinkManager.ins.isEnabled()) {
+            handleLavalink(context);
+        } else {
+            handleLavaplayer(context);
+        }
+    }
+
+    private void handleLavalink(CommandContext context) {
+        context.replyWithName("LavaLink is enabled! Showing LavaLink status instead.");
+        NodesCommand.handleLavalink(context);
+    }
+
+    private void handleLavaplayer(CommandContext context) {
         String msg = "";
         GuildPlayer guildPlayer = PlayerRegistry.getExisting(context.guild);
 
@@ -61,7 +76,6 @@ public class AudioDebugCommand extends Command implements IMaintenanceCommand {
         context.replyWithName(msg);
 
     }
-
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {

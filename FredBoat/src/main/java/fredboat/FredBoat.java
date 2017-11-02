@@ -26,10 +26,7 @@
 package fredboat;
 
 import com.sedmelluq.discord.lavaplayer.tools.PlayerLibrary;
-import fredboat.agent.CarbonitexAgent;
-import fredboat.agent.DBConnectionWatchdogAgent;
-import fredboat.agent.FredBoatAgent;
-import fredboat.agent.StatsAgent;
+import fredboat.agent.*;
 import fredboat.api.API;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.queue.MusicPersistenceHandler;
@@ -45,6 +42,7 @@ import fredboat.util.AppInfo;
 import fredboat.util.ConnectQueue;
 import fredboat.util.GitRepoState;
 import fredboat.util.JDAUtil;
+import fredboat.util.TextUtils;
 import fredboat.util.rest.Http;
 import fredboat.util.rest.OpenWeatherAPI;
 import fredboat.util.rest.models.weather.RetrievedWeather;
@@ -150,6 +148,14 @@ public abstract class FredBoat {
             MainCommandInitializer.initCommands();
 
         MusicCommandInitializer.initCommands();
+
+        if (!Config.CONFIG.isPatronDistribution() && Config.CONFIG.useVoiceChannelCleanup()) {
+            log.info("Starting VoiceChannelCleanupAgent.");
+            FredBoatAgent.start(new VoiceChannelCleanupAgent());
+        } else {
+            log.info("Skipped setting up the VoiceChannelCleanupAgent, " +
+                    "either running Patron distro or overridden by temp config");
+        }
 
         log.info("Loaded commands, registry size is " + CommandRegistry.getSize());
 
@@ -441,7 +447,7 @@ public abstract class FredBoat {
                 + "\n\tVersion:       " + AppInfo.getAppInfo().VERSION
                 + "\n\tBuild:         " + AppInfo.getAppInfo().BUILD_NUMBER
                 + "\n\tCommit:        " + GitRepoState.getGitRepositoryState().commitIdAbbrev + " (" + GitRepoState.getGitRepositoryState().branch + ")"
-                + "\n\tCommit time:   " + GitRepoState.getGitRepositoryState().commitTime
+                + "\n\tCommit time:   " + TextUtils.asTimeInCentralEurope(GitRepoState.getGitRepositoryState().commitTime)
                 + "\n\tJVM:           " + System.getProperty("java.version")
                 + "\n\tJDA:           " + JDAInfo.VERSION
                 + "\n\tLavaplayer     " + PlayerLibrary.VERSION

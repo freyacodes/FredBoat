@@ -24,9 +24,6 @@
 
 package fredboat.commandmeta.init;
 
-import fredboat.Config;
-import fredboat.agent.FredBoatAgent;
-import fredboat.agent.VoiceChannelCleanupAgent;
 import fredboat.command.admin.*;
 import fredboat.command.maintenance.*;
 import fredboat.command.moderation.*;
@@ -46,7 +43,6 @@ import fredboat.command.util.MusicHelpCommand;
 import fredboat.command.util.UserInfoCommand;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.perms.PermissionLevel;
-import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.rest.SearchUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,6 +99,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand(new GitInfoCommand("mgitinfo", "mgit"));
         CommandRegistry.registerCommand(new UnblacklistCommand("munblacklist", "munlimit"));
         CommandRegistry.registerCommand(new ExitCommand("mexit"));
+        CommandRegistry.registerCommand(new LeaveServerCommand("mleaveserver"));
         CommandRegistry.registerCommand(new BotRestartCommand("mbotrestart"));
         CommandRegistry.registerCommand(new StatsCommand("mstats"));
         CommandRegistry.registerCommand(new EvalCommand("meval"));
@@ -133,13 +130,6 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand(new PermissionsCommand(PermissionLevel.ADMIN, "admin"));
         CommandRegistry.registerCommand(new PermissionsCommand(PermissionLevel.DJ, "dj"));
         CommandRegistry.registerCommand(new PermissionsCommand(PermissionLevel.USER, "user"));
-
-        // The null check is to ensure we can run this in a test run
-        if (Config.CONFIG == null || Config.CONFIG.getDistribution() != DistributionEnum.PATRON) {
-            FredBoatAgent.start(new VoiceChannelCleanupAgent());
-        } else {
-            log.info("Skipped setting up the VoiceChannelCleanupAgent since we are running as PATRON distribution.");
-        }
     }
 
     /**

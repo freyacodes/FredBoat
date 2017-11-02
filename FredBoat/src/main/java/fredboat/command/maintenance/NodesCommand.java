@@ -62,7 +62,7 @@ public class NodesCommand extends Command implements IMaintenanceCommand {
     }
 
     @SuppressWarnings("StringConcatenationInLoop")
-    private void handleLavalink(CommandContext context) {
+    static void handleLavalink(CommandContext context) {
         Lavalink lavalink = LavalinkManager.ins.getLavalink();
         if (context.hasArguments() && !context.args[0].equals("host")) {
             try {
