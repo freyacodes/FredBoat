@@ -43,10 +43,10 @@ import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.List;
-import java.util.Arrays;
 
 public class TextUtils {
 
@@ -310,5 +310,17 @@ public class TextUtils {
             log.error("Could not parse epoch millis as long, returning 0", e);
         }
         return TIME_IN_CENTRAL_EUROPE.format(Instant.ofEpochMilli(millis));
+    }
+
+    //returns the input shortened to the requested size, replacing the last 3 characters with dots
+    public static String shorten(@Nonnull String input, int size) {
+        if (input.length() <= size) {
+            return input;
+        }
+        StringBuilder shortened = new StringBuilder(input.substring(0, Math.max(0, size - 3)));
+        while (shortened.length() < size) {
+            shortened.append(".");
+        }
+        return shortened.toString();
     }
 }
