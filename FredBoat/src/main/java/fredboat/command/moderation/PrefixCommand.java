@@ -76,8 +76,7 @@ public class PrefixCommand extends Command implements IModerationCommand {
     public void onInvoke(@Nonnull CommandContext context) {
 
         if (context.rawArgs.isEmpty()) {
-            context.reply(context.i18nFormat("prefixCurrent",
-                    "**" + TextUtils.escapeMarkdown(context.getPrefix()) + "**"));
+            showPrefix(context, context.getPrefix());
             return;
         }
 
@@ -88,6 +87,11 @@ public class PrefixCommand extends Command implements IModerationCommand {
         //considering this is an admin level command, we can allow users to do whatever they want with their guild
         // prefix, so no checks are necessary here
         String newPrefix = context.rawArgs;
+
+        if (newPrefix.equalsIgnoreCase("no_prefix")) {
+            newPrefix = ""; //allow users to set an empty prefix with a special keyword
+        }
+
         GuildConfig gf = EntityReader.getGuildConfig(context.guild.getId());
         gf.setPrefix(newPrefix);
         EntityWriter.mergeGuildConfig(gf);
@@ -96,12 +100,18 @@ public class PrefixCommand extends Command implements IModerationCommand {
         // as being the single source of truth for prefixes
         CUSTOM_PREFIXES.invalidate(context.guild.getIdLong());
 
-        context.reply(context.i18nFormat("prefixNew", "**" + TextUtils.escapeMarkdown(newPrefix) + "**"));
+        showPrefix(context, newPrefix);
+    }
+
+    private void showPrefix(Context context, String prefix) {
+        String escapedPrefix = prefix.isEmpty() ? "No Prefix" : TextUtils.escapeMarkdown(prefix);
+        context.reply(context.i18nFormat("prefixGuild", "**" + escapedPrefix + "**")
+                + "\n" + context.i18n("prefixShowAgain"));
     }
 
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1} <prefix>\n#" + context.i18n("helpPrefixCommand");
+        return "{0}{1} <prefix> OR {0}{1} no_prefix\n#" + context.i18n("helpPrefixCommand");
     }
 }
