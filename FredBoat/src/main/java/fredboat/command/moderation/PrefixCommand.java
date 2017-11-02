@@ -39,6 +39,7 @@ import fredboat.db.entity.GuildConfig;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
+import fredboat.util.TextUtils;
 
 import javax.annotation.Nonnull;
 import java.util.Optional;
@@ -75,7 +76,8 @@ public class PrefixCommand extends Command implements IModerationCommand {
     public void onInvoke(@Nonnull CommandContext context) {
 
         if (context.rawArgs.isEmpty()) {
-            context.reply(context.i18nFormat("prefixCurrent", "**" + context.getPrefix() + "**"));//todo escape markdown
+            context.reply(context.i18nFormat("prefixCurrent",
+                    "**" + TextUtils.escapeMarkdown(context.getPrefix()) + "**"));
             return;
         }
 
@@ -94,7 +96,7 @@ public class PrefixCommand extends Command implements IModerationCommand {
         // as being the single source of truth for prefixes
         CUSTOM_PREFIXES.invalidate(context.guild.getIdLong());
 
-        context.reply(context.i18nFormat("prefixNew", "**" + newPrefix + "**"));//todo escape markdown
+        context.reply(context.i18nFormat("prefixNew", "**" + TextUtils.escapeMarkdown(newPrefix) + "**"));
     }
 
     @Nonnull

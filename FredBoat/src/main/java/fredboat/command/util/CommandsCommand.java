@@ -38,6 +38,7 @@ import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.Permission;
 
 import javax.annotation.Nonnull;
@@ -138,7 +139,8 @@ public class CommandsCommand extends Command implements IUtilCommand {
             out += "\n" + owner;
         }
 
-        out += "\n\n" + context.i18nFormat("commandsMoreHelp", "`" + context.getPrefix() + "help <command>`");//todo escape markdown
+        out += "\n\n" + context.i18nFormat("commandsMoreHelp",
+                "`" + TextUtils.escapeMarkdown(context.getPrefix()) + "help <command>`");
         context.reply(out);
     }
 

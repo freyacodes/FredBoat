@@ -94,7 +94,7 @@ public class HelpCommand extends Command implements IUtilCommand {
                     helpReceivedRecently.put(userId, true);
                     String out = context.i18n("helpSent");
                     out += "\n" + context.i18nFormat("helpCommandsPromotion",
-                            "`" + context.getPrefix() + "commands`");//todo escape markdown
+                            "`" + TextUtils.escapeMarkdown(context.getPrefix()) + "commands`");
                     if (context.hasPermissions(Permission.MESSAGE_WRITE)) {
                         context.replyWithName(out);
                     }
@@ -125,7 +125,8 @@ public class HelpCommand extends Command implements IUtilCommand {
         if (command instanceof SelectCommand)
             thirdParam = "play";
 
-        return MessageFormat.format(helpStr, PrefixCommand.giefPrefix(context.getGuild().getIdLong()), commandOrAlias, thirdParam);//todo escape markdown
+        return MessageFormat.format(helpStr, TextUtils.escapeMarkdown(PrefixCommand.giefPrefix(context.getGuild().getIdLong())),
+                commandOrAlias, thirdParam);
     }
 
     public static void sendFormattedCommandHelp(CommandContext context) {
@@ -135,9 +136,9 @@ public class HelpCommand extends Command implements IUtilCommand {
     private static void sendFormattedCommandHelp(CommandContext context, String trigger) {
         CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(trigger);
         if (commandEntry == null) {
-            String out = "`" + context.getPrefix() + trigger + "`: " + context.i18n("helpUnknownCommand");//todo escape markdown
+            String out = "`" + TextUtils.escapeMarkdown(context.getPrefix()) + trigger + "`: " + context.i18n("helpUnknownCommand");
             out += "\n" + context.i18nFormat("helpCommandsPromotion",
-                    "`" + context.getPrefix() + "commands`");//todo escape markdown
+                    "`" + TextUtils.escapeMarkdown(context.getPrefix()) + "commands`");
             context.replyWithName(out);
             return;
         }

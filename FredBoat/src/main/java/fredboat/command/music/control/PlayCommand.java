@@ -157,7 +157,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
                 }
 
                 MessageBuilder builder = CentralMessaging.getClearThreadLocalMessageBuilder();
-                builder.append(context.i18nFormat("playSelectVideo", context.getPrefix()));//todo escape markdown
+                builder.append(context.i18nFormat("playSelectVideo", TextUtils.escapeMarkdown(context.getPrefix())));
 
                 int i = 1;
                 for (AudioTrack track : selectable) {
