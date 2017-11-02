@@ -123,6 +123,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand(new SetAvatarCommand("setavatar"));
 
         /* Bot configuration */
+        CommandRegistry.registerCommand(new PrefixCommand("prefix", "pre"));
         CommandRegistry.registerCommand(new ConfigCommand("config", "cfg"));
         CommandRegistry.registerCommand(new LanguageCommand("language", "lang"));
         

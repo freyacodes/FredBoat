@@ -62,7 +62,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand(new KickCommand("kick"));
         CommandRegistry.registerCommand(new SoftbanCommand("softban"));
         CommandRegistry.registerCommand(new ClearCommand("clear"));
-        CommandRegistry.registerCommand(new PrefixCommand("prefix"));
+        CommandRegistry.registerCommand(new PrefixCommand("prefix", "pre"));
         
         /* Util */
         CommandRegistry.registerCommand(new ServerInfoCommand("serverinfo", "guildinfo"));
