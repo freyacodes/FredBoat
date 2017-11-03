@@ -1,11 +1,11 @@
 **
-#ignore everything except the following files, they are used in the dev and CI Dockerfiles
+#ignore everything except the following files, they are used in the Dockerfile to build the fredboat image
 !Dockerfile
 !FredBoat.jar
-!FredBoat/target/FredBoat.jar
-!FredBoat-Bootloader.jar
-!FredBoat-Bootloader/target/FredBoat-Bootloader.jar
+!FredBoat/build/libs/FredBoat.jar
+!Bootloader.jar
+!Bootloader/build/libs/Bootloader.jar
 !bootloader.json
-!FredBoat-Bootloader/bootloader.json
+!Bootloader/bootloader.json
 !config.yaml
 !FredBoat/config.yaml
