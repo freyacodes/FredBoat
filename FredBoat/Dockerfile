@@ -2,7 +2,7 @@
 # If you are updating this one, you probably also want to update the CI Dockerfile at docker/Dockerfile
 # The reason for the existence of 2 files are different paths of the files when downloaded from the CI as a zip
 
-FROM sgrio/java-oracle:jre_8
+FROM openjdk:8
 
 ENV ENV docker
 
