@@ -51,6 +51,7 @@ services:
       - ./config.yaml:/opt/FredBoat/config.yaml
       - ./credentials.yaml:/opt/FredBoat/credentials.yaml
       - ./logs:/opt/FredBoat/logs
+      - ./music_persistence:/opt/FredBoat/music_persistence
     # Need a bigger memory size or any other custom JVM args? uncomment and edit the line below accordingly
     #entrypoint: java -jar -Xmx128m FredBoat.jar
 
@@ -65,7 +66,7 @@ services:
   #  restart: on-failure:3
   #  volumes:
   #    - /var/run/docker.sock:/var/run/docker.sock
-  #  command: --interval 300 #seconds
+  #  command: --cleanup --interval 300 #seconds
 
 
   ################################################################################
