@@ -10,4 +10,4 @@ COPY FredBoat.jar /opt/FredBoat/FredBoat.jar
 EXPOSE 1356
 
 WORKDIR /opt/FredBoat
-ENTRYPOINT java -jar -Xmx128m FredBoat.jar
+ENTRYPOINT ["java", "-jar", "-Xmx128m", "FredBoat.jar"]
