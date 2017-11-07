@@ -127,15 +127,14 @@ public abstract class FredBoat {
         }
 
         if (!Config.CONFIG.getJdbcUrl().equals("")) {
-            dbManager = new DatabaseManager(Config.CONFIG.getJdbcUrl(), null, Config.CONFIG.getHikariPoolSize());
+            dbManager = DatabaseManager.postgres();
             dbManager.startup();
             FredBoatAgent.start(new DBConnectionWatchdogAgent(dbManager));
         } else if (Config.CONFIG.getNumShards() > 2) {
             log.warn("No JDBC URL and more than 2 shard found! Initializing the SQLi DB is potentially dangerous too. Skipping...");
         } else {
             log.warn("No JDBC URL found, skipped database connection, falling back to internal SQLite db.");
-            dbManager = new DatabaseManager("jdbc:sqlite:fredboat.db", "org.hibernate.dialect.SQLiteDialect",
-                    Config.CONFIG.getHikariPoolSize());
+            dbManager = DatabaseManager.sqlite();
             dbManager.startup();
         }
 
@@ -447,7 +446,7 @@ public abstract class FredBoat {
                 + "\n\tVersion:       " + AppInfo.getAppInfo().VERSION
                 + "\n\tBuild:         " + AppInfo.getAppInfo().BUILD_NUMBER
                 + "\n\tCommit:        " + GitRepoState.getGitRepositoryState().commitIdAbbrev + " (" + GitRepoState.getGitRepositoryState().branch + ")"
-                + "\n\tCommit time:   " + TextUtils.asTimeInCentralEurope(GitRepoState.getGitRepositoryState().commitTime)
+                + "\n\tCommit time:   " + TextUtils.asTimeInCentralEurope(GitRepoState.getGitRepositoryState().commitTime * 1000)
                 + "\n\tJVM:           " + System.getProperty("java.version")
                 + "\n\tJDA:           " + JDAInfo.VERSION
                 + "\n\tLavaplayer     " + PlayerLibrary.VERSION

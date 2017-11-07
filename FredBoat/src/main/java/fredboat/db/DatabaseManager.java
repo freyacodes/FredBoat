@@ -59,19 +59,38 @@ public class DatabaseManager {
     //local port, if using SSH tunnel point your jdbc to this, e.g. jdbc:postgresql://localhost:9333/...
     private static final int SSH_TUNNEL_PORT = 9333;
 
-    private String jdbcUrl;
-    private String dialect;
-    private int poolSize;
+    private final String jdbcUrl;
+    private final String dialect;
+    private final String driverClassName;
+    private final int poolSize;
 
     /**
-     * @param jdbcUrl  connection to the database
-     * @param dialect  set to null or empty String to have it auto detected by Hibernate, chosen jdbc driver must support that
-     * @param poolSize max size of the connection pool
+     * @param jdbcUrl         connection to the database
+     * @param dialect         set to null or empty String to have it auto detected by Hibernate, chosen jdbc driver must support that
+     * @param driverClassName help hikari autodetect the driver
+     * @param poolSize        max size of the connection pool
      */
-    public DatabaseManager(String jdbcUrl, String dialect, int poolSize) {
+    private DatabaseManager(String jdbcUrl, String dialect, String driverClassName, int poolSize) {
         this.jdbcUrl = jdbcUrl;
         this.dialect = dialect;
+        this.driverClassName = driverClassName;
         this.poolSize = poolSize;
+    }
+
+
+    public static DatabaseManager postgres() {
+        return new DatabaseManager(Config.CONFIG.getJdbcUrl(),
+                "org.hibernate.dialect.PostgreSQL95Dialect",
+                "org.postgresql.Driver",
+                Config.CONFIG.getHikariPoolSize());
+    }
+
+    public static DatabaseManager sqlite() {
+        return new DatabaseManager(
+                "jdbc:sqlite:fredboat.db",
+                "org.hibernate.dialect.SQLiteDialect",
+                "org.sqlite.JDBC",
+                Config.CONFIG.getHikariPoolSize());
     }
 
     /**
@@ -128,6 +147,8 @@ public class DatabaseManager {
 
             //timeout the validation query (will be done automatically through Connection.isValid())
             properties.put("hibernate.hikari.validationTimeout", "1000");
+
+            properties.put("hibernate.hikari.driverClassName", driverClassName);
 
 
             LocalContainerEntityManagerFactoryBean emfb = new LocalContainerEntityManagerFactoryBean();

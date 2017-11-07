@@ -44,9 +44,6 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand(new UnblacklistCommand("unblacklist", "unlimit"));
         CommandRegistry.registerCommand(new VersionCommand("version"));
         CommandRegistry.registerCommand(new StatsCommand("uptime", "stats"));
-        CommandRegistry.registerCommand(new UpdateCommand("update"));
-        CommandRegistry.registerCommand(new CompileCommand("compile"));
-        CommandRegistry.registerCommand(new MavenTestCommand("mvntest"));
         CommandRegistry.registerCommand(new BotRestartCommand("botrestart"));
         CommandRegistry.registerCommand(new EvalCommand("eval"));
         CommandRegistry.registerCommand(new ShardsCommand("shards"));

@@ -48,6 +48,7 @@ import java.util.concurrent.TimeoutException;
  * <p>
  * Attempts to run the "mvn test" command on the bots present sources.
  */
+@Deprecated //we dont use maven anymore. todo decide if can be repurposed for gradle
 public class MavenTestCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(MavenTestCommand.class);

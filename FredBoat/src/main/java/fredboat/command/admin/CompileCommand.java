@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+@Deprecated //we dont use maven anymore. todo decide if can be repurposed for gradle
 public class CompileCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(CompileCommand.class);

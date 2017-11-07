@@ -56,7 +56,7 @@ public class GitRepoState {
     public final String commitUserEmail;
     public final String commitMessageFull;
     public final String commitMessageShort;
-    public final String commitTime;
+    public final long commitTime;
 
     @SuppressWarnings("ConstantConditions")
     public GitRepoState(String propsName) {
@@ -65,7 +65,7 @@ public class GitRepoState {
         try {
             properties.load(GitRepoState.class.getClassLoader().getResourceAsStream(propsName));
         } catch (NullPointerException | IOException e) {
-            log.info("Failed to load git repo information", e); //need to build with maven to get them
+            log.info("Failed to load git repo information", e); //need to build with build tool to get them
         }
 
         this.branch = String.valueOf(properties.getOrDefault("git.branch", ""));
@@ -75,6 +75,6 @@ public class GitRepoState {
         this.commitUserEmail = String.valueOf(properties.getOrDefault("git.commit.user.email", ""));
         this.commitMessageFull = String.valueOf(properties.getOrDefault("git.commit.message.full", ""));
         this.commitMessageShort = String.valueOf(properties.getOrDefault("git.commit.message.short", ""));
-        this.commitTime = String.valueOf(properties.getOrDefault("git.commit.time", "")); //epoch millis
+        this.commitTime = Long.parseLong(String.valueOf(properties.getOrDefault("git.commit.time", "0"))); //epoch seconds
     }
 }
