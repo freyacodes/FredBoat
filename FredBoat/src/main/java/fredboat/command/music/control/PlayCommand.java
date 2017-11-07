@@ -27,7 +27,6 @@ package fredboat.command.music.control;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerLimitManager;
@@ -158,7 +157,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
                 }
 
                 MessageBuilder builder = CentralMessaging.getClearThreadLocalMessageBuilder();
-                builder.append(context.i18nFormat("playSelectVideo", Config.CONFIG.getPrefix()));
+                builder.append(context.i18nFormat("playSelectVideo", TextUtils.escapeMarkdown(context.getPrefix())));
 
                 int i = 1;
                 for (AudioTrack track : selectable) {

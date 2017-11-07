@@ -106,11 +106,6 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
                 playerManager.enableGcMonitoring(); //we are playing tracks locally
             }
             playerManager.setFrameBufferDuration(1000);
-
-            if (Config.CONFIG.getDistribution() != DistributionEnum.DEVELOPMENT && Config.CONFIG.isLavaplayerNodesEnabled()) {
-                playerManager.useRemoteNodes(Config.CONFIG.getLavaplayerNodes());
-            }
-            
             playerManager.setItemLoaderThreadPoolSize(500);
         }
     }
@@ -399,15 +394,14 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
 
     @Override
     public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
-        if(Config.CONFIG.getLavaplayerNodes().length > 0) {
-            log.error("Lavaplayer encountered an exception during playback while playing " + track.getIdentifier(), exception);
-            log.error("Performance stats for errored track: " + audioLossCounter);
-        }
+        log.error("Lavaplayer encountered an exception while playing {}" +
+                "\nPerformance stats for errored track: {}", track.getIdentifier(), audioLossCounter, exception);
     }
 
     @Override
     public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
-        log.error("Lavaplayer got stuck while playing " + track.getIdentifier() + "\nPerformance stats for stuck track: " + audioLossCounter);
+        log.error("Lavaplayer got stuck while playing {}\nPerformance stats for stuck track: {}",
+                track.getIdentifier(), audioLossCounter);
     }
 
     public long getPosition() {

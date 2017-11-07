@@ -290,7 +290,7 @@ public abstract class FredBoat {
     }
 
     private static void initBotShards(EventListenerBoat mainListener) {
-        for (int i = 0; i < Config.CONFIG.getNumShards(); i++) {
+        for (int i = 0; i < Config.getNumShards(); i++) {
             try {
                 //NOTE: This will take a while since creating shards happens in a blocking fashion
                 shards.add(i, new FredBoatShard(i, mainListener));
@@ -458,7 +458,7 @@ public abstract class FredBoat {
                 + "\n\tVersion:       " + AppInfo.getAppInfo().VERSION
                 + "\n\tBuild:         " + AppInfo.getAppInfo().BUILD_NUMBER
                 + "\n\tCommit:        " + GitRepoState.getGitRepositoryState().commitIdAbbrev + " (" + GitRepoState.getGitRepositoryState().branch + ")"
-                + "\n\tCommit time:   " + TextUtils.asTimeInCentralEurope(GitRepoState.getGitRepositoryState().commitTime)
+                + "\n\tCommit time:   " + TextUtils.asTimeInCentralEurope(GitRepoState.getGitRepositoryState().commitTime * 1000)
                 + "\n\tJVM:           " + System.getProperty("java.version")
                 + "\n\tJDA:           " + JDAInfo.VERSION
                 + "\n\tLavaplayer     " + PlayerLibrary.VERSION

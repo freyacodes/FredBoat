@@ -72,7 +72,7 @@ public class GitInfoCommand extends Command implements IMaintenanceCommand {
         embedBuilder.addField("Commit info", gitRepoState.commitMessageFull, false);
         embedBuilder.addField("Commit on Github", url, false);
 
-        embedBuilder.addField("Commit timestamp", TextUtils.asTimeInCentralEurope(gitRepoState.commitTime), true);
+        embedBuilder.addField("Commit timestamp", TextUtils.asTimeInCentralEurope(gitRepoState.commitTime * 1000), true);
         embedBuilder.addField("Branch", gitRepoState.branch, true);
         embedBuilder.addField("Commited by", gitRepoState.commitUserName, true);
 
@@ -80,8 +80,7 @@ public class GitInfoCommand extends Command implements IMaintenanceCommand {
         embedBuilder.setThumbnail(octocats.getRandomImageUrl());//github octocat thumbnail
 
         try {
-            long epochMillis = Long.parseLong(gitRepoState.commitTime);
-            embedBuilder.setTimestamp(Instant.ofEpochMilli(epochMillis));
+            embedBuilder.setTimestamp(Instant.ofEpochSecond(gitRepoState.commitTime));
             embedBuilder.setFooter("Built on", "http://i.imgur.com/RjWwxlg.png");
         } catch (NumberFormatException ignored) {
         }

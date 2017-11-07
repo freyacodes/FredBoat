@@ -34,6 +34,7 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 
@@ -72,7 +73,7 @@ public class LanguageCommand extends Command implements IModerationCommand {
 
     private void handleNoArgs(CommandContext context) {
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(context.i18n("langInfo").replace(Config.DEFAULT_PREFIX, Config.CONFIG.getPrefix()))//todo custom prefix
+                .append(context.i18n("langInfo").replace(Config.DEFAULT_PREFIX, TextUtils.escapeMarkdown(context.getPrefix())))
                 .append("\n\n");
 
         List<String> keys = new ArrayList<>(I18n.LANGS.keySet());

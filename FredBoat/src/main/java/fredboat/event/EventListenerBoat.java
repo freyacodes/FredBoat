@@ -41,6 +41,7 @@ import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
 import fredboat.util.DiscordUtil;
+import fredboat.util.TextUtils;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
 import io.prometheus.client.Histogram;
@@ -156,7 +157,7 @@ public class EventListenerBoat extends AbstractEventListener {
             if (ratelimiterResult.b == SkipCommand.class) { //we can compare classes with == as long as we are using the same classloader (which we are)
                 //add a nice reminder on how to skip more than 1 song
                 out += "\n" + context.i18nFormat("ratelimitedSkipCommand",
-                        "`" + Config.CONFIG.getPrefix() + "skip n-m`");
+                        "`" + TextUtils.escapeMarkdown(context.getPrefix()) + "skip n-m`");
             }
             context.replyWithMention(out);
         }

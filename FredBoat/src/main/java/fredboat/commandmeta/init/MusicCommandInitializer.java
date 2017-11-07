@@ -28,19 +28,9 @@ import fredboat.command.admin.*;
 import fredboat.command.maintenance.*;
 import fredboat.command.moderation.*;
 import fredboat.command.music.control.*;
-import fredboat.command.music.info.ExportCommand;
-import fredboat.command.music.info.GensokyoRadioCommand;
-import fredboat.command.music.info.HistoryCommand;
-import fredboat.command.music.info.ListCommand;
-import fredboat.command.music.info.NowplayingCommand;
-import fredboat.command.music.seeking.ForwardCommand;
-import fredboat.command.music.seeking.RestartCommand;
-import fredboat.command.music.seeking.RewindCommand;
-import fredboat.command.music.seeking.SeekCommand;
-import fredboat.command.util.CommandsCommand;
-import fredboat.command.util.HelpCommand;
-import fredboat.command.util.MusicHelpCommand;
-import fredboat.command.util.UserInfoCommand;
+import fredboat.command.music.info.*;
+import fredboat.command.music.seeking.*;
+import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.rest.SearchUtil;
@@ -103,9 +93,6 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand(new BotRestartCommand("mbotrestart"));
         CommandRegistry.registerCommand(new StatsCommand("mstats"));
         CommandRegistry.registerCommand(new EvalCommand("meval"));
-        CommandRegistry.registerCommand(new UpdateCommand("mupdate"));
-        CommandRegistry.registerCommand(new CompileCommand("mcompile"));
-        CommandRegistry.registerCommand(new MavenTestCommand("mmvntest"));
         CommandRegistry.registerCommand(new GetIdCommand("getid"));
         CommandRegistry.registerCommand(new PlayerDebugCommand("playerdebug"));
         CommandRegistry.registerCommand(new NodesCommand("nodes"));
@@ -123,6 +110,7 @@ public class MusicCommandInitializer {
         CommandRegistry.registerCommand(new SetAvatarCommand("setavatar"));
 
         /* Bot configuration */
+        CommandRegistry.registerCommand(new PrefixCommand("prefix", "pre"));
         CommandRegistry.registerCommand(new ConfigCommand("config", "cfg"));
         CommandRegistry.registerCommand(new LanguageCommand("language", "lang"));
         

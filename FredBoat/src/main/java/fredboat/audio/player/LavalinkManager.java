@@ -53,7 +53,7 @@ public class LavalinkManager {
 
         lavalink = new Lavalink(
                 userId,
-                Config.CONFIG.getNumShards(),
+                Config.getNumShards(),
                 shardId -> FredBoat.getShard(shardId).getJda()
         );
 

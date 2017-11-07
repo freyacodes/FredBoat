@@ -32,7 +32,7 @@ shadowJar {
 dependencies {
     compile project(':Shared')
     compile group: 'net.dv8tion', name: 'JDA', version: '3.3.1_300'
-    compile group: 'com.sedmelluq', name: 'lavaplayer', version: '1.2.44'
+    compile group: 'com.github.FredBoat', name: 'lavaplayer', version: '1.2.44.2-FredBoat'
     compile group: 'com.github.FredBoat', name: 'jda-nas', version: '1.0.5.1-JDA'
 
     if (System.getenv('dev') == 'true') {
@@ -86,10 +86,12 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 processResources {
     //inject values into app.properties
-    filter ReplaceTokens, tokens: [
-            "project.version"   : project.version,
-            "project.groupId"   : project.group,
-            "project.artifactId": project.ext.moduleName,
-            "env.BUILD_NUMBER"  : (System.getenv('CI') ? System.getenv('BUILD_NUMBER') : 'DEV')
-    ]
+    filesMatching("**/*.properties") {
+        filter ReplaceTokens, tokens: [
+                "project.version"   : project.version,
+                "project.groupId"   : project.group,
+                "project.artifactId": project.ext.moduleName,
+                "env.BUILD_NUMBER"  : (System.getenv('CI') ? System.getenv('BUILD_NUMBER') : 'DEV')
+        ]
+    }
 }

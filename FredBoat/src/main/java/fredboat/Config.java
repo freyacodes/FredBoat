@@ -39,25 +39,18 @@ import org.yaml.snakeyaml.error.YAMLException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 public class Config {
 
     private static final Logger log = LoggerFactory.getLogger(Config.class);
 
     public static String DEFAULT_PREFIX = ";;";
-    //see https://github.com/brettwooldridge/HikariCP connectionTimeout
-    public static int HIKARI_TIMEOUT_MILLISECONDS = 1000;
 
     public static final Config CONFIG;
 
@@ -75,55 +68,68 @@ public class Config {
         CONFIG = c;
     }
 
-    private final DistributionEnum distribution;
-    private final String botToken;
-    private final String jdbcUrl;
-    private final int hikariPoolSize;
-    private int numShards;
+    //Config
+
+    private DistributionEnum distribution;
+    private String prefix;
+    private boolean restServerEnabled;
+    private List<String> adminIds = new ArrayList<>();
+    private boolean useAutoBlacklist;
+    private String game;
+    private boolean continuePlayback;
+
+    // audio managers
+    private boolean youtubeAudio;
+    private boolean soundcloudAudio;
+    private boolean bandcampAudio;
+    private boolean twitchAudio;
+    private boolean vimeoAudio;
+    private boolean mixerAudio;
+    private boolean spotifyAudio;
+    private boolean httpAudio;
+
+    // temporary config values todo remove after merging main + music
+    private boolean useVoiceChannelCleanup;
+
+
+    //Credentials
+
+    // essential
+    private String botToken;
+    private List<String> googleKeys = new ArrayList<>();
+
+    // apis
     private String malUser;
     private String malPassword;
     private String imgurClientId;
-    private List<String> googleKeys = new ArrayList<>();
-    private final String[] lavaplayerNodes;
-    private final boolean lavaplayerNodesEnabled;
-    private String carbonKey;
     private String spotifyId;
     private String spotifySecret;
-    private String prefix = DEFAULT_PREFIX;
-    private boolean restServerEnabled = true;
-    private List<String> adminIds = new ArrayList<>();
-    private boolean useAutoBlacklist = false;
-    private String game = "";
-    private boolean continuePlayback = false;
-    private List<LavalinkHost> lavalinkHosts = new ArrayList<>();
     private String openWeatherKey;
+
+    // database + SSH tunnel
+    private String jdbcUrl;
+    private boolean useSshTunnel;
+    private String sshHost; //Eg localhost:22
+    private String sshUser; //Eg fredboat
+    private String sshPrivateKeyFile;
+    private int forwardToPort; //port where the remote database is listening, postgres default: 5432
+
+    // misc
     private String sentryDsn;
+    private List<LavalinkHost> lavalinkHosts = new ArrayList<>();
     private long eventLogWebhookId;
     private String eventLogWebhookToken;
-
-    //testing related stuff
     private String testBotToken;
     private String testChannelId;
 
-    // SSH tunnel stuff
-    private final boolean useSshTunnel;
-    private final String sshHost; //Eg localhost:22
-    private final String sshUser; //Eg fredboat
-    private final String sshPrivateKeyFile;
-    private final int forwardToPort; //port where the remote database is listening, postgres default: 5432
 
-    //AudioManager Stuff
-    private Boolean youtubeAudio;
-    private Boolean soundcloudAudio;
-    private Boolean bandcampAudio;
-    private Boolean twitchAudio;
-    private Boolean vimeoAudio;
-    private Boolean mixerAudio;
-    private Boolean spotifyAudio;
-    private Boolean httpAudio;
+    // unofficial creds
+    private String carbonKey;
 
-    //Temp configs
-    private boolean useVoiceChannelCleanup = true;
+
+    //Derived Config values
+    private int hikariPoolSize;
+    private int numShards;
 
     @SuppressWarnings("unchecked")
     public Config(File credentialsFile, File configFile) {
@@ -134,11 +140,9 @@ public class Config {
             //remove those pesky tab characters so a potential json file is YAML conform
             credsFileStr = cleanTabs(credsFileStr, "credentials.yaml");
             configFileStr = cleanTabs(configFileStr, "config.yaml");
-            Map<String, Object> creds;
-            Map<String, Object> config;
 
-            creds = (Map<String, Object>) yaml.load(credsFileStr);
-            config = (Map<String, Object>) yaml.load(configFileStr);
+            Map<String, Object> creds = yaml.load(credsFileStr);
+            Map<String, Object> config = yaml.load(configFileStr);
 
             //avoid null values, rather change them to empty strings
             creds.keySet().forEach((String key) -> creds.putIfAbsent(key, ""));
@@ -152,19 +156,22 @@ public class Config {
                 SentryDsnCommand.turnOff();
             }
 
+
+            //Load Config values
+
             // Determine distribution
             if ((boolean) config.getOrDefault("patron", false)) {
                 distribution = DistributionEnum.PATRON;
-            } else if ((boolean) config.getOrDefault("development", false)) {//Determine distribution
+            } else if ((boolean) config.getOrDefault("development", false)) {
                 distribution = DistributionEnum.DEVELOPMENT;
             } else {
                 distribution = DistributionEnum.MUSIC;
             }
-
             log.info("Determined distribution: " + distribution);
 
-            prefix = (String) config.getOrDefault("prefix", prefix);
-            restServerEnabled = (boolean) config.getOrDefault("restServerEnabled", restServerEnabled);
+            prefix = (String) config.getOrDefault("prefix", DEFAULT_PREFIX);
+            log.info("Using prefix: " + prefix);
+            restServerEnabled = (boolean) config.getOrDefault("restServerEnabled", true);
 
             Object admins = config.get("admins");
             if (admins instanceof List) {
@@ -172,104 +179,11 @@ public class Config {
             } else if (admins instanceof String) {
                 adminIds.add(admins + "");
             }
-            useAutoBlacklist = (boolean) config.getOrDefault("useAutoBlacklist", useAutoBlacklist);
+            useAutoBlacklist = (boolean) config.getOrDefault("useAutoBlacklist", true);
             game = (String) config.getOrDefault("game", "");
-            continuePlayback = (boolean) config.getOrDefault("continuePlayback", continuePlayback);
+            continuePlayback = (boolean) config.getOrDefault("continuePlayback", false);
 
-            log.info("Using prefix: " + prefix);
-
-            malUser = (String) creds.getOrDefault("malUser", "");
-            malPassword = (String) creds.getOrDefault("malPassword", "");
-            carbonKey = (String) creds.getOrDefault("carbonKey", "");
-            Map<String, String> token = (Map) creds.get("token");
-            if (token != null) {
-                botToken = token.getOrDefault(distribution.getId(), "");
-            } else botToken = "";
-            if (botToken == null || botToken.isEmpty()) {
-                throw new RuntimeException("No discord bot token provided for the started distribution " + distribution
-                        + "\nMake sure to put a " + distribution.getId() + " token in your credentials file.");
-            }
-
-            spotifyId = (String) creds.getOrDefault("spotifyId", "");
-            spotifySecret = (String) creds.getOrDefault("spotifySecret", "");
-
-            jdbcUrl = (String) creds.getOrDefault("jdbcUrl", "");
-
-            openWeatherKey = (String) creds.getOrDefault("openWeatherKey", "");
-
-            eventLogWebhookId = (long) creds.getOrDefault("eventLogWebhookId", 0L);
-            eventLogWebhookToken = (String) creds.getOrDefault("eventLogWebhookToken", "");
-
-            Object gkeys = creds.get("googleServerKeys");
-            if (gkeys instanceof List) {
-                ((List) gkeys).forEach((Object str) -> googleKeys.add((String) str));
-            } else if (gkeys instanceof String) {
-                googleKeys.add((String) gkeys);
-            } else {
-                log.warn("No google API keys found. Some commands may not work, check the documentation.");
-            }
-
-            List<String> nodesArray = (List) creds.get("lavaplayerNodes");
-            if (nodesArray != null) {
-                lavaplayerNodesEnabled = true;
-                log.info("Using lavaplayer nodes");
-                lavaplayerNodes = nodesArray.toArray(new String[nodesArray.size()]);
-            } else {
-                lavaplayerNodesEnabled = false;
-                lavaplayerNodes = new String[0];
-                //log.info("Not using lavaplayer nodes. Audio playback will be processed locally.");
-            }
-
-            Map<String, String> linkNodes = (Map<String, String>) creds.get("lavalinkHosts");
-            if (linkNodes != null) {
-                linkNodes.forEach((s, s2) -> {
-                    try {
-                        lavalinkHosts.add(new LavalinkHost(new URI(s), s2));
-                        log.info("Lavalink node added: " + new URI(s));
-                    } catch (URISyntaxException e) {
-                        throw new RuntimeException("Failed parsing URI", e);
-                    }
-                });
-            }
-
-            //this is the first request on start
-            //it sometimes fails cause network isn't set up yet. wait 10 sec and try one more time in that case
-            try {
-                numShards = DiscordUtil.getRecommendedShardCount(getBotToken());
-            } catch (Exception e) {
-                try {
-                    Thread.sleep(10000);
-                } catch (InterruptedException ex) {
-                    //duh
-                }
-                numShards = DiscordUtil.getRecommendedShardCount(getBotToken());
-            }
-            log.info("Discord recommends " + numShards + " shard(s)");
-
-            //more database connections don't help with performance, so use a value based on available cores
-            //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
-            if (jdbcUrl == null || "".equals(jdbcUrl) || distribution == DistributionEnum.DEVELOPMENT)
-                //more than one connection for the fallback sqlite db is problematic as there is currently (2017-04-16)
-                // no supported way in the custom driver and/or dialect to set lock timeouts
-                hikariPoolSize = 1;
-            else hikariPoolSize = Runtime.getRuntime().availableProcessors() * 2;
-            log.info("Hikari max pool size set to " + hikariPoolSize);
-
-            imgurClientId = (String) creds.getOrDefault("imgurClientId", "");
-
-            testBotToken = (String) creds.getOrDefault("testToken", "");
-            testChannelId = creds.getOrDefault("testChannelId", "") + "";
-
-            PlayerLimitManager.setLimit((Integer) config.getOrDefault("playerLimit", -1));
-
-            useSshTunnel = (boolean) creds.getOrDefault("useSshTunnel", false);
-            sshHost = (String) creds.getOrDefault("sshHost", "localhost:22");
-            sshUser = (String) creds.getOrDefault("sshUser", "fredboat");
-            sshPrivateKeyFile = (String) creds.getOrDefault("sshPrivateKeyFile", "database.ppk");
-            forwardToPort = (int) creds.getOrDefault("forwardToPort", 5432);
-
-            //Modularise audiomanagers; load from "config.yaml"
-
+            //Modular audiomanagers
             youtubeAudio = (Boolean) config.getOrDefault("enableYouTube", true);
             soundcloudAudio = (Boolean) config.getOrDefault("enableSoundCloud", true);
             bandcampAudio = (Boolean) config.getOrDefault("enableBandCamp", true);
@@ -282,48 +196,121 @@ public class Config {
             //temp configs
             useVoiceChannelCleanup = (boolean) config.getOrDefault("tempUseVoiceChannelCleanup", true);
 
+
+            //Load Credential values
+
+            Map<String, String> token = (Map) creds.get("token");
+            if (token != null) {
+                botToken = token.getOrDefault(distribution.getId(), "");
+            } else botToken = "";
+            if (botToken == null || botToken.isEmpty()) {
+                throw new RuntimeException("No discord bot token provided for the started distribution " + distribution
+                        + "\nMake sure to put a " + distribution.getId() + " token in your credentials file.");
+            }
+
+            Object gkeys = creds.get("googleServerKeys");
+            if (gkeys instanceof List) {
+                ((List) gkeys).forEach((Object str) -> googleKeys.add((String) str));
+            } else if (gkeys instanceof String) {
+                googleKeys.add((String) gkeys);
+            } else {
+                log.warn("No google API keys found. Some commands may not work, check the documentation.");
+            }
+
+            // apis
+            malUser = (String) creds.getOrDefault("malUser", "");
+            malPassword = (String) creds.getOrDefault("malPassword", "");
+
+            imgurClientId = (String) creds.getOrDefault("imgurClientId", "");
+
+            spotifyId = (String) creds.getOrDefault("spotifyId", "");
+            spotifySecret = (String) creds.getOrDefault("spotifySecret", "");
+
+            openWeatherKey = (String) creds.getOrDefault("openWeatherKey", "");
+
+
+            // database
+            jdbcUrl = (String) creds.getOrDefault("jdbcUrl", "");
+            useSshTunnel = (boolean) creds.getOrDefault("useSshTunnel", false);
+            sshHost = (String) creds.getOrDefault("sshHost", "localhost:22");
+            sshUser = (String) creds.getOrDefault("sshUser", "fredboat");
+            sshPrivateKeyFile = (String) creds.getOrDefault("sshPrivateKeyFile", "database.ppk");
+            forwardToPort = (int) creds.getOrDefault("forwardToPort", 5432);
+
+
+            // misc
+            Map<String, String> linkNodes = (Map<String, String>) creds.get("lavalinkHosts");
+            if (linkNodes != null) {
+                linkNodes.forEach((s, s2) -> {
+                    try {
+                        lavalinkHosts.add(new LavalinkHost(new URI(s), s2));
+                        log.info("Lavalink node added: " + new URI(s));
+                    } catch (URISyntaxException e) {
+                        throw new RuntimeException("Failed parsing lavalink URI", e);
+                    }
+                });
+            }
+
+            eventLogWebhookId = (long) creds.getOrDefault("eventLogWebhookId", 0L);
+            eventLogWebhookToken = (String) creds.getOrDefault("eventLogWebhookToken", "");
+
+            testBotToken = (String) creds.getOrDefault("testToken", "");
+            testChannelId = creds.getOrDefault("testChannelId", "") + "";
+
+
+            // unofficial creds
+            carbonKey = (String) creds.getOrDefault("carbonKey", "");
+
+
+            // Derived Config values
+            // these are calculated in some way and don't necessarily correspond to values from the config/credentials files
+
+            //this is the first request on start
+            //it sometimes fails cause network isn't set up yet. wait 10 sec and try one more time in that case
+            int recommendedShardCount;
+            try {
+                recommendedShardCount = DiscordUtil.getRecommendedShardCount(getBotToken());
+            } catch (Exception e) {
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException ignored) {
+                }
+                recommendedShardCount = DiscordUtil.getRecommendedShardCount(getBotToken());
+            }
+            numShards = recommendedShardCount;
+            log.info("Discord recommends " + numShards + " shard(s)");
+
+            //more database connections don't help with performance, so use a value based on available cores
+            //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
+            if (jdbcUrl == null || jdbcUrl.isEmpty() || distribution == DistributionEnum.DEVELOPMENT)
+                //more than one connection for the fallback sqlite db is problematic as there is currently (2017-04-16)
+                // no supported way in the custom driver and/or dialect to set lock timeouts
+                hikariPoolSize = 1;
+            else hikariPoolSize = Math.max(2, Runtime.getRuntime().availableProcessors());
+            log.info("Hikari max pool size set to " + hikariPoolSize);
+
+            PlayerLimitManager.setLimit((Integer) config.getOrDefault("playerLimit", -1));
         } catch (IOException e) {
+            log.error("Failed to read config and or credentials files into strings.", e);
             throw new RuntimeException(e);
         } catch (YAMLException | ClassCastException e) {
             log.error("Could not parse the credentials and/or config yaml files! They are probably misformatted. " +
-                    "Try using an online yaml validator.");
+                    "Try using an online yaml validator.", e);
             throw e;
         }
     }
 
     /**
-     * Makes sure the requested config file exists in the current format. Will attempt to migrate old formats to new ones
-     * old files will be renamed to filename.ext.old to preserve any data
-     *
      * @param name relative name of a config file, without the file extension
      * @return a handle on the requested file
      */
     private static File loadConfigFile(String name) throws IOException {
-        String yamlPath = "./" + name + ".yaml";
-        String jsonPath = "./" + name + ".json";
-        File yamlFile = new File(yamlPath);
-        if (!yamlFile.exists() || yamlFile.isDirectory()) {
-            log.warn("Could not find file '" + yamlPath + "', looking for legacy '" + jsonPath + "' to rewrite");
-            File json = new File(jsonPath);
-            if (!json.exists() || json.isDirectory()) {
-                //file is missing
-                log.error("No " + name + " file is present. Bot cannot run without it. Check the documentation.");
-                throw new FileNotFoundException("Neither '" + yamlPath + "' nor '" + jsonPath + "' present");
-            } else {
-                //rewrite the json to yaml
-                Yaml yaml = new Yaml();
-                String fileStr = FileUtils.readFileToString(json, "UTF-8");
-                //remove tab character from json file to make it a valid YAML file
-                fileStr = cleanTabs(fileStr, name);
-                @SuppressWarnings("unchecked")
-                Map<String, Object> configFile = (Map) yaml.load(fileStr);
-                yaml.dump(configFile, new FileWriter(yamlFile));
-                Files.move(Paths.get(jsonPath), Paths.get(jsonPath + ".old"), REPLACE_EXISTING);
-                log.info("Migrated file '" + jsonPath + "' to '" + yamlPath + "'");
-            }
+        String path = "./" + name + ".yaml";
+        File file = new File(path);
+        if (!file.exists() || file.isDirectory()) {
+            throw new FileNotFoundException("Could not find '" + path + "' file.");
         }
-
-        return yamlFile;
+        return file;
     }
 
     private static String cleanTabs(String content, String file) {
@@ -367,8 +354,13 @@ public class Config {
         return hikariPoolSize;
     }
 
-    public int getNumShards() {
-        return numShards;
+    //this static method works even when called from tests with invalid config files leading to a null config
+    public static int getNumShards() {
+        if (CONFIG != null) {
+            return CONFIG.numShards;
+        } else {
+            return 1;
+        }
     }
 
     public String getMalUser() {
@@ -385,14 +377,6 @@ public class Config {
 
     public List<String> getGoogleKeys() {
         return googleKeys;
-    }
-
-    public String[] getLavaplayerNodes() {
-        return lavaplayerNodes;
-    }
-
-    public boolean isLavaplayerNodesEnabled() {
-        return lavaplayerNodesEnabled;
     }
 
     public String getCarbonKey() {

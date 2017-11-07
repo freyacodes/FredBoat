@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+@Deprecated //we dont use maven anymore. todo decide if can be repurposed for gradle / downloads from CI server
 public class UpdateCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(UpdateCommand.class);

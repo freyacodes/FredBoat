@@ -41,9 +41,7 @@ import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
 import fredboat.shared.constant.DistributionEnum;
-import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
@@ -92,16 +90,6 @@ public class CommandManager {
             }
         }
 
-        if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC
-                && DiscordUtil.isPatronBotPresentAndOnline(guild)
-                && guild.getMemberById(BotConstants.PATRON_BOT_ID) != null
-                && guild.getMemberById(BotConstants.PATRON_BOT_ID).hasPermission(channel, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)
-                && Config.CONFIG.getPrefix().equals(Config.DEFAULT_PREFIX)
-                && !guild.getId().equals(BotConstants.FREDBOAT_HANGOUT_ID)) {
-            log.info("Ignored command because patron bot is able to use that channel");
-            return;
-        }
-
         //Hardcode music commands in FredBoatHangout. Blacklist any channel that isn't #general or #staff, but whitelist Frederikam
         if ((invoked instanceof IMusicCommand || invoked instanceof AkinatorCommand) // the hate is real
                 && guild.getId().equals(BotConstants.FREDBOAT_HANGOUT_ID)
@@ -119,7 +107,7 @@ public class CommandManager {
         }
 
         if (disabledCommands.contains(invoked)) {
-            context.replyWithName("Sorry the `"+ context.cmdName +"` command is currently disabled. Please try again later");
+            context.replyWithName("Sorry the `" + context.command.name + "` command is currently disabled. Please try again later");
             return;
         }
 

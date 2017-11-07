@@ -30,10 +30,12 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.OnlineStatus;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.MessageEmbed;
 
 import javax.annotation.Nonnull;
 import java.time.format.DateTimeFormatter;
@@ -70,6 +72,11 @@ public class ServerInfoCommand extends Command implements IUtilCommand {
         eb.addField(context.i18n("serverinfoGuildID"), guild.getId(), true);
         eb.addField(context.i18n("serverinfoVLv"), guild.getVerificationLevel().name(), true);
         eb.addField(context.i18n("serverinfoOwner"), guild.getOwner().getAsMention(), true);
+        String prefix = TextUtils.shorten(TextUtils.escapeMarkdown(context.getPrefix()), MessageEmbed.VALUE_MAX_LENGTH);
+        if (prefix.isEmpty()) {
+            prefix = "No Prefix";
+        }
+        eb.addField(context.i18n("prefix"), prefix, true);
 
         context.reply(eb.build());
     }

@@ -29,6 +29,7 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.messaging.internal.Context;
+import fredboat.util.TextUtils;
 
 import javax.annotation.Nonnull;
 
@@ -40,7 +41,7 @@ public class RiotCommand extends Command implements IFunCommand {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        context.reply("ヽ༼ຈل͜ຈ༽ﾉ **" + context.rawArgs.toUpperCase() + "** ヽ༼ຈل͜ຈ༽ﾉ"); //todo escape markdown
+        context.reply("ヽ༼ຈل͜ຈ༽ﾉ **" + TextUtils.escapeMarkdown(context.rawArgs.toUpperCase()) + "** ヽ༼ຈل͜ຈ༽ﾉ");
     }
 
     @Nonnull

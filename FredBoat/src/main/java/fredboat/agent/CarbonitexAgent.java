@@ -61,7 +61,7 @@ public class CarbonitexAgent extends FredBoatAgent {
             }
         }
 
-        if (FredBoat.getShards().size() < Config.CONFIG.getNumShards()) {
+        if (FredBoat.getShards().size() < Config.getNumShards()) {
             log.warn("Skipping posting stats because not all shards initialized!");
             return;
         }

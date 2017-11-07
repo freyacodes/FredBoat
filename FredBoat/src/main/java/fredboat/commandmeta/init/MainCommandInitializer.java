@@ -27,10 +27,7 @@ package fredboat.commandmeta.init;
 import fredboat.command.admin.*;
 import fredboat.command.fun.*;
 import fredboat.command.maintenance.*;
-import fredboat.command.moderation.ClearCommand;
-import fredboat.command.moderation.HardbanCommand;
-import fredboat.command.moderation.KickCommand;
-import fredboat.command.moderation.SoftbanCommand;
+import fredboat.command.moderation.*;
 import fredboat.command.util.*;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.util.AsciiArtConstant;
@@ -47,9 +44,6 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand(new UnblacklistCommand("unblacklist", "unlimit"));
         CommandRegistry.registerCommand(new VersionCommand("version"));
         CommandRegistry.registerCommand(new StatsCommand("uptime", "stats"));
-        CommandRegistry.registerCommand(new UpdateCommand("update"));
-        CommandRegistry.registerCommand(new CompileCommand("compile"));
-        CommandRegistry.registerCommand(new MavenTestCommand("mvntest"));
         CommandRegistry.registerCommand(new BotRestartCommand("botrestart"));
         CommandRegistry.registerCommand(new EvalCommand("eval"));
         CommandRegistry.registerCommand(new ShardsCommand("shards"));
@@ -65,6 +59,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand(new KickCommand("kick"));
         CommandRegistry.registerCommand(new SoftbanCommand("softban"));
         CommandRegistry.registerCommand(new ClearCommand("clear"));
+        CommandRegistry.registerCommand(new PrefixCommand("prefix", "pre"));
         
         /* Util */
         CommandRegistry.registerCommand(new ServerInfoCommand("serverinfo", "guildinfo"));

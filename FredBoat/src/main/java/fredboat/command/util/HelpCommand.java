@@ -27,7 +27,7 @@ package fredboat.command.util;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import fredboat.Config;
+import fredboat.command.moderation.PrefixCommand;
 import fredboat.command.music.control.SelectCommand;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
@@ -35,7 +35,6 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.I18n;
-import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
@@ -56,14 +55,13 @@ public class HelpCommand extends Command implements IUtilCommand {
     public static String inviteLink = "https://discord.gg/cgPFW4q";
 
     //keeps track of whether a user received help lately to avoid spamming/clogging up DMs which are rather harshly ratelimited
-    private static final Cache<Long, Boolean> helpReceivedRecently = CacheBuilder.newBuilder()
+    public static final Cache<Long, Boolean> HELP_RECEIVED_RECENTLY = CacheBuilder.newBuilder()
             .recordStats()
             .expireAfterWrite(10, TimeUnit.MINUTES)
             .build();
 
     public HelpCommand(String name, String... aliases) {
         super(name, aliases);
-        Metrics.instance().cacheMetrics.addCache("helpReceivedRecently", helpReceivedRecently);
     }
 
     @Override
@@ -85,18 +83,19 @@ public class HelpCommand extends Command implements IUtilCommand {
     //for answering the help command from a guild
     public static void sendGeneralHelp(@Nonnull CommandContext context) {
         long userId = context.invoker.getUser().getIdLong();
-        if (helpReceivedRecently.getIfPresent(userId) != null) {
+        if (HELP_RECEIVED_RECENTLY.getIfPresent(userId) != null) {
             return;
         }
 
         context.replyPrivate(getHelpDmMsg(context.guild),
                 success -> {
-                    helpReceivedRecently.put(userId, true);
+                    HELP_RECEIVED_RECENTLY.put(userId, true);
                     String out = context.i18n("helpSent");
                     out += "\n" + context.i18nFormat("helpCommandsPromotion",
-                            "`" + Config.CONFIG.getPrefix() + "commands`");
+                            "`" + TextUtils.escapeMarkdown(context.getPrefix()) + "commands`");
                     if (context.hasPermissions(Permission.MESSAGE_WRITE)) {
                         context.replyWithName(out);
+                        PrefixCommand.showPrefix(context, context.getPrefix());
                     }
                 },
                 failure -> {
@@ -109,11 +108,11 @@ public class HelpCommand extends Command implements IUtilCommand {
 
     //for answering private messages with the help
     public static void sendGeneralHelp(@Nonnull PrivateMessageReceivedEvent event) {
-        if (helpReceivedRecently.getIfPresent(event.getAuthor().getIdLong()) != null) {
+        if (HELP_RECEIVED_RECENTLY.getIfPresent(event.getAuthor().getIdLong()) != null) {
             return;
         }
 
-        helpReceivedRecently.put(event.getAuthor().getIdLong(), true);
+        HELP_RECEIVED_RECENTLY.put(event.getAuthor().getIdLong(), true);
         CentralMessaging.sendMessage(event.getChannel(), getHelpDmMsg(null));
     }
 
@@ -125,7 +124,8 @@ public class HelpCommand extends Command implements IUtilCommand {
         if (command instanceof SelectCommand)
             thirdParam = "play";
 
-        return MessageFormat.format(helpStr, Config.CONFIG.getPrefix(), commandOrAlias, thirdParam);
+        return MessageFormat.format(helpStr, TextUtils.escapeMarkdown(PrefixCommand.giefPrefix(context.getGuild())),
+                commandOrAlias, thirdParam);
     }
 
     public static void sendFormattedCommandHelp(CommandContext context) {
@@ -135,9 +135,9 @@ public class HelpCommand extends Command implements IUtilCommand {
     private static void sendFormattedCommandHelp(CommandContext context, String trigger) {
         CommandRegistry.CommandEntry commandEntry = CommandRegistry.getCommand(trigger);
         if (commandEntry == null) {
-            String out = "`" + Config.CONFIG.getPrefix() + trigger + "`: " + context.i18n("helpUnknownCommand");
+            String out = "`" + TextUtils.escapeMarkdown(context.getPrefix()) + trigger + "`: " + context.i18n("helpUnknownCommand");
             out += "\n" + context.i18nFormat("helpCommandsPromotion",
-                    "`" + Config.CONFIG.getPrefix() + "commands`");
+                    "`" + TextUtils.escapeMarkdown(context.getPrefix()) + "commands`");
             context.replyWithName(out);
             return;
         }

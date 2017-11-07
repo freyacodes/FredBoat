@@ -25,7 +25,6 @@
 
 package fredboat.command.music.control;
 
-import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
@@ -34,6 +33,7 @@ import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
+import fredboat.util.TextUtils;
 
 import javax.annotation.Nonnull;
 
@@ -52,7 +52,7 @@ public class PauseCommand extends Command implements IMusicCommand, ICommandRest
             context.reply(context.i18n("pauseAlreadyPaused"));
         } else {
             player.pause();
-            context.reply(context.i18nFormat("pauseSuccess", Config.CONFIG.getPrefix()));
+            context.reply(context.i18nFormat("pauseSuccess", TextUtils.escapeMarkdown(context.getPrefix())));
         }
     }
 
