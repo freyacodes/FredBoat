@@ -30,6 +30,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import fredboat.Config;
 import fredboat.FredBoat;
+import fredboat.command.fun.RandomImageCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
@@ -39,9 +40,12 @@ import fredboat.db.entity.GuildConfig;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
+import fredboat.shared.constant.BotConstants;
 import fredboat.util.TextUtils;
+import net.dv8tion.jda.core.entities.Guild;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +53,8 @@ import java.util.concurrent.TimeUnit;
  * Created by napster on 19.10.17.
  */
 public class PrefixCommand extends Command implements IModerationCommand {
+
+    private static final RandomImageCommand wombats = new RandomImageCommand("https://imgur.com/a/mnhzS", "");
 
     public PrefixCommand(@Nonnull String name, String... aliases) {
         super(name, aliases);
@@ -66,10 +72,23 @@ public class PrefixCommand extends Command implements IModerationCommand {
             .build(CacheLoader.asyncReloading(CacheLoader.from(GuildConfig::getPrefix), FredBoat.executor));
 
     @Nonnull
-    public static String giefPrefix(long guildId) {
+    private static String giefPrefix(long guildId) {
         return CUSTOM_PREFIXES
                 .getUnchecked(guildId)
                 .orElse(Config.CONFIG.getPrefix());
+    }
+
+    @Nonnull
+    public static String giefPrefix(@Nullable Guild guild) {
+        if (guild == null) {
+            return Config.CONFIG.getPrefix();
+        }
+
+        if (guild.getJDA().getSelfUser().getId().equalsIgnoreCase(BotConstants.PATRON_BOT_ID)) {
+            return Config.CONFIG.getPrefix(); //todo lift this limitation after sorting out a data strategy
+        }
+
+        return giefPrefix(guild.getIdLong());
     }
 
     @Override
@@ -83,6 +102,14 @@ public class PrefixCommand extends Command implements IModerationCommand {
         if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.ADMIN, context)) {
             return;
         }
+
+        if (context.guild.getJDA().getSelfUser().getId().equalsIgnoreCase(BotConstants.PATRON_BOT_ID)) {
+            context.reply("Sorry, this feature has not yet been enabled for the PatronBot! Have a picture of a wombat instead.");
+            wombats.onInvoke(context);
+            return;
+            //todo lift this limitation after sorting out a data strategy
+        }
+
 
         //considering this is an admin level command, we can allow users to do whatever they want with their guild
         // prefix, so no checks are necessary here

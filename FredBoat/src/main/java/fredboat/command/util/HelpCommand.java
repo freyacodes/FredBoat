@@ -126,7 +126,7 @@ public class HelpCommand extends Command implements IUtilCommand {
         if (command instanceof SelectCommand)
             thirdParam = "play";
 
-        return MessageFormat.format(helpStr, TextUtils.escapeMarkdown(PrefixCommand.giefPrefix(context.getGuild().getIdLong())),
+        return MessageFormat.format(helpStr, TextUtils.escapeMarkdown(PrefixCommand.giefPrefix(context.getGuild())),
                 commandOrAlias, thirdParam);
     }
 

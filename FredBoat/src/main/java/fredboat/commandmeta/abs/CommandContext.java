@@ -95,7 +95,7 @@ public class CommandContext extends Context {
         }
         // or starts with a custom/default prefix
         else {
-            String prefix = PrefixCommand.giefPrefix(event.getGuild().getIdLong());
+            String prefix = PrefixCommand.giefPrefix(event.getGuild());
             if (raw.startsWith(prefix)) {
                 input = raw.substring(prefix.length());
                 if (prefix.equals(Config.CONFIG.getPrefix())) {
@@ -195,7 +195,7 @@ public class CommandContext extends Context {
      * Convenience method to get the prefix of the guild of this context.
      */
     public String getPrefix() {
-        return PrefixCommand.giefPrefix(guild.getIdLong());
+        return PrefixCommand.giefPrefix(guild);
     }
 
     @Nonnull
