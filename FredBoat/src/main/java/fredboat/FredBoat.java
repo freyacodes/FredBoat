@@ -130,7 +130,7 @@ public abstract class FredBoat {
             dbManager = DatabaseManager.postgres();
             dbManager.startup();
             FredBoatAgent.start(new DBConnectionWatchdogAgent(dbManager));
-        } else if (Config.CONFIG.getNumShards() > 2) {
+        } else if (Config.getNumShards() > 2) {
             log.warn("No JDBC URL and more than 2 shard found! Initializing the SQLi DB is potentially dangerous too. Skipping...");
         } else {
             log.warn("No JDBC URL found, skipped database connection, falling back to internal SQLite db.");
@@ -278,7 +278,7 @@ public abstract class FredBoat {
     }
 
     private static void initBotShards(EventListenerBoat mainListener) {
-        for (int i = 0; i < Config.CONFIG.getNumShards(); i++) {
+        for (int i = 0; i < Config.getNumShards(); i++) {
             try {
                 //NOTE: This will take a while since creating shards happens in a blocking fashion
                 shards.add(i, new FredBoatShard(i, mainListener));

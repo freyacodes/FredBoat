@@ -105,7 +105,7 @@ public class ShardsCommand extends Command implements IMaintenanceCommand {
         //healthy shards summary, contains sensible data only if we aren't doing a full report
         if (!full) {
             String content = String.format("+ %s of %s shards are %s -- Guilds: %s -- Users: %s", (shards.size() - borkenShards),
-                    Config.CONFIG.getNumShards(), JDA.Status.CONNECTED, healthyGuilds, healthyUsers);
+                    Config.getNumShards(), JDA.Status.CONNECTED, healthyGuilds, healthyUsers);
             messages.add(0, CentralMessaging.getClearThreadLocalMessageBuilder().append(TextUtils.asCodeBlock(content, "diff")).build());
         }
 

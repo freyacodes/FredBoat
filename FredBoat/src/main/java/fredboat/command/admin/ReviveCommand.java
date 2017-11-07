@@ -60,7 +60,7 @@ public class ReviveCommand extends Command implements ICommandRestricted {
             if (context.args.length > 1 && context.args[0].equals("guild")) {
                 long guildId = Long.valueOf(context.args[1]);
                 //https://discordapp.com/developers/docs/topics/gateway#sharding
-                shardId = (int) ((guildId >> 22) % Config.CONFIG.getNumShards());
+                shardId = (int) ((guildId >> 22) % Config.getNumShards());
             } else {
                 shardId = Integer.parseInt(context.args[0]);
             }

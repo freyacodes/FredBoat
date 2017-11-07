@@ -68,7 +68,7 @@ public class PrefixCommand extends Command implements IModerationCommand {
             .recordStats()
             .refreshAfterWrite(1, TimeUnit.MINUTES) //NOTE: never use refreshing without async reloading
             .expireAfterAccess(1, TimeUnit.MINUTES) //evict inactive guilds
-            .concurrencyLevel(Config.CONFIG.getNumShards())  //each shard has a thread (main JDA thread) accessing this cache many times
+            .concurrencyLevel(Config.getNumShards())  //each shard has a thread (main JDA thread) accessing this cache many times
             .build(CacheLoader.asyncReloading(CacheLoader.from(GuildConfig::getPrefix), FredBoat.executor));
 
     @Nonnull

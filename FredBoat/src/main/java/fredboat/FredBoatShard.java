@@ -87,7 +87,7 @@ public class FredBoatShard extends FredBoat {
             while (!success) {
                 //noinspection SynchronizationOnLocalVariableOrMethodParameter
                 synchronized (builder) {
-                    builder.useSharding(shardId, Config.CONFIG.getNumShards());
+                    builder.useSharding(shardId, Config.getNumShards());
 
                     try {
                         connectQueue.requestCoin(shardId);
@@ -117,7 +117,7 @@ public class FredBoatShard extends FredBoat {
         jdaEntityCountsShard.count(Collections.singletonList(this), true);//jda finished loading, do a single count to init values
 
 
-        if (Config.CONFIG.getNumShards() <= 10) {
+        if (Config.getNumShards() <= 10) {
             //the current implementation of music persistence is not a good idea on big bots
             MusicPersistenceHandler.reloadPlaylists(this);
         }

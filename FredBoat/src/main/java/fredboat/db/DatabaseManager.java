@@ -52,6 +52,9 @@ public class DatabaseManager {
 
     private static final String DEFAULT_PERSISTENCE_UNIT_NAME = "fredboat.default";
 
+    //see https://github.com/brettwooldridge/HikariCP connectionTimeout
+    private static final int HIKARI_TIMEOUT_MILLISECONDS = 1000;
+
     private EntityManagerFactory emf;
     private Session sshTunnel;
     private DatabaseState state = DatabaseState.UNINITIALIZED;
@@ -141,7 +144,7 @@ public class DatabaseManager {
             properties.put("hibernate.hikari.maximumPoolSize", Integer.toString(poolSize));
 
             //how long to wait for a connection becoming available, also the timeout when a DB fails
-            properties.put("hibernate.hikari.connectionTimeout", Integer.toString(Config.HIKARI_TIMEOUT_MILLISECONDS));
+            properties.put("hibernate.hikari.connectionTimeout", Integer.toString(HIKARI_TIMEOUT_MILLISECONDS));
             //this helps with sorting out connections in pgAdmin
             properties.put("hibernate.hikari.dataSource.ApplicationName", "FredBoat_" + Config.CONFIG.getDistribution());
 
