@@ -26,11 +26,7 @@
 package fredboat;
 
 import com.sedmelluq.discord.lavaplayer.tools.PlayerLibrary;
-import fredboat.agent.CarbonitexAgent;
-import fredboat.agent.DBConnectionWatchdogAgent;
-import fredboat.agent.FredBoatAgent;
-import fredboat.agent.StatsAgent;
-import fredboat.agent.VoiceChannelCleanupAgent;
+import fredboat.agent.*;
 import fredboat.api.API;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.queue.MusicPersistenceHandler;
