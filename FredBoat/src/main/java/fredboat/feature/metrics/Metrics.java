@@ -31,6 +31,7 @@ import fredboat.FredBoat;
 import fredboat.agent.FredBoatAgent;
 import fredboat.audio.player.VideoSelection;
 import fredboat.command.moderation.PrefixCommand;
+import fredboat.command.util.HelpCommand;
 import fredboat.feature.metrics.collectors.FredBoatCollector;
 import fredboat.feature.metrics.collectors.ThreadPoolCollector;
 import io.prometheus.client.Counter;
@@ -99,6 +100,7 @@ public class Metrics {
 
         //add one of our guava caches that is only statically reachable
         cacheMetrics.addCache("videoSelections", VideoSelection.SELECTIONS);
+        cacheMetrics.addCache("HELP_RECEIVED_RECENTLY", HelpCommand.HELP_RECEIVED_RECENTLY);
         cacheMetrics.addCache("customPrefixes", PrefixCommand.CUSTOM_PREFIXES);
 
         try {
