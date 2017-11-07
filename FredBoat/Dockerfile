@@ -1,7 +1,8 @@
-FROM openjdk:8
+FROM openjdk:8-jre-alpine
 
 ENV ENV docker
 
+RUN mkdir /opt
 RUN mkdir /opt/FredBoat
 
 COPY config.yaml /opt/FredBoat/config.yaml
