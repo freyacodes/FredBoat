@@ -93,19 +93,16 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
             return;
         }
 
+        String url = StringUtils.strip(context.args[0], "<>");
         //Search youtube for videos and let the user select a video
-        if (!(context.args[0].startsWith("http") || (context.args[0].startsWith("<http") && context.args[0].endsWith(">")))) {
+        if (!url.startsWith("http")) {
             searchForVideos(context);
             return;
-        }
-        //endsWith was already checked
-        if (context.args[0].startsWith("<")) {
-            context.args[0] = context.args[0].substring(1, context.args[0].length() - 1);
         }
 
         GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
-        player.queue(context.args[0], context);
+        player.queue(url, context);
         player.setPause(false);
 
         context.deleteMessage();
