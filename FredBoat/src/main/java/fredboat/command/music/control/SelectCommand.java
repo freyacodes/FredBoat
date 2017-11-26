@@ -39,13 +39,19 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
+import net.dv8tion.jda.core.EmbedBuilder;
+import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.impl.MessageEmbedImpl;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nonnull;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashSet;
+import java.util.concurrent.TimeUnit;
 
 public class SelectCommand extends Command implements IMusicCommand, ICommandRestricted {
 
@@ -107,17 +113,37 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                 throw new NumberFormatException();
             } else {
                 AudioTrack[] selectedTracks = new AudioTrack[validChoices.size()];
-                StringBuilder outputMsgBuilder = new StringBuilder();
+
+                EmbedBuilder embedBuilder = CentralMessaging.getColoredEmbedBuilder();
+                embedBuilder.setTitle(context.i18n("selectionEmbedTitle"));
 
                 for (int i = 0; i < validChoices.size(); i++) {
+                    int positionInQueue = player.getTrackCount() + 1;
+
                     selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
 
                     String msg = context.i18nFormat("selectSuccess", validChoices.get(i), selectedTracks[i].getInfo().title,
-                            TextUtils.formatTime(selectedTracks[0].getInfo().length));
+                            TextUtils.formatTime(selectedTracks[i].getInfo().length));
+
+                    // if there are more selections.
                     if (i < validChoices.size()) {
-                        outputMsgBuilder.append("\n");
+                        embedBuilder.appendDescription("\n");
                     }
-                    outputMsgBuilder.append(msg);
+
+                    embedBuilder.appendDescription(msg);
+
+                    if (player.getTrackCount() < 1) {
+                        String nowPlayingString = context.i18nFormat("selectSuccessPartNowPlaying");
+                        embedBuilder.appendDescription(nowPlayingString);
+                        embedBuilder.appendDescription("\n");
+
+                    } else {
+                        long remainingTimeInMillis = player.getTotalRemainingMusicTimeMillis();
+                        String remainingTime = (new SimpleDateFormat("mm:ss")).format(new Date(remainingTimeInMillis));
+                        String queueAndWaitTimeString = context.i18nFormat("selectSuccessPartQueueWaitTime", positionInQueue, remainingTime);
+                        embedBuilder.appendDescription(queueAndWaitTimeString);
+                        embedBuilder.appendDescription("\n");
+                    }
 
                     player.queue(new AudioTrackContext(selectedTracks[i], invoker));
                 }
@@ -125,7 +151,7 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                 VideoSelection.remove(invoker);
                 TextChannel tc = FredBoat.getTextChannelById(selection.channelId);
                 if (tc != null) {
-                    CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
+                    CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(embedBuilder.build()));
                 }
 
                 player.setPause(false);
