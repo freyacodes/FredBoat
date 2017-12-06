@@ -67,7 +67,7 @@ public class UserInfoCommand extends Command implements IUtilCommand {
                 matchedGuildNames.add(guild.getName());
             }
         });
-        if (matchedGuildNames.size() >= 30) {
+        if (matchedGuildNames.size() <= 30) {
             knownServers.append(matchedGuildNames.size());
         } else {
             int i = 0;
