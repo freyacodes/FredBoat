@@ -132,7 +132,7 @@ public class PrefixCommand extends Command implements IModerationCommand {
 
     public static void showPrefix(@Nonnull Context context, @Nonnull String prefix) {
         String escapedPrefix = prefix.isEmpty() ? "No Prefix" : TextUtils.escapeMarkdown(prefix);
-        context.reply(context.i18nFormat("prefixGuild", "**" + escapedPrefix + "**")
+        context.reply(context.i18nFormat("prefixGuild", "`" + escapedPrefix + "`")
                 + "\n" + context.i18n("prefixShowAgain"));
     }
 
