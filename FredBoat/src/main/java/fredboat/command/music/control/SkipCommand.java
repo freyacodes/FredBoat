@@ -212,7 +212,7 @@ public class SkipCommand extends Command implements IMusicCommand, ICommandRestr
                 context.reply(context.i18nFormat("skipUsersMultiple", ("`" + userAtcIds.size() + "`"), ("**" + affectedUsers.size() + "**")));
             } else {
                 User user = affectedUsers.get(0);
-                String userName = "**" + user.getName() + "#" + user.getDiscriminator() + "**";
+                String userName = "**" + TextUtils.escapeMarkdown(user.getName()) + "#" + user.getDiscriminator() + "**";
                 if (userAtcIds.size() == 1) {
                     context.reply(context.i18nFormat("skipUserSingle", "**" + title + "**", userName));
                 } else {

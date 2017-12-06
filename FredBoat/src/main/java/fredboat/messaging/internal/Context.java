@@ -25,6 +25,7 @@
 
 package fredboat.messaging.internal;
 
+import fredboat.command.moderation.PrefixCommand;
 import fredboat.commandmeta.MessagingException;
 import fredboat.feature.I18n;
 import fredboat.feature.metrics.Metrics;
@@ -32,12 +33,7 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.MessageFuture;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.MessageEmbed;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.entities.User;
+import net.dv8tion.jda.core.entities.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -192,7 +188,23 @@ public abstract class Context {
             log.warn("Context#i18nFormat() called with empty or null params, this is likely a bug.",
                     new MessagingException("a stack trace to help find the source"));
         }
-        return MessageFormat.format(this.i18n(key), params);
+        try {
+            return MessageFormat.format(this.i18n(key), params);
+        } catch (IllegalArgumentException e) {
+            log.warn("Failed to format key '{}' for language '{}' with following parameters: {}",
+                    key, getI18n().getBaseBundleName(), params, e);
+            //fall back to default props
+            return MessageFormat.format(I18n.DEFAULT.getProps().getString(key), params);
+        }
+    }
+
+
+    /**
+     * Convenience method to get the prefix of the guild of this context.
+     */
+    @Nonnull
+    public String getPrefix() {
+        return PrefixCommand.giefPrefix(getGuild());
     }
 
     // ********************************************************************************

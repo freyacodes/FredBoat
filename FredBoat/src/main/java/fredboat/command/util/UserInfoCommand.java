@@ -32,6 +32,7 @@ import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.ArgumentUtil;
+import fredboat.util.TextUtils;
 import fredboat.util.ratelimit.Ratelimiter;
 import net.dv8tion.jda.core.entities.Member;
 
@@ -83,10 +84,11 @@ public class UserInfoCommand extends Command implements IUtilCommand {
         context.reply(CentralMessaging.getClearThreadLocalEmbedBuilder()
                 .setColor(target.getColor())
                 .setThumbnail(target.getUser().getAvatarUrl())
-                .setTitle(context.i18nFormat("userinfoTitle", target.getUser().getName()), null)
-                .addField(context.i18n("userinfoUsername"), target.getUser().getName() + "#" + target.getUser().getDiscriminator(), true)
+                .setTitle(context.i18nFormat("userinfoTitle", target.getEffectiveName()), null)
+                .addField(context.i18n("userinfoUsername"), TextUtils.escapeMarkdown(target.getUser().getName())
+                        + "#" + target.getUser().getDiscriminator(), true)
                 .addField(context.i18n("userinfoId"), target.getUser().getId(), true)
-                .addField(context.i18n("userinfoNick"), target.getEffectiveName(), true) //Known Nickname
+                .addField(context.i18n("userinfoNick"), TextUtils.escapeMarkdown(target.getEffectiveName()), true) //Known Nickname
                 .addField(context.i18n("userinfoKnownServer"), knownServers.toString(), true) //Known Server
                 .addField(context.i18n("userinfoJoinDate"), target.getJoinDate().format(dtf), true)
                 .addField(context.i18n("userinfoCreationTime"), target.getUser().getCreationTime().format(dtf), true)

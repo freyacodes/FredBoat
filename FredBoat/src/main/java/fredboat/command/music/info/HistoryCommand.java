@@ -91,13 +91,14 @@ public class HistoryCommand extends Command implements IMusicCommand {
       for (AudioTrackContext atc: sublist) {
           String status = " ";
 
-          Member member = context.guild.getMemberById(atc.getUserId());
+          Member member = atc.getMember();
           String username = member != null ? member.getEffectiveName() : context.guild.getSelfMember().getEffectiveName();
           mb.append("[" +
               TextUtils.forceNDigits(i + 1, numberLength)
               + "]", MessageBuilder.Formatting.BLOCK)
               .append(status)
-              .append(MessageFormat.format(context.i18n("listAddedBy"), atc.getEffectiveTitle(), username, TextUtils.formatTime(atc.getEffectiveDuration())))
+              .append(context.i18nFormat("listAddedBy", TextUtils.escapeMarkdown(atc.getEffectiveTitle()),
+                          TextUtils.escapeMarkdown(username), TextUtils.formatTime(atc.getEffectiveDuration())))
               .append("\n");
 
           if (i == listEnd) {

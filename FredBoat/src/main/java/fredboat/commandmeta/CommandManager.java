@@ -26,7 +26,6 @@
 package fredboat.commandmeta;
 
 
-import fredboat.Config;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.command.fun.AkinatorCommand;
 import fredboat.commandmeta.abs.Command;
@@ -40,7 +39,6 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
-import fredboat.shared.constant.DistributionEnum;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -69,13 +67,6 @@ public class CommandManager {
 
         totalCommandsExecuted.incrementAndGet();
         Metrics.commandsExecuted.labels(invoked.getClass().getSimpleName()).inc();
-
-        if (guild.getJDA().getSelfUser().getId().equals(BotConstants.PATRON_BOT_ID)
-                && Config.CONFIG.getDistribution() == DistributionEnum.PATRON
-                && guild.getId().equals(BotConstants.FREDBOAT_HANGOUT_ID)) {
-            log.info("Ignored command because patron bot is not allowed in FredBoatHangout");
-            return;
-        }
 
         if (FeatureFlags.PATRON_VALIDATION.isActive()) {
             PatronageChecker.Status status = PatronageCheckerHolder.instance.getStatus(guild);

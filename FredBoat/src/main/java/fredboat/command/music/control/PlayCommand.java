@@ -45,6 +45,7 @@ import fredboat.util.rest.SearchUtil;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message.Attachment;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
@@ -92,15 +93,16 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
             return;
         }
 
+        String url = StringUtils.strip(context.args[0], "<>");
         //Search youtube for videos and let the user select a video
-        if (!context.args[0].startsWith("http")) {
+        if (!url.startsWith("http")) {
             searchForVideos(context);
             return;
         }
 
         GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
 
-        player.queue(context.args[0], context);
+        player.queue(url, context);
         player.setPause(false);
 
         context.deleteMessage();

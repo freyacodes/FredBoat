@@ -32,6 +32,7 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.metrics.OkHttpEventMetrics;
 import fredboat.messaging.internal.Context;
+import fredboat.util.TextUtils;
 import fredboat.util.rest.Http;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
@@ -117,11 +118,11 @@ public class MALCommand extends Command implements IUtilCommand {
             log.warn("MAL request blew up", e);
         }
 
-        context.reply(context.i18nFormat("malNoResults", context.invoker.getEffectiveName()));
+        context.reply(context.i18nFormat("malNoResults", TextUtils.escapeMarkdown(context.invoker.getEffectiveName())));
     }
 
     private boolean handleAnime(CommandContext context, String terms, String body) {
-        String msg = context.i18nFormat("malRevealAnime", context.invoker.getEffectiveName());
+        String msg = context.i18nFormat("malRevealAnime", TextUtils.escapeMarkdown(context.invoker.getEffectiveName()));
 
         //Read JSON
         log.info(body);
@@ -184,13 +185,13 @@ public class MALCommand extends Command implements IUtilCommand {
     }
 
     private boolean handleUser(CommandContext context, String body) {
-        String msg = context.i18nFormat("malUserReveal", context.invoker.getEffectiveName());
+        String msg = context.i18nFormat("malUserReveal", TextUtils.escapeMarkdown(context.invoker.getEffectiveName()));
 
         //Read JSON
         JSONObject root = new JSONObject(body);
         JSONArray items = root.getJSONArray("categories").getJSONObject(0).getJSONArray("items");
         if (items.length() == 0) {
-            context.reply(context.i18nFormat("malNoResults", context.invoker.getEffectiveName()));
+            context.reply(context.i18nFormat("malNoResults", TextUtils.escapeMarkdown(context.invoker.getEffectiveName())));
             return false;
         }
 

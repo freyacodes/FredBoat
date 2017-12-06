@@ -39,6 +39,7 @@ import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
 import fredboat.util.ArgumentUtil;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
@@ -161,7 +162,9 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         if (selected == null) return;
 
         if (gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
-            context.replyWithName(context.i18nFormat("permsAlreadyAdded", "`" + mentionableToName(selected) + "`", "`" + permissionLevel + "`"));
+            context.replyWithName(context.i18nFormat("permsAlreadyAdded",
+                    "`" + TextUtils.escapeMarkdown(mentionableToName(selected)) + "`",
+                    "`" + permissionLevel + "`"));
             return;
         }
 
@@ -170,7 +173,8 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         gp.setFromEnum(permissionLevel, newList);
         EntityWriter.mergeGuildPermissions(gp);
 
-        context.replyWithName(context.i18nFormat("permsAdded", mentionableToName(selected), permissionLevel));
+        context.replyWithName(context.i18nFormat("permsAdded",
+                TextUtils.escapeMarkdown(mentionableToName(selected)), permissionLevel));
     }
 
     public void list(CommandContext context) {
@@ -206,7 +210,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
                 .setAuthor(invoker.getEffectiveName(), null, invoker.getUser().getAvatarUrl())
                 .addField("Roles", roleMentions, true)
                 .addField("Members", memberMentions, true)
-                .addField(invoker.getEffectiveName(), (invokerHas ? ":white_check_mark:" : ":x:") + " (" + invokerPerms + ")", false);
+                .addField(TextUtils.escapeMarkdown(invoker.getEffectiveName()), (invokerHas ? ":white_check_mark:" : ":x:") + " (" + invokerPerms + ")", false);
         context.reply(CentralMessaging.addFooter(eb, guild.getSelfMember()).build());
     }
 
@@ -224,7 +228,7 @@ public class PermissionsCommand extends Command implements IModerationCommand {
         if (mentionable instanceof Role) {
             return ((Role) mentionable).getName();
         } else if (mentionable instanceof Member) {
-            return ((Member) mentionable).getUser().getName();
+            return ((Member) mentionable).getEffectiveName();
         } else {
             throw new IllegalArgumentException();
         }

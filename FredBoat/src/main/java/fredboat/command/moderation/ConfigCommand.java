@@ -37,6 +37,7 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Member;
 
@@ -91,7 +92,7 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                     EntityWriter.mergeGuildConfig(gc);
                     context.replyWithName("`track_announce` " + context.i18nFormat("configSetTo", val));
                 } else {
-                    context.reply(context.i18nFormat("configMustBeBoolean", invoker.getEffectiveName()));
+                    context.reply(context.i18nFormat("configMustBeBoolean", TextUtils.escapeMarkdown(invoker.getEffectiveName())));
                 }
                 break;
             case "auto_resume":
@@ -100,11 +101,11 @@ public class ConfigCommand extends Command implements IModerationCommand, IComma
                     EntityWriter.mergeGuildConfig(gc);
                     context.replyWithName("`auto_resume` " + context.i18nFormat("configSetTo", val));
                 } else {
-                    context.reply(context.i18nFormat("configMustBeBoolean", invoker.getEffectiveName()));
+                    context.reply(context.i18nFormat("configMustBeBoolean", TextUtils.escapeMarkdown(invoker.getEffectiveName())));
                 }
                 break;
             default:
-                context.reply(context.i18nFormat("configUnknownKey", invoker.getEffectiveName()));
+                context.reply(context.i18nFormat("configUnknownKey", TextUtils.escapeMarkdown(invoker.getEffectiveName())));
                 break;
         }
     }

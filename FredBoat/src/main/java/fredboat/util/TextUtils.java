@@ -67,7 +67,7 @@ public class TextUtils {
     public static Message prefaceWithName(Member member, String msg) {
         msg = ensureSpace(msg);
         return CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(member.getEffectiveName())
+                .append(escapeMarkdown(member.getEffectiveName()))
                 .append(": ")
                 .append(msg)
                 .build();

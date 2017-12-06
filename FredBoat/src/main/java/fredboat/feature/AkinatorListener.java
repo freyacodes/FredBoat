@@ -29,6 +29,7 @@ import fredboat.FredBoat;
 import fredboat.event.UserListener;
 import fredboat.messaging.internal.Context;
 import fredboat.messaging.internal.LeakSafeContext;
+import fredboat.util.TextUtils;
 import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.entities.Channel;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
@@ -94,7 +95,7 @@ public final class AkinatorListener extends UserListener {
     }
 
     private void sendNextQuestion() {
-        String name = context.getMember().getEffectiveName();
+        String name = TextUtils.escapeMarkdown(context.getMember().getEffectiveName());
         String out = "**" + name + ": Question " + (stepInfo.getStepNum() + 1) + "**\n"
                 + stepInfo.getQuestion() + "\n [yes/no/idk/probably/probably not]";
         context.reply(out);

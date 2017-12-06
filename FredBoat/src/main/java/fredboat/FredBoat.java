@@ -38,6 +38,7 @@ import fredboat.event.EventListenerBoat;
 import fredboat.feature.I18n;
 import fredboat.feature.metrics.Metrics;
 import fredboat.shared.constant.DistributionEnum;
+import fredboat.shared.constant.ExitCodes;
 import fredboat.util.AppInfo;
 import fredboat.util.ConnectQueue;
 import fredboat.util.GitRepoState;
@@ -65,6 +66,7 @@ import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -107,15 +109,20 @@ public abstract class FredBoat {
         Runtime.getRuntime().addShutdownHook(new Thread(ON_SHUTDOWN, "FredBoat main shutdownhook"));
         log.info(getVersionInfo());
 
-        String javaVersionMinor = System.getProperty("java.version").split("\\.")[1];
+        String javaVersionMinor = null;
+        try {
+            javaVersionMinor = System.getProperty("java.version").split("\\.")[1];
+        } catch (Exception e) {
+            log.error("Exception while checking if java 8", e);
+        }
 
-        if (!javaVersionMinor.equals("8")) {
+        if (!Objects.equals(javaVersionMinor, "8")) {
             log.warn("\n\t\t __      ___   ___ _  _ ___ _  _  ___ \n" +
                     "\t\t \\ \\    / /_\\ | _ \\ \\| |_ _| \\| |/ __|\n" +
                     "\t\t  \\ \\/\\/ / _ \\|   / .` || || .` | (_ |\n" +
                     "\t\t   \\_/\\_/_/ \\_\\_|_\\_|\\_|___|_|\\_|\\___|\n" +
                     "\t\t                                      ");
-            log.warn("FredBoat only supports Java 8. You are running Java " + javaVersionMinor);
+            log.warn("FredBoat only officially supports Java 8. You are running Java {}", System.getProperty("java.version"));
         }
 
         I18n.start();
@@ -126,17 +133,24 @@ public abstract class FredBoat {
             log.info("Failed to ignite Spark, FredBoat API unavailable", e);
         }
 
-        if (!Config.CONFIG.getJdbcUrl().equals("")) {
-            dbManager = DatabaseManager.postgres();
-            dbManager.startup();
-            FredBoatAgent.start(new DBConnectionWatchdogAgent(dbManager));
-        } else if (Config.getNumShards() > 2) {
-            log.warn("No JDBC URL and more than 2 shard found! Initializing the SQLi DB is potentially dangerous too. Skipping...");
-        } else {
-            log.warn("No JDBC URL found, skipped database connection, falling back to internal SQLite db.");
-            dbManager = DatabaseManager.sqlite();
-            dbManager.startup();
+        dbManager = DatabaseManager.postgres();
+        //attempt to connect to the database a few times
+        // this is relevant in a dockerized environment because after a reboot there is no guarantee that the db
+        // container will be started before the fredboat one
+        int dbConnectionAttempts = 0;
+        while (!dbManager.isAvailable() && dbConnectionAttempts++ < 10) {
+            try {
+                dbManager.startup();
+            } catch (Exception e) {
+                log.error("Could not connect to the database. Retrying in a moment...", e);
+                Thread.sleep(5000);
+            }
         }
+        if (!dbManager.isAvailable()) {
+            log.error("Could not establish database connection. Exiting...");
+            shutdown(ExitCodes.EXIT_CODE_ERROR);
+        }
+        FredBoatAgent.start(new DBConnectionWatchdogAgent(dbManager));
 
         //Initialise event listeners
         mainEventListener = new EventListenerBoat();

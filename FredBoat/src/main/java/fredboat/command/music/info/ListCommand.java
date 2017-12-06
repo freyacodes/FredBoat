@@ -109,13 +109,14 @@ public class ListCommand extends Command implements IMusicCommand {
             if (i == 0) {
                 status = player.isPlaying() ? " \\▶" : " \\\u23F8"; //Escaped play and pause emojis
             }
-            Member member = context.guild.getMemberById(atc.getUserId());
+            Member member = atc.getMember();
             String username = member != null ? member.getEffectiveName() : context.guild.getSelfMember().getEffectiveName();
             mb.append("[" +
                     TextUtils.forceNDigits(i + 1, numberLength)
                     + "]", MessageBuilder.Formatting.BLOCK)
                     .append(status)
-                    .append(context.i18nFormat("listAddedBy", TextUtils.escapeMarkdown(atc.getEffectiveTitle()), TextUtils.escapeMarkdown(username), TextUtils.formatTime(atc.getEffectiveDuration())))
+                    .append(context.i18nFormat("listAddedBy", TextUtils.escapeMarkdown(atc.getEffectiveTitle()),
+                            TextUtils.escapeMarkdown(username), TextUtils.formatTime(atc.getEffectiveDuration())))
                     .append("\n");
 
             if (i == listEnd) {

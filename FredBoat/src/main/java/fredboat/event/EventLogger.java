@@ -89,10 +89,9 @@ public class EventLogger extends ListenerAdapter {
         this(new WebhookClientBuilder(id, token).build());
     }
 
-    // this relies on https://github.com/DV8FromTheWorld/JDA/pull/530 being merged into master
-//    public EventLogger(String eventLogWebhookUrl) {
-//        this(new WebhookClientBuilder(eventLogWebhookUrl).build());
-//    }
+    public EventLogger(String eventLogWebhookUrl) {
+        this(new WebhookClientBuilder(eventLogWebhookUrl).build());
+    }
 
 
     @Override

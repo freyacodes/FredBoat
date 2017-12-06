@@ -29,6 +29,7 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.messaging.internal.Context;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.User;
 
 import javax.annotation.Nonnull;
@@ -43,7 +44,7 @@ public class InviteCommand extends Command implements IUtilCommand {
     public void onInvoke(@Nonnull CommandContext context) {
         User self = context.guild.getJDA().getSelfUser();
         String str = "https://discordapp.com/oauth2/authorize?&client_id=" + self.getId() + "&scope=bot";
-        String send = context.i18nFormat("invite", self.getName());
+        String send = context.i18nFormat("invite", TextUtils.escapeMarkdown(self.getName()));
         context.reply(send + "\n" + str);
     }
 

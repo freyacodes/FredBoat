@@ -1,0 +1,85 @@
+
+################################################################################
+###                  Running FredBoat with docker-compose
+################################################################################
+###
+### Use a proper text editor like Sublime when editing this file
+### Do not use tab characters in this file, only spaces are allowed. Don't add or delete unnecessary spaces.
+### More information on correctly formatting yaml files: http://www.yaml.org/start.html
+###
+### For further information on running FredBoat visit https://fredboat.com/docs/selfhosting or the #selfhosting channel
+### on the FredBoat Hangout Discord server: https://discord.gg/cgPFW4q
+
+
+### NOTE: This file builds the docker images from scratch. The means it will only work properly in a checkout out git
+### repo with built jar files. If you don't know what that is or how that works, use the docker-compose file in the root
+### directory above this one, which will download pre-built docker images from the official docker hub.
+
+
+
+version: '3'
+services:
+
+  ################################################################################
+  ##                               Database
+  ################################################################################
+  db:
+    build: ./docker/database/
+    restart: on-failure:3
+
+    # WINDOWS ONLY: if you are running under windows you need to comment out the following two lines:
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+
+    # WINDOWS ONLY: if you are running under windows and want to take manual backups of the database
+    # via a docker volume, uncomment the following two lines and read the snippet at the bottom of this file
+    #volumes:
+      #- postgres-data-volume:/var/lib/postgresql/data
+
+
+  ################################################################################
+  ##                               FredBoat
+  ################################################################################
+  bot:
+    build: .
+    restart: on-failure:3
+    depends_on:
+      - db
+    ports:
+      - 1356:1356
+    volumes:
+      - ./config.yaml:/opt/FredBoat/config.yaml
+      - ./credentials.yaml:/opt/FredBoat/credentials.yaml
+      - ./logs:/opt/FredBoat/logs
+      - ./music_persistence:/opt/FredBoat/music_persistence
+    # Need a bigger memory size or any other custom JVM args? uncomment and edit the line below accordingly
+    #entrypoint: java -jar -Xmx128m FredBoat.jar
+
+
+  ################################################################################
+  ##                         Automatic updates
+  ################################################################################
+  # if you want automatic updates, uncomment the lines below
+
+  #watchtower:
+  #  image: v2tec/watchtower
+  #  restart: on-failure:3
+  #  volumes:
+  #    - /var/run/docker.sock:/var/run/docker.sock
+  #  command: --cleanup --interval 300 #seconds
+
+
+  ################################################################################
+  ##                         Windows stuff
+  ################################################################################
+
+# WINDOWS ONLY: If you are running on Windows and want to be able to backup the postgres data volume, run
+#
+#   docker volume create --name postgres-data-volume -d local
+#
+# and uncomment the following lines:
+# See also the WINDOWS ONLY hints in the database section
+
+#volumes:
+#  postgres-data-volume:
+#    external: true

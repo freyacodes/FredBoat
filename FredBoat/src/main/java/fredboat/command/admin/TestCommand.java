@@ -47,7 +47,6 @@ public class TestCommand extends Command implements ICommandRestricted {
 
     private enum Result {WORKING, SUCCESS, FAILED}
 
-    // the SQL syntax used here work with both SQLite and PostgreSQL, beware when altering
     private final String DROP_TEST_TABLE = "DROP TABLE IF EXISTS test;";
     private final String CREATE_TEST_TABLE = "CREATE TABLE IF NOT EXISTS test (id serial, val integer, PRIMARY KEY (id));";
     private final String INSERT_TEST_TABLE = "INSERT INTO test (val) VALUES (:val) ";

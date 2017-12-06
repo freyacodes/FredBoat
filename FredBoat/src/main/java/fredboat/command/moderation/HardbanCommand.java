@@ -33,6 +33,7 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.ArgumentUtil;
 import fredboat.util.DiscordUtil;
+import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -83,7 +84,7 @@ public class HardbanCommand extends Command implements IModerationCommand {
 
         //on success
         String successOutput = context.i18nFormat("hardbanSuccess",
-                target.getUser().getName(), target.getUser().getDiscriminator(), target.getUser().getId())
+                TextUtils.escapeMarkdown(target.getUser().getName()), target.getUser().getDiscriminator(), target.getUser().getId())
                 + "\n" + plainReason;
         Consumer<Void> onSuccess = aVoid -> {
             Metrics.successfulRestActions.labels("ban").inc();
@@ -125,7 +126,7 @@ public class HardbanCommand extends Command implements IModerationCommand {
         }
 
         if (DiscordUtil.getHighestRolePosition(mod) <= DiscordUtil.getHighestRolePosition(target) && !mod.isOwner()) {
-            context.replyWithName(context.i18nFormat("modFailUserHierarchy", target.getEffectiveName()));
+            context.replyWithName(context.i18nFormat("modFailUserHierarchy", TextUtils.escapeMarkdown(target.getEffectiveName())));
             return false;
         }
 
@@ -135,7 +136,7 @@ public class HardbanCommand extends Command implements IModerationCommand {
         }
 
         if (DiscordUtil.getHighestRolePosition(mod.getGuild().getSelfMember()) <= DiscordUtil.getHighestRolePosition(target)) {
-            context.replyWithName(context.i18nFormat("modFailBotHierarchy", target.getEffectiveName()));
+            context.replyWithName(context.i18nFormat("modFailBotHierarchy", TextUtils.escapeMarkdown(target.getEffectiveName())));
             return false;
         }
 
