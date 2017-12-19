@@ -73,8 +73,11 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
             // LinkedHashSet to handle order of choices + duplicates
             LinkedHashSet<Integer> requestChoices = new LinkedHashSet<>();
 
-            // Combine all args and the command trigger. if the trigger is not a number it will be sanitized away
-            String commandOptions = (context.trigger + " " + context.rawArgs).trim();
+            // Combine all args and the command trigger if it is numeric
+            String commandOptions = context.rawArgs;
+            if (StringUtils.isNumeric(context.trigger)) {
+                commandOptions = (context.trigger + " " + commandOptions).trim();
+            }
 
             if (StringUtils.isNumeric(commandOptions)) {
                 requestChoices.add(Integer.valueOf(commandOptions));
