@@ -37,13 +37,13 @@ class TextUtilsTest {
         return Stream.concat(
                 DynamicTest.stream(Arrays.asList(
                         "1q 2 3",
-                        "play 1q 2 3"
+                        "1q 2what 3"
                         ).iterator(),
                         testCase -> String.format("split select of `%s`", testCase),
                         testCase -> assertSplitSelect(one_two_three, testCase)),
 
                 DynamicTest.stream(Arrays.asList(
-                        "play q",
+                        "q",
                         "We are number 1 but this string doesn't match",
                         "1, 2, 3, 4, 5 Once we caught a fish alive"
                         ).iterator(),
