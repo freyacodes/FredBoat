@@ -131,6 +131,7 @@ public class MainCommandInitializer {
         CommandRegistry.registerCommand(new PatCommand("https://imgur.com/a/WiPTl", "pat"));
         CommandRegistry.registerCommand(new FacedeskCommand("https://imgur.com/a/I5Q4U", "facedesk"));
         CommandRegistry.registerCommand(new RollCommand("https://imgur.com/a/lrEwS", "roll"));
+        CommandRegistry.registerCommand(new RandomImageCommand("https://imgur.com/a/mnhzS", "wombat"));
     }
 
 }

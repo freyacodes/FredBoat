@@ -30,19 +30,18 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import fredboat.Config;
 import fredboat.FredBoat;
-import fredboat.command.fun.RandomImageCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
-import fredboat.db.EntityReader;
-import fredboat.db.EntityWriter;
-import fredboat.db.entity.main.GuildConfig;
+import fredboat.db.entity.GuildBotId;
+import fredboat.db.entity.main.Prefix;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
-import fredboat.shared.constant.BotConstants;
+import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
+import space.npstr.sqlsauce.fp.types.EntityKey;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -54,12 +53,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class PrefixCommand extends Command implements IModerationCommand {
 
-    private static final RandomImageCommand wombats = new RandomImageCommand("https://imgur.com/a/mnhzS", "");
-
     public PrefixCommand(@Nonnull String name, String... aliases) {
         super(name, aliases);
     }
 
+    @SuppressWarnings("ConstantConditions")
     public static final LoadingCache<Long, Optional<String>> CUSTOM_PREFIXES = CacheBuilder.newBuilder()
             //it is fine to check the db for updates occasionally, as we currently dont have any use case where we change
             //the value saved there through other means. in case we add such a thing (like a dashboard), consider lowering
@@ -69,7 +67,7 @@ public class PrefixCommand extends Command implements IModerationCommand {
             .refreshAfterWrite(1, TimeUnit.MINUTES) //NOTE: never use refreshing without async reloading, because Guavas cache uses the thread calling it to do cleanup tasks (including refreshing)
             .expireAfterAccess(1, TimeUnit.MINUTES) //evict inactive guilds
             .concurrencyLevel(Config.getNumShards())  //each shard has a thread (main JDA thread) accessing this cache many times
-            .build(CacheLoader.asyncReloading(CacheLoader.from(GuildConfig::getPrefix), FredBoat.executor));
+            .build(CacheLoader.asyncReloading(CacheLoader.from(guildId -> Prefix.getPrefix(guildId, DiscordUtil.getBotId())), FredBoat.executor));
 
     @Nonnull
     private static String giefPrefix(long guildId) {
@@ -82,10 +80,6 @@ public class PrefixCommand extends Command implements IModerationCommand {
     public static String giefPrefix(@Nullable Guild guild) {
         if (guild == null) {
             return Config.CONFIG.getPrefix();
-        }
-
-        if (guild.getJDA().getSelfUser().getIdLong() == BotConstants.PATRON_BOT_ID) {
-            return Config.CONFIG.getPrefix(); //todo lift this limitation after sorting out a data strategy
         }
 
         return giefPrefix(guild.getIdLong());
@@ -103,31 +97,30 @@ public class PrefixCommand extends Command implements IModerationCommand {
             return;
         }
 
-        if (context.guild.getJDA().getSelfUser().getIdLong() == BotConstants.PATRON_BOT_ID) {
-            context.reply("Sorry, this feature has not yet been enabled for the PatronBot! Have a picture of a wombat instead.");
-            wombats.onInvoke(context);
-            return;
-            //todo lift this limitation after sorting out a data strategy
-        }
-
-
-        //considering this is an admin level command, we can allow users to do whatever they want with their guild
-        // prefix, so no checks are necessary here
-        String newPrefix = context.rawArgs;
-
-        if (newPrefix.equalsIgnoreCase("no_prefix")) {
+        final String newPrefix;
+        if (context.rawArgs.equalsIgnoreCase("no_prefix")) {
             newPrefix = ""; //allow users to set an empty prefix with a special keyword
+        } else if (context.rawArgs.equalsIgnoreCase("reset")) {
+            newPrefix = null;
+        } else {
+            //considering this is an admin level command, we can allow users to do whatever they want with their guild
+            // prefix, so no checks are necessary here
+            newPrefix = context.rawArgs;
         }
 
-        GuildConfig gf = EntityReader.getGuildConfig(context.guild.getId());
-        gf.setPrefix(newPrefix);
-        EntityWriter.mergeGuildConfig(gf);
+        GuildBotId gbId = new GuildBotId(context.guild.getIdLong(), DiscordUtil.getBotId());
+        EntityKey<GuildBotId, Prefix> prefixKey = EntityKey.of(gbId, Prefix.class);
+        FredBoat.getMainDbWrapper().findApplyAndMerge(prefixKey, prefixEntity -> prefixEntity.setPrefix(newPrefix));
 
         //we could do a put instead of invalidate here and probably safe one lookup, but that undermines the database
         // as being the single source of truth for prefixes
         CUSTOM_PREFIXES.invalidate(context.guild.getIdLong());
 
-        showPrefix(context, newPrefix);
+        if (newPrefix == null) {//was reset
+            showPrefix(context, Config.DEFAULT_PREFIX);
+        } else {
+            showPrefix(context, newPrefix);
+        }
     }
 
     public static void showPrefix(@Nonnull Context context, @Nonnull String prefix) {
@@ -139,6 +132,6 @@ public class PrefixCommand extends Command implements IModerationCommand {
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1} <prefix> OR {0}{1} no_prefix\n#" + context.i18n("helpPrefixCommand");
+        return "{0}{1} <prefix> OR {0}{1} no_prefix OR {0}{1} reset\n#" + context.i18n("helpPrefixCommand");
     }
 }

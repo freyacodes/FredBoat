@@ -25,28 +25,18 @@
 
 package fredboat.db.entity.main;
 
-import fredboat.FredBoat;
-import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.entity.IEntity;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import space.npstr.sqlsauce.DatabaseException;
 
-import javax.annotation.Nullable;
 import javax.persistence.*;
 import java.io.Serializable;
-import java.util.List;
-import java.util.Optional;
 
 @Entity
 @Table(name = "guild_config")
 @Cacheable
 @Cache(usage= CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region="guild_config")
 public class GuildConfig implements IEntity, Serializable {
-
-    private static final Logger log = LoggerFactory.getLogger(GuildConfig.class);
 
     private static final long serialVersionUID = 5055243002380106205L;
 
@@ -62,10 +52,6 @@ public class GuildConfig implements IEntity, Serializable {
 
     @Column(name = "lang", nullable = false)
     private String lang = "en_US";
-
-    //may be null to indicate that there is no custom prefix for this guild
-    @Column(name = "prefix", nullable = true, columnDefinition = "text")
-    private String prefix;
 
     public GuildConfig(String id) {
         this.guildId = id;
@@ -107,15 +93,6 @@ public class GuildConfig implements IEntity, Serializable {
         this.lang = lang;
     }
 
-    @Nullable
-    public String getPrefix() {
-        return this.prefix;
-    }
-
-    public void setPrefix(@Nullable String prefix) {
-        this.prefix = prefix;
-    }
-
     /*@OneToMany
     @JoinColumn(name = "guildconfig")
     private Set<TCConfig> textChannels;
@@ -151,34 +128,4 @@ public class GuildConfig implements IEntity, Serializable {
         return guildId;
     }
     */
-
-    //shortcut to load the prefix without fetching the whole entity because the prefix will be needed rather often
-    // without the rest of the guildconfig information
-    @Nullable
-    public static Optional<String> getPrefix(long guildId) {
-        log.debug("loading prefix for guild {}", guildId);
-        //language=JPAQL
-        String query = "SELECT gf.prefix FROM GuildConfig gf WHERE gf.guildId = :guildId";
-        EntityManager em = null;
-        try {
-            em = FredBoat.getMainDbConnection().getEntityManager();
-            em.getTransaction().begin();
-            List<String> result = em.createQuery(query, String.class)
-                    .setParameter("guildId", Long.toString(guildId))
-                    .getResultList();
-            em.getTransaction().commit();
-            if (result.isEmpty()) {
-                return Optional.empty();
-            } else {
-                return Optional.ofNullable(result.get(0));
-            }
-        } catch (DatabaseException | PersistenceException e) {
-            log.error("Failed to load prefix for guild {}", guildId, e);
-            throw new DatabaseNotReadyException(e);
-        } finally {
-            if (em != null) {
-                em.close();
-            }
-        }
-    }
 }
