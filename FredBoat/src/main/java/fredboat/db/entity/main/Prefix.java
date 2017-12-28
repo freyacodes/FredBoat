@@ -35,8 +35,8 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +55,7 @@ public class Prefix extends SaucedEntity<GuildBotId, Prefix> {
 
     private static final Logger log = LoggerFactory.getLogger(Prefix.class);
 
-    @Id
+    @EmbeddedId
     private GuildBotId prefixId;
 
     @Nullable

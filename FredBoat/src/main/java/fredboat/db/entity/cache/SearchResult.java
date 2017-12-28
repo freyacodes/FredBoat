@@ -70,7 +70,7 @@ public class SearchResult implements Serializable {
 
     private static final Logger log = LoggerFactory.getLogger(SearchResult.class);
 
-    @Id
+    @EmbeddedId
     private SearchResultId searchResultId;
 
     @Column(name = "timestamp")
