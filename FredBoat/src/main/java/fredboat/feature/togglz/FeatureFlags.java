@@ -58,6 +58,9 @@ public enum FeatureFlags implements Feature {
 
     @Label("Full instrumentation, including multidimensional per command stats")
     FULL_METRICS,
+
+    @Label("Enable cumstom prefix on patron bot") //todo remove after transition is done
+            PATRON_CUSTOM_PREFIX
     ;
 
     public boolean isActive() {
