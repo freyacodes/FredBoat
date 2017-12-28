@@ -34,7 +34,6 @@ import fredboat.command.fun.RandomImageCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IModerationCommand;
-import fredboat.db.entity.GuildBotId;
 import fredboat.db.entity.main.Prefix;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.internal.Context;
@@ -44,7 +43,6 @@ import fredboat.shared.constant.BotConstants;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
-import space.npstr.sqlsauce.fp.types.EntityKey;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -124,9 +122,8 @@ public class PrefixCommand extends Command implements IModerationCommand {
             newPrefix = context.rawArgs;
         }
 
-        GuildBotId gbId = new GuildBotId(context.guild.getIdLong(), DiscordUtil.getBotId());
-        EntityKey<GuildBotId, Prefix> prefixKey = EntityKey.of(gbId, Prefix.class);
-        FredBoat.getMainDbWrapper().findApplyAndMerge(prefixKey, prefixEntity -> prefixEntity.setPrefix(newPrefix));
+        FredBoat.getMainDbWrapper().findApplyAndMerge(Prefix.key(context.guild),
+                prefixEntity -> prefixEntity.setPrefix(newPrefix));
 
         //we could do a put instead of invalidate here and probably safe one lookup, but that undermines the database
         // as being the single source of truth for prefixes

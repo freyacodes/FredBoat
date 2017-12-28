@@ -26,8 +26,11 @@
 package fredboat.db.entity.main;
 
 import fredboat.FredBoat;
+import fredboat.util.DiscordUtil;
+import net.dv8tion.jda.core.entities.Guild;
 import space.npstr.sqlsauce.entities.GuildBotComposite;
 import space.npstr.sqlsauce.entities.SaucedEntity;
+import space.npstr.sqlsauce.fp.types.EntityKey;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
@@ -99,12 +102,19 @@ public class Prefix extends SaucedEntity<GuildBotComposite, Prefix> {
         return this;
     }
 
+    /**
+     * Shortcut to creating an entity key for the provided guild and the running bot
+     */
+    public static EntityKey<GuildBotComposite, Prefix> key(@Nonnull Guild guild) {
+        return EntityKey.of(new GuildBotComposite(guild, DiscordUtil.getBotId()), Prefix.class);
+    }
+
     @Nullable
     public static Optional<String> getPrefix(long guildId, long botId) {
         //language=JPAQL
         String query = "SELECT p.prefix FROM Prefix p WHERE p.id = :id";
         Map<String, Object> params = new HashMap<>();
-        params.put("prefixId", new GuildBotComposite(guildId, botId));
+        params.put("id", new GuildBotComposite(guildId, botId));
 
         List<String> result = FredBoat.getMainDbWrapper().selectJpqlQuery(query, params, String.class);
         if (result.isEmpty()) {
