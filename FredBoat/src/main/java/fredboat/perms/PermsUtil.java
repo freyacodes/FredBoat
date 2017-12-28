@@ -28,7 +28,7 @@ package fredboat.perms;
 import fredboat.Config;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityReader;
-import fredboat.db.entity.GuildPermissions;
+import fredboat.db.entity.main.GuildPermissions;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.Permission;

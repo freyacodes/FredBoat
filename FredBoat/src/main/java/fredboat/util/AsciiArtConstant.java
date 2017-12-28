@@ -13,7 +13,7 @@ public final class AsciiArtConstant {
             "⊂　　 ノ 　　　・゜+.",
             "　しーＪ　　　°。+ ´¨)",
             "　　　　　　　　　.· ´¸.·´¨) ¸.·*¨)",
-            "　　　　　　　　　　(¸.·´ (¸.·' ☆ ABRA KADABRA..."
+            "　　　　　　　　　　(¸.·´ (¸.·' ☆ "
     );
 
     public static final String EAGLE_OF_LENNY = String.join("\n",

@@ -39,7 +39,7 @@ import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.EntityReader;
-import fredboat.db.entity.GuildConfig;
+import fredboat.db.entity.main.GuildConfig;
 import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;

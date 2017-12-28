@@ -188,7 +188,14 @@ public abstract class Context {
             log.warn("Context#i18nFormat() called with empty or null params, this is likely a bug.",
                     new MessagingException("a stack trace to help find the source"));
         }
-        return MessageFormat.format(this.i18n(key), params);
+        try {
+            return MessageFormat.format(this.i18n(key), params);
+        } catch (IllegalArgumentException e) {
+            log.warn("Failed to format key '{}' for language '{}' with following parameters: {}",
+                    key, getI18n().getBaseBundleName(), params, e);
+            //fall back to default props
+            return MessageFormat.format(I18n.DEFAULT.getProps().getString(key), params);
+        }
     }
 
 

@@ -19,7 +19,7 @@ services:
   ################################################################################
   db:
     image: fredboat/postgres
-    restart: on-failure:3
+    restart: always
 
     # WINDOWS ONLY: if you are running under windows you need to comment out the following two lines:
     volumes:

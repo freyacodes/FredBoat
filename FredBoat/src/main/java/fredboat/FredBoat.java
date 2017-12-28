@@ -38,11 +38,7 @@ import fredboat.feature.I18n;
 import fredboat.feature.metrics.Metrics;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.shared.constant.ExitCodes;
-import fredboat.util.AppInfo;
-import fredboat.util.ConnectQueue;
-import fredboat.util.GitRepoState;
-import fredboat.util.JDAUtil;
-import fredboat.util.TextUtils;
+import fredboat.util.*;
 import fredboat.util.rest.Http;
 import fredboat.util.rest.OpenWeatherAPI;
 import fredboat.util.rest.models.weather.RetrievedWeather;
@@ -58,6 +54,9 @@ import okhttp3.Response;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import space.npstr.sqlsauce.DatabaseConnection;
+import space.npstr.sqlsauce.DatabaseException;
+import space.npstr.sqlsauce.DatabaseWrapper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -65,6 +64,7 @@ import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -88,10 +88,14 @@ public abstract class FredBoat {
     protected final static StatsAgent jdaEntityCountAgent = new StatsAgent("jda entity counter");
 
     private final static JdaEntityCounts jdaEntityCountsTotal = new JdaEntityCounts();
-    private static DatabaseManager dbManager;
+    private static DatabaseWrapper mainDbWrapper;
+
+    @Nullable //will be null if no cache database has been configured
+    private static DatabaseConnection cacheDbConn;
     private static final List<FredBoat> shards = new CopyOnWriteArrayList<>();
 
-    public static void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException, IOException {
+    public static void main(String[] args) throws LoginException, IllegalArgumentException, InterruptedException,
+                                                  IOException, DatabaseException {
         //just post the info to the console
         if (args.length > 0 &&
                 (args[0].equalsIgnoreCase("-v")
@@ -107,15 +111,20 @@ public abstract class FredBoat {
         Runtime.getRuntime().addShutdownHook(new Thread(ON_SHUTDOWN, "FredBoat main shutdownhook"));
         log.info(getVersionInfo());
 
-        String javaVersionMinor = System.getProperty("java.version").split("\\.")[1];
+        String javaVersionMinor = null;
+        try {
+            javaVersionMinor = System.getProperty("java.version").split("\\.")[1];
+        } catch (Exception e) {
+            log.error("Exception while checking if java 8", e);
+        }
 
-        if (!javaVersionMinor.equals("8")) {
+        if (!Objects.equals(javaVersionMinor, "8")) {
             log.warn("\n\t\t __      ___   ___ _  _ ___ _  _  ___ \n" +
                     "\t\t \\ \\    / /_\\ | _ \\ \\| |_ _| \\| |/ __|\n" +
                     "\t\t  \\ \\/\\/ / _ \\|   / .` || || .` | (_ |\n" +
                     "\t\t   \\_/\\_/_/ \\_\\_|_\\_|\\_|___|_|\\_|\\___|\n" +
                     "\t\t                                      ");
-            log.warn("FredBoat only supports Java 8. You are running Java " + javaVersionMinor);
+            log.warn("FredBoat only officially supports Java 8. You are running Java {}", System.getProperty("java.version"));
         }
 
         I18n.start();
@@ -126,24 +135,37 @@ public abstract class FredBoat {
             log.info("Failed to ignite Spark, FredBoat API unavailable", e);
         }
 
-        dbManager = DatabaseManager.postgres();
         //attempt to connect to the database a few times
         // this is relevant in a dockerized environment because after a reboot there is no guarantee that the db
         // container will be started before the fredboat one
         int dbConnectionAttempts = 0;
-        while (!dbManager.isAvailable() && dbConnectionAttempts++ < 10) {
+        DatabaseConnection mainDbConn = null;
+        while ((mainDbConn == null || !mainDbConn.isAvailable()) && dbConnectionAttempts++ < 10) {
             try {
-                dbManager.startup();
+                if (mainDbConn != null) {
+                    mainDbConn.shutdown();
+                }
+                mainDbConn = DatabaseManager.main();
             } catch (Exception e) {
-                log.error("Could not connect to the database. Retrying in a moment...", e);
-                Thread.sleep(5000);
+                log.info("Could not connect to the database. Retrying in a moment...", e);
+                Thread.sleep(6000);
             }
         }
-        if (!dbManager.isAvailable()) {
+        if (mainDbConn == null || !mainDbConn.isAvailable()) {
             log.error("Could not establish database connection. Exiting...");
             shutdown(ExitCodes.EXIT_CODE_ERROR);
+            return;
         }
-        FredBoatAgent.start(new DBConnectionWatchdogAgent(dbManager));
+        FredBoatAgent.start(new DBConnectionWatchdogAgent(mainDbConn));
+        mainDbWrapper = new DatabaseWrapper(mainDbConn);
+
+        try {
+            cacheDbConn = DatabaseManager.cache();
+        } catch (Exception e) {
+            log.error("Exception when connecting to cache db", e);
+            shutdown(ExitCodes.EXIT_CODE_ERROR);
+        }
+        Metrics.instance().hibernateStats.register(); //call this exactly once after all db connections have been created
 
         //Initialise event listeners
         mainEventListener = new EventListenerBoat();
@@ -323,7 +345,12 @@ public abstract class FredBoat {
         }
 
         executor.shutdown();
-        dbManager.shutdown();
+        if (cacheDbConn != null) {
+            cacheDbConn.shutdown();
+        }
+        if (mainDbWrapper != null) {
+            mainDbWrapper.unwrap().shutdown();
+        }
     };
 
     public static void shutdown(int code) {
@@ -432,9 +459,19 @@ public abstract class FredBoat {
         return shards.get(id);
     }
 
-    @Nullable
-    public static DatabaseManager getDbManager() {
-        return dbManager;
+    @Nonnull
+    public static DatabaseConnection getMainDbConnection() {
+        return mainDbWrapper.unwrap();
+    }
+
+    @Nonnull
+    public static DatabaseWrapper getMainDbWrapper() {
+        return mainDbWrapper;
+    }
+
+    @Nullable //may return null if no cache database has been configured
+    public static DatabaseConnection getCacheDbConnection() {
+        return cacheDbConn;
     }
 
     private static String getVersionInfo() {

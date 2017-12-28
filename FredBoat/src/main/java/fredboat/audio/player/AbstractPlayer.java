@@ -76,12 +76,12 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
     protected AudioTrackContext context;
     private final AudioLossCounter audioLossCounter = new AudioLossCounter();
 
-    protected Consumer<AudioTrackContext> onPlayHook;
-    protected Consumer<Throwable> onErrorHook;
+    Consumer<AudioTrackContext> onPlayHook;
+    Consumer<Throwable> onErrorHook;
 
     private static final int MAX_HISTORY_SIZE = 20;
     private AudioTrackContext queuedTrackInHistory = null;
-    protected ConcurrentLinkedQueue<AudioTrackContext> historyQueue = new ConcurrentLinkedQueue<>();
+    private ConcurrentLinkedQueue<AudioTrackContext> historyQueue = new ConcurrentLinkedQueue<>();
 
     @SuppressWarnings("LeakingThisInConstructor")
     AbstractPlayer(String guildId) {
@@ -322,7 +322,7 @@ public abstract class AbstractPlayer extends AudioEventAdapterWrapped implements
      * <p>
      * Silently playing a track will not trigger the onPlayHook (which announces the track usually)
      */
-    protected void playTrack(AudioTrackContext trackContext, boolean... silent) {
+    private void playTrack(AudioTrackContext trackContext, boolean... silent) {
         log.debug("playTrack({})", trackContext.getEffectiveTitle());
 
         context = trackContext;

@@ -23,8 +23,9 @@
  *
  */
 
-package fredboat.db.entity;
+package fredboat.db.entity.main;
 
+import fredboat.db.entity.IEntity;
 import fredboat.perms.PermissionLevel;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
@@ -49,6 +50,7 @@ public class GuildPermissions implements IEntity, Serializable {
 
     // Guild ID
     @Id
+    @Column(name = "id")
     private String id;
 
     public GuildPermissions() {}

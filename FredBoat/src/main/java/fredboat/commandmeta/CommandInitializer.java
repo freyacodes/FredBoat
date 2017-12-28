@@ -29,10 +29,16 @@ import fredboat.command.config.*;
 import fredboat.command.fun.*;
 import fredboat.command.fun.img.*;
 import fredboat.command.info.*;
-import fredboat.command.moderation.*;
+import fredboat.command.moderation.ClearCommand;
+import fredboat.command.moderation.HardbanCommand;
+import fredboat.command.moderation.KickCommand;
+import fredboat.command.moderation.SoftbanCommand;
 import fredboat.command.music.control.*;
 import fredboat.command.music.info.*;
-import fredboat.command.music.seeking.*;
+import fredboat.command.music.seeking.ForwardCommand;
+import fredboat.command.music.seeking.RestartCommand;
+import fredboat.command.music.seeking.RewindCommand;
+import fredboat.command.music.seeking.SeekCommand;
 import fredboat.command.util.*;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.AsciiArtConstant;
@@ -172,8 +178,8 @@ public class CommandInitializer {
         funModule.registerCommand(new TextCommand("/╲/╭( ͡° ͡° ͜ʖ ͡° ͡°)╮/╱\\", "spiderlenny"));
         funModule.registerCommand(new TextCommand("( ͡° ͜ʖ ͡°)", "lenny"));
         funModule.registerCommand(new TextCommand("┬┴┬┴┤ ͜ʖ ͡°) ├┬┴┬┴", "peeking", "peekinglenny", "peek"));
-        funModule.registerCommand(new TextCommand(AsciiArtConstant.MAGICAL_LENNY, "magicallenny", "lennymagical", "magic"));
         funModule.registerCommand(new TextCommand(AsciiArtConstant.EAGLE_OF_LENNY, "eagleoflenny", "eol", "lennyeagle"));
+        funModule.registerCommand(new MagicCommand("magic", "magicallenny", "lennymagical"));
 
         /* Random images / image collections */
         funModule.registerCommand(new CatgirlCommand("catgirl", "neko", "catgrill"));
@@ -181,6 +187,7 @@ public class CommandInitializer {
         funModule.registerCommand(new HugCommand("https://imgur.com/a/jHJOc", "hug"));
         funModule.registerCommand(new PatCommand("https://imgur.com/a/WiPTl", "pat"));
         funModule.registerCommand(new RollCommand("https://imgur.com/a/lrEwS", "roll"));
+        funModule.registerCommand(new RandomImageCommand("https://imgur.com/a/mnhzS", "wombat"));
 
 
         // Music Module

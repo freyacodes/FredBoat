@@ -284,7 +284,7 @@ public class FredBoatShard extends FredBoat {
             if (defaultShardBuilder == null) {
                 JDABuilder builder = new JDABuilder(AccountType.BOT)
                         .setToken(Config.CONFIG.getBotToken())
-                        .setGame(Game.of(Config.CONFIG.getGame()))
+                        .setGame(Game.playing(Config.CONFIG.getGame()))
                         .setBulkDeleteSplittingEnabled(false)
                         .setEnableShutdownHook(false)
                         .setAudioEnabled(true)
@@ -293,9 +293,16 @@ public class FredBoatShard extends FredBoat {
                         .setReconnectQueue(connectQueue)
                         .setHttpClientBuilder(new OkHttpClient.Builder()
                                 .eventListener(new OkHttpEventMetrics("jda")))
-                        .addEventListener(Metrics.instance().jdaEventsMetricsListener)
-                        .addEventListener(new EventLogger(Config.CONFIG.getEventLogWebhookId(),
-                                Config.CONFIG.getEventLogWebhookToken()));
+                        .addEventListener(Metrics.instance().jdaEventsMetricsListener);
+
+                String eventLogWebhook = Config.CONFIG.getEventLogWebhook();
+                if (eventLogWebhook != null && !eventLogWebhook.isEmpty()) {
+                    try {
+                        builder.addEventListener(new EventLogger());
+                    } catch (Exception e) {
+                        log.error("Failed to create Eventlogger, events will not be logged to discord via webhook", e);
+                    }
+                }
 
 
                 if (LavalinkManager.ins.isEnabled()) {

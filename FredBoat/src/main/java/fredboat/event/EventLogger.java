@@ -25,18 +25,15 @@
 
 package fredboat.event;
 
+import fredboat.Config;
 import fredboat.FredBoat;
 import fredboat.messaging.CentralMessaging;
 import fredboat.util.Emojis;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.MessageBuilder;
+import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.MessageEmbed;
-import net.dv8tion.jda.core.events.DisconnectEvent;
-import net.dv8tion.jda.core.events.ReadyEvent;
-import net.dv8tion.jda.core.events.ReconnectedEvent;
-import net.dv8tion.jda.core.events.ResumedEvent;
-import net.dv8tion.jda.core.events.ShutdownEvent;
+import net.dv8tion.jda.core.entities.User;
+import net.dv8tion.jda.core.events.*;
 import net.dv8tion.jda.core.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
@@ -45,19 +42,15 @@ import net.dv8tion.jda.webhook.WebhookClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 /**
  * This overengineered class logs some events via a webhook into Discord.
@@ -71,53 +64,57 @@ public class EventLogger extends ListenerAdapter {
 
     public static final Logger log = LoggerFactory.getLogger(EventLogger.class);
 
-    private final static int MAX_MESSAGE_QUEUE_SIZE = 30;
-
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
             runnable -> new Thread(runnable, "eventlogger"));
     @Nullable
-    private WebhookClient eventLoggerWebhook;
+    private WebhookClient eventLogWebhook;
+    @Nullable
+    private WebhookClient guildStatsWebhook;
 
     //saves some messages, so that in case we run into occasional connection issues we dont just drop them due to the webhook timing out
-    private final Queue<Message> toBeSent = new ConcurrentLinkedQueue<>();
+    private final Queue<Message> toBeSentEventLog = new ConcurrentLinkedQueue<>();
+    private final Queue<Message> toBeSentGuildStats = new ConcurrentLinkedQueue<>();
 
     private final List<ShardStatusEvent> statusStats = new CopyOnWriteArrayList<>();
     private final AtomicInteger guildsJoinedEvents = new AtomicInteger(0);
     private final AtomicInteger guildsLeftEvents = new AtomicInteger(0);
 
-    public EventLogger(long id, String token) {
-        this(new WebhookClientBuilder(id, token).build());
+    public EventLogger() {
+        this(new WebhookClientBuilder(Config.CONFIG.getEventLogWebhook()).build(),
+                new WebhookClientBuilder(Config.CONFIG.getGuildStatsWebhook()).build());
     }
-
-    // this relies on https://github.com/DV8FromTheWorld/JDA/pull/530 being merged into master
-//    public EventLogger(String eventLogWebhookUrl) {
-//        this(new WebhookClientBuilder(eventLogWebhookUrl).build());
-//    }
 
 
     @Override
     public void onReady(ReadyEvent event) {
-        statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(), ShardStatusEvent.StatusEvent.READY));
+        statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(),
+                ShardStatusEvent.StatusEvent.READY, ""));
     }
 
     @Override
     public void onResume(ResumedEvent event) {
-        statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(), ShardStatusEvent.StatusEvent.RESUME));
+        statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(),
+                ShardStatusEvent.StatusEvent.RESUME, ""));
     }
 
     @Override
     public void onReconnect(ReconnectedEvent event) {
-        statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(), ShardStatusEvent.StatusEvent.RECONNECT));
+        statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(),
+                ShardStatusEvent.StatusEvent.RECONNECT, ""));
     }
 
     @Override
     public void onDisconnect(DisconnectEvent event) {
-        statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(), ShardStatusEvent.StatusEvent.DISCONNECT));
+        String closeCodeStr = "close code " + (event.getCloseCode() == null ? "null" : event.getCloseCode().getCode());
+        statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(),
+                ShardStatusEvent.StatusEvent.DISCONNECT, "with " + closeCodeStr));
     }
 
     @Override
     public void onShutdown(ShutdownEvent event) {
-        statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(), ShardStatusEvent.StatusEvent.SHUTDOWN));
+        String closeCodeStr = "close code " + (event.getCloseCode() == null ? "null" : event.getCloseCode().getCode());
+        statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(),
+                ShardStatusEvent.StatusEvent.SHUTDOWN, "with " + closeCodeStr));
     }
 
     @Override
@@ -140,20 +137,26 @@ public class EventLogger extends ListenerAdapter {
             message = Emojis.DOOR + "Exiting with unknown code.";
         }
         log.info(message);
-        if (eventLoggerWebhook != null) {
-            eventLoggerWebhook.send(message);
+        Future elw = null;
+        Future gsw = null;
+        if (eventLogWebhook != null) elw = eventLogWebhook.send(message);
+        if (guildStatsWebhook != null) gsw = guildStatsWebhook.send(message);
+        try {
+            if (elw != null) elw.get();
+            if (gsw != null) gsw.get();
+        } catch (ExecutionException | InterruptedException ignored) {
         }
     };
 
     //actual constructor
-    private EventLogger(WebhookClient eventLoggerWebhook) {
+    private EventLogger(@Nonnull WebhookClient eventLoggerWebhook, @Nonnull WebhookClient guildStatsWebhook) {
         Runtime.getRuntime().addShutdownHook(new Thread(ON_SHUTDOWN, EventLogger.class.getSimpleName() + " shutdownhook"));
 
-        //test the provided webhook before assigning it, otherwise it will spam our logs with exceptions
+        //test the provided webhooks before assigning them, otherwise they will spam our logs with exceptions
         WebhookClient workingWebhook = null;
         if (eventLoggerWebhook.getIdLong() > 0) { //id is 0 when there is no webhookid configured in the config; skip this in that case
             try {
-                eventLoggerWebhook.send(Emojis.PENCIL + "Eventlogger started.")
+                eventLoggerWebhook.send(Emojis.PENCIL + "Event logger started.")
                         .get();
                 workingWebhook = eventLoggerWebhook; //webhook test was successful; FIXME occasionally this might fail during the start due to connection issues, while the provided values are actually valid
             } catch (Exception e) {
@@ -163,39 +166,70 @@ public class EventLogger extends ListenerAdapter {
         } else {
             eventLoggerWebhook.close();
         }
+        this.eventLogWebhook = workingWebhook;
 
-        this.eventLoggerWebhook = workingWebhook;
+        if (eventLogWebhook != null) {
+            scheduler.scheduleAtFixedRate(() -> {
+                try {
+                    sendEventLogs();
+                } catch (Exception e) {
+                    log.error("Failed to send shard status summary to event log webhook", e);
+                }
+            }, 0, Math.max(Config.CONFIG.getEventLogInterval(), 1), TimeUnit.MINUTES);
+        }
 
-        scheduler.scheduleAtFixedRate(() -> {
+        workingWebhook = null;
+        if (guildStatsWebhook.getIdLong() > 0) { //id is 0 when there is no webhookid configured in the config; skip this in that case
             try {
-                sendShardStatusSummary();
+                guildStatsWebhook.send(Emojis.PENCIL + "Guild stats logger started.")
+                        .get();
+                workingWebhook = guildStatsWebhook; //webhook test was successful; FIXME occasionally this might fail during the start due to connection issues, while the provided values are actually valid
             } catch (Exception e) {
-                log.error("Failed to send shard status summary to event log webhook", e);
+                log.error("Failed to create guild stats webhook. Guild stats will not be available. Doublecheck your configuration values.");
+                guildStatsWebhook.close();
             }
-        }, 0, 1, TimeUnit.MINUTES);
+        } else {
+            guildStatsWebhook.close();
+        }
+        this.guildStatsWebhook = workingWebhook;
 
-        scheduler.scheduleAtFixedRate(() -> {
-            try {
-                sendGuildsSummary();
-            } catch (Exception e) {
-                log.error("Failed to send guilds summary to event log webhook", e);
-            }
-        }, 0, 1, TimeUnit.HOURS);
+        int interval = Math.max(Config.CONFIG.getGuildStatsInterval(), 1);
+        if (this.guildStatsWebhook != null) {
+            scheduler.scheduleAtFixedRate(() -> {
+                try {
+                    sendGuildStats();
+                } catch (Exception e) {
+                    log.error("Failed to send guilds summary to guild stats webhook", e);
+                }
+            }, interval, interval, TimeUnit.MINUTES);
+        }
     }
 
-    private void sendGuildsSummary() {
-        MessageEmbed embed = CentralMessaging.getColoredEmbedBuilder()
+    private void sendGuildStats() {
+        if (guildStatsWebhook == null) {
+            return;
+        }
+
+        EmbedBuilder eb = CentralMessaging.getColoredEmbedBuilder()
                 .setTimestamp(LocalDateTime.now())
                 .setTitle("Joins and Leaves since the last update")
                 .addField("Guilds joined", Integer.toString(guildsJoinedEvents.getAndSet(0)), true)
-                .addField("Guilds left", Integer.toString(guildsLeftEvents.getAndSet(0)), true)
-                .build();
+                .addField("Guilds left", Integer.toString(guildsLeftEvents.getAndSet(0)), true);
 
-        addMessageToWebhookQueue(CentralMessaging.getClearThreadLocalMessageBuilder().setEmbed(embed).build());
-        drainMessageQueue();
+        if (!FredBoat.getShards().isEmpty()) {
+            FredBoat anyShard = FredBoat.getShards().get(0);
+            User self = anyShard.getJda().getSelfUser();
+            eb.setFooter(self.getName(), self.getEffectiveAvatarUrl());
+        }
+
+        toBeSentGuildStats.add(CentralMessaging.from(eb.build()));
+        drainMessageQueue(toBeSentGuildStats, guildStatsWebhook);
     }
 
-    private void sendShardStatusSummary() {
+    private void sendEventLogs() {
+        if (eventLogWebhook == null) {
+            return;
+        }
         List<ShardStatusEvent> events = new ArrayList<>(statusStats);
         statusStats.removeAll(events);
 
@@ -203,112 +237,49 @@ public class EventLogger extends ListenerAdapter {
             return;//nothing to report
         }
 
-        //~35 lines fit into a 2k char message, if we can get away with a max of 5 messages, post those, otherwise post a summary
-        if (events.size() <= 35 * 5) {
-            List<ShardStatusEvent> sublist = new ArrayList<>();
-            for (int i = 0; i < events.size(); i++) {
-                sublist.add(events.get(i));
-                if (i != 0 && (i % 35 == 0 || i == events.size() - 1)) {
-                    addMessageToWebhookQueue(CentralMessaging.getClearThreadLocalMessageBuilder()
-                            .appendCodeBlock(String.join("\n", sublist.stream().map(ShardStatusEvent::toString).collect(Collectors.toList())),
-                                    "diff")
-                            .build());
-                    sublist.clear();
-                }
-            }
-            drainMessageQueue();
-            return;
-        }
-
-        //too many events in a short time. sum them up
-        List<Integer> readied = new ArrayList<>();
-        List<Integer> resumed = new ArrayList<>();
-        List<Integer> reconnected = new ArrayList<>();
-        List<Integer> disconnected = new ArrayList<>();
-        List<Integer> shutdown = new ArrayList<>();
-
+        //split into messages of acceptable size (2k chars max)
+        StringBuilder msg = new StringBuilder();
         for (ShardStatusEvent event : events) {
-            switch (event.event) {
-                case READY:
-                    readied.add(event.shardId);
-                    break;
-                case RESUME:
-                    resumed.add(event.shardId);
-                    break;
-                case RECONNECT:
-                    reconnected.add(event.shardId);
-                    break;
-                case DISCONNECT:
-                    disconnected.add(event.shardId);
-                    break;
-                case SHUTDOWN:
-                    shutdown.add(event.shardId);
-                    break;
-                default:
-                    log.error("Unexpected status event type: {}", event.event.name());
+            String eventStr = event.toString();
+            if (msg.length() + eventStr.length() > 1900) {
+                toBeSentEventLog.add(CentralMessaging.getClearThreadLocalMessageBuilder()
+                        .appendCodeBlock(msg.toString(), "diff").build());
+                msg = new StringBuilder();
             }
+            msg.append("\n").append(eventStr);
         }
-
-        String output = TextUtils.getTimeInCentralEurope() + " **Shard Events Summary:**\n";
-        if (!readied.isEmpty()) {
-            String shards = String.join(", ", readied.stream().map(i -> Integer.toString(i)).collect(Collectors.toList()));
-            output += TextUtils.asCodeBlock("+ " + readied.size() + " shard ready events:\n+ " + shards, "diff") + "\n";
+        if (msg.length() > 0) {//any leftovers?
+            toBeSentEventLog.add(CentralMessaging.getClearThreadLocalMessageBuilder()
+                    .appendCodeBlock(msg.toString(), "diff").build());
         }
-        if (!resumed.isEmpty()) {
-            String shards = String.join(", ", resumed.stream().map(i -> Integer.toString(i)).collect(Collectors.toList()));
-            output += TextUtils.asCodeBlock("+ " + resumed.size() + " shard resume events:\n+ " + shards, "diff") + "\n";
-        }
-        if (!reconnected.isEmpty()) {
-            String shards = String.join(", ", reconnected.stream().map(i -> Integer.toString(i)).collect(Collectors.toList()));
-            output += TextUtils.asCodeBlock("+" + reconnected.size() + " shard reconnect events:\n+ " + shards, "diff") + "\n";
-        }
-        if (!disconnected.isEmpty()) {
-            String shards = String.join(", ", disconnected.stream().map(i -> Integer.toString(i)).collect(Collectors.toList()));
-            output += TextUtils.asCodeBlock("-" + disconnected.size() + " shard disconnect events:\n- " + shards, "diff") + "\n";
-        }
-        if (!shutdown.isEmpty()) {
-            String shards = String.join(", ", shutdown.stream().map(i -> Integer.toString(i)).collect(Collectors.toList()));
-            output += TextUtils.asCodeBlock("- " + shutdown.size() + " shard shutdown events:\n- " + shards, "diff") + "\n";
-        }
-
-        CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(output)
-                .buildAll(MessageBuilder.SplitPolicy.NEWLINE)
-                .forEach(this::addMessageToWebhookQueue);
-        drainMessageQueue();
+        drainMessageQueue(toBeSentEventLog, eventLogWebhook);
     }
 
-    private synchronized void drainMessageQueue() {
-        if (eventLoggerWebhook == null) {
-            return;
-        }
+    private static void drainMessageQueue(@Nonnull Queue<Message> queue, @Nonnull WebhookClient webhook) {
         try {
-            while (!toBeSent.isEmpty()) {
-                Message message = toBeSent.peek();
-                eventLoggerWebhook.send(message).get();
-                toBeSent.poll();
+            while (!queue.isEmpty()) {
+                Message message = queue.peek();
+                webhook.send(message).get();
+                queue.poll();
             }
         } catch (Exception e) {
-            log.warn("Event log webhook failed to send a message. Will try again later.", e);
+            log.warn("Webhook failed to send a message. Will try again next time.", e);
         }
-    }
-
-    private void addMessageToWebhookQueue(Message message) {
-        while (toBeSent.size() > MAX_MESSAGE_QUEUE_SIZE) {
-            toBeSent.poll(); //drop messages above max size
-        }
-        toBeSent.add(message);
     }
 
     private static class ShardStatusEvent {
 
         final int shardId;
+        @Nonnull
         final StatusEvent event;
+        @Nonnull
+        final String additionalInfo;
         final long timestamp;
 
-        private ShardStatusEvent(int shardId, StatusEvent event) {
+        private ShardStatusEvent(int shardId, @Nonnull StatusEvent event, @Nonnull String additionalInfo) {
             this.shardId = shardId;
             this.event = event;
+            this.additionalInfo = additionalInfo;
             this.timestamp = System.currentTimeMillis();
         }
 
@@ -330,8 +301,9 @@ public class EventLogger extends ListenerAdapter {
 
         @Override
         public String toString() {
-            return String.format("%s [%s] Shard %s %s", //NOTE when changing this, make sure the max message size is still respected in those place using this method
-                    event.diff, TextUtils.asTimeInCentralEurope(timestamp), TextUtils.forceNDigits(shardId, 3), event.str);
+            return String.format("%s [%s] Shard %s %s %s",
+                    event.diff, TextUtils.asTimeInCentralEurope(timestamp),
+                    TextUtils.forceNDigits(shardId, 3), event.str, additionalInfo);
         }
 
         @Override

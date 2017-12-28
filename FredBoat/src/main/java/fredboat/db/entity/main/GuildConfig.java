@@ -23,25 +23,19 @@
  *
  */
 
-package fredboat.db.entity;
+package fredboat.db.entity.main;
 
-import fredboat.FredBoat;
 import fredboat.commandmeta.CommandRegistry;
-import fredboat.db.DatabaseManager;
-import fredboat.db.DatabaseNotReadyException;
+import fredboat.db.entity.IEntity;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.ColumnDefault;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Entity
 @Table(name = "guild_config")
@@ -49,11 +43,10 @@ import java.util.Optional;
 @Cache(usage= CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region="guild_config")
 public class GuildConfig implements IEntity, Serializable {
 
-    private static final Logger log = LoggerFactory.getLogger(GuildConfig.class);
-
     private static final long serialVersionUID = 5055243002380106205L;
 
     @Id
+    @Column(name = "guildid", nullable = false)
     private String guildId;
 
     @Column(name = "track_announce", nullable = false)
@@ -64,10 +57,6 @@ public class GuildConfig implements IEntity, Serializable {
 
     @Column(name = "lang", nullable = false)
     private String lang = "en_US";
-
-    //may be null to indicate that there is no custom prefix for this guild
-    @Column(name = "prefix", nullable = true, columnDefinition = "text")
-    private String prefix;
 
     @Column(name = "enabled_module_bits", nullable = false)
     @ColumnDefault(value = "15") //see default modules
@@ -113,15 +102,6 @@ public class GuildConfig implements IEntity, Serializable {
         this.lang = lang;
     }
 
-    @Nullable
-    public String getPrefix() {
-        return this.prefix;
-    }
-
-    public void setPrefix(@Nullable String prefix) {
-        this.prefix = prefix;
-    }
-
     public long getEnabledModuleBits() {
         return enabledModuleBits;
     }
@@ -148,37 +128,5 @@ public class GuildConfig implements IEntity, Serializable {
     //check whether the bits of the module are present in the enabled bits
     public boolean isModuleEnabled(@Nonnull CommandRegistry.Module module) {
         return (module.bits & enabledModuleBits) == module.bits;
-    }
-
-
-    //shortcut to load the prefix without fetching the whole entity because the prefix will be needed rather often
-    // without the rest of the guildconfig information
-    @Nullable
-    public static Optional<String> getPrefix(long guildId) {
-        log.debug("loading prefix for guild {}", guildId);
-        DatabaseManager dbManager = FredBoat.getDbManager();
-        if (dbManager == null || !dbManager.isAvailable()) {
-            throw new DatabaseNotReadyException();
-        }
-        //language=JPAQL
-        String query = "SELECT gf.prefix FROM GuildConfig gf WHERE gf.guildId = :guildId";
-        EntityManager em = dbManager.getEntityManager();
-        try {
-            em.getTransaction().begin();
-            List<String> result = em.createQuery(query, String.class)
-                    .setParameter("guildId", Long.toString(guildId))
-                    .getResultList();
-            em.getTransaction().commit();
-            if (result.isEmpty()) {
-                return Optional.empty();
-            } else {
-                return Optional.ofNullable(result.get(0));
-            }
-        } catch (PersistenceException e) {
-            log.error("Failed to load prefix for guild {}", guildId, e);
-            throw new DatabaseNotReadyException(e);
-        } finally {
-            em.close();
-        }
     }
 }

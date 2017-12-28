@@ -93,7 +93,7 @@ public class AudioTrackContext extends LeakSafeContext implements Comparable<Aud
     }
 
     public AudioTrackContext makeClone() {
-        return new AudioTrackContext(track.makeClone(), userId, guildId);
+        return new AudioTrackContext(track.makeClone(), guildId, userId);
     }
 
     public long getEffectiveDuration() {

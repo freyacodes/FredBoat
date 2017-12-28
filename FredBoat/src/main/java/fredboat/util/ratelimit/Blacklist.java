@@ -26,7 +26,7 @@ package fredboat.util.ratelimit;
 
 import fredboat.db.EntityReader;
 import fredboat.db.EntityWriter;
-import fredboat.db.entity.BlacklistEntry;
+import fredboat.db.entity.main.BlacklistEntry;
 import fredboat.feature.metrics.Metrics;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 

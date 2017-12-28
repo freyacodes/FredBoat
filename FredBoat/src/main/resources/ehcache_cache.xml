@@ -26,9 +26,9 @@
 
 <ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="http://www.ehcache.org/ehcache.xsd" updateCheck="true"
-         monitoring="autodetect" dynamicConfig="true">
+         monitoring="autodetect" dynamicConfig="true" name="CACHE_CACHEMANAGER">
 
-    <diskStore path="java.io.tmpdir/ehcache"/>
+    <diskStore path="java.io.tmpdir/ehcache/fredboat_cache"/>
 
     <defaultCache maxEntriesLocalHeap="10000" eternal="false"
                   timeToIdleSeconds="120"
@@ -40,22 +40,6 @@
                   statistics="true">
         <persistence strategy="localTempSwap"/>
     </defaultCache>
-
-    <cache name="guild_config"
-           maxElementsInMemory="120000"
-           eternal="false"
-           timeToIdleSeconds="60"
-           timeToLiveSeconds="120">
-        <persistence strategy="localtempswap"/>
-    </cache>
-
-    <cache name="guild_permissions"
-           maxElementsInMemory="120000"
-           eternal="false"
-           timeToIdleSeconds="60"
-           timeToLiveSeconds="120">
-        <persistence strategy="localtempswap"/>
-    </cache>
 
     <cache name="search_results"
            maxElementsInMemory="1000"

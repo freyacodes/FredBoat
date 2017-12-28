@@ -34,13 +34,13 @@ import fredboat.command.fun.img.RandomImageCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IConfigCommand;
-import fredboat.db.EntityReader;
-import fredboat.db.EntityWriter;
-import fredboat.db.entity.GuildConfig;
+import fredboat.db.entity.main.Prefix;
+import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
+import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 
@@ -54,25 +54,30 @@ import java.util.concurrent.TimeUnit;
  */
 public class PrefixCommand extends Command implements IConfigCommand {
 
-    private static final RandomImageCommand wombats = new RandomImageCommand("https://imgur.com/a/mnhzS", "");
-
     public PrefixCommand(@Nonnull String name, String... aliases) {
         super(name, aliases);
     }
 
+    private static final RandomImageCommand wombats = new RandomImageCommand("https://imgur.com/a/mnhzS", "");
+
+    @SuppressWarnings("ConstantConditions")
     public static final LoadingCache<Long, Optional<String>> CUSTOM_PREFIXES = CacheBuilder.newBuilder()
             //it is fine to check the db for updates occasionally, as we currently dont have any use case where we change
             //the value saved there through other means. in case we add such a thing (like a dashboard), consider lowering
             //the refresh value to have the changes reflect faster in the bot, or consider implementing a FredBoat wide
             //Listen/Notify system for changes to in memory cached values backed by the db
             .recordStats()
-            .refreshAfterWrite(1, TimeUnit.MINUTES) //NOTE: never use refreshing without async reloading
+            .refreshAfterWrite(1, TimeUnit.MINUTES) //NOTE: never use refreshing without async reloading, because Guavas cache uses the thread calling it to do cleanup tasks (including refreshing)
             .expireAfterAccess(1, TimeUnit.MINUTES) //evict inactive guilds
             .concurrencyLevel(Config.getNumShards())  //each shard has a thread (main JDA thread) accessing this cache many times
-            .build(CacheLoader.asyncReloading(CacheLoader.from(GuildConfig::getPrefix), FredBoat.executor));
+            .build(CacheLoader.asyncReloading(CacheLoader.from(guildId -> Prefix.getPrefix(guildId, DiscordUtil.getBotId())), FredBoat.executor));
 
     @Nonnull
     private static String giefPrefix(long guildId) {
+        if (DiscordUtil.getBotId() == BotConstants.PATRON_BOT_ID
+                && !FeatureFlags.PATRON_CUSTOM_PREFIX.isActive()) {
+            return Config.CONFIG.getPrefix();
+        }
         return CUSTOM_PREFIXES
                 .getUnchecked(guildId)
                 .orElse(Config.CONFIG.getPrefix());
@@ -82,10 +87,6 @@ public class PrefixCommand extends Command implements IConfigCommand {
     public static String giefPrefix(@Nullable Guild guild) {
         if (guild == null) {
             return Config.CONFIG.getPrefix();
-        }
-
-        if (guild.getJDA().getSelfUser().getId().equalsIgnoreCase(BotConstants.PATRON_BOT_ID)) {
-            return Config.CONFIG.getPrefix(); //todo lift this limitation after sorting out a data strategy
         }
 
         return giefPrefix(guild.getIdLong());
@@ -103,31 +104,36 @@ public class PrefixCommand extends Command implements IConfigCommand {
             return;
         }
 
-        if (context.guild.getJDA().getSelfUser().getId().equalsIgnoreCase(BotConstants.PATRON_BOT_ID)) {
+        if (DiscordUtil.getBotId() == BotConstants.PATRON_BOT_ID
+                && !FeatureFlags.PATRON_CUSTOM_PREFIX.isActive()) {
             context.reply("Sorry, this feature has not yet been enabled for the PatronBot! Have a picture of a wombat instead.");
             wombats.onInvoke(context);
             return;
-            //todo lift this limitation after sorting out a data strategy
         }
 
-
-        //considering this is an admin level command, we can allow users to do whatever they want with their guild
-        // prefix, so no checks are necessary here
-        String newPrefix = context.rawArgs;
-
-        if (newPrefix.equalsIgnoreCase("no_prefix")) {
+        final String newPrefix;
+        if (context.rawArgs.equalsIgnoreCase("no_prefix")) {
             newPrefix = ""; //allow users to set an empty prefix with a special keyword
+        } else if (context.rawArgs.equalsIgnoreCase("reset")) {
+            newPrefix = null;
+        } else {
+            //considering this is an admin level command, we can allow users to do whatever they want with their guild
+            // prefix, so no checks are necessary here
+            newPrefix = context.rawArgs;
         }
 
-        GuildConfig gf = EntityReader.getGuildConfig(context.guild.getId());
-        gf.setPrefix(newPrefix);
-        EntityWriter.mergeGuildConfig(gf);
+        FredBoat.getMainDbWrapper().findApplyAndMerge(Prefix.key(context.guild),
+                prefixEntity -> prefixEntity.setPrefix(newPrefix));
 
         //we could do a put instead of invalidate here and probably safe one lookup, but that undermines the database
         // as being the single source of truth for prefixes
         CUSTOM_PREFIXES.invalidate(context.guild.getIdLong());
 
-        showPrefix(context, newPrefix);
+        if (newPrefix == null) {//was reset
+            showPrefix(context, Config.DEFAULT_PREFIX);
+        } else {
+            showPrefix(context, newPrefix);
+        }
     }
 
     public static void showPrefix(@Nonnull Context context, @Nonnull String prefix) {
@@ -139,6 +145,6 @@ public class PrefixCommand extends Command implements IConfigCommand {
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1} <prefix> OR {0}{1} no_prefix\n#" + context.i18n("helpPrefixCommand");
+        return "{0}{1} <prefix> OR {0}{1} no_prefix OR {0}{1} reset\n#" + context.i18n("helpPrefixCommand");
     }
 }

@@ -37,7 +37,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
+import space.npstr.sqlsauce.ssh.SshTunnel;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -107,19 +110,25 @@ public class Config {
     private String spotifySecret;
     private String openWeatherKey;
 
-    // database + SSH tunnel
+    // main database + SSH tunnel
+    @Nonnull
     private String jdbcUrl;
-    private boolean useSshTunnel;
-    private String sshHost; //Eg localhost:22
-    private String sshUser; //Eg fredboat
-    private String sshPrivateKeyFile;
-    private int forwardToPort; //port where the remote database is listening, postgres default: 5432
+    @Nullable
+    private SshTunnel.SshDetails mainSshTunnelConfig;
+
+    // cache database + SSH tunnel
+    @Nullable
+    private String cacheJdbcUrl;
+    @Nullable
+    private SshTunnel.SshDetails cacheSshTunnelConfig;
 
     // misc
     private String sentryDsn;
     private List<LavalinkHost> lavalinkHosts = new ArrayList<>();
-    private long eventLogWebhookId;
-    private String eventLogWebhookToken;
+    private String eventLogWebhook;
+    private int eventLogInterval;
+    private String guildStatsWebhook;
+    private int guildStatsInterval;
     private String testBotToken;
     private String testChannelId;
 
@@ -230,14 +239,91 @@ public class Config {
             openWeatherKey = (String) creds.getOrDefault("openWeatherKey", "");
 
 
-            // database
+            // main database
             jdbcUrl = (String) creds.getOrDefault("jdbcUrl", "");
-            useSshTunnel = (boolean) creds.getOrDefault("useSshTunnel", false);
-            sshHost = (String) creds.getOrDefault("sshHost", "localhost:22");
-            sshUser = (String) creds.getOrDefault("sshUser", "fredboat");
-            sshPrivateKeyFile = (String) creds.getOrDefault("sshPrivateKeyFile", "database.ppk");
-            forwardToPort = (int) creds.getOrDefault("forwardToPort", 5432);
+            if (jdbcUrl == null || jdbcUrl.isEmpty()) {
+                if ("docker".equals(System.getenv("ENV"))) {
+                    log.info("No main JDBC URL found, docker environment detected. Using default docker main JDBC url");
+                    jdbcUrl = "jdbc:postgresql://db:5432/fredboat?user=fredboat";
+                } else {
+                    String message = "No main jdbcUrl provided in a non-docker environment. FredBoat cannot work without a database.";
+                    log.error(message);
+                    throw new RuntimeException(message);
+                }
+            }
+            boolean useSshTunnel = (boolean) creds.getOrDefault("useSshTunnel", false);
+            if (useSshTunnel) {
+                //Parse host:port
+                String sshHostRaw = (String) creds.getOrDefault("sshHost", "localhost:22");
+                String sshHost = sshHostRaw.split(":")[0];
+                int sshPort;
+                try {
+                    sshPort = Integer.parseInt(sshHostRaw.split(":")[1]);
+                } catch (Exception e) {
+                    sshPort = 22;
+                }
+                String sshUser = (String) creds.getOrDefault("sshUser", "fredboat");
+                String sshPrivateKeyFile = (String) creds.getOrDefault("sshPrivateKeyFile", "database.ppk");
+                String sshKeyPassphrase = (String) creds.getOrDefault("sshKeyPassphrase", "");
+                int tunnelLocalPort = (int) creds.getOrDefault("tunnelLocalPort", 9333);//9333 is a legacy port for backwards compatibility
+                String tunnelRemotePortKey = "tunnelRemotePort";
+                if (creds.containsKey("forwardToPort")) {//legacy check
+                    tunnelRemotePortKey = "forwardToPort";
+                }
+                int tunnelRemotePort = (int) creds.getOrDefault(tunnelRemotePortKey, 5432);
 
+                mainSshTunnelConfig = new SshTunnel.SshDetails(sshHost, sshUser)
+                        .setKeyFile(sshPrivateKeyFile)
+                        .setPassphrase(sshKeyPassphrase == null || sshKeyPassphrase.isEmpty() ? null : sshKeyPassphrase)
+                        .setSshPort(sshPort)
+                        .setLocalPort(tunnelLocalPort)
+                        .setRemotePort(tunnelRemotePort);
+            }
+
+
+            // cache database
+            cacheJdbcUrl = (String) creds.getOrDefault("cacheJdbcUrl", "");
+            if (cacheJdbcUrl == null || cacheJdbcUrl.isEmpty()) {
+                if ("docker".equals(System.getenv("ENV"))) {
+                    log.info("No cache jdbcUrl found, docker environment detected. Using default docker cache JDBC url");
+                    cacheJdbcUrl = "jdbc:postgresql://db:5432/fredboat_cache?user=fredboat";
+                } else {
+                    log.warn("No cache jdbcUrl provided in a non-docker environment. This may lead to a degraded performance, "
+                            + "especially in a high usage environment, or when using Spotify playlists.");
+                    cacheJdbcUrl = null;
+                }
+            }
+            if (jdbcUrl.equals(cacheJdbcUrl)) {
+                log.warn("The main and cache jdbc urls may not point to the same database due to how flyway handles migrations. "
+                        + "Please read (an updated version of) the credentials.yaml.example on configuring the cache jdbc url. "
+                        + "The cache database will not be available in this execution of FredBoat. This may lead to a degraded performance, "
+                        + "especially in a high usage environment, or when using Spotify playlists.");
+                cacheJdbcUrl = null;
+            }
+            boolean cacheUseSshTunnel = (boolean) creds.getOrDefault("cacheUseSshTunnel", false);
+            if (cacheUseSshTunnel) {
+                //Parse host:port
+                String cacheSshHostRaw = (String) creds.getOrDefault("cacheSshHost", "localhost:22");
+                String cacheSshHost = cacheSshHostRaw.split(":")[0];
+                int cacheSshPort;
+                try {
+                    cacheSshPort = Integer.parseInt(cacheSshHostRaw.split(":")[1]);
+                } catch (Exception e) {
+                    cacheSshPort = 22;
+                }
+                String cacheSshUser = (String) creds.getOrDefault("cacheSshUser", "fredboat");
+                String cacheSshPrivateKeyFile = (String) creds.getOrDefault("cacheSshPrivateKeyFile", "database.ppk");
+                String cacheSshKeyPassphrase = (String) creds.getOrDefault("cacheSshKeyPassphrase", "");
+                int cacheTunnelLocalPort = (int) creds.getOrDefault("cacheTunnelLocalPort", 5433);
+                int cacheTunnelRemotePort = (int) creds.getOrDefault("cacheTunnelRemotePort", 5432);
+
+                cacheSshTunnelConfig = new SshTunnel.SshDetails(cacheSshHost, cacheSshUser)
+                        .setKeyFile(cacheSshPrivateKeyFile)
+                        .setPassphrase(cacheSshKeyPassphrase == null || cacheSshKeyPassphrase.isEmpty() ? null : cacheSshKeyPassphrase)
+                        .setSshPort(cacheSshPort)
+                        .setLocalPort(cacheTunnelLocalPort)
+                        .setRemotePort(cacheTunnelRemotePort);
+            }
 
             // misc
             Map<String, String> linkNodes = (Map<String, String>) creds.get("lavalinkHosts");
@@ -252,8 +338,10 @@ public class Config {
                 });
             }
 
-            eventLogWebhookId = (long) creds.getOrDefault("eventLogWebhookId", 0L);
-            eventLogWebhookToken = (String) creds.getOrDefault("eventLogWebhookToken", "");
+            eventLogWebhook = (String) creds.getOrDefault("eventLogWebhook", "");
+            eventLogInterval = (int) creds.getOrDefault("eventLogInterval", 1); //minutes
+            guildStatsWebhook = (String) creds.getOrDefault("guildStatsWebhook", "");
+            guildStatsInterval = (int) creds.getOrDefault("guildStatsInterval", 60); //minutes
 
             testBotToken = (String) creds.getOrDefault("testToken", "");
             testChannelId = creds.getOrDefault("testChannelId", "") + "";
@@ -281,19 +369,15 @@ public class Config {
             numShards = recommendedShardCount;
             log.info("Discord recommends " + numShards + " shard(s)");
 
-            //more database connections don't help with performance, so use a value based on available cores
+            //more database connections don't help with performance, so use a value based on available cores, but not too low
             //http://www.dailymotion.com/video/x2s8uec_oltp-performance-concurrent-mid-tier-connections_tech
-            if (jdbcUrl == null || jdbcUrl.isEmpty() || distribution == DistributionEnum.DEVELOPMENT)
-                //more than one connection for the fallback sqlite db is problematic as there is currently (2017-04-16)
-                // no supported way in the custom driver and/or dialect to set lock timeouts
-                hikariPoolSize = 1;
-            else hikariPoolSize = Math.max(2, Runtime.getRuntime().availableProcessors());
+            hikariPoolSize = Math.max(4, Runtime.getRuntime().availableProcessors());
             log.info("Hikari max pool size set to " + hikariPoolSize);
 
             PlayerLimitManager.setLimit((Integer) config.getOrDefault("playerLimit", -1));
         } catch (IOException e) {
             log.error("Failed to read config and or credentials files into strings.", e);
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to read config and or credentials files into strings.", e);
         } catch (YAMLException | ClassCastException e) {
             log.error("Could not parse the credentials and/or config yaml files! They are probably misformatted. " +
                     "Try using an online yaml validator.", e);
@@ -324,12 +408,30 @@ public class Config {
         }
     }
 
-    public String getRandomGoogleKey() {
-        if (googleKeys.isEmpty()) {
-            throw new MessagingException("No Youtube API key detected. Please read the documentation of the credentials file on how to obtain one.");
+
+    public static class LavalinkHost {
+
+        private final URI uri;
+        private final String password;
+
+        public LavalinkHost(URI uri, String password) {
+            this.uri = uri;
+            this.password = password;
         }
-        return googleKeys.get((int) Math.floor(Math.random() * getGoogleKeys().size()));
+
+        public URI getUri() {
+            return uri;
+        }
+
+        public String getPassword() {
+            return password;
+        }
     }
+
+
+    // ********************************************************************************
+    //                           Config Getters
+    // ********************************************************************************
 
     public DistributionEnum getDistribution() {
         return distribution;
@@ -343,69 +445,8 @@ public class Config {
         return distribution == DistributionEnum.DEVELOPMENT;
     }
 
-    public String getBotToken() {
-        return botToken;
-    }
-
-    public String getJdbcUrl() {
-        return jdbcUrl;
-    }
-
-    public int getHikariPoolSize() {
-        return hikariPoolSize;
-    }
-
-    //this static method works even when called from tests with invalid config files leading to a null config
-    public static int getNumShards() {
-        if (CONFIG != null) {
-            return CONFIG.numShards;
-        } else {
-            return 1;
-        }
-    }
-
-    public String getMalUser() {
-        return malUser;
-    }
-
-    public String getMalPassword() {
-        return malPassword;
-    }
-
-    public String getImgurClientId() {
-        return imgurClientId;
-    }
-
-    public List<String> getGoogleKeys() {
-        return googleKeys;
-    }
-
-    public String getCarbonKey() {
-        return carbonKey;
-    }
-
-    public String getSpotifyId() {
-        return spotifyId;
-    }
-
-    public String getSpotifySecret() {
-        return spotifySecret;
-    }
-
     public String getPrefix() {
         return prefix;
-    }
-
-    public String getOpenWeatherKey() {
-        return openWeatherKey;
-    }
-
-    public long getEventLogWebhookId() {
-        return eventLogWebhookId;
-    }
-
-    public String getEventLogWebhookToken() {
-        return eventLogWebhookToken;
     }
 
     public boolean isRestServerEnabled() {
@@ -428,57 +469,8 @@ public class Config {
         }
     }
 
-    public boolean getContinuePlayback() { return continuePlayback; }
-
-    public String getTestBotToken() {
-        return testBotToken;
-    }
-
-    public String getTestChannelId() {
-        return testChannelId;
-    }
-
-    public boolean isUseSshTunnel() {
-        return useSshTunnel;
-    }
-
-    public String getSshHost() {
-        return sshHost;
-    }
-
-    public String getSshUser() {
-        return sshUser;
-    }
-
-    public String getSshPrivateKeyFile() {
-        return sshPrivateKeyFile;
-    }
-
-    public int getForwardToPort() {
-        return forwardToPort;
-    }
-
-    public List<LavalinkHost> getLavalinkHosts() {
-        return lavalinkHosts;
-    }
-
-    public class LavalinkHost {
-
-        private final URI uri;
-        private final String password;
-
-        public LavalinkHost(URI uri, String password) {
-            this.uri = uri;
-            this.password = password;
-        }
-
-        public URI getUri() {
-            return uri;
-        }
-
-        public String getPassword() {
-            return password;
-        }
+    public boolean getContinuePlayback() {
+        return continuePlayback;
     }
 
     public boolean isYouTubeEnabled() {
@@ -513,5 +505,124 @@ public class Config {
         return httpAudio;
     }
 
-    public boolean useVoiceChannelCleanup() {return useVoiceChannelCleanup; }
+
+    public boolean useVoiceChannelCleanup() {
+        return useVoiceChannelCleanup;
+    }
+
+    // ********************************************************************************
+    //                           Credentials Getters
+    // ********************************************************************************
+
+    public String getBotToken() {
+        return botToken;
+    }
+
+    public List<String> getGoogleKeys() {
+        return googleKeys;
+    }
+
+    public String getRandomGoogleKey() {
+        if (googleKeys.isEmpty()) {
+            throw new MessagingException("No Youtube API key detected. Please read the documentation of the credentials file on how to obtain one.");
+        }
+        return googleKeys.get((int) Math.floor(Math.random() * getGoogleKeys().size()));
+    }
+
+    public String getMalUser() {
+        return malUser;
+    }
+
+    public String getMalPassword() {
+        return malPassword;
+    }
+
+    public String getImgurClientId() {
+        return imgurClientId;
+    }
+
+    public String getSpotifyId() {
+        return spotifyId;
+    }
+
+    public String getSpotifySecret() {
+        return spotifySecret;
+    }
+
+    public String getOpenWeatherKey() {
+        return openWeatherKey;
+    }
+
+    @Nonnull
+    public String getMainJdbcUrl() {
+        return jdbcUrl;
+    }
+
+    @Nullable
+    public SshTunnel.SshDetails getMainSshTunnelConfig() {
+        return mainSshTunnelConfig;
+    }
+
+    @Nullable
+    //may return null if no cache database was provided.
+    public String getCacheJdbcUrl() {
+        return cacheJdbcUrl;
+    }
+
+    @Nullable
+    public SshTunnel.SshDetails getCacheSshTunnelConfig() {
+        return cacheSshTunnelConfig;
+    }
+
+    public List<LavalinkHost> getLavalinkHosts() {
+        return lavalinkHosts;
+    }
+
+    public String getEventLogWebhook() {
+        return eventLogWebhook;
+    }
+
+    //minutes
+    public int getEventLogInterval() {
+        return eventLogInterval;
+    }
+
+    public String getGuildStatsWebhook() {
+        return guildStatsWebhook;
+    }
+
+    //minutes
+    public int getGuildStatsInterval() {
+        return guildStatsInterval;
+    }
+
+    public String getTestBotToken() {
+        return testBotToken;
+    }
+
+    public String getTestChannelId() {
+        return testChannelId;
+    }
+
+
+    // ********************************************************************************
+    //                       Derived and unofficial values
+    // ********************************************************************************
+
+    //this static method works even when called from tests with invalid config files leading to a null config
+    public static int getNumShards() {
+        if (CONFIG != null) {
+            return CONFIG.numShards;
+        } else {
+            return 1;
+        }
+    }
+
+    public int getHikariPoolSize() {
+        return hikariPoolSize;
+    }
+
+    public String getCarbonKey() {
+        return carbonKey;
+    }
 }

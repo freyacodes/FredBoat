@@ -119,7 +119,8 @@ public class CommandContext extends Context {
             }
         }
 
-        String[] args = input.split("\\s+"); //split by any length of white space characters (including new lines)
+        // the \p{javaSpaceChar} instead of the better known \s is used because it actually includes unicode whitespaces
+        String[] args = input.split("\\p{javaSpaceChar}+");
         if (args.length < 1) {
             return null; //while this shouldn't technically be possible due to the preprocessing of the input, better be safe than throw exceptions
         }
@@ -158,8 +159,10 @@ public class CommandContext extends Context {
      */
     public void deleteMessage() {
         TextChannel tc = msg.getTextChannel();
-        if (tc != null && hasPermissions(tc, Permission.MESSAGE_MANAGE, Permission.MESSAGE_READ)) {
-            CentralMessaging.deleteMessage(msg);
+        if (tc != null && hasPermissions(tc, Permission.MESSAGE_MANAGE, //While Manage Message _should_ be enough as it _should_
+                Permission.MESSAGE_READ,                                // implicitly give us all the other Text permissions,
+                Permission.MESSAGE_HISTORY)) {                          // it is bugged, so we do some additional checks here.
+            CentralMessaging.deleteMessage(msg);                        // See https://github.com/DV8FromTheWorld/JDA/issues/414 for more info.
         }
     }
 

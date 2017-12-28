@@ -36,11 +36,11 @@ import fredboat.messaging.internal.Context;
 import fredboat.util.DiscordUtil;
 import fredboat.util.Tuple2;
 import net.dv8tion.jda.core.JDA;
-import org.eclipse.jetty.util.ConcurrentHashSet;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by napster on 17.04.17.
@@ -76,7 +76,7 @@ public class Ratelimiter {
     private Blacklist autoBlacklist = null;
 
     private Ratelimiter() {
-        Set<Long> whitelist = new ConcurrentHashSet<>();
+        Set<Long> whitelist = ConcurrentHashMap.newKeySet();
 
         //it is ok to use the jda of any shard as long as we aren't using it for guild specific stuff
         JDA jda = FredBoat.getShard(0).getJda();

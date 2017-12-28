@@ -49,10 +49,8 @@ public class LavalinkManager {
     public void start() {
         if (!isEnabled()) return;
 
-        String userId = DiscordUtil.getUserId(Config.CONFIG.getBotToken());
-
         lavalink = new Lavalink(
-                userId,
+                Long.toString(DiscordUtil.getBotId()),
                 Config.getNumShards(),
                 shardId -> FredBoat.getShard(shardId).getJda()
         );
