@@ -26,9 +26,7 @@
 package fredboat.db.entity.main;
 
 import fredboat.FredBoat;
-import fredboat.db.entity.GuildBotId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import space.npstr.sqlsauce.entities.GuildBotComposite;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 
 import javax.annotation.CheckReturnValue;
@@ -51,12 +49,10 @@ import java.util.Optional;
  */
 @Entity
 @Table(name = "prefixes")
-public class Prefix extends SaucedEntity<GuildBotId, Prefix> {
-
-    private static final Logger log = LoggerFactory.getLogger(Prefix.class);
+public class Prefix extends SaucedEntity<GuildBotComposite, Prefix> {
 
     @EmbeddedId
-    private GuildBotId prefixId;
+    private GuildBotComposite id;
 
     @Nullable
     //may be null to indicate that there is no custom prefix for this guild
@@ -67,22 +63,22 @@ public class Prefix extends SaucedEntity<GuildBotId, Prefix> {
     public Prefix() {
     }
 
-    public Prefix(long guildId, long botId, @Nullable String prefix) {
-        this.prefixId = new GuildBotId(guildId, botId);
+    public Prefix(@Nonnull GuildBotComposite id, @Nullable String prefix) {
+        this.id = id;
         this.prefix = prefix;
     }
 
     @Nonnull
     @Override
-    public Prefix setId(@Nonnull GuildBotId id) {
-        this.prefixId = id;
+    public Prefix setId(@Nonnull GuildBotComposite id) {
+        this.id = id;
         return this;
     }
 
     @Nonnull
     @Override
-    public GuildBotId getId() {
-        return this.prefixId;
+    public GuildBotComposite getId() {
+        return this.id;
     }
 
     @Nonnull
@@ -106,9 +102,9 @@ public class Prefix extends SaucedEntity<GuildBotId, Prefix> {
     @Nullable
     public static Optional<String> getPrefix(long guildId, long botId) {
         //language=JPAQL
-        String query = "SELECT p.prefix FROM Prefix p WHERE p.prefixId = :prefixId";
+        String query = "SELECT p.prefix FROM Prefix p WHERE p.id = :id";
         Map<String, Object> params = new HashMap<>();
-        params.put("prefixId", new GuildBotId(guildId, botId));
+        params.put("prefixId", new GuildBotComposite(guildId, botId));
 
         List<String> result = FredBoat.getMainDbWrapper().selectJpqlQuery(query, params, String.class);
         if (result.isEmpty()) {

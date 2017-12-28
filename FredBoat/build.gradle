@@ -61,6 +61,7 @@ dependencies {
     compile group: 'io.prometheus', name: 'simpleclient_servlet', version: '0.1.0'
 
     compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: 'a5c9afd96d1928d9a51e799249a6eb5b08b4f473'
+    compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: 'a5c9afd96d1928d9a51e799249a6eb5b08b4f473'
     compile group: 'org.hibernate', name: 'hibernate-ehcache', version: '5.2.12.Final'
     compile group: 'org.flywaydb', name: 'flyway-core', version: '5.0.3'
 
