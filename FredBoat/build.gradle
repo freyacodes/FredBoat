@@ -52,6 +52,7 @@ dependencies {
     compile group: 'com.sparkjava', name: 'spark-core', version: '2.7.1'
     compile group: 'org.yaml', name: 'snakeyaml', version: '1.19'
     compile group: 'it.unimi.dsi', name: 'fastutil', version: '8.1.1'
+    compile group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: '3.1.1'
 
     compile group: 'io.prometheus', name: 'simpleclient', version: '0.1.0'
     compile group: 'io.prometheus', name: 'simpleclient_hotspot', version: '0.1.0'
