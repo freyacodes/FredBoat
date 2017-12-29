@@ -25,17 +25,12 @@
 
 package fredboat.db.entity.main;
 
-import fredboat.commandmeta.CommandRegistry;
 import fredboat.db.entity.IEntity;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.hibernate.annotations.ColumnDefault;
 
-import javax.annotation.Nonnull;
 import javax.persistence.*;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "guild_config")
@@ -57,10 +52,6 @@ public class GuildConfig implements IEntity, Serializable {
 
     @Column(name = "lang", nullable = false)
     private String lang = "en_US";
-
-    @Column(name = "enabled_module_bits", nullable = false)
-    @ColumnDefault(value = "15") //see default modules
-    private long enabledModuleBits = CommandRegistry.Module.DEFAULT_MODULES;
 
     public GuildConfig(String id) {
         this.guildId = id;
@@ -102,31 +93,4 @@ public class GuildConfig implements IEntity, Serializable {
         this.lang = lang;
     }
 
-    public long getEnabledModuleBits() {
-        return enabledModuleBits;
-    }
-
-    public void enableModule(@Nonnull CommandRegistry.Module module) {
-        enabledModuleBits |= module.bits;
-    }
-
-    public void disableModule(@Nonnull CommandRegistry.Module module) {
-        enabledModuleBits &= ~module.bits;
-    }
-
-    @Nonnull
-    public List<CommandRegistry.Module> getEnabledModules() {
-        List<CommandRegistry.Module> enabledModules = new ArrayList<>();
-        for (CommandRegistry.Module module : CommandRegistry.Module.values()) {
-            if (isModuleEnabled(module)) {
-                enabledModules.add(module);
-            }
-        }
-        return enabledModules;
-    }
-
-    //check whether the bits of the module are present in the enabled bits
-    public boolean isModuleEnabled(@Nonnull CommandRegistry.Module module) {
-        return (module.bits & enabledModuleBits) == module.bits;
-    }
 }

@@ -30,8 +30,6 @@ import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IInfoCommand;
-import fredboat.db.EntityReader;
-import fredboat.db.entity.main.GuildConfig;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
@@ -40,10 +38,7 @@ import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -68,9 +63,7 @@ public class CommandsCommand extends Command implements IInfoCommand {
 
         if (!context.hasArguments()) {
 
-            GuildConfig gc = EntityReader.getGuildConfig(context.guild.getId());
-
-            List<CommandRegistry.Module> enabledModules = gc.getEnabledModules();
+            Collection<CommandRegistry.Module> enabledModules = context.getEnabledModules();
             if (!PermsUtil.checkPerms(PermissionLevel.BOT_ADMIN, context.invoker)) {
                 enabledModules.remove(CommandRegistry.Module.ADMIN);//dont show admin commands/modules for non admins
             }
@@ -93,7 +86,7 @@ public class CommandsCommand extends Command implements IInfoCommand {
                 showHelpFor.remove(CommandRegistry.Module.ADMIN);//dont show admin commands/modules for non admins
             }
         } else {
-            CommandRegistry.Module module = CommandRegistry.whichModule(context.rawArgs, context);
+            CommandRegistry.Module module = CommandRegistry.Module.which(context.rawArgs, context);
             if (module == null) {
                 context.reply(context.i18nFormat("moduleCantParse",
                         "`" + context.getPrefix() + context.command.name) + "`");

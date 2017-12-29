@@ -26,9 +26,11 @@
 package fredboat.commandmeta.abs;
 
 import fredboat.Config;
+import fredboat.FredBoat;
 import fredboat.command.config.PrefixCommand;
 import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.CommandRegistry;
+import fredboat.db.entity.main.GuildModules;
 import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
@@ -41,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -188,6 +191,11 @@ public class CommandContext extends Context {
 
     public boolean hasArguments() {
         return args.length > 0 && !rawArgs.isEmpty();
+    }
+
+    @Nonnull
+    public Collection<CommandRegistry.Module> getEnabledModules() {
+        return FredBoat.getMainDbWrapper().getOrCreate(GuildModules.key(this.guild)).getEnabledModules();
     }
 
     @Nonnull

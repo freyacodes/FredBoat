@@ -49,6 +49,14 @@
         <persistence strategy="localtempswap"/>
     </cache>
 
+    <cache name="guild_modules"
+           maxElementsInMemory="120000"
+           eternal="false"
+           timeToIdleSeconds="60"
+           timeToLiveSeconds="120">
+        <persistence strategy="localtempswap"/>
+    </cache>
+
     <cache name="guild_permissions"
            maxElementsInMemory="120000"
            eternal="false"

@@ -25,15 +25,14 @@
 
 package fredboat.command.config;
 
+import fredboat.FredBoat;
 import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IConfigCommand;
-import fredboat.db.EntityReader;
-import fredboat.db.EntityWriter;
-import fredboat.db.entity.main.GuildConfig;
+import fredboat.db.entity.main.GuildModules;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
@@ -84,39 +83,36 @@ public class ModulesCommand extends Command implements IConfigCommand {
             return;
         }
 
-        CommandRegistry.Module module = CommandRegistry.whichModule(args, context);
+        CommandRegistry.Module module = CommandRegistry.Module.which(args, context);
         if (module == null) {
             context.reply(context.i18nFormat("moduleCantParse",
                     context.getPrefix() + context.command.name));
             return;
-        } else if (module == CommandRegistry.Module.ADMIN
-                || module == CommandRegistry.Module.INFO
-                || module == CommandRegistry.Module.CONFIG
-                || module == CommandRegistry.Module.MUSIC) {
+        } else if (module.lockedModule) {
             context.reply(context.i18nFormat("moduleLocked", context.i18n(module.translationKey))
                     + "\n" + MAGICAL_LENNY);
             return;
         }
 
-        GuildConfig gc = EntityReader.getGuildConfig(context.guild.getId());
-
+        Function<GuildModules, GuildModules> transform;
         if (enable) {
-            gc.enableModule(module);
+            transform = gm -> gm.enableModule(module);
             context.reply(context.i18nFormat("moduleEnable", "**" + context.i18n(module.translationKey) + "**")
                     + "\n" + context.i18nFormat("moduleShowCommands",
                     "`" + context.getPrefix() + CommandInitializer.COMMANDS_COMM_NAME
                             + " " + context.i18n(module.translationKey) + "`")
             );
         } else {
-            gc.disableModule(module);
+            transform = gm -> gm.disableModule(module);
             context.reply(context.i18nFormat("moduleDisable", "**" + context.i18n(module.translationKey) + "**"));
         }
-        EntityWriter.mergeGuildConfig(gc);
+
+        FredBoat.getMainDbWrapper().findApplyAndMerge(GuildModules.key(context.guild), transform);
     }
 
     private static void displayModuleStatus(@Nonnull CommandContext context) {
-        GuildConfig gc = EntityReader.getGuildConfig(context.guild.getId());
-        Function<CommandRegistry.Module, String> moduleStatusFormatter = moduleStatusLine(gc, context);
+        GuildModules gm = FredBoat.getMainDbWrapper().getOrCreate(GuildModules.key(context.guild));
+        Function<CommandRegistry.Module, String> moduleStatusFormatter = moduleStatusLine(gm, context);
         String moduleStatus = "";
 
         if (PermsUtil.checkPerms(PermissionLevel.BOT_ADMIN, context.invoker)) {
@@ -143,9 +139,9 @@ public class ModulesCommand extends Command implements IConfigCommand {
     }
 
     @Nonnull
-    //nicely modules for displaying to users
-    private static Function<CommandRegistry.Module, String> moduleStatusLine(@Nonnull GuildConfig gc, @Nonnull Context context) {
-        return (module) -> (gc.isModuleEnabled(module) ? Emojis.OK : Emojis.BAD)
+    //nicely format modules for displaying to users
+    private static Function<CommandRegistry.Module, String> moduleStatusLine(@Nonnull GuildModules gm, @Nonnull Context context) {
+        return (module) -> (gm.isModuleEnabled(module, module.enabledByDefault) ? Emojis.OK : Emojis.BAD)
                 + module.emoji
                 + " "
                 + context.i18n(module.translationKey);

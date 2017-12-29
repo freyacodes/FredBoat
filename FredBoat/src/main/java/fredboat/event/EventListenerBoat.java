@@ -38,7 +38,6 @@ import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityReader;
-import fredboat.db.entity.main.GuildConfig;
 import fredboat.feature.I18n;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
@@ -142,9 +141,8 @@ public class EventListenerBoat extends AbstractEventListener {
         if (!PermsUtil.checkPerms(PermissionLevel.BOT_ADMIN, event.getMember())) {
 
             //ignore commands of disabled modules for plebs
-            GuildConfig gc = EntityReader.getGuildConfig(event.getGuild().getId());
             CommandRegistry.Module module = context.command.getModule();
-            if (module != null && !gc.isModuleEnabled(module)) {
+            if (module != null && !context.getEnabledModules().contains(module)) {
                 log.debug("Ignoring command {} because its module {} is disabled in guild {}",
                         context.command.name, module.name(), event.getGuild().getIdLong());
                 return;
