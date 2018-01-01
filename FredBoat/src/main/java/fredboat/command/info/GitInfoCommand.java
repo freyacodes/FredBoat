@@ -111,6 +111,6 @@ public class GitInfoCommand extends Command implements IInfoCommand {
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1}\n#Display some git meta information about this build.";
+        return "{0}{1}\n#Display some git meta information about the running FredBoat build.";
     }
 }

@@ -108,9 +108,9 @@ public class CommandInitializer {
         configModule.registerCommand(new ModulesCommand("modules", "module", "mods"));
         configModule.registerCommand(new PrefixCommand("prefix", "pre"));
         /* Perms */
-        configModule.registerCommand(new PermissionsCommand(PermissionLevel.ADMIN, "admin"));
-        configModule.registerCommand(new PermissionsCommand(PermissionLevel.DJ, "dj"));
-        configModule.registerCommand(new PermissionsCommand(PermissionLevel.USER, "user"));
+        configModule.registerCommand(new PermissionsCommand(PermissionLevel.ADMIN, "admin", "admins"));
+        configModule.registerCommand(new PermissionsCommand(PermissionLevel.DJ, "dj", "djs"));
+        configModule.registerCommand(new PermissionsCommand(PermissionLevel.USER, "user", "users"));
 
 
         // Moderation Module - Anything related to managing Discord guilds
