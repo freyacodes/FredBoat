@@ -163,6 +163,7 @@ public class MusicHelpCommand extends Command implements IInfoCommand {
                 .filter(command -> !(command instanceof PlayCommand
                         && (command.name.equals(CommandInitializer.YOUTUBE_COMM_NAME)
                         || command.name.equals(CommandInitializer.SOUNDCLOUD_COMM_NAME))))
+                .filter(command -> !(command instanceof DestroyCommand))
                 .collect(Collectors.toList());
 
         musicCommands.sort(new MusicCommandsComparator());

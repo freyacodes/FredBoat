@@ -25,6 +25,7 @@
 
 package fredboat.command.info;
 
+import fredboat.command.music.control.DestroyCommand;
 import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
@@ -118,6 +119,9 @@ public class CommandsCommand extends Command implements IInfoCommand {
             sbs[2] = new StringBuilder();
             int i = 0;
             for (Command c : commands) {
+                if (c instanceof DestroyCommand) {
+                    continue;//dont want to publicly show this one
+                }
                 sbs[i++ % 3].append(prefix).append(c.name).append("\n");
             }
 
