@@ -58,7 +58,7 @@ public class CommandInitializer {
     public static final String MUSICHELP_COMM_NAME = "music";
     public static final String YOUTUBE_COMM_NAME = "youtube";
     public static final String SOUNDCLOUD_COMM_NAME = "soundcloud";
-
+    public static final String PREFIX_COMM_NAME = "prefix";
 
     public static void initCommands() {
 
@@ -106,7 +106,7 @@ public class CommandInitializer {
         configModule.registerCommand(new ConfigCommand("config", "cfg"));
         configModule.registerCommand(new LanguageCommand("language", "lang"));
         configModule.registerCommand(new ModulesCommand("modules", "module", "mods"));
-        configModule.registerCommand(new PrefixCommand("prefix", "pre"));
+        configModule.registerCommand(new PrefixCommand(PREFIX_COMM_NAME, "pre"));
         /* Perms */
         configModule.registerCommand(new PermissionsCommand(PermissionLevel.ADMIN, "admin", "admins"));
         configModule.registerCommand(new PermissionsCommand(PermissionLevel.DJ, "dj", "djs"));
