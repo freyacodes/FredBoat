@@ -113,9 +113,7 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                 throw new NumberFormatException();
             } else {
                 AudioTrack[] selectedTracks = new AudioTrack[validChoices.size()];
-
-                EmbedBuilder embedBuilder = CentralMessaging.getColoredEmbedBuilder();
-                embedBuilder.setTitle(context.i18n("selectionEmbedTitle"));
+                StringBuilder outputMsgBuilder = new StringBuilder();
 
                 for (int i = 0; i < validChoices.size(); i++) {
                     int positionInQueue = player.getTrackCount() + 1;
@@ -127,22 +125,20 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
 
                     // if there are more selections.
                     if (i < validChoices.size()) {
-                        embedBuilder.appendDescription("\n");
+                        outputMsgBuilder.append("\n");
                     }
-
-                    embedBuilder.appendDescription(msg);
+                    outputMsgBuilder.append(msg);
 
                     if (player.getTrackCount() < 1) {
                         String nowPlayingString = context.i18nFormat("selectSuccessPartNowPlaying");
-                        embedBuilder.appendDescription(nowPlayingString);
-                        embedBuilder.appendDescription("\n");
+                        outputMsgBuilder.append(nowPlayingString);
 
                     } else {
                         long remainingTimeInMillis = player.getTotalRemainingMusicTimeMillis();
                         String remainingTime = (new SimpleDateFormat("mm:ss")).format(new Date(remainingTimeInMillis));
                         String queueAndWaitTimeString = context.i18nFormat("selectSuccessPartQueueWaitTime", positionInQueue, remainingTime);
-                        embedBuilder.appendDescription(queueAndWaitTimeString);
-                        embedBuilder.appendDescription("\n");
+                        outputMsgBuilder.append(queueAndWaitTimeString);
+                        outputMsgBuilder.append("\n");
                     }
 
                     player.queue(new AudioTrackContext(selectedTracks[i], invoker));
@@ -151,7 +147,7 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                 VideoSelection.remove(invoker);
                 TextChannel tc = FredBoat.getTextChannelById(selection.channelId);
                 if (tc != null) {
-                    CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(embedBuilder.build()));
+                    CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
                 }
 
                 player.setPause(false);
