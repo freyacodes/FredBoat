@@ -92,8 +92,7 @@ public class CommandContext extends Context {
             input = mentionMatcher.group(3).trim();
             isMention = true;
         }
-        // or starts with ;;
-
+        
         // or starts with a custom/default prefix
         else {
             String prefix = PrefixCommand.giefPrefix(event.getGuild());
