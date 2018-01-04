@@ -92,7 +92,6 @@ public class CommandContext extends Context {
             input = mentionMatcher.group(3).trim();
             isMention = true;
         }
-
         // or starts with a custom/default prefix
         else {
             String prefix = PrefixCommand.giefPrefix(event.getGuild());
@@ -105,7 +104,8 @@ public class CommandContext extends Context {
                 }
             } else {
                 //hardcoded check for the help or prefix command that is always displayed as FredBoat status
-                if (raw.startsWith(Config.CONFIG.getPrefix() + CommandInitializer.HELP_COMM_NAME) || raw.startsWith(Config.CONFIG.getPrefix() + CommandInitializer.PREFIX_COMM_NAME)) {
+                if (raw.startsWith(Config.CONFIG.getPrefix() + CommandInitializer.HELP_COMM_NAME)
+                        || raw.startsWith(Config.CONFIG.getPrefix() + CommandInitializer.PREFIX_COMM_NAME)) {
                     Metrics.prefixParsed.labels("default").inc();
                     input = raw.substring(Config.CONFIG.getPrefix().length());
                 } else {
