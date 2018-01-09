@@ -127,15 +127,18 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                     if (i < validChoices.size()) {
                         outputMsgBuilder.append("\n");
                     }
+
                     outputMsgBuilder.append(msg);
+                    outputMsgBuilder.append(", ");
 
                     if (player.getTrackCount() < 1) {
                         String nowPlayingString = context.i18nFormat("selectSuccessPartNowPlaying");
                         outputMsgBuilder.append(nowPlayingString);
+                        outputMsgBuilder.append("\n");
 
                     } else {
                         long remainingTimeInMillis = player.getTotalRemainingMusicTimeMillis();
-                        String remainingTime = (new SimpleDateFormat("mm:ss")).format(new Date(remainingTimeInMillis));
+                        String remainingTime = TextUtils.formatTime(remainingTimeInMillis);
                         String queueAndWaitTimeString = context.i18nFormat("selectSuccessPartQueueWaitTime", positionInQueue, remainingTime);
                         outputMsgBuilder.append(queueAndWaitTimeString);
                         outputMsgBuilder.append("\n");
