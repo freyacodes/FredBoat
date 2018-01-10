@@ -120,27 +120,32 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
 
                     selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
 
-                    String msg = context.i18nFormat("selectSuccess", validChoices.get(i), selectedTracks[i].getInfo().title,
-                            TextUtils.formatTime(selectedTracks[i].getInfo().length));
-
-                    // if there are more selections.
-                    if (i < validChoices.size()) {
-                        outputMsgBuilder.append("\n");
-                    }
-
-                    outputMsgBuilder.append(msg);
-                    outputMsgBuilder.append(", ");
+                    String playingStatusOrQueueTime = "";
 
                     if (player.getTrackCount() < 1) {
-                        String nowPlayingString = context.i18nFormat("selectSuccessPartNowPlaying");
-                        outputMsgBuilder.append(nowPlayingString);
-                        outputMsgBuilder.append("\n");
+                        playingStatusOrQueueTime = context.i18nFormat("selectSuccessPartNowPlaying");
 
                     } else {
                         long remainingTimeInMillis = player.getTotalRemainingMusicTimeMillis();
                         String remainingTime = TextUtils.formatTime(remainingTimeInMillis);
-                        String queueAndWaitTimeString = context.i18nFormat("selectSuccessPartQueueWaitTime", positionInQueue, remainingTime);
-                        outputMsgBuilder.append(queueAndWaitTimeString);
+                        playingStatusOrQueueTime = context.i18nFormat("selectSuccessPartQueueWaitTime", positionInQueue, remainingTime);
+
+                    }
+
+                    // Print the selection string.
+                    String selectionSuccessString = context.i18nFormat("selectSuccess", validChoices.get(i), playingStatusOrQueueTime);
+                    outputMsgBuilder.append(selectionSuccessString);
+                    outputMsgBuilder.append("\n");
+
+                    // Print the song title and length.
+                    outputMsgBuilder.append("\t\t");
+                    String songTitleAndMusic = context.i18nFormat("selectTitleAndLength", selectedTracks[i].getInfo().title,
+                            TextUtils.formatTime(selectedTracks[i].getInfo().length));
+                    outputMsgBuilder.append(songTitleAndMusic);
+                    outputMsgBuilder.append("\n");
+
+                    // if there are more selections.
+                    if (i < validChoices.size()) {
                         outputMsgBuilder.append("\n");
                     }
 
