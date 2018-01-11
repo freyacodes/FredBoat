@@ -51,7 +51,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 public class SelectCommand extends Command implements IMusicCommand, ICommandRestricted {
 
@@ -126,10 +128,21 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                         playingStatusOrQueueTime = context.i18nFormat("selectSuccessPartNowPlaying");
 
                     } else {
-                        long remainingTimeInMillis = player.getTotalRemainingMusicTimeMillis();
-                        String remainingTime = TextUtils.formatTime(remainingTimeInMillis);
-                        playingStatusOrQueueTime = context.i18nFormat("selectSuccessPartQueueWaitTime", positionInQueue, remainingTime);
 
+                        if (Stream.of(
+                                player.getPlayingTrack(),
+                                player.getPlayingTrack().getTrack(),
+                                player.getPlayingTrack().getTrack().getInfo()).anyMatch(Objects::isNull)
+                                || !player.getPlayingTrack().getTrack().getInfo().isStream) {
+
+                            // Currently is not playing any live stream.
+                            long remainingTimeInMillis = player.getTotalRemainingMusicTimeMillis();
+                            String remainingTime = TextUtils.formatTime(remainingTimeInMillis);
+                            playingStatusOrQueueTime = context.i18nFormat("selectSuccessPartQueueWaitTime", positionInQueue, remainingTime);
+
+                        } else {
+                            playingStatusOrQueueTime = context.i18nFormat("selectSuccessPartQueueHasStream", positionInQueue);
+                        }
                     }
 
                     // Print the selection string.
