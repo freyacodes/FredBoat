@@ -88,7 +88,7 @@ public class DatabaseManager {
                 .setSshDetails(Config.CONFIG.getMainSshTunnelConfig())
                 .setHikariStats(Metrics.instance().hikariStats)
                 .setHibernateStats(Metrics.instance().hibernateStats)
-                .setCheckConnection(false)
+                .setCheckConnection(false) //we run our own connection check for this with the DBConnectionWatchdogAgent
                 .setFlyway(flyway)
                 .build();
 
