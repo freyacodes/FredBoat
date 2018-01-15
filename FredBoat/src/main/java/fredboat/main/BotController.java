@@ -37,7 +37,7 @@ public class BotController {
     private int shutdownCode = UNKNOWN_SHUTDOWN_CODE;//Used when specifying the intended code for shutdown hooks
 
     @Nullable //will be null if no cache database has been configured
-    private DatabaseConnection cacheDbConn;
+    private DatabaseWrapper cacheDbWrapper;
 
     /**
      * Initialises the event listener. This can't be done during construction,
@@ -86,15 +86,20 @@ public class BotController {
 
     @Nullable
     public DatabaseConnection getCacheDbConnection() {
-        return cacheDbConn;
+        return cacheDbWrapper != null ? cacheDbWrapper.unwrap() : null;
+    }
+
+    @Nullable
+    public DatabaseWrapper getCacheDbWrapper() {
+        return cacheDbWrapper;
     }
 
     public void setMainDbWrapper(@Nonnull DatabaseWrapper mainDbWrapper) {
         this.mainDbWrapper = mainDbWrapper;
     }
 
-    public void setCacheDbConn(@Nullable DatabaseConnection cacheDbConn) {
-        this.cacheDbConn = cacheDbConn;
+    public void setCacheDbWrapper(@Nullable DatabaseWrapper cacheDbWrapper) {
+        this.cacheDbWrapper = cacheDbWrapper;
     }
 
     public void shutdown(int code) {
@@ -123,8 +128,8 @@ public class BotController {
         shardManager.shutdown();
 
         executor.shutdown();
-        if (cacheDbConn != null) {
-            cacheDbConn.shutdown();
+        if (cacheDbWrapper != null) {
+            cacheDbWrapper.unwrap().shutdown();
         }
         if (mainDbWrapper != null) {
             mainDbWrapper.unwrap().shutdown();

@@ -120,7 +120,10 @@ public class Launcher {
         FBC.setMainDbWrapper(new DatabaseWrapper(mainDbConn));
 
         try {
-            FBC.setCacheDbConn(DatabaseManager.cache());
+            DatabaseConnection cacheDbConn = DatabaseManager.cache();
+            if (cacheDbConn != null) {
+                FBC.setCacheDbWrapper(new DatabaseWrapper(cacheDbConn));
+            }
         } catch (Exception e) {
             log.error("Exception when connecting to cache db", e);
             FBC.shutdown(ExitCodes.EXIT_CODE_ERROR);

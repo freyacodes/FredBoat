@@ -38,8 +38,8 @@ import fredboat.db.DatabaseNotReadyException;
 import fredboat.db.entity.cache.SearchResult;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
-import fredboat.main.Config;
 import fredboat.main.BotController;
+import fredboat.main.Config;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.slf4j.Logger;
@@ -124,7 +124,7 @@ public class SearchUtil {
                     if (!lavaplayerResult.getTracks().isEmpty()) {
                         log.debug("Loaded search result {} {} from lavaplayer", provider, query);
                         // got a search result? cache and return it
-                        BotController.INS.getExecutor().execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, lavaplayerResult).save());
+                        BotController.INS.getExecutor().execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, lavaplayerResult).merge());
                         Metrics.searchHits.labels("lavaplayer-" + provider.name().toLowerCase()).inc();
                         return lavaplayerResult;
                     }
@@ -147,7 +147,7 @@ public class SearchUtil {
                     if (!youtubeApiResult.getTracks().isEmpty()) {
                         log.debug("Loaded search result {} {} from Youtube API", provider, query);
                         // got a search result? cache and return it
-                        BotController.INS.getExecutor().execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, youtubeApiResult).save());
+                        BotController.INS.getExecutor().execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, youtubeApiResult).merge());
                         Metrics.searchHits.labels("youtube-api").inc();
                         return youtubeApiResult;
                     }

@@ -31,6 +31,7 @@ import com.google.common.cache.LoadingCache;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IConfigCommand;
+import fredboat.db.EntityIO;
 import fredboat.db.entity.main.Prefix;
 import fredboat.main.BotController;
 import fredboat.main.Config;
@@ -106,15 +107,17 @@ public class PrefixCommand extends Command implements IConfigCommand {
             newPrefix = context.rawArgs;
         }
 
-        BotController.INS.getMainDbWrapper().findApplyAndMerge(Prefix.key(context.guild),
-                prefixEntity -> prefixEntity.setPrefix(newPrefix));
+        EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper -> wrapper.findApplyAndMerge(
+                Prefix.key(context.guild),
+                prefixEntity -> prefixEntity.setPrefix(newPrefix)
+        )));
 
         //we could do a put instead of invalidate here and probably safe one lookup, but that undermines the database
         // as being the single source of truth for prefixes
         CUSTOM_PREFIXES.invalidate(context.guild.getIdLong());
 
         if (newPrefix == null) {//was reset
-            showPrefix(context, Config.DEFAULT_PREFIX);
+            showPrefix(context, Config.CONFIG.getPrefix());
         } else {
             showPrefix(context, newPrefix);
         }

@@ -29,8 +29,7 @@ import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IConfigCommand;
-import fredboat.db.EntityReader;
-import fredboat.db.EntityWriter;
+import fredboat.db.EntityIO;
 import fredboat.db.entity.main.GuildPermissions;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
@@ -47,6 +46,7 @@ import net.dv8tion.jda.core.entities.*;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 public class PermissionsCommand extends Command implements IConfigCommand {
 
@@ -112,31 +112,33 @@ public class PermissionsCommand extends Command implements IConfigCommand {
         List<IMentionable> search = new ArrayList<>();
         search.addAll(ArgumentUtil.fuzzyRoleSearch(guild, term));
         search.addAll(ArgumentUtil.fuzzyMemberSearch(guild, term, false));
-        GuildPermissions gp = EntityReader.getGuildPermissions(guild);
 
         IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(search, context, term);
         if (selected == null) return;
 
-        if (!gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
-            context.replyWithName(context. i18nFormat("permsNotAdded", "`" + mentionableToName(selected) + "`", "`" + permissionLevel + "`"));
-            return;
-        }
+        Function<GuildPermissions, GuildPermissions> transformation = gp -> {
+            if (!gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
+                context.replyWithName(context.i18nFormat("permsNotAdded", "`" + mentionableToName(selected) + "`", "`" + permissionLevel + "`"));
+                return gp;
+            }
 
-        List<String> newList = new ArrayList<>(gp.getFromEnum(permissionLevel));
-        newList.remove(mentionableToId(selected));
+            List<String> newList = new ArrayList<>(gp.getFromEnum(permissionLevel));
+            newList.remove(mentionableToId(selected));
 
-        if (permissionLevel == PermissionLevel.ADMIN
-                && PermissionLevel.BOT_ADMIN.getLevel() > PermsUtil.getPerms(invoker).getLevel()
-                && !invoker.hasPermission(Permission.ADMINISTRATOR)
-                && !PermsUtil.checkList(newList, invoker)) {
-            context.replyWithName(context.i18n("permsFailSelfDemotion"));
-            return;
-        }
+            if (permissionLevel == PermissionLevel.ADMIN
+                    && PermissionLevel.BOT_ADMIN.getLevel() > PermsUtil.getPerms(invoker).getLevel()
+                    && !invoker.hasPermission(Permission.ADMINISTRATOR)
+                    && !PermsUtil.checkList(newList, invoker)) {
+                context.replyWithName(context.i18n("permsFailSelfDemotion"));
+                return gp;
+            }
 
-        gp.setFromEnum(permissionLevel, newList);
-        EntityWriter.mergeGuildPermissions(gp);
-
-        context.replyWithName(context.i18nFormat("permsRemoved", mentionableToName(selected), permissionLevel));
+            context.replyWithName(context.i18nFormat("permsRemoved", mentionableToName(selected), permissionLevel));
+            return gp.setFromEnum(permissionLevel, newList);
+        };
+        EntityIO.doUserFriendly(EntityIO.onMainDb(
+                wrapper -> wrapper.findApplyAndMerge(GuildPermissions.key(context.guild), transformation)
+        ));
     }
 
     public void add(CommandContext context) {
@@ -147,31 +149,34 @@ public class PermissionsCommand extends Command implements IConfigCommand {
         List<IMentionable> list = new ArrayList<>();
         list.addAll(ArgumentUtil.fuzzyRoleSearch(guild, term));
         list.addAll(ArgumentUtil.fuzzyMemberSearch(guild, term, false));
-        GuildPermissions gp = EntityReader.getGuildPermissions(guild);
 
         IMentionable selected = ArgumentUtil.checkSingleFuzzySearchResult(list, context, term);
         if (selected == null) return;
 
-        if (gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
-            context.replyWithName(context.i18nFormat("permsAlreadyAdded",
-                    "`" + TextUtils.escapeMarkdown(mentionableToName(selected)) + "`",
-                    "`" + permissionLevel + "`"));
-            return;
-        }
+        Function<GuildPermissions, GuildPermissions> transformation = gp -> {
+            if (gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
+                context.replyWithName(context.i18nFormat("permsAlreadyAdded",
+                        "`" + TextUtils.escapeMarkdown(mentionableToName(selected)) + "`",
+                        "`" + permissionLevel + "`"));
+                return gp;
+            }
 
-        List<String> newList = new ArrayList<>(gp.getFromEnum(permissionLevel));
-        newList.add(mentionableToId(selected));
-        gp.setFromEnum(permissionLevel, newList);
-        EntityWriter.mergeGuildPermissions(gp);
+            List<String> newList = new ArrayList<>(gp.getFromEnum(permissionLevel));
+            newList.add(mentionableToId(selected));
 
-        context.replyWithName(context.i18nFormat("permsAdded",
-                TextUtils.escapeMarkdown(mentionableToName(selected)), permissionLevel));
+            context.replyWithName(context.i18nFormat("permsAdded",
+                    TextUtils.escapeMarkdown(mentionableToName(selected)), permissionLevel));
+            return gp.setFromEnum(permissionLevel, newList);
+        };
+        EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper ->
+                wrapper.findApplyAndMerge(GuildPermissions.key(context.guild), transformation)
+        ));
     }
 
     public void list(CommandContext context) {
         Guild guild = context.guild;
         Member invoker = context.invoker;
-        GuildPermissions gp = EntityReader.getGuildPermissions(guild);
+        GuildPermissions gp = EntityIO.getGuildPermissions(guild);
 
         List<IMentionable> mentionables = idsToMentionables(guild, gp.getFromEnum(permissionLevel));
 

@@ -25,7 +25,7 @@
 
 package fredboat.db.entity.main;
 
-import fredboat.main.BotController;
+import fredboat.db.EntityIO;
 import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.entities.Guild;
 import space.npstr.sqlsauce.entities.GuildBotComposite;
@@ -48,7 +48,7 @@ import java.util.Optional;
  * Created by napster on 22.12.17.
  * <p>
  * The caching of this entity is not managed by ehcache, instead a guava cache is used,
- * see {@link fredboat.command.moderation.PrefixCommand}
+ * see {@link fredboat.command.config.PrefixCommand}
  */
 @Entity
 @Table(name = "prefixes")
@@ -116,7 +116,9 @@ public class Prefix extends SaucedEntity<GuildBotComposite, Prefix> {
         Map<String, Object> params = new HashMap<>();
         params.put("id", new GuildBotComposite(guildId, botId));
 
-        List<String> result = BotController.INS.getMainDbWrapper().selectJpqlQuery(query, params, String.class);
+        List<String> result = EntityIO.doUserFriendly(EntityIO.onMainDb(
+                wrapper -> wrapper.selectJpqlQuery(query, params, String.class)
+        ));
         if (result.isEmpty()) {
             return Optional.empty();
         } else {
