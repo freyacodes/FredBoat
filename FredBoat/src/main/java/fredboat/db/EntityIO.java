@@ -25,10 +25,7 @@
 
 package fredboat.db;
 
-import fredboat.db.entity.main.BlacklistEntry;
-import fredboat.db.entity.main.GuildConfig;
-import fredboat.db.entity.main.GuildModules;
-import fredboat.db.entity.main.GuildPermissions;
+import fredboat.db.entity.main.*;
 import fredboat.main.BotController;
 import fredboat.util.func.NonnullFunction;
 import fredboat.util.func.NonnullSupplier;
@@ -163,6 +160,11 @@ public class EntityIO {
         return doUserFriendly(onMainDb(wrapper -> wrapper.getOrCreate(GuildModules.key(guild))));
     }
 
+    @Nonnull
+    public static GuildData getGuildData(@Nonnull Guild guild) {
+        return doUserFriendly(onMainDb(wrapper -> wrapper.getOrCreate(GuildData.key(guild))));
+    }
+
 
     // Blacklist stuff
 
@@ -183,5 +185,16 @@ public class EntityIO {
         params.put("id", id);
 
         doUserFriendly(onMainDb(wrapper -> wrapper.executeSqlQuery(query, params)));
+    }
+
+
+    // Guild data stuff
+
+    @Nonnull
+    public static GuildData helloSent(@Nonnull Guild guild) {
+        return doUserFriendly(onMainDb(wrapper -> wrapper.findApplyAndMerge(
+                GuildData.key(guild),
+                GuildData::helloSent)
+        ));
     }
 }

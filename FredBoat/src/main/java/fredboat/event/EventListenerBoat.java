@@ -26,9 +26,9 @@ package fredboat.event;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import fredboat.main.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
+import fredboat.command.info.HelloCommand;
 import fredboat.command.info.HelpCommand;
 import fredboat.command.info.ShardsCommand;
 import fredboat.command.info.StatsCommand;
@@ -38,9 +38,12 @@ import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.EntityIO;
+import fredboat.db.entity.main.GuildData;
 import fredboat.feature.I18n;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
+import fredboat.main.BotController;
+import fredboat.main.Config;
 import fredboat.main.ShardContext;
 import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
@@ -53,6 +56,7 @@ import io.prometheus.client.Histogram;
 import net.dv8tion.jda.core.entities.*;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.events.ShutdownEvent;
+import net.dv8tion.jda.core.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceJoinEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceLeaveEvent;
@@ -65,6 +69,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.TimeUnit;
 
 public class EventListenerBoat extends AbstractEventListener {
@@ -315,6 +320,18 @@ public class EventListenerBoat extends AbstractEventListener {
     }
 
     @Override
+    public void onGuildJoin(GuildJoinEvent event) {
+        //wait a few seconds to allow permissions to be set and applied and propagated
+        CentralMessaging.restService.schedule(() -> {
+            //retrieve the guild again - many things may have happened in 10 seconds!
+            Guild g = BotController.INS.getShardManager().getGuildById(event.getGuild().getIdLong());
+            if (g != null) {
+                sendHelloOnJoin(g);
+            }
+        }, 10, TimeUnit.SECONDS);
+    }
+
+    @Override
     public void onGuildLeave(GuildLeaveEvent event) {
         PlayerRegistry.destroyPlayer(event.getGuild());
     }
@@ -336,5 +353,35 @@ public class EventListenerBoat extends AbstractEventListener {
     @Override
     public void onShutdown(ShutdownEvent event) {
         ShardContext.of(event.getJDA()).onShutdown();
+    }
+
+
+    private static void sendHelloOnJoin(@Nonnull Guild guild) {
+        //filter guilds that already received a hello message
+        // useful for when discord trolls us with fake guild joins
+        // or to prevent it send repeatedly due to kick and reinvite
+        GuildData gd = EntityIO.getGuildData(guild);
+        if (gd.getTimestampHelloSent() > 0) {
+            return;
+        }
+
+        TextChannel channel = guild.getTextChannelById(guild.getIdLong()); //old public channel
+        if (channel == null || !channel.canTalk()) {
+            //find first channel that we can talk in
+            for (TextChannel tc : guild.getTextChannels()) {
+                if (tc.canTalk()) {
+                    channel = tc;
+                    break;
+                }
+            }
+        }
+        if (channel == null) {
+            //no channel found to talk in
+            return;
+        }
+
+        //send actual hello message and persist on success
+        CentralMessaging.sendMessage(channel, HelloCommand.getHello(guild),
+                __ -> EntityIO.helloSent(guild));
     }
 }
