@@ -125,7 +125,7 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                     String playingStatusOrQueueTime = "";
 
                     if (player.getTrackCount() < 1) {
-                        playingStatusOrQueueTime = context.i18nFormat("selectSuccessPartNowPlaying");
+                        playingStatusOrQueueTime = TextUtils.italicizeText(context.i18nFormat("selectSuccessPartNowPlaying"));
 
                     } else {
 
@@ -138,22 +138,32 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                             // Currently is not playing any live stream.
                             long remainingTimeInMillis = player.getTotalRemainingMusicTimeMillis();
                             String remainingTime = TextUtils.formatTime(remainingTimeInMillis);
-                            playingStatusOrQueueTime = context.i18nFormat("selectSuccessPartQueueWaitTime", positionInQueue, remainingTime);
+                            playingStatusOrQueueTime = context.i18nFormat(
+                                    "selectSuccessPartQueueWaitTime",
+                                    TextUtils.boldenText(positionInQueue),
+                                    TextUtils.boldenText(remainingTime));
 
                         } else {
-                            playingStatusOrQueueTime = context.i18nFormat("selectSuccessPartQueueHasStream", positionInQueue);
+                            playingStatusOrQueueTime = context.i18nFormat(
+                                    "selectSuccessPartQueueHasStream",
+                                    TextUtils.boldenText(positionInQueue));
                         }
                     }
 
                     // Print the selection string.
-                    String selectionSuccessString = context.i18nFormat("selectSuccess", validChoices.get(i), playingStatusOrQueueTime);
+                    String selectionSuccessString = context.i18nFormat(
+                            "selectSuccess",
+                            TextUtils.boldenText("\\#" + validChoices.get(i)),
+                            "~ " + playingStatusOrQueueTime);
                     outputMsgBuilder.append(selectionSuccessString);
                     outputMsgBuilder.append("\n");
 
                     // Print the song title and length.
                     outputMsgBuilder.append("\t\t");
-                    String songTitleAndMusic = context.i18nFormat("selectTitleAndLength", selectedTracks[i].getInfo().title,
-                            TextUtils.formatTime(selectedTracks[i].getInfo().length));
+                    String songTitleAndMusic = context.i18nFormat(
+                            "selectTitleAndLength",
+                            TextUtils.boldenText(selectedTracks[i].getInfo().title),
+                            "(" + TextUtils.formatTime(selectedTracks[i].getInfo().length) + ")");
                     outputMsgBuilder.append(songTitleAndMusic);
                     outputMsgBuilder.append("\n");
 

@@ -323,4 +323,24 @@ public class TextUtils {
         }
         return shortened.toString();
     }
+
+    /**
+     * Wraps input with discord's markdown bold marker.
+     *
+     * @param input Object#toString() to be wrapped in bold. Must be non null.
+     * @return String with ** wrapped.
+     */
+    public static <T> String boldenText(@Nonnull T input) {
+        return "**" + input + "**";
+    }
+
+    /**
+     * Wraps input with discord's markdown italic marker.
+     *
+     * @param input Object#toString() to be wrapped in italic marker. Must be non null.
+     * @return String with * wrapped.
+     */
+    public static <T> String italicizeText(@Nonnull T input) {
+        return "*" + input + "*";
+    }
 }
