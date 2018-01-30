@@ -94,7 +94,7 @@ public class CommandInitializer {
         infoModule.registerCommand(new FuzzyUserSearchCommand("fuzzy"));
         infoModule.registerCommand(new GetIdCommand("getid"));
         infoModule.registerCommand(new GitInfoCommand("gitinfo", "git"));
-        infoModule.registerCommand(new HelloCommand("hello"));
+        infoModule.registerCommand(new HelloCommand("hello", "about"));
         infoModule.registerCommand(new HelpCommand(HELP_COMM_NAME, "info"));
         infoModule.registerCommand(new InviteCommand("invite"));
         infoModule.registerCommand(new MusicHelpCommand(MUSICHELP_COMM_NAME, "musichelp"));
@@ -165,7 +165,7 @@ public class CommandInitializer {
         funModule.registerCommand(new RestrictedRemoteFileCommand(PermissionLevel.BOT_ADMIN, "http://i.imgur.com/i65ss6p.png", "powerpoint"));
 
         funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/DYToB2e.jpg", "ram"));
-        funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/utPRe0e.gif", "welcome"));
+        funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/utPRe0e.gif", "welcome", "whalecum"));
         funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/93VahIh.png", "anime"));
         funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/qz6g1vj.gif", "explosion"));
         funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/84nbpQe.png", "internetspeed"));
@@ -215,7 +215,7 @@ public class CommandInitializer {
         musicModule.registerCommand(new PlayCommand(Collections.singletonList(SearchUtil.SearchProvider.SOUNDCLOUD),
                 SOUNDCLOUD_COMM_NAME, "sc"));
         musicModule.registerCommand(new PlaySplitCommand("split"));
-        musicModule.registerCommand(new RepeatCommand("repeat", "rep"));
+        musicModule.registerCommand(new RepeatCommand("repeat", "rep", "loop"));
         musicModule.registerCommand(new ReshuffleCommand("reshuffle", "resh"));
         musicModule.registerCommand(new SelectCommand("select", buildNumericalSelectAliases("sel")));
         musicModule.registerCommand(new ShuffleCommand("shuffle", "sh", "random"));
