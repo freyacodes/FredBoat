@@ -114,10 +114,8 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                     String playingStatusOrQueueTime;
 
                     if (player.getTrackCount() < 1) {
-                        playingStatusOrQueueTime = TextUtils.italicizeText(context.i18nFormat("selectSuccessPartNowPlaying"));
-
+                        playingStatusOrQueueTime = TextUtils.italicizeText(context.i18n("selectSuccessPartNowPlaying"));
                     } else {
-
                         if (Stream.of(
                                 player.getPlayingTrack(),
                                 player.getPlayingTrack().getTrack(),
