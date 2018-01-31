@@ -26,7 +26,6 @@
 package fredboat.command.music.control;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.main.BotController;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.player.VideoSelection;
@@ -35,24 +34,19 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.main.BotController;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.entities.impl.MessageEmbedImpl;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nonnull;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 public class SelectCommand extends Command implements IMusicCommand, ICommandRestricted {
@@ -117,7 +111,7 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
 
                     selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
 
-                    String playingStatusOrQueueTime = "";
+                    String playingStatusOrQueueTime;
 
                     if (player.getTrackCount() < 1) {
                         playingStatusOrQueueTime = TextUtils.italicizeText(context.i18nFormat("selectSuccessPartNowPlaying"));
