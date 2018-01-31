@@ -25,16 +25,24 @@
 
 package fredboat.command.util;
 
+import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.messaging.internal.Context;
 import fredboat.util.BrainfuckException;
+import fredboat.util.TextUtils;
+import org.json.JSONException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class BrainfuckCommand extends Command implements IUtilCommand {
+
+    private static final Logger log = LoggerFactory.getLogger(BrainfuckCommand.class);
 
     public BrainfuckCommand(String name, String... aliases) {
         super(name, aliases);
@@ -44,7 +52,7 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
     char[] code;
     public static final int MAX_CYCLE_COUNT = 10000;
 
-    public String process(String input, Context context) {
+    public String process(@Nonnull String input, @Nonnull Context context) {
         int data = 0;
         char[] inChars = input.toCharArray();
         int inChar = 0;
@@ -62,7 +70,7 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
                     break;
                 case '<':
                     --data;
-                    if(data < 0){
+                    if (data < 0) {
                         throw new BrainfuckException(context.i18nFormat("brainfuckDataPointerOutOfBounds", data));
                     }
                     break;
@@ -86,7 +94,10 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
                     if (bytes.get(data) == 0) {
                         int depth = 1;
                         do {
-                            command = code[++instruction];
+                            if (++instruction >= code.length) {
+                                throw new BrainfuckException("Instruction out of bounds at position " + (inChar + 1));
+                            }
+                            command = code[instruction];
                             if (command == '[') {
                                 ++depth;
                             } else if (command == ']') {
@@ -99,7 +110,10 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
                     if (bytes.get(data) != 0) {
                         int depth = -1;
                         do {
-                            command = code[--instruction];
+                            if (--instruction < 0) {
+                                throw new BrainfuckException("Instruction out of bounds at position " + (inChar + 1));
+                            }
+                            command = code[instruction];
                             if (command == '[') {
                                 ++depth;
                             } else if (command == ']') {
@@ -133,17 +147,31 @@ public class BrainfuckCommand extends Command implements IUtilCommand {
         inputArg = inputArg.replaceAll("ZERO", String.valueOf((char) 0));
 
         String out = process(inputArg, context);
-        //TextUtils.replyWithMention(channel, invoker, " " + out);
-        String out2 = "";
+        StringBuilder sb = new StringBuilder();
         for (char c : out.toCharArray()) {
             int sh = (short) c;
-            out2 = out2 + "," + sh;
+            sb.append(",").append(sh);
         }
-        try {
-            context.replyWithName(" " + out + "\n-------\n" + out2.substring(1));
-        } catch (IndexOutOfBoundsException ex) {
+        String out2 = sb.toString();
+        if (out2.isEmpty()) {
             context.replyWithName(context.i18n("brainfuckNoOutput"));
+            return;
         }
+
+        String output = " " + out + "\n-------\n" + out2.substring(1);
+        if (output.length() >= 2000) {
+            String message = "The output of your brainfuck code is too long to be displayed on Discord";//todo i18n
+            try {
+                String pasteUrl = TextUtils.postToPasteService(output);
+                context.reply(message + " and has been uploaded to " + pasteUrl); //todo i18n
+            } catch (IOException | JSONException e) {
+                log.error("Failed to upload to any pasteservice.", e);
+                context.reply(message);
+            }
+            return;
+        }
+
+        context.reply(output);
     }
 
     @Nonnull

@@ -25,7 +25,7 @@
 
 package fredboat.util.rest;
 
-import fredboat.Config;
+import fredboat.main.Config;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;

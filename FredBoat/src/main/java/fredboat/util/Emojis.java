@@ -35,5 +35,12 @@ public class Emojis {
     public static final String BAD = "❌";
     public static final String PENCIL = "📝";
     public static final String DOOR = "🚪";
-
+    public static final String LOCK = "🔒";
+    public static final String INFO = "ℹ";
+    public static final String MUSIC = "🎵";
+    public static final String HAMMER = "🔨";
+    public static final String GEAR = "⚙";
+    public static final String KEY = "🔑";
+    public static final String DIE = "🎲";
+    public static final String TOOLS = "🛠";
 }

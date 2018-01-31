@@ -27,11 +27,7 @@ package fredboat.command.music.control;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.LavalinkManager;
-import fredboat.audio.player.PlayerLimitManager;
-import fredboat.audio.player.PlayerRegistry;
-import fredboat.audio.player.VideoSelection;
+import fredboat.audio.player.*;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
@@ -56,6 +52,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(PlayCommand.class);
     private final List<SearchUtil.SearchProvider> searchProviders;
     private static final JoinCommand JOIN_COMMAND = new JoinCommand("");
+    private static final String FILE_PREFIX = "file://";
 
     public PlayCommand(List<SearchUtil.SearchProvider> searchProviders, String name, String... aliases) {
         super(name, aliases);
@@ -95,9 +92,12 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
 
         String url = StringUtils.strip(context.args[0], "<>");
         //Search youtube for videos and let the user select a video
-        if (!url.startsWith("http")) {
+        if (!url.startsWith("http") && !url.startsWith(FILE_PREFIX)) {
             searchForVideos(context);
             return;
+        }
+        if (url.startsWith(FILE_PREFIX)) {
+            url = url.replaceFirst(FILE_PREFIX, ""); //LocalAudioSourceManager does not manage this itself
         }
 
         GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
@@ -120,7 +120,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         } else if(LavalinkManager.ins.getConnectedChannel(guild) == null) {
             // When we just want to continue playing, but the user is not in a VC
             JOIN_COMMAND.onInvoke(context);
-            if(LavalinkManager.ins.getConnectedChannel(guild) != null || guild.getAudioManager().isAttemptingToConnect()) {
+            if(LavalinkManager.ins.getConnectedChannel(guild) != null) {
                 player.play();
                 context.reply(context.i18n("playWillNowPlay"));
             }
@@ -166,7 +166,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
                     builder.append("\n**")
                             .append(String.valueOf(i))
                             .append(":** ")
-                            .append(track.getInfo().title)
+                            .append(TextUtils.escapeAndDefuse(track.getInfo().title))
                             .append(" (")
                             .append(TextUtils.formatTime(track.getInfo().length))
                             .append(")");

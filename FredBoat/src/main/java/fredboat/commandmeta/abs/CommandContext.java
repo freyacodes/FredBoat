@@ -25,10 +25,12 @@
 
 package fredboat.commandmeta.abs;
 
-import fredboat.Config;
-import fredboat.command.moderation.PrefixCommand;
+import fredboat.command.config.PrefixCommand;
+import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.CommandRegistry;
+import fredboat.db.EntityIO;
 import fredboat.feature.metrics.Metrics;
+import fredboat.main.Config;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import net.dv8tion.jda.core.Permission;
@@ -40,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -78,7 +81,7 @@ public class CommandContext extends Context {
      * @return The full context for the triggered command, or null if it's not a command that we know.
      */
     public static CommandContext parse(MessageReceivedEvent event) {
-        String raw = event.getMessage().getRawContent();
+        String raw = event.getMessage().getContentRaw();
 
         String input;
         boolean isMention = false;
@@ -99,8 +102,9 @@ public class CommandContext extends Context {
                     Metrics.prefixParsed.labels("custom").inc();
                 }
             } else {
-                //hardcoded check for the help command that is always displayed as FredBoat status
-                if (raw.startsWith(Config.CONFIG.getPrefix() + "help")) {
+                //hardcoded check for the help or prefix command that is always displayed as FredBoat status
+                if (raw.startsWith(Config.CONFIG.getPrefix() + CommandInitializer.HELP_COMM_NAME)
+                        || raw.startsWith(Config.CONFIG.getPrefix() + CommandInitializer.PREFIX_COMM_NAME)) {
                     Metrics.prefixParsed.labels("default").inc();
                     input = raw.substring(Config.CONFIG.getPrefix().length());
                 } else {
@@ -118,15 +122,16 @@ public class CommandContext extends Context {
             }
         }
 
-        String[] args = input.split("\\s+"); //split by any length of white space characters (including new lines)
+        // the \p{javaSpaceChar} instead of the better known \s is used because it actually includes unicode whitespaces
+        String[] args = input.split("\\p{javaSpaceChar}+");
         if (args.length < 1) {
             return null; //while this shouldn't technically be possible due to the preprocessing of the input, better be safe than throw exceptions
         }
 
         String commandTrigger = args[0];
 
-        CommandRegistry.CommandEntry entry = CommandRegistry.getCommand(commandTrigger.toLowerCase());
-        if (entry == null) {
+        Command command = CommandRegistry.findCommand(commandTrigger.toLowerCase());
+        if (command == null) {
             log.info("Unknown command:\t{}", commandTrigger);
             return null;
         } else {
@@ -138,7 +143,7 @@ public class CommandContext extends Context {
 
             context.isMention = isMention;
             context.trigger = commandTrigger;
-            context.command = entry.command;
+            context.command = command;
             context.args = Arrays.copyOfRange(args, 1, args.length);//exclude args[0] that contains the command trigger
             context.rawArgs = input.replaceFirst(commandTrigger, "").trim();
             return context;
@@ -157,9 +162,70 @@ public class CommandContext extends Context {
      */
     public void deleteMessage() {
         TextChannel tc = msg.getTextChannel();
-        if (tc != null && hasPermissions(tc, Permission.MESSAGE_MANAGE, Permission.MESSAGE_READ)) {
+
+        if (tc != null && hasPermissions(tc, Permission.MESSAGE_MANAGE)
+                && hasExplicitPermissionOrIsAdmin(tc, Permission.MESSAGE_MANAGE)) {
             CentralMessaging.deleteMessage(msg);
         }
+    }
+
+    //workaround check for https://github.com/DV8FromTheWorld/JDA/issues/414
+    // we check all permission overrides and roles for channel, its optional parent, and serverwide roles for an explicit
+    // grant of the provided permission and return true if there is at least one such grant
+    @SuppressWarnings("Duplicates")
+    private static boolean hasExplicitPermissionOrIsAdmin(@Nonnull TextChannel channel, @Nonnull Permission permission) {
+        Member self = channel.getGuild().getSelfMember();
+        if (self == null) {
+            return false;
+        }
+        if (self.hasPermission(Permission.ADMINISTRATOR)) {
+            return true;
+        }
+
+        List<Role> roles = new ArrayList<>(self.getRoles());
+        roles.add(self.getGuild().getPublicRole());
+        Category parent = channel.getParent();
+
+
+        PermissionOverride memberChannelPO = channel.getPermissionOverride(self);
+        if (memberChannelPO != null) {
+            if (memberChannelPO.getAllowed().contains(permission)) {
+                return true;
+            }
+        }
+
+        if (parent != null) {
+            PermissionOverride memberCategoryPO = parent.getPermissionOverride(self);
+            if (memberCategoryPO != null) {
+                if (memberCategoryPO.getAllowed().contains(permission)) {
+                    return true;
+                }
+            }
+        }
+
+        for (Role role : roles) {
+            if (role.hasPermission(permission)) {
+                return true;
+            }
+
+            PermissionOverride roleChannelPO = channel.getPermissionOverride(role);
+            if (roleChannelPO != null) {
+                if (roleChannelPO.getAllowed().contains(permission)) {
+                    return true;
+                }
+            }
+
+            if (parent != null) {
+                PermissionOverride roleCategeoryPO = parent.getPermissionOverride(role);
+                if (roleCategeoryPO != null) {
+                    if (roleCategeoryPO.getAllowed().contains(permission)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -184,6 +250,11 @@ public class CommandContext extends Context {
 
     public boolean hasArguments() {
         return args.length > 0 && !rawArgs.isEmpty();
+    }
+
+    @Nonnull
+    public Collection<CommandRegistry.Module> getEnabledModules() {
+        return EntityIO.getGuildModules(this.guild).getEnabledModules();
     }
 
     @Nonnull

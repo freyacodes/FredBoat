@@ -78,7 +78,7 @@ public class PlayerDebugCommand extends Command implements ICommandRestricted {
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1}\n#Show debug information about the music player of this guild.";
+        return "{0}{1}\n#Show debug information about all music players of this bot.";
     }
 
     @Nonnull

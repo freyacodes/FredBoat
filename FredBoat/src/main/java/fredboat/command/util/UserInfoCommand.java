@@ -25,10 +25,10 @@
 
 package fredboat.command.util;
 
-import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
+import fredboat.main.BotController;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.ArgumentUtil;
@@ -62,7 +62,7 @@ public class UserInfoCommand extends Command implements IUtilCommand {
             target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(context, context.rawArgs, true);
         }
         if (target == null) return;
-        FredBoat.getAllGuilds().forEach(guild -> {
+        BotController.INS.getShardManager().getGuilds().forEach(guild -> {
             if (guild.getMemberById(target.getUser().getId()) != null) {
                 matchedGuildNames.add(guild.getName());
             }
@@ -93,7 +93,7 @@ public class UserInfoCommand extends Command implements IUtilCommand {
                 .addField(context.i18n("userinfoJoinDate"), target.getJoinDate().format(dtf), true)
                 .addField(context.i18n("userinfoCreationTime"), target.getUser().getCreationTime().format(dtf), true)
                 .addField(context.i18n("userinfoBlacklisted"),
-                        Boolean.toString(Ratelimiter.getRatelimiter().isBlacklisted(context.invoker.getUser().getIdLong())), true)
+                        Boolean.toString(Ratelimiter.getRatelimiter().isBlacklisted(target.getUser().getIdLong())), true)
                 .build()
         );
     }

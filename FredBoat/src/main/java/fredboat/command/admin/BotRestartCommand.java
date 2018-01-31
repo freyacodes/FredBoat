@@ -25,14 +25,14 @@
 
 package fredboat.command.admin;
 
-import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.main.BotController;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.ExitCodes;
-import org.slf4j.LoggerFactory;
+import fredboat.util.TextUtils;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutionException;
@@ -40,26 +40,38 @@ import java.util.concurrent.TimeoutException;
 
 public class BotRestartCommand extends Command implements ICommandRestricted {
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(BotRestartCommand.class);
-
     public BotRestartCommand(String name, String... aliases) {
         super(name, aliases);
     }
 
+    @Nonnull
+    private String code = TextUtils.randomAlphaNumericString(4);
+
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        try {
-            context.replyWithName(" Restarting...").getWithDefaultTimeout();
-        } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
+        if (context.hasArguments()) {
+            if (context.rawArgs.equals(code)) {
+                try {
+                    context.replyWithName("Restarting...").getWithDefaultTimeout();
+                } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
+                }
+                BotController.INS.shutdown(ExitCodes.EXIT_CODE_RESTART);
+                return;
+            } else {
+                context.reply(String.format("Your input `%s` did not fit the required code `%s`. A new code will be issued.",
+                        TextUtils.escapeMarkdown(context.rawArgs), code));
+            }
         }
 
-        FredBoat.shutdown(ExitCodes.EXIT_CODE_RESTART);
+        code = TextUtils.randomAlphaNumericString(4);
+        context.reply(String.format("This will **restart the whole bot**. "
+                + "Please confirm by issuing this command again, with the following confirmation code appended: `%s`", code));
     }
 
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1}\n#Restarts the bot.";
+        return "{0}{1} [code]\n#Restart the bot.";
     }
 
     @Nonnull

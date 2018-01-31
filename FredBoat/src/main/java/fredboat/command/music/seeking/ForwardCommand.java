@@ -29,7 +29,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
-import fredboat.command.util.HelpCommand;
+import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
@@ -76,7 +76,8 @@ public class ForwardCommand extends Command implements IMusicCommand, ICommandRe
         t = Math.min(atc.getEffectiveDuration(), t);
 
         player.seekTo(player.getPosition() + t);
-        context.reply(context.i18nFormat("fwdSuccess", atc.getEffectiveTitle(), TextUtils.formatTime(t)));
+        context.reply(context.i18nFormat("fwdSuccess",
+                TextUtils.escapeAndDefuse(atc.getEffectiveTitle()), TextUtils.formatTime(t)));
     }
 
     @Nonnull

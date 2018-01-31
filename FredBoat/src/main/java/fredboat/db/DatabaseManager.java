@@ -25,332 +25,142 @@
 
 package fredboat.db;
 
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.zaxxer.hikari.HikariDataSource;
-import fredboat.Config;
-import fredboat.FredBoat;
+import com.zaxxer.hikari.HikariConfig;
+import fredboat.main.Config;
 import fredboat.feature.metrics.Metrics;
+import fredboat.shared.constant.BotConstants;
+import fredboat.util.DiscordUtil;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.config.CacheConfiguration;
 import net.sf.ehcache.config.PersistenceConfiguration;
-import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
-import org.hibernate.internal.SessionFactoryImpl;
-import org.hibernate.jpa.HibernatePersistenceProvider;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
-import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
+import space.npstr.sqlsauce.DatabaseConnection;
+import space.npstr.sqlsauce.DatabaseException;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Properties;
 
 public class DatabaseManager {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseManager.class);
 
-    private static final String DEFAULT_PERSISTENCE_UNIT_NAME = "fredboat.default";
+    private static final String MAIN_PERSISTENCE_UNIT_NAME = "fredboat.main";
+    private static final String CACHE_PERSISTENCE_UNIT_NAME = "fredboat.cache";
 
-    //see https://github.com/brettwooldridge/HikariCP connectionTimeout
-    private static final int HIKARI_TIMEOUT_MILLISECONDS = 1000;
+    @Nonnull
+    public static DatabaseConnection main() throws DatabaseException {
+        String jdbc = Config.CONFIG.getMainJdbcUrl();
 
-    private EntityManagerFactory emf;
-    private Session sshTunnel;
-    private DatabaseState state = DatabaseState.UNINITIALIZED;
+        Flyway flyway = new Flyway();
+        flyway.setBaselineOnMigrate(true);
+        flyway.setBaselineVersion(MigrationVersion.fromVersion("0"));
+        flyway.setBaselineDescription("Base Migration");
+        flyway.setLocations("classpath:fredboat/db/migrations/main");
 
-    //local port, if using SSH tunnel point your jdbc to this, e.g. jdbc:postgresql://localhost:9333/...
-    private static final int SSH_TUNNEL_PORT = 9333;
+        HikariConfig hikariConfig = DatabaseConnection.Builder.getDefaultHikariConfig();
+        hikariConfig.setMaximumPoolSize(Config.CONFIG.getHikariPoolSize());
 
-    private final String jdbcUrl;
-    private final int poolSize;
+        Properties hibernateProps = DatabaseConnection.Builder.getDefaultHibernateProps();
+        hibernateProps.put("hibernate.cache.use_second_level_cache", "true");
+        hibernateProps.put("hibernate.cache.use_query_cache", "true");
+        hibernateProps.put("net.sf.ehcache.configurationResourceName", "/ehcache_main.xml");
+        hibernateProps.put("hibernate.cache.provider_configuration_file_resource_path", "ehcache_main.xml");
+        hibernateProps.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
+        //we use flyway db now for migrations, hibernate shall only run validations
+        hibernateProps.put("hibernate.hbm2ddl.auto", "validate");
 
-    /**
-     * @param jdbcUrl         connection to the database
-     * @param poolSize        max size of the connection pool
-     */
-    private DatabaseManager(String jdbcUrl, int poolSize) {
-        this.jdbcUrl = jdbcUrl;
-        this.poolSize = poolSize;
-    }
-
-
-    public static DatabaseManager postgres() {
-        String jdbc = Config.CONFIG.getJdbcUrl();
-        if (jdbc == null || jdbc.isEmpty()) {
-            log.info("No JDBC URL found, assuming this is a docker environment. Trying default docker JDBC url");
-            jdbc = "jdbc:postgresql://db:5432/fredboat?user=fredboat";
-        }
-        return new DatabaseManager(jdbc, Config.CONFIG.getHikariPoolSize());
-    }
-
-    /**
-     * Starts the database connection.
-     *
-     * @throws IllegalStateException if trying to start a database that is READY or INITIALIZING
-     */
-    public synchronized DatabaseManager startup() {
-        if (state == DatabaseState.READY || state == DatabaseState.INITIALIZING) {
-            throw new IllegalStateException("Can't start the database, when it's current state is " + state);
+        //dont run migrations or validate the db from the patron bot
+        if (DiscordUtil.getBotId() == BotConstants.PATRON_BOT_ID) {
+            flyway = null;
+            hibernateProps.put("hibernate.hbm2ddl.auto", "none");
         }
 
-        state = DatabaseState.INITIALIZING;
+        DatabaseConnection databaseConnection = new DatabaseConnection.Builder(MAIN_PERSISTENCE_UNIT_NAME, jdbc)
+                .setHikariConfig(hikariConfig)
+                .setHibernateProps(hibernateProps)
+                .setDialect("org.hibernate.dialect.PostgreSQL95Dialect")
+                .addEntityPackage("fredboat.db.entity.main")
+                .setAppName("FredBoat_" + Config.CONFIG.getDistribution())
+                .setSshDetails(Config.CONFIG.getMainSshTunnelConfig())
+                .setHikariStats(Metrics.instance().hikariStats)
+                .setHibernateStats(Metrics.instance().hibernateStats)
+                .setCheckConnection(false) //we run our own connection check for this with the DBConnectionWatchdogAgent
+                .setFlyway(flyway)
+                .build();
 
-        try {
-            if (Config.CONFIG.isUseSshTunnel()) {
-                //don't connect again if it's already connected
-                if (sshTunnel == null || !sshTunnel.isConnected()) {
-                    connectSSH();
-                }
-            }
-
-            //These are now located in the resources directory as XML
-            Properties properties = new Properties();
-            properties.put("configLocation", "hibernate.cfg.xml");
-
-            properties.put("hibernate.connection.provider_class", "org.hibernate.hikaricp.internal.HikariCPConnectionProvider");
-            properties.put("hibernate.connection.url", jdbcUrl);
-            properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQL95Dialect");
-            properties.put("hibernate.cache.use_second_level_cache", "true");
-            properties.put("hibernate.cache.provider_configuration_file_resource_path", "ehcache.xml");
-            properties.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
-
-            //this does a lot of logs
-            //properties.put("hibernate.show_sql", "true");
-
-            //automatically update the tables we need
-            //caution: only add new columns, don't remove or alter old ones, otherwise manual db table migration needed
-            properties.put("hibernate.hbm2ddl.auto", "update");
-
-            //disable autocommit, it is not recommended for our usecases, and interferes with some of them
-            // see https://vladmihalcea.com/2017/05/17/why-you-should-always-use-hibernate-connection-provider_disables_autocommit-for-resource-local-jpa-transactions/
-            // this also means all EntityManager interactions need to be wrapped into em.getTransaction.begin() and
-            // em.getTransaction.commit() to prevent a rollback spam at the database
-            properties.put("hibernate.connection.autocommit", "true");
-            properties.put("hibernate.connection.provider_disables_autocommit", "false");
-
-            properties.put("hibernate.hikari.maximumPoolSize", Integer.toString(poolSize));
-
-            //how long to wait for a connection becoming available, also the timeout when a DB fails
-            properties.put("hibernate.hikari.connectionTimeout", Integer.toString(HIKARI_TIMEOUT_MILLISECONDS));
-            //this helps with sorting out connections in pgAdmin
-            properties.put("hibernate.hikari.dataSource.ApplicationName", "FredBoat_" + Config.CONFIG.getDistribution());
-
-            //timeout the validation query (will be done automatically through Connection.isValid())
-            properties.put("hibernate.hikari.validationTimeout", "1000");
-
-            properties.put("hibernate.hikari.driverClassName", "org.postgresql.Driver");
-
-
-            LocalContainerEntityManagerFactoryBean emfb = new LocalContainerEntityManagerFactoryBean();
-            emfb.setPackagesToScan("fredboat.db.entity");
-            emfb.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
-            emfb.setJpaProperties(properties);
-            emfb.setPersistenceUnitName(DEFAULT_PERSISTENCE_UNIT_NAME);
-            emfb.setPersistenceProviderClass(HibernatePersistenceProvider.class);
-            emfb.afterPropertiesSet();
-
-            //leak prevention, close existing factory if possible
-            closeEntityManagerFactory();
-
-            emf = emfb.getObject();
-
-            try {
-                //add metrics to hikari and hibernate
-                SessionFactoryImpl sessionFactory = emf.unwrap(SessionFactoryImpl.class);
-                sessionFactory.getServiceRegistry().getService(ConnectionProvider.class)
-                        .unwrap(HikariDataSource.class)
-                        .setMetricsTrackerFactory(Metrics.instance().hikariStats);
-                //NOTE the register() on the HibernateCollector may only be called once so this will break in case we create 2 connections
-                Metrics.instance().hibernateStats.add(sessionFactory, DEFAULT_PERSISTENCE_UNIT_NAME).register();
-            } catch (Exception e) {
-                log.warn("Exception when registering database metrics. This is not expected to happen outside of tests.", e);
-            }
-
-            //adjusting the ehcache config
-            if (!Config.CONFIG.isUseSshTunnel()) {
-                //local database: turn off overflow to disk of the cache
-                for (CacheManager cacheManager : CacheManager.ALL_CACHE_MANAGERS) {
-                    for (String cacheName : cacheManager.getCacheNames()) {
-                        CacheConfiguration cacheConfig = cacheManager.getCache(cacheName).getCacheConfiguration();
-                        cacheConfig.getPersistenceConfiguration().strategy(PersistenceConfiguration.Strategy.NONE);
-                    }
-                }
-            }
-            for (CacheManager cacheManager : CacheManager.ALL_CACHE_MANAGERS) {
-                log.debug(cacheManager.getActiveConfigurationText());
-            }
-
-            log.info("Started Hibernate");
-            state = DatabaseState.READY;
-        } catch (Exception ex) {
-            state = DatabaseState.FAILED;
-            throw new RuntimeException("Failed starting database connection", ex);
-        }
-        return this;
-    }
-
-    public void reconnectSSH() {
-        connectSSH();
-        //try a test query and if successful set state to ready
-        EntityManager em = getEntityManager();
-        try {
-            em.getTransaction().begin();
-            em.createNativeQuery("SELECT 1;").getResultList();
-            em.getTransaction().commit();
-            state = DatabaseState.READY;
-        } finally {
-            em.close();
-        }
-    }
-
-    private synchronized void connectSSH() {
-        if (!Config.CONFIG.isUseSshTunnel()) {
-            log.warn("Cannot connect ssh tunnel as it is not specified in the config");
-            return;
-        }
-        if (sshTunnel != null && sshTunnel.isConnected()) {
-            log.info("Tunnel is already connected, disconnect first before reconnecting");
-            return;
-        }
-        try {
-            //establish the tunnel
-            log.info("Starting SSH tunnel");
-
-            java.util.Properties config = new java.util.Properties();
-            JSch jsch = new JSch();
-            JSch.setLogger(new JSchLogger());
-
-            //Parse host:port
-            String sshHost = Config.CONFIG.getSshHost().split(":")[0];
-            int sshPort = Integer.parseInt(Config.CONFIG.getSshHost().split(":")[1]);
-
-            Session session = jsch.getSession(Config.CONFIG.getSshUser(),
-                    sshHost,
-                    sshPort
-            );
-            jsch.addIdentity(Config.CONFIG.getSshPrivateKeyFile());
-            config.put("StrictHostKeyChecking", "no");
-            config.put("ConnectionAttempts", "3");
-            session.setConfig(config);
-            session.setServerAliveInterval(1000);//milliseconds
-            session.connect();
-
-            log.info("SSH Connected");
-
-            //forward the port
-            int assignedPort = session.setPortForwardingL(
-                    SSH_TUNNEL_PORT,
-                    "localhost",
-                    Config.CONFIG.getForwardToPort()
-            );
-
-            sshTunnel = session;
-
-            log.info("localhost:" + assignedPort + " -> " + sshHost + ":" + Config.CONFIG.getForwardToPort());
-            log.info("Port Forwarded");
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to start SSH tunnel", e);
-        }
-    }
-
-    /**
-     * Please call close() on the EntityManager object you receive after you are done to let the pool recycle the
-     * connection and save the nature from environmental toxins like open database connections.
-     */
-    public EntityManager getEntityManager() {
-        return emf.createEntityManager();
-    }
-
-    /**
-     * Performs health checks on the ssh tunnel and database
-     *
-     * @return true if the database is operational, false if not
-     */
-    public boolean isAvailable() {
-        if (state != DatabaseState.READY) {
-            return false;
-        }
-
-        //is the ssh connection still alive?
-        if (sshTunnel != null && !sshTunnel.isConnected()) {
-            log.error("SSH tunnel lost connection.");
-            state = DatabaseState.FAILED;
-            //immediately try to reconnect the tunnel
-            //DBConnectionWatchdogAgent should take further care of this
-            FredBoat.executor.submit(this::reconnectSSH);
-            return false;
-        }
-
-        return state == DatabaseState.READY;
-    }
-
-    /**
-     * Avoid multiple threads calling a close on the factory by wrapping it into this synchronized method
-     */
-    private synchronized void closeEntityManagerFactory() {
-        if (emf != null && emf.isOpen()) {
-            try {
-                emf.close();
-            } catch (IllegalStateException ignored) {
-                //it has already been closed, nothing to catch here
+        //adjusting the ehcache config
+        if (Config.CONFIG.getMainSshTunnelConfig() == null) {
+            //local database: turn off overflow to disk of the cache
+            CacheManager cacheManager = CacheManager.getCacheManager("MAIN_CACHEMANAGER");
+            for (String cacheName : cacheManager.getCacheNames()) {
+                CacheConfiguration cacheConfig = cacheManager.getCache(cacheName).getCacheConfiguration();
+                cacheConfig.getPersistenceConfiguration().strategy(PersistenceConfiguration.Strategy.NONE);
             }
         }
+        log.debug(CacheManager.getCacheManager("MAIN_CACHEMANAGER").getActiveConfigurationText());
+
+        return databaseConnection;
     }
 
-    public DatabaseState getState() {
-        return state;
-    }
 
-    public enum DatabaseState {
-        UNINITIALIZED,
-        INITIALIZING,
-        FAILED,
-        READY,
-        SHUTDOWN
-    }
-
-    /**
-     * Shutdown, close, stop, halt, burn down all resources this object has been using
-     */
-    public void shutdown() {
-        log.info("DatabaseManager shutdown call received, shutting down");
-        state = DatabaseState.SHUTDOWN;
-        closeEntityManagerFactory();
-
-        if (sshTunnel != null)
-            sshTunnel.disconnect();
-    }
-
-    private static class JSchLogger implements com.jcraft.jsch.Logger {
-
-        private static final Logger logger = LoggerFactory.getLogger("JSch");
-
-        @Override
-        public boolean isEnabled(int level) {
-            return true;
+    @Nullable //may return null of no cache db has been configured
+    public static DatabaseConnection cache() throws DatabaseException {
+        String cacheJdbc = Config.CONFIG.getCacheJdbcUrl();
+        if (cacheJdbc == null) {
+            return null;
         }
 
-        @Override
-        public void log(int level, String message) {
-            switch (level) {
-                case com.jcraft.jsch.Logger.DEBUG:
-                    logger.debug(message);
-                    break;
-                case com.jcraft.jsch.Logger.INFO:
-                    logger.info(message);
-                    break;
-                case com.jcraft.jsch.Logger.WARN:
-                    logger.warn(message);
-                    break;
-                case com.jcraft.jsch.Logger.ERROR:
-                case com.jcraft.jsch.Logger.FATAL:
-                    logger.error(message);
-                    break;
-                default:
-                    throw new RuntimeException("Invalid log level");
+        Flyway flyway = new Flyway();
+        flyway.setBaselineOnMigrate(true);
+        flyway.setBaselineVersion(MigrationVersion.fromVersion("0"));
+        flyway.setBaselineDescription("Base Migration");
+        flyway.setLocations("classpath:fredboat/db/migrations/cache");
+
+        HikariConfig hikariConfig = DatabaseConnection.Builder.getDefaultHikariConfig();
+        hikariConfig.setMaximumPoolSize(Config.CONFIG.getHikariPoolSize());
+
+        Properties hibernateProps = DatabaseConnection.Builder.getDefaultHibernateProps();
+        hibernateProps.put("hibernate.cache.use_second_level_cache", "true");
+        hibernateProps.put("hibernate.cache.use_query_cache", "true");
+        hibernateProps.put("net.sf.ehcache.configurationResourceName", "/ehcache_cache.xml");
+        hibernateProps.put("hibernate.cache.provider_configuration_file_resource_path", "ehcache_cache.xml");
+        hibernateProps.put("hibernate.cache.region.factory_class", "org.hibernate.cache.ehcache.EhCacheRegionFactory");
+        //we use flyway db now for migrations, hibernate shall only run validations
+        hibernateProps.put("hibernate.hbm2ddl.auto", "validate");
+
+        //dont run migrations or validate the db from the patron bot
+        if (DiscordUtil.getBotId() == BotConstants.PATRON_BOT_ID) {
+            flyway = null;
+            hibernateProps.put("hibernate.hbm2ddl.auto", "none");
+        }
+
+        DatabaseConnection databaseConnection = new DatabaseConnection.Builder(CACHE_PERSISTENCE_UNIT_NAME, cacheJdbc)
+                .setHikariConfig(hikariConfig)
+                .setHibernateProps(hibernateProps)
+                .setDialect("org.hibernate.dialect.PostgreSQL95Dialect")
+                .addEntityPackage("fredboat.db.entity.cache")
+                .setAppName("FredBoat_" + Config.CONFIG.getDistribution())
+                .setSshDetails(Config.CONFIG.getCacheSshTunnelConfig())
+                .setHikariStats(Metrics.instance().hikariStats)
+                .setHibernateStats(Metrics.instance().hibernateStats)
+                .setFlyway(flyway)
+                .build();
+
+        //adjusting the ehcache config
+        if (Config.CONFIG.getMainSshTunnelConfig() == null) {
+            //local database: turn off overflow to disk of the cache
+            CacheManager cacheManager = CacheManager.getCacheManager("CACHE_CACHEMANAGER");
+            for (String cacheName : cacheManager.getCacheNames()) {
+                CacheConfiguration cacheConfig = cacheManager.getCache(cacheName).getCacheConfiguration();
+                cacheConfig.getPersistenceConfiguration().strategy(PersistenceConfiguration.Strategy.NONE);
             }
         }
-    }
+        log.debug(CacheManager.getCacheManager("CACHE_CACHEMANAGER").getActiveConfigurationText());
 
+        return databaseConnection;
+    }
 }

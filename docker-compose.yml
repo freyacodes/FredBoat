@@ -19,7 +19,9 @@ services:
   ################################################################################
   db:
     image: fredboat/postgres
-    restart: on-failure:3
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
     # WINDOWS ONLY: if you are running under windows you need to comment out the following two lines:
     volumes:
@@ -40,6 +42,8 @@ services:
     image: fredboat/fredboat:stable
     #image: fredboat/fredboat:dev
     restart: on-failure:3
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     depends_on:
       - db
     ports:
@@ -49,6 +53,14 @@ services:
       - ./credentials.yaml:/opt/FredBoat/credentials.yaml
       - ./logs:/opt/FredBoat/logs
       - ./music_persistence:/opt/FredBoat/music_persistence
+      # Local audio files (dev branch only currently)
+      # If your music directory looks like this: /home/user/music/directory/rickroll.mp3 or C:\Users\user\Music\rickroll.mp3
+      # you will be able to play that file with this command: <<play file://music/rickroll.mp3
+      # Linux example:
+      #- /home/your_user_name/music:/opt/FredBoat/music
+      # Windows example:
+      #- C:\Users\your_user_name\Music:/opt/FredBoat/music
+
     # Need a bigger memory size or any other custom JVM args? uncomment and edit the line below accordingly
     #entrypoint: java -jar -Xmx128m FredBoat.jar
 
@@ -56,14 +68,16 @@ services:
   ################################################################################
   ##                         Automatic updates
   ################################################################################
-  # if you want automatic updates, uncomment the lines below
+  # if you want automatic updates, uncomment the watchtower lines below
 
   #watchtower:
   #  image: v2tec/watchtower
   #  restart: on-failure:3
+  #  labels:
+  #    - "com.centurylinklabs.watchtower.enable=true"
   #  volumes:
   #    - /var/run/docker.sock:/var/run/docker.sock
-  #  command: --cleanup --interval 300 #seconds
+  #  command: --cleanup --label-enable --interval 300 #seconds
 
 
   ################################################################################

@@ -25,19 +25,21 @@
 
 package fredboat.perms;
 
-import fredboat.Config;
+import fredboat.main.Config;
 import fredboat.commandmeta.abs.CommandContext;
-import fredboat.db.EntityReader;
-import fredboat.db.entity.GuildPermissions;
+import fredboat.db.EntityIO;
+import fredboat.db.entity.main.GuildPermissions;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Role;
-import net.dv8tion.jda.core.utils.PermissionUtil;
 
 import java.util.List;
 
+/**
+ * This class provides utility methods for FredBoat's own permission system, **not** the Discord permission system.
+ */
 public class PermsUtil {
 
     public static PermissionLevel getPerms(Member member) {
@@ -45,15 +47,15 @@ public class PermsUtil {
             return PermissionLevel.BOT_OWNER; // https://fred.moe/Q-EB.png
         } else if (isBotAdmin(member)) {
             return PermissionLevel.BOT_ADMIN;
-        } else if (PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR)) {
+        } else if (member.hasPermission(Permission.ADMINISTRATOR)) {
             return PermissionLevel.ADMIN;
         }
 
         if (!FeatureFlags.PERMISSIONS.isActive()) {
-            return PermissionUtil.checkPermission(member, Permission.MESSAGE_MANAGE) ? PermissionLevel.DJ : PermissionLevel.USER;
+            return member.hasPermission(Permission.MESSAGE_MANAGE) ? PermissionLevel.DJ : PermissionLevel.USER;
         }
 
-        GuildPermissions gp = EntityReader.getGuildPermissions(member.getGuild());
+        GuildPermissions gp = EntityIO.getGuildPermissions(member.getGuild());
 
         if (checkList(gp.getAdminList(), member)) return PermissionLevel.ADMIN;
         if (checkList(gp.getDjList(), member)) return PermissionLevel.DJ;
@@ -100,7 +102,7 @@ public class PermsUtil {
     }
 
     public static boolean checkList(List<String> list, Member member) {
-        if (PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR)) return true;
+        if (member.hasPermission(Permission.ADMINISTRATOR)) return true;
 
         for (String id : list) {
             if (id.isEmpty()) continue;

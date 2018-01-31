@@ -28,9 +28,10 @@ package fredboat.feature;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import fredboat.Config;
+import fredboat.main.Config;
 import fredboat.feature.metrics.Metrics;
 import fredboat.shared.constant.DistributionEnum;
+import fredboat.util.rest.CacheUtil;
 import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.entities.Guild;
 import org.json.JSONObject;
@@ -71,7 +72,7 @@ public class PatronageChecker {
     }
 
     public Status getStatus(Guild guild) {
-        return cache.getUnchecked(guild.getId());
+        return CacheUtil.getUncheckedUnwrapped(cache, guild.getId());
     }
 
     public class Status {

@@ -25,7 +25,7 @@
 
 package fredboat.command.music.control;
 
-import fredboat.Config;
+import fredboat.main.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.MessagingException;
@@ -36,6 +36,7 @@ import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
+import fredboat.shared.constant.BotConstants;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +66,8 @@ public class VolumeCommand extends Command implements IMusicCommand, ICommandRes
                         100 * PlayerRegistry.DEFAULT_VOLUME, Math.floor(player.getVolume() * 100)));
             }
         } else {
-            context.reply(context.i18n("volumeApology"), msg -> CentralMessaging.restService.schedule(
+            String out = context.i18n("volumeApology") + "\n<" + BotConstants.DOCS_DONATE_URL + ">";
+            context.replyImage("https://fred.moe/1vD.png", out, msg -> CentralMessaging.restService.schedule(
                     () -> CentralMessaging.deleteMessage(msg), 2, TimeUnit.MINUTES));
 
         }

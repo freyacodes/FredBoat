@@ -25,10 +25,13 @@
 
 package fredboat.feature.metrics.collectors;
 
-import fredboat.FredBoat;
 import fredboat.audio.player.PlayerRegistry;
+import fredboat.main.BotController;
+import fredboat.main.BotMetrics;
 import io.prometheus.client.Collector;
+import io.prometheus.client.CounterMetricFamily;
 import io.prometheus.client.GaugeMetricFamily;
+import net.dv8tion.jda.core.JDA;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,7 +48,7 @@ public class FredBoatCollector extends Collector {
     public List<MetricFamilySamples> collect() {
 
         List<MetricFamilySamples> mfs = new ArrayList<>();
-        List<String> labelNames = Arrays.asList("shard", "entity"); //todo decide on 2nd label name
+        List<String> labelNames = Arrays.asList("shard", "entity");
 
         GaugeMetricFamily jdaEntities = new GaugeMetricFamily("fredboat_jda_entities",
                 "Amount of JDA entities", labelNames);
@@ -55,28 +58,45 @@ public class FredBoatCollector extends Collector {
                 "Currently playing music players", labelNames);
         mfs.add(playersPlaying);
 
-
-        //per shard stats
-        for (FredBoat fb : FredBoat.getShards()) {
-            String shardId = Integer.toString(fb.getShardId());
-            jdaEntities.addMetric(Arrays.asList(shardId, "User"), fb.getUserCount());
-            jdaEntities.addMetric(Arrays.asList(shardId, "Guild"), fb.getGuildCount());
-            jdaEntities.addMetric(Arrays.asList(shardId, "TextChannel"), fb.getTextChannelCount());
-            jdaEntities.addMetric(Arrays.asList(shardId, "VoiceChannel"), fb.getVoiceChannelCount());
-            jdaEntities.addMetric(Arrays.asList(shardId, "Category"), fb.getCategoriesCount());
-            jdaEntities.addMetric(Arrays.asList(shardId, "Emote"), fb.getEmotesCount());
-            jdaEntities.addMetric(Arrays.asList(shardId, "Role"), fb.getRolesCount());
-        }
+        CounterMetricFamily dockerPulls = new CounterMetricFamily("fredboat_docker_pulls",
+                "Total fredboat docker image pulls as reported by the docker hub.", labelNames);
+        mfs.add(dockerPulls);
 
         //global stats
-        jdaEntities.addMetric(Arrays.asList("total", "User"), FredBoat.getTotalUniqueUsersCount());
-        jdaEntities.addMetric(Arrays.asList("total", "Guild"), FredBoat.getTotalGuildsCount());
-        jdaEntities.addMetric(Arrays.asList("total", "TextChannel"), FredBoat.getTotalTextChannelsCount());
-        jdaEntities.addMetric(Arrays.asList("total", "VoiceChannel"), FredBoat.getTotalVoiceChannelsCount());
-        jdaEntities.addMetric(Arrays.asList("total", "Category"), FredBoat.getTotalCategoriesCount());
-        jdaEntities.addMetric(Arrays.asList("total", "Emote"), FredBoat.getTotalEmotesCount());
-        jdaEntities.addMetric(Arrays.asList("total", "Role"), FredBoat.getTotalRolesCount());
+        jdaEntities.addMetric(Arrays.asList("total", "User"), BotMetrics.getTotalUniqueUsersCount());
+        jdaEntities.addMetric(Arrays.asList("total", "Guild"), BotMetrics.getTotalGuildsCount());
+        jdaEntities.addMetric(Arrays.asList("total", "TextChannel"), BotMetrics.getTotalTextChannelsCount());
+        jdaEntities.addMetric(Arrays.asList("total", "VoiceChannel"), BotMetrics.getTotalVoiceChannelsCount());
+        jdaEntities.addMetric(Arrays.asList("total", "Category"), BotMetrics.getTotalCategoriesCount());
+        jdaEntities.addMetric(Arrays.asList("total", "Emote"), BotMetrics.getTotalEmotesCount());
+        jdaEntities.addMetric(Arrays.asList("total", "Role"), BotMetrics.getTotalRolesCount());
         playersPlaying.addMetric(Arrays.asList("total", "Players"), PlayerRegistry.playingCount());
+
+        //docker stats
+        int dockerPullsBotCount = BotMetrics.getDockerPullsBot();
+        if (dockerPullsBotCount > 0) {
+            dockerPulls.addMetric(Arrays.asList("total", "Bot"), dockerPullsBotCount);
+        }
+        int dockerPullsDbCount = BotMetrics.getDockerPullsDb();
+        if (dockerPullsDbCount > 0) {
+            dockerPulls.addMetric(Arrays.asList("total", "Db"), dockerPullsDbCount);
+        }
+
+
+        //per shard stats
+        if(BotController.INS.getShardManager() == null) {
+            return mfs; // This collector is invoked when we begin building the shard manager
+        }
+        for (JDA shard : BotController.INS.getShardManager().getShards()) {
+            String shardId = Integer.toString(shard.getShardInfo().getShardId());
+            jdaEntities.addMetric(Arrays.asList(shardId, "User"), shard.getUserCache().size());
+            jdaEntities.addMetric(Arrays.asList(shardId, "Guild"), shard.getGuildCache().size());
+            jdaEntities.addMetric(Arrays.asList(shardId, "TextChannel"), shard.getTextChannelCache().size());
+            jdaEntities.addMetric(Arrays.asList(shardId, "VoiceChannel"), shard.getVoiceChannelCache().size());
+            jdaEntities.addMetric(Arrays.asList(shardId, "Category"), shard.getCategoryCache().size());
+            jdaEntities.addMetric(Arrays.asList(shardId, "Emote"), shard.getEmoteCache().size());
+            jdaEntities.addMetric(Arrays.asList(shardId, "Role"), shard.getRoleCache().size());
+        }
 
         return mfs;
     }

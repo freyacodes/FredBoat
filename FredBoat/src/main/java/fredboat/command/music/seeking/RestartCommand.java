@@ -33,6 +33,7 @@ import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
+import fredboat.util.TextUtils;
 
 import javax.annotation.Nonnull;
 
@@ -51,7 +52,8 @@ public class RestartCommand extends Command implements IMusicCommand, ICommandRe
                 player.play();
             }
             player.seekTo(player.getPlayingTrack().getStartPosition());
-            context.reply(context.i18nFormat("restartSuccess", player.getPlayingTrack().getEffectiveTitle()));
+            context.reply(context.i18nFormat("restartSuccess",
+                    TextUtils.escapeAndDefuse(player.getPlayingTrack().getEffectiveTitle())));
         } else {
             context.replyWithName(context.i18n("queueEmpty"));
         }

@@ -26,7 +26,7 @@
 package fredboat.command.admin;
 
 import fredboat.audio.player.LavalinkManager;
-import fredboat.command.util.HelpCommand;
+import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
@@ -47,6 +47,7 @@ public class NodeAdminCommand extends Command implements ICommandRestricted {
     public void onInvoke(@Nonnull CommandContext context) {
         if (!LavalinkManager.ins.isEnabled()) {
             context.reply("Lavalink is disabled");
+            return;
         }
         if (!context.hasArguments()) {
             HelpCommand.sendFormattedCommandHelp(context);

@@ -58,6 +58,7 @@ public enum FeatureFlags implements Feature {
 
     @Label("Full instrumentation, including multidimensional per command stats")
     FULL_METRICS,
+
     ;
 
     public boolean isActive() {

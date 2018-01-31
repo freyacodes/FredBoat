@@ -41,7 +41,7 @@ public class RiotCommand extends Command implements IFunCommand {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        context.reply("ヽ༼ຈل͜ຈ༽ﾉ **" + TextUtils.escapeMarkdown(context.rawArgs.toUpperCase()) + "** ヽ༼ຈل͜ຈ༽ﾉ");
+        context.reply("ヽ༼ຈل͜ຈ༽ﾉ **" + TextUtils.escapeAndDefuse(context.rawArgs.toUpperCase()) + "** ヽ༼ຈل͜ຈ༽ﾉ");
     }
 
     @Nonnull

@@ -28,7 +28,7 @@ package fredboat.command.music.seeking;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
-import fredboat.command.util.HelpCommand;
+import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
@@ -74,7 +74,8 @@ public class SeekCommand extends Command implements IMusicCommand, ICommandRestr
         t = Math.min(atc.getEffectiveDuration(), t);
 
         player.seekTo(atc.getStartPosition() + t);
-        context.reply(context.i18nFormat("seekSuccess", atc.getEffectiveTitle(), TextUtils.formatTime(t)));
+        context.reply(context.i18nFormat("seekSuccess",
+                TextUtils.escapeAndDefuse(atc.getEffectiveTitle()), TextUtils.formatTime(t)));
     }
 
     @Nonnull

@@ -26,7 +26,7 @@
 package fredboat.command.music.control;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.FredBoat;
+import fredboat.main.BotController;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.player.VideoSelection;
@@ -81,21 +81,16 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
             // LinkedHashSet to handle order of choices + duplicates
             LinkedHashSet<Integer> requestChoices = new LinkedHashSet<>();
 
-            // Combine all args and the command trigger. if the trigger is not a number it will be sanitized away
-            String commandOptions = (context.trigger + " " + context.rawArgs).trim();
-            String sanitizedQuery = sanitizeQueryForMultiSelect(commandOptions).trim();
+            // Combine all args and the command trigger if it is numeric
+            String commandOptions = context.rawArgs;
+            if (StringUtils.isNumeric(context.trigger)) {
+                commandOptions = (context.trigger + " " + commandOptions).trim();
+            }
 
             if (StringUtils.isNumeric(commandOptions)) {
                 requestChoices.add(Integer.valueOf(commandOptions));
-            } else if (TextUtils.isSplitSelect(sanitizedQuery)) {
-                // Remove all non comma or number characters
-                String[] querySplit = sanitizedQuery.split(",|\\s");
-
-                for (String value : querySplit) {
-                    if (StringUtils.isNumeric(value)) {
-                        requestChoices.add(Integer.valueOf(value));
-                    }
-                }
+            } else if (TextUtils.isSplitSelect(commandOptions)) {
+                requestChoices.addAll(TextUtils.getSplitSelect(commandOptions));
             }
 
             //Step 2: Use only valid numbers (usually 1-5)
@@ -163,13 +158,14 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
 
                     // Merge title and the length in one string.
                     String songTitleAndMusic =
-                            TextUtils.boldenText(selectedTracks[i].getInfo().title) + " " +
+                            TextUtils.boldenText(TextUtils.escapeAndDefuse(selectedTracks[i].getInfo().title)) + " " +
                             "(" + TextUtils.formatTime(selectedTracks[i].getInfo().length) + ")";
 
                     outputMsgBuilder.append(songTitleAndMusic);
                     outputMsgBuilder.append("\n");
 
                     // if there are more selections.
+
                     if (i < validChoices.size()) {
                         outputMsgBuilder.append("\n");
                     }
@@ -178,7 +174,7 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                 }
 
                 VideoSelection.remove(invoker);
-                TextChannel tc = FredBoat.getTextChannelById(selection.channelId);
+                TextChannel tc = BotController.INS.getShardManager().getTextChannelById(selection.channelId);
                 if (tc != null) {
                     CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
                 }
@@ -202,15 +198,4 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
     public PermissionLevel getMinimumPerms() {
         return PermissionLevel.USER;
     }
-
-    /**
-     * Helper method to remove all characters from arg that is not numerical or comma.
-     *
-     * @param arg String to be sanitized.
-     * @return Sanitized string.
-     */
-    private static String sanitizeQueryForMultiSelect(@Nonnull String arg) {
-        return arg.replaceAll("[^0-9$., ]", "");
-    }
-
 }

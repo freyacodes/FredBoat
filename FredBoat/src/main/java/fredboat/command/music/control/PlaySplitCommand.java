@@ -29,7 +29,7 @@ import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerLimitManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.IdentifierContext;
-import fredboat.command.util.HelpCommand;
+import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;

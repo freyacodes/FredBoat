@@ -1,3 +1,8 @@
+# Submitting issues
+When submitting issues please state if you are using the publicly hosted FredBoat or if you are selfhosting. If you are selfhosting please state which version you are using. You can find the version by running the `;;mstats` command.
+
+**If your issue is about an exploit please email `frogkr@gmail.com` about it. Do not publicly disclose exploits.**
+
 # Contributing
 FredBoat is built using Gradle, so you should just be able to import the project in your favorite IDE and download all dependencies while building. Check out the [issues](https://github.com/Frederikam/FredBoat/issues) to find out what needs to be done.
 

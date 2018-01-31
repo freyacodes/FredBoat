@@ -25,11 +25,12 @@
 
 package fredboat.util;
 
-public class BrainfuckException extends RuntimeException {
+import fredboat.commandmeta.MessagingException;
 
-    private BrainfuckException() {
-    }
-    
+public class BrainfuckException extends MessagingException {
+
+    private static final long serialVersionUID = -8343893398101119524L;
+
     public BrainfuckException(String string, Throwable thrwbl) {
         super(string, thrwbl);
     }

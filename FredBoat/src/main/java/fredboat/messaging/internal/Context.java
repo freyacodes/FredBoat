@@ -25,7 +25,7 @@
 
 package fredboat.messaging.internal;
 
-import fredboat.command.moderation.PrefixCommand;
+import fredboat.command.config.PrefixCommand;
 import fredboat.commandmeta.MessagingException;
 import fredboat.feature.I18n;
 import fredboat.feature.metrics.Metrics;
@@ -120,12 +120,21 @@ public abstract class Context {
     }
 
     @SuppressWarnings("UnusedReturnValue")
-    public MessageFuture replyImage(@Nonnull String url, @Nullable String message) {
-        return CentralMessaging.sendMessage(getTextChannel(),
+    public MessageFuture replyImage(@Nonnull String url, @Nullable String message, @Nullable Consumer<Message> onSuccess) {
+        return CentralMessaging.sendMessage(
+                getTextChannel(),
                 CentralMessaging.getClearThreadLocalMessageBuilder()
                         .setEmbed(embedImage(url))
                         .append(message != null ? message : "")
-                        .build());
+                        .build(),
+                onSuccess
+        );
+    }
+
+
+    @SuppressWarnings("UnusedReturnValue")
+    public MessageFuture replyImage(@Nonnull String url, @Nullable String message) {
+        return replyImage(url, message, null);
     }
 
     @SuppressWarnings("UnusedReturnValue")
@@ -188,7 +197,14 @@ public abstract class Context {
             log.warn("Context#i18nFormat() called with empty or null params, this is likely a bug.",
                     new MessagingException("a stack trace to help find the source"));
         }
-        return MessageFormat.format(this.i18n(key), params);
+        try {
+            return MessageFormat.format(this.i18n(key), params);
+        } catch (IllegalArgumentException e) {
+            log.warn("Failed to format key '{}' for language '{}' with following parameters: {}",
+                    key, getI18n().getBaseBundleName(), params, e);
+            //fall back to default props
+            return MessageFormat.format(I18n.DEFAULT.getProps().getString(key), params);
+        }
     }
 
 

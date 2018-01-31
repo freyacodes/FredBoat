@@ -25,7 +25,10 @@
 
 package fredboat.util;
 
-import fredboat.Config;
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Streams;
+import fredboat.main.Config;
 import fredboat.commandmeta.MessagingException;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
@@ -33,6 +36,10 @@ import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.commons.text.CharacterPredicates;
+import org.apache.commons.text.RandomStringGenerator;
 import org.json.JSONException;
 import org.slf4j.LoggerFactory;
 
@@ -43,16 +50,31 @@ import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TextUtils {
 
     private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^(\\d?\\d)(?::([0-5]?\\d))?(?::([0-5]?\\d))?$");
 
-    private static final List<Character> markdownChars = Arrays.asList('*', '`', '~', '_');
+    private static final Collection<Character> BACKTICK = Collections.singleton('`');
+    private static final List<Character> MARKDOWN_CHARS = Arrays.asList('*', '`', '~', '_');
+
+    public static final CharMatcher SPLIT_SELECT_SEPARATOR =
+            CharMatcher.whitespace().or(CharMatcher.is(','))
+                    .precomputed();
+
+    public static final CharMatcher SPLIT_SELECT_ALLOWED =
+            SPLIT_SELECT_SEPARATOR.or(CharMatcher.inRange('0', '9'))
+                    .precomputed();
+
+    public static final Splitter COMMA_OR_WHITESPACE = Splitter.on(SPLIT_SELECT_SEPARATOR)
+            .omitEmptyStrings() // 1,,2 doesn't sound right
+            .trimResults();// have it nice and trim
 
     public static final DateTimeFormatter TIME_IN_CENTRAL_EUROPE = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss z")
             .withZone(ZoneId.of("Europe/Copenhagen"));
@@ -67,7 +89,7 @@ public class TextUtils {
     public static Message prefaceWithName(Member member, String msg) {
         msg = ensureSpace(msg);
         return CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(escapeMarkdown(member.getEffectiveName()))
+                .append(escapeAndDefuse(member.getEffectiveName()))
                 .append(": ")
                 .append(msg)
                 .build();
@@ -248,15 +270,23 @@ public class TextUtils {
         return "```" + sty + "\n" + str + "\n```";
     }
 
-    public static String escapeMarkdown(String str) {
-        StringBuilder revisedString = new StringBuilder(str.length());
-        for (Character n : str.toCharArray()) {
-            if (markdownChars.contains(n)) {
+    public static String escape(@Nonnull String input, @Nonnull Collection<Character> toEscape) {
+        StringBuilder revisedString = new StringBuilder(input.length());
+        for (Character n : input.toCharArray()) {
+            if (toEscape.contains(n)) {
                 revisedString.append("\\");
             }
             revisedString.append(n);
         }
         return revisedString.toString();
+    }
+
+    public static String escapeMarkdown(@Nonnull String input) {
+        return escape(input, MARKDOWN_CHARS);
+    }
+
+    public static String escapeBackticks(@Nonnull String input) {
+        return escape(input, BACKTICK);
     }
 
 
@@ -283,17 +313,48 @@ public class TextUtils {
     }
 
     /**
-     * Helper method to check for string that matches ONLY contain digit(s), comma(s) or space(s).
+     * Helper method to check for string that matches ONLY a comma-separated string of numeric values.
      *
-     * @param arg String of the argument.
-     * @return True if it matches, false if empty string or not match.
+     * @param arg the string to test.
+     * @return whether the string matches
      */
     public static boolean isSplitSelect(@Nonnull String arg) {
-        String temp = arg.replaceAll(" +", " ");
-
-        return arg.length() > 0 && temp.matches("(\\d*,*\\s*)*");
+        String cleaned = SPLIT_SELECT_ALLOWED.negate().collapseFrom(arg, ' ');
+        int numberOfCollapsed = arg.length() - cleaned.length();
+        if (numberOfCollapsed  >= 5) {
+            // rationale: prefix will be collapsed to 1 char, won't matter that much
+            //            small typos (1q 2 3 4) will be collapsed in place, won't matter that much
+            //            longer strings will be collapsed, words reduced to 1 char
+            //            when enough changes happen, it's not a split select
+            return false;
+        }
+        AtomicBoolean empty = new AtomicBoolean(true);
+        boolean allDigits = splitSelectStream(arg)
+                .peek(__ -> empty.set(false))
+                .allMatch(NumberUtils::isDigits);
+        return !empty.get() && allDigits;
     }
-    
+
+    /**
+     * Helper method that decodes a split select string, as identified by {@link #isSplitSelect(String)}.
+     * <p>
+     * NOTE: an empty string produces an empty Collection.
+     *
+     * @param arg the string to decode
+     * @return the split select
+     */
+    public static Collection<Integer> getSplitSelect(@Nonnull String arg) {
+        return splitSelectStream(arg)
+                .map(Integer::valueOf)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private static Stream<String> splitSelectStream(@Nonnull String arg) {
+        return Streams.stream(COMMA_OR_WHITESPACE.split(arg))
+                .map(SPLIT_SELECT_ALLOWED::retainFrom)
+                .filter(StringUtils::isNotEmpty);
+    }
+
     public static String getTimeInCentralEurope() {
         return asTimeInCentralEurope(System.currentTimeMillis());
     }
@@ -330,6 +391,7 @@ public class TextUtils {
      * @param input Object#toString() to be wrapped in bold. Must be non null.
      * @return String with ** wrapped.
      */
+    @Nonnull
     public static <T> String boldenText(@Nonnull T input) {
         return "**" + input + "**";
     }
@@ -340,7 +402,38 @@ public class TextUtils {
      * @param input Object#toString() to be wrapped in italic marker. Must be non null.
      * @return String with * wrapped.
      */
+    @Nonnull
     public static <T> String italicizeText(@Nonnull T input) {
         return "*" + input + "*";
+    }
+
+    //put a zero width space between any @ and "here" and "everyone" in the input string
+    @Nonnull
+    public static String defuseMentions(@Nonnull String input) {
+        return input.replaceAll("@here", "@" + ZERO_WIDTH_CHAR + "here")
+                .replaceAll("@everyone", "@" + ZERO_WIDTH_CHAR + "everyone");
+    }
+
+    /**
+     * @return the input, with escaped markdown and defused mentions
+     * It is a good idea to use this on any user generated values that we reply in plain text.
+     */
+    @Nonnull
+    public static String escapeAndDefuse(@Nonnull String input) {
+        return defuseMentions(escapeMarkdown(input));
+    }
+
+    @Nonnull
+    private static RandomStringGenerator randomStringGenerator = new RandomStringGenerator.Builder()
+            .withinRange('0', 'z')
+            .filteredBy(CharacterPredicates.LETTERS, CharacterPredicates.DIGITS)
+            .build();
+
+    @Nonnull
+    public static String randomAlphaNumericString(int length) {
+        if (length < 1) {
+            throw new IllegalArgumentException();
+        }
+        return randomStringGenerator.generate(length);
     }
 }

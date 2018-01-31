@@ -27,7 +27,7 @@ package fredboat.command.music.seeking;
 
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.command.util.HelpCommand;
+import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
@@ -72,7 +72,8 @@ public class RewindCommand extends Command implements IMusicCommand, ICommandRes
         t = Math.min(currentPosition, t);
 
         player.seekTo(currentPosition - t);
-        context.reply(context.i18nFormat("rewSuccess", player.getPlayingTrack().getEffectiveTitle(), TextUtils.formatTime(t)));
+        context.reply(context.i18nFormat("rewSuccess",
+                TextUtils.escapeAndDefuse(player.getPlayingTrack().getEffectiveTitle()), TextUtils.formatTime(t)));
     }
 
     @Nonnull

@@ -71,8 +71,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
     //https://regex101.com/r/AEWyxi/3
     private static final Pattern PLAYLIST_PATTERN = Pattern.compile("https?://.*\\.spotify\\.com/user/(.*)/playlist/([^?/\\s]*)");
 
-    //Take care when deciding on upping the core pool size: The threads may hog database connections
-    // (for selfhosters running on the SQLite db) when loading an uncached playlist.
+    //Take care when deciding on upping the core pool size: The threads may hog database connections when loading an uncached playlist.
     // Upping the threads will also fire search requests more aggressively against Youtube which is probably better avoided.
     public static ScheduledExecutorService loader = Executors.newScheduledThreadPool(1);
 

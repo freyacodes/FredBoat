@@ -34,7 +34,6 @@ import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.OnlineStatus;
 import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 
 import javax.annotation.Nonnull;
@@ -52,18 +51,16 @@ public class ServerInfoCommand extends Command implements IUtilCommand {
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         Guild guild = context.guild;
-        int i = 0;
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
         EmbedBuilder eb = CentralMessaging.getColoredEmbedBuilder();
         eb.setTitle(context.i18nFormat("serverinfoTitle", guild.getName()), null);
         eb.setThumbnail(guild.getIconUrl());
-        for (Member u : guild.getMembers()) {
-            if(u.getOnlineStatus() != OnlineStatus.OFFLINE) {
-                i++;
-            }
-        }
 
-        eb.addField(context.i18n("serverinfoOnlineUsers"), String.valueOf(i), true);
+        long onlineMembers = guild.getMemberCache().stream()
+                .filter(m -> m.getOnlineStatus() != OnlineStatus.OFFLINE)
+                .count();
+
+        eb.addField(context.i18n("serverinfoOnlineUsers"), String.valueOf(onlineMembers), true);
         eb.addField(context.i18n("serverinfoTotalUsers"), String.valueOf(guild.getMembers().size()), true);
         eb.addField(context.i18n("serverinfoRoles"), String.valueOf(guild.getRoles().size()), true);
         eb.addField(context.i18n("serverinfoText"), String.valueOf(guild.getTextChannels().size()), true);

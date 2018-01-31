@@ -175,9 +175,9 @@ public class AudioLoader implements AudioLoadResultHandler {
 
                 if (!context.isQuiet()) {
                     context.reply(gplayer.isPlaying() ?
-                            context.i18nFormat("loadSingleTrack", at.getInfo().title)
+                            context.i18nFormat("loadSingleTrack", TextUtils.escapeAndDefuse(at.getInfo().title))
                             :
-                            context.i18nFormat("loadSingleTrackAndPlay", at.getInfo().title)
+                            context.i18nFormat("loadSingleTrackAndPlay", TextUtils.escapeAndDefuse(at.getInfo().title))
                     );
                 } else {
                     log.info("Quietly loaded " + at.getIdentifier());
@@ -311,7 +311,7 @@ public class AudioLoader implements AudioLoadResultHandler {
             mb.append("`[")
                     .append(TextUtils.formatTime(atc.getEffectiveDuration()))
                     .append("]` ")
-                    .append(atc.getEffectiveTitle())
+                    .append(TextUtils.escapeAndDefuse(atc.getEffectiveTitle()))
                     .append("\n");
         }
 

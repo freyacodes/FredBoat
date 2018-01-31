@@ -3,7 +3,7 @@ package fredboat.command.music.control;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
-import fredboat.command.util.HelpCommand;
+import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
@@ -18,11 +18,7 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.User;
 
 import javax.annotation.Nonnull;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class VoteSkipCommand extends Command implements IMusicCommand, ICommandRestricted {
 
@@ -71,7 +67,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
                     context.reply(context.i18n("skipTrackNotFound"));
                 } else {
                     String skipPerc = "`" + TextUtils.formatPercent(skipPercentage) + "`";
-                    String trackTitle = "**" + atc.getEffectiveTitle() + "**";
+                    String trackTitle = "**" + TextUtils.escapeAndDefuse(atc.getEffectiveTitle()) + "**";
                     context.reply(response + "\n" + context.i18nFormat("voteSkipSkipping", skipPerc, trackTitle));
                     player.skip();
                 }
@@ -157,7 +153,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
 
             Member member = context.getGuild().getMemberById(userId);
             if (member != null) {
-                field.append("| ").append(TextUtils.escapeMarkdown(member.getEffectiveName())).append("\n");
+                field.append("| ").append(TextUtils.escapeAndDefuse(member.getEffectiveName())).append("\n");
             }
         }
         EmbedBuilder embed = CentralMessaging.getColoredEmbedBuilder();
@@ -170,7 +166,7 @@ public class VoteSkipCommand extends Command implements IMusicCommand, ICommandR
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return context.i18n("helpVoteSkip");
+        return "{0}{1} OR {0}{1} list\n#" + context.i18n("helpVoteSkip");
     }
 
     @Nonnull

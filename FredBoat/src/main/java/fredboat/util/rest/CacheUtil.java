@@ -25,6 +25,9 @@
 
 package fredboat.util.rest;
 
+import com.google.common.base.Throwables;
+import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,4 +81,14 @@ public class CacheUtil {
         }
     }
 
+    public static <K, V> V getUncheckedUnwrapped(LoadingCache<K, V> cache, K key) {
+        try {
+            return cache.getUnchecked(key);
+        } catch (UncheckedExecutionException e) {
+            Throwables.throwIfUnchecked(e.getCause());
+
+            // Will never run.
+            throw new IllegalStateException(e);
+        }
+    }
 }

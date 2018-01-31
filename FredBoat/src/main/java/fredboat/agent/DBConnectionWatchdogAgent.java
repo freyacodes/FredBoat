@@ -24,9 +24,9 @@
 
 package fredboat.agent;
 
-import fredboat.db.DatabaseManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import space.npstr.sqlsauce.DatabaseConnection;
 
 import java.util.concurrent.TimeUnit;
 
@@ -40,31 +40,21 @@ public class DBConnectionWatchdogAgent extends FredBoatAgent {
 
     private static final Logger log = LoggerFactory.getLogger(DBConnectionWatchdogAgent.class);
 
-    private DatabaseManager dbManager;
+    private DatabaseConnection dbConn;
 
-    public DBConnectionWatchdogAgent(DatabaseManager dbManager) {
+    public DBConnectionWatchdogAgent(DatabaseConnection dbConn) {
         super("database connection", 5, TimeUnit.SECONDS);
-        this.dbManager = dbManager;
+        this.dbConn = dbConn;
     }
 
     @Override
     public void doRun() {
-
         try {
-
-            //we have to proactively call this, as it checks the ssh tunnel for connectivity and does a validation
-            //query against the DB
-            //the ssh tunnel does detect a disconnect, but doesn't provide a callback for that, so we have to check
-            //it ourselves
-            dbManager.isAvailable();
-
-            //only recover the database from a failed state
-            if (dbManager.getState() == DatabaseManager.DatabaseState.FAILED) {
-                log.info("Attempting to recover failed database connection");
-                dbManager.reconnectSSH();
+            if (!dbConn.healthCheck()) {
+                log.warn("Database connection not available!");
             }
         } catch (Exception e) {
-            log.error("Caught an exception while trying to recover database connection!", e);
+            log.error("Caught an exception while performing healthcheck on database connection.", e);
         }
     }
 }

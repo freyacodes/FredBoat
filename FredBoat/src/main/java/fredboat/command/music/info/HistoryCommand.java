@@ -97,8 +97,8 @@ public class HistoryCommand extends Command implements IMusicCommand {
               TextUtils.forceNDigits(i + 1, numberLength)
               + "]", MessageBuilder.Formatting.BLOCK)
               .append(status)
-              .append(context.i18nFormat("listAddedBy", TextUtils.escapeMarkdown(atc.getEffectiveTitle()),
-                          TextUtils.escapeMarkdown(username), TextUtils.formatTime(atc.getEffectiveDuration())))
+                  .append(context.i18nFormat("listAddedBy", TextUtils.escapeAndDefuse(atc.getEffectiveTitle()),
+                          TextUtils.escapeAndDefuse(username), TextUtils.formatTime(atc.getEffectiveDuration())))
               .append("\n");
 
           if (i == listEnd) {
@@ -114,7 +114,7 @@ public class HistoryCommand extends Command implements IMusicCommand {
   @Nonnull
   @Override
   public String help(@Nonnull Context context) {
-      String usage = "{0}{1}\n#";
+      String usage = "{0}{1} (page)\n#";
       return usage + context.i18n("helpHistoryCommand");
   }
 }

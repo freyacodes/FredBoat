@@ -28,7 +28,7 @@ package fredboat.audio.player;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.FredBoat;
+import fredboat.main.BotController;
 import fredboat.messaging.CentralMessaging;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
@@ -52,7 +52,7 @@ public class VideoSelection {
     }
 
     public void deleteMessage() {
-        TextChannel tc = FredBoat.getTextChannelById(channelId);
+        TextChannel tc = BotController.INS.getShardManager().getTextChannelById(channelId);
         if (tc != null) {
             //we can call this without an additional permission check, as this should be our own message that we are
             //deleting

@@ -29,7 +29,7 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
-import fredboat.Config;
+import fredboat.main.Config;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;

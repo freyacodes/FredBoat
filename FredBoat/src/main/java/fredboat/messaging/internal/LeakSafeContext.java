@@ -25,7 +25,7 @@
 
 package fredboat.messaging.internal;
 
-import fredboat.FredBoat;
+import fredboat.main.BotController;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
@@ -63,13 +63,13 @@ public class LeakSafeContext extends Context {
     @Override
     @Nullable
     public TextChannel getTextChannel() {
-        return FredBoat.getTextChannelById(channelId);
+        return BotController.INS.getShardManager().getTextChannelById(channelId);
     }
 
     @Override
     @Nullable
     public Guild getGuild() {
-        return FredBoat.getGuildById(guildId);
+        return BotController.INS.getShardManager().getGuildById(guildId);
     }
 
     @Override

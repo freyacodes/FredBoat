@@ -25,13 +25,15 @@
 
 package fredboat.agent;
 
-import fredboat.Config;
-import fredboat.FredBoat;
+import fredboat.main.BotController;
+import fredboat.main.BotMetrics;
+import fredboat.main.Config;
 import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.JDA;
 import okhttp3.Response;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class CarbonitexAgent extends FredBoatAgent {
@@ -50,27 +52,28 @@ public class CarbonitexAgent extends FredBoatAgent {
         synchronized (this) {
             sendStats();
         }
-
     }
 
     private void sendStats() {
-        for (FredBoat fb : FredBoat.getShards()) {
-            if(fb.getJda().getStatus() !=  JDA.Status.CONNECTED) {
+        List<JDA> shards = BotController.INS.getShardManager().getShards();
+
+        for (JDA jda : shards) {
+            if (jda.getStatus() != JDA.Status.CONNECTED) {
                 log.warn("Skipping posting stats because not all shards are online!");
                 return;
             }
         }
 
-        if (FredBoat.getShards().size() < Config.getNumShards()) {
+        if (shards.size() < Config.getNumShards()) {
             log.warn("Skipping posting stats because not all shards initialized!");
             return;
         }
 
         try (Response response = Http.post("https://www.carbonitex.net/discord/data/botdata.php",
-                    Http.Params.of(
-                            "key", key,
-                            "servercount", Integer.toString(FredBoat.getTotalGuildsCount())
-                    ))
+                Http.Params.of(
+                        "key", key,
+                        "servercount", Integer.toString(BotMetrics.getTotalGuildsCount())
+                ))
                 .execute()) {
 
             //noinspection ConstantConditions

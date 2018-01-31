@@ -32,8 +32,10 @@ import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Role;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ArgumentUtil {
 
@@ -89,26 +91,84 @@ public class ArgumentUtil {
             case 1:
                 return list.get(0);
             default:
-                StringBuilder searchResults = new StringBuilder();
-                int maxIndex = Math.min(FUZZY_RESULT_LIMIT, list.size());
-                for (int i = 0; i < maxIndex; i++) {
-                    searchResults.append("\n")
-                            .append(list.get(i).getUser().getName())
-                            .append("#")
-                            .append(list.get(i).getUser().getDiscriminator());
-                }
-
-                if (list.size() > FUZZY_RESULT_LIMIT) {
-                    searchResults.append("\n[...]");
-                }
-
                 context.reply(context.i18n("fuzzyMultiple") + "\n"
-                        + TextUtils.asCodeBlock(searchResults.toString()));
+                        + formatFuzzyMemberResult(list, FUZZY_RESULT_LIMIT, 1900));
                 return null;
         }
     }
 
-    public static IMentionable checkSingleFuzzySearchResult(List<IMentionable> list, CommandContext context, String term) {
+    /**
+     * Format a list of members as a text block, usually a result from a fuzzy search. The list should not be empty.
+     *
+     * @param maxLines  How many results to display. Pass Integer.MAX_VALUE to use as many as possible.
+     * @param maxLength How many characters the resulting string may have as a max.
+     */
+    @Nonnull
+    public static String formatFuzzyMemberResult(@Nonnull List<Member> list, int maxLines, int maxLength) {
+
+        List<Member> toDisplay;
+        boolean addDots = false;
+        if (list.size() > maxLines) {
+            addDots = true;
+            toDisplay = list.subList(0, maxLines);
+        } else {
+            toDisplay = new ArrayList<>(list);
+        }
+
+        int idPadding = toDisplay.stream()
+                .mapToInt(member -> member.getUser().getId().length())
+                .max()
+                .orElse(0);
+        int namePadding = toDisplay.stream()
+                .mapToInt(member -> TextUtils.escapeBackticks(member.getUser().getName()).length())
+                .max()
+                .orElse(0)
+                + 5;//for displaying discrim
+        int nickPadding = toDisplay.stream()
+                .mapToInt(member -> member.getNickname() != null ? TextUtils.escapeBackticks(member.getNickname()).length() : 0)
+                .max()
+                .orElse(0);
+
+        List<String> lines = toDisplay.stream()
+                .map(member -> TextUtils.padWithSpaces(member.getUser().getId(), idPadding, true)
+                        + " " + TextUtils.padWithSpaces(TextUtils.escapeBackticks(member.getUser().getName())
+                        + "#" + member.getUser().getDiscriminator(), namePadding, false)
+                        + " " + TextUtils.escapeBackticks(TextUtils.padWithSpaces(member.getNickname(), nickPadding, false))
+                        + "\n")
+                .collect(Collectors.toList());
+
+
+        StringBuilder sb = new StringBuilder(TextUtils.padWithSpaces("Id", idPadding + 1, false)
+                + TextUtils.padWithSpaces("Name", namePadding + 1, false)
+                + TextUtils.padWithSpaces("Nick", nickPadding + 1, false) + "\n");
+
+        int textBlockLength = 8;
+        String dotdotdot = "[...]";
+        for (int i = 0; i < toDisplay.size(); i++) {
+            String line = lines.get(i);
+            if (sb.length() + line.length() + dotdotdot.length() + textBlockLength < maxLength) {
+                sb.append(line);
+            } else {
+                sb.append(dotdotdot);
+                addDots = false; //already added
+                break;
+            }
+        }
+        if (addDots) {
+            sb.append(dotdotdot);
+        }
+
+        return TextUtils.asCodeBlock(sb.toString());
+    }
+
+    /**
+     * Processes a list of mentionables (roles / users).
+     * Replies in the context of there are none / more than one mentionable and returns null, otherwise returns the
+     * single mentionable.
+     */
+    @Nullable
+    public static IMentionable checkSingleFuzzySearchResult(@Nonnull List<IMentionable> list,
+                                                            @Nonnull CommandContext context, @Nonnull String term) {
         switch (list.size()) {
             case 0:
                 context.reply(context.i18nFormat("fuzzyNothingFound", term));
