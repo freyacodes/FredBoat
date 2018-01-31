@@ -153,17 +153,19 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                     // Print the selection string.
                     String selectionSuccessString = context.i18nFormat(
                             "selectSuccess",
-                            TextUtils.boldenText("\\#" + validChoices.get(i)),
-                            "~ " + playingStatusOrQueueTime);
+                            TextUtils.boldenText("\\#" + validChoices.get(i)) +
+                            " ~ " + playingStatusOrQueueTime);
                     outputMsgBuilder.append(selectionSuccessString);
                     outputMsgBuilder.append("\n");
 
                     // Print the song title and length.
                     outputMsgBuilder.append("\t\t");
-                    String songTitleAndMusic = context.i18nFormat(
-                            "selectTitleAndLength",
-                            TextUtils.boldenText(selectedTracks[i].getInfo().title),
-                            "(" + TextUtils.formatTime(selectedTracks[i].getInfo().length) + ")");
+
+                    // Merge title and the length in one string.
+                    String songTitleAndMusic =
+                            TextUtils.boldenText(selectedTracks[i].getInfo().title) + " " +
+                            "(" + TextUtils.formatTime(selectedTracks[i].getInfo().length) + ")";
+
                     outputMsgBuilder.append(songTitleAndMusic);
                     outputMsgBuilder.append("\n");
 
