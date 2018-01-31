@@ -56,7 +56,7 @@ public class LavalinkManager {
         );
 
         List<Config.LavalinkHost> hosts = Config.CONFIG.getLavalinkHosts();
-        hosts.forEach(lavalinkHost -> lavalink.addNode(lavalinkHost.getUri(),
+        hosts.forEach(lavalinkHost -> lavalink.addNode(lavalinkHost.getName(), lavalinkHost.getUri(),
                 lavalinkHost.getPassword()));
     }
 

@@ -77,7 +77,7 @@ public class CommandInitializer {
         adminModule.registerCommand(new ExitCommand("exit"));
         adminModule.registerCommand(new GetNodeCommand("getnode"));
         adminModule.registerCommand(new LeaveServerCommand("leaveserver"));
-        adminModule.registerCommand(new NodeAdminCommand("node"));
+        adminModule.registerCommand(new NodeAdminCommand("node", "nodes"));
         adminModule.registerCommand(new PlayerDebugCommand("playerdebug"));
         adminModule.registerCommand(new ReviveCommand("revive"));
         adminModule.registerCommand(new SentryDsnCommand("sentrydsn"));
@@ -98,7 +98,6 @@ public class CommandInitializer {
         infoModule.registerCommand(new HelpCommand(HELP_COMM_NAME, "info"));
         infoModule.registerCommand(new InviteCommand("invite"));
         infoModule.registerCommand(new MusicHelpCommand(MUSICHELP_COMM_NAME, "musichelp"));
-        infoModule.registerCommand(new NodesCommand("nodes"));
         infoModule.registerCommand(new PingCommand("ping"));
         infoModule.registerCommand(new ShardsCommand("shards"));
         infoModule.registerCommand(new StatsCommand("stats", "uptime"));

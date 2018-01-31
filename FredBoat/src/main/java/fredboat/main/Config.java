@@ -49,6 +49,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Config {
 
@@ -324,16 +325,33 @@ public class Config {
             }
 
             // misc
-            Map<String, String> linkNodes = (Map<String, String>) creds.get("lavalinkHosts");
+            Object linkNodes = creds.get("lavalinkHosts");
             if (linkNodes != null) {
-                linkNodes.forEach((s, s2) -> {
-                    try {
-                        lavalinkHosts.add(new LavalinkHost(new URI(s), s2));
-                        log.info("Lavalink node added: " + new URI(s));
-                    } catch (URISyntaxException e) {
-                        throw new RuntimeException("Failed parsing lavalink URI", e);
+                if (linkNodes instanceof Map) {
+                    Map<String, String> simpleNodes = (Map<String, String>) linkNodes;
+                    AtomicInteger nodeCounter = new AtomicInteger(0);
+                    simpleNodes.forEach((host, pass) -> {
+                        try {
+                            String name = "Lavalink-Node#" + nodeCounter.getAndIncrement();
+                            URI uri = new URI(host);
+                            lavalinkHosts.add(new LavalinkHost(name, uri, pass));
+                            log.info("Lavalink node added: {} {}", name, uri);
+                        } catch (URISyntaxException e) {
+                            throw new RuntimeException("Failed parsing lavalink URI", e);
+                        }
+                    });
+                } else {
+                    List<Map<String, String>> namedNodes = (List<Map<String, String>>) linkNodes;
+                    for (Map<String, String> node : namedNodes) {
+                        try {
+                            String name = node.get("name");
+                            URI uri = new URI(node.get("host"));
+                            lavalinkHosts.add(new LavalinkHost(name, uri, node.get("pass")));
+                        } catch (URISyntaxException e) {
+                            throw new RuntimeException("Failed parsing lavalink URI", e);
+                        }
                     }
-                });
+                }
             }
 
             eventLogWebhook = (String) creds.getOrDefault("eventLogWebhook", "");
@@ -413,12 +431,18 @@ public class Config {
 
     public static class LavalinkHost {
 
+        private final String name;
         private final URI uri;
         private final String password;
 
-        public LavalinkHost(URI uri, String password) {
+        public LavalinkHost(String name, URI uri, String password) {
+            this.name = name;
             this.uri = uri;
             this.password = password;
+        }
+
+        public String getName() {
+            return name;
         }
 
         public URI getUri() {
