@@ -27,11 +27,7 @@ package fredboat.commandmeta;
 
 
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.command.fun.AkinatorCommand;
-import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.CommandContext;
-import fredboat.commandmeta.abs.ICommandRestricted;
-import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.commandmeta.abs.*;
 import fredboat.feature.PatronageChecker;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
@@ -81,10 +77,8 @@ public class CommandManager {
             }
         }
 
-        //Hardcode music commands in FredBoatHangout. Blacklist any channel that isn't #general or #staff, but whitelist Frederikam
-        if ((invoked instanceof IMusicCommand || invoked instanceof AkinatorCommand) // the hate is real
-                && guild.getIdLong() == BotConstants.FREDBOAT_HANGOUT_ID
-                && guild.getJDA().getSelfUser().getIdLong() == BotConstants.MUSIC_BOT_ID) {
+        //Hardcode music commands in FredBoatHangout. Blacklist any channel that isn't #spam_and_music or #staff, but whitelist Frederikam
+        if (guild.getIdLong() == BotConstants.FREDBOAT_HANGOUT_ID && guild.getJDA().getSelfUser().getIdLong() == BotConstants.MUSIC_BOT_ID) {
             if (!channel.getId().equals("174821093633294338") // #spam_and_music
                     && !channel.getId().equals("217526705298866177") // #staff
                     && !invoker.getUser().getId().equals("203330266461110272")//Cynth
