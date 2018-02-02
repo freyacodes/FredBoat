@@ -81,10 +81,9 @@ public class CommandManager {
         if (guild.getIdLong() == BotConstants.FREDBOAT_HANGOUT_ID && guild.getJDA().getSelfUser().getIdLong() == BotConstants.MUSIC_BOT_ID) {
             if (!channel.getId().equals("174821093633294338") // #spam_and_music
                     && !channel.getId().equals("217526705298866177") // #staff
-                    && !invoker.getUser().getId().equals("203330266461110272")//Cynth
-                    && !invoker.getUser().getId().equals("81011298891993088")) { // Fre_d
+                    && !PermsUtil.checkPerms(PermissionLevel.ADMIN, invoker)) {
                 context.deleteMessage();
-                context.replyWithName("Please don't spam music commands outside of <#174821093633294338>.",
+                context.replyWithName("Please read <#219483023257763842> for server rules and only use commands in <#174821093633294338>!",
                         msg -> CentralMessaging.restService.schedule(() -> CentralMessaging.deleteMessage(msg),
                                 5, TimeUnit.SECONDS));
                 return;
