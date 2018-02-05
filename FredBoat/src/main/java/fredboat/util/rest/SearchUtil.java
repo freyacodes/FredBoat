@@ -46,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -86,7 +87,7 @@ public class SearchUtil {
 
     /**
      * @param query         The search term
-     * @param cacheMaxAge   Age of acceptable results from cache. See {@link SearchResult#load} for details.
+     * @param cacheMaxAge   Age of acceptable results from cache.
      * @param timeoutMillis How long to wait for each lavaplayer search to answer
      * @param providers     Providers that shall be used for the search. They will be used in the order they are provided, the
      *                      result of the first successful one will be returned
@@ -124,7 +125,8 @@ public class SearchUtil {
                     if (!lavaplayerResult.getTracks().isEmpty()) {
                         log.debug("Loaded search result {} {} from lavaplayer", provider, query);
                         // got a search result? cache and return it
-                        BotController.INS.getExecutor().execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, lavaplayerResult).merge());
+                        BotController.INS.getExecutor().execute(() -> BotController.INS.getEntityIO()
+                                .merge(new SearchResult(PLAYER_MANAGER, provider, query, lavaplayerResult)));
                         Metrics.searchHits.labels("lavaplayer-" + provider.name().toLowerCase()).inc();
                         return lavaplayerResult;
                     }
@@ -147,7 +149,8 @@ public class SearchUtil {
                     if (!youtubeApiResult.getTracks().isEmpty()) {
                         log.debug("Loaded search result {} {} from Youtube API", provider, query);
                         // got a search result? cache and return it
-                        BotController.INS.getExecutor().execute(() -> new SearchResult(PLAYER_MANAGER, provider, query, youtubeApiResult).merge());
+                        BotController.INS.getExecutor().execute(() -> BotController.INS.getEntityIO()
+                                .merge(new SearchResult(PLAYER_MANAGER, provider, query, youtubeApiResult)));
                         Metrics.searchHits.labels("youtube-api").inc();
                         return youtubeApiResult;
                     }
@@ -167,9 +170,16 @@ public class SearchUtil {
         return new BasicAudioPlaylist("Search result for: " + query, Collections.emptyList(), null, true);
     }
 
-    private static AudioPlaylist fromCache(SearchProvider provider, String query, long cacheMaxAge) {
+    /**
+     * @param provider   the search provider that shall be used for this search
+     * @param searchTerm the searchTerm to search for
+     */
+    @Nullable
+    private static AudioPlaylist fromCache(SearchProvider provider, String searchTerm, long cacheMaxAge) {
         try {
-            return SearchResult.load(PLAYER_MANAGER, provider, query, cacheMaxAge);
+            SearchResult.SearchResultId id = new SearchResult.SearchResultId(provider, searchTerm);
+            SearchResult searchResult = BotController.INS.getEntityIO().getSearchResult(id, cacheMaxAge);
+            return searchResult != null ? searchResult.getSearchResult(PLAYER_MANAGER) : null;
         } catch (DatabaseNotReadyException ignored) {
             log.warn("Could not retrieve cached search result from database.");
             return null;

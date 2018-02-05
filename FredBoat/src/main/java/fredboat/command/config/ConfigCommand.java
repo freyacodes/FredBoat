@@ -30,7 +30,6 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IConfigCommand;
-import fredboat.db.EntityIO;
 import fredboat.db.entity.main.GuildConfig;
 import fredboat.main.BotController;
 import fredboat.messaging.CentralMessaging;
@@ -59,7 +58,7 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
     }
 
     private void printConfig(CommandContext context) {
-        GuildConfig gc = BotController.INS.getEntityIO().getGuildConfig(context.guild);
+        GuildConfig gc = BotController.INS.getEntityIO().fetchGuildConfig(context.guild);
 
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append(context.i18nFormat("configNoArgs", context.guild.getName())).append("\n")
@@ -87,10 +86,8 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
         switch (key) {
             case "track_announce":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
-                    EntityIO.doUserFriendly(BotController.INS.getEntityIO().onMainDb(wrapper -> wrapper.findApplyAndMerge(
-                            GuildConfig.key(context.guild),
-                            gc -> gc.setTrackAnnounce(Boolean.valueOf(val))
-                    )));
+                    BotController.INS.getEntityIO().transformGuildConfig(
+                            context.guild, gc -> gc.setTrackAnnounce(Boolean.valueOf(val)));
                     context.replyWithName("`track_announce` " + context.i18nFormat("configSetTo", val));
                 } else {
                     context.reply(context.i18nFormat("configMustBeBoolean", TextUtils.escapeAndDefuse(invoker.getEffectiveName())));
@@ -98,10 +95,8 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
                 break;
             case "auto_resume":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
-                    EntityIO.doUserFriendly(BotController.INS.getEntityIO().onMainDb(wrapper -> wrapper.findApplyAndMerge(
-                            GuildConfig.key(context.guild),
-                            guildConfig -> guildConfig.setAutoResume(Boolean.valueOf(val))
-                    )));
+                    BotController.INS.getEntityIO().transformGuildConfig(
+                            context.guild, gc -> gc.setAutoResume(Boolean.valueOf(val)));
                     context.replyWithName("`auto_resume` " + context.i18nFormat("configSetTo", val));
                 } else {
                     context.reply(context.i18nFormat("configMustBeBoolean", TextUtils.escapeAndDefuse(invoker.getEffectiveName())));

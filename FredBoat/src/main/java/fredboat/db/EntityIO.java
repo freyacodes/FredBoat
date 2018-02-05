@@ -25,8 +25,11 @@
 
 package fredboat.db;
 
+import fredboat.db.entity.cache.SearchResult;
 import fredboat.db.entity.main.*;
-import fredboat.util.func.NonnullFunction;
+import fredboat.db.repositories.api.*;
+import fredboat.db.repositories.impl.*;
+import fredboat.util.DiscordUtil;
 import fredboat.util.func.NonnullSupplier;
 import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
@@ -37,66 +40,19 @@ import space.npstr.annotations.ReturnTypesAreNonNullByDefault;
 import space.npstr.sqlsauce.DatabaseConnection;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
+import space.npstr.sqlsauce.entities.GuildBotComposite;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
- * This class serves two main use cases - it allows wrapping database calls in a convenient and safe way through methods
- * like {@link EntityIO#doUserFriendly(NonnullSupplier)} and {@link EntityIO#onMainDb(NonnullFunction)}, and it is home
- * to commonly used methods to read entities without writing anything back, and writing entities without reading them
- * (in other words, operations not requiring transformations) that wrap these into the aforementioned convenience
- * methods, reducing the boilerplate code at all places which just need to read data from an entity, or just save data
- * into an entity.
- * The amount of functional things seen in here are higher then usual, therefore a look at exising usage is highly
- * recommended if finding oneself stuck at some point trying to figure out how to compose these methods, alternatively
- * you are invited to shout at Napster who wrote this code.
- * <p>
- * <p>
- * How to use our database:
- * Our use cases can be roughly ordered into three categories:
- * 1. Read some data to act on it
- * Example: A track has started, we look up in the GuildConfig whether the guild wishes the bot to announce it
- * 2. Write some data
- * Example: A user has been autoblacklisted, we need to save his BlacklistEntry back to the database (which is otherwise
- * held in memory for performance reasons, so no need to read it first)
- * Another example: The prefix has been set, we need to save the new one to the database.
- * 3. Read some data, and depending on its contents write one thing, or another back, or maybe nothing at all
- * Example: Users setting up our permission system, where we want to give them feedback based on existing set up
- * permissions and maybe run a few checks, before adjusting the entity and saving it.
- * It is a lot better to do these lightweight (!) operations inside of an ongoing persistence context than
- * loading -> detaching -> saving, but managing the persistence context for each even so tiny query makes code both
- * verbose and error prone.
- * <p>
- * Use cases 1 & 2, especially when the entity is used across the bot, warrant a convenience getter method in this class.
- * Example: loading the GuildConfig, loading GuildPermissions
- * Use cases of type 3 usually have some unique logic to them, which is tied to the context they are called from. It is
- * probably better to keep that logic in the place wherever it is needed, and not bring it to this class.
- * <p>
- * If your use case is not covered by the above / Where the heck is the EntityManager / my query is too complicated for
- * this framework / I need to manage the persistence context for my query / I need to set weird JDBC/Hibernate
- * properties on the connection for my query:
- * The EntityManager can be grabbed and used this way:
- * <pre>
- *  doUserFriendly(onMainDb(
- *      wrapper -> {
- *          EntityManager em = wrapper.unwrap().getEntityManager();
- *          try {
- *              //your code here, returning something
- *          } catch (NastySqlExceptions and what not) {
- *              //probably rethrow as DatabaseException to be caught by doUserFriendly()
- *          } finally {
- *              em.close();
- *          }
- *      }
- *  ));
- * </pre>
- * Make sure to have a look at {@link space.npstr.sqlsauce.DatabaseWrapper} for more usage examples of the EntityManager.
+ * This class serves as the glue between FredBoat and repositories of entities. It is home
+ * to commonly used methods to read and write entities, as well as transform them.
  */
+@SuppressWarnings("UnusedReturnValue")
 @FieldsAreNonNullByDefault
 @ParametersAreNonnullByDefault
 @ReturnTypesAreNonNullByDefault
@@ -104,14 +60,32 @@ public class EntityIO {
 
     private static final Logger log = LoggerFactory.getLogger(EntityIO.class);
 
-    private final DatabaseWrapper main;
-    @Nullable
-    private final DatabaseWrapper cache;
+    private final IGuildConfigRepo guildConfigRepo;
+    private final IGuildDataRepo guildDataRepo;
+    private final IGuildModulesRepo guildModulesRepo;
+    private final IGuildPermsRepo guildPermsRepo;
+    private final IPrefixRepo prefixRepo;
+    private final IBlacklistRepo blacklistRepo;
 
+    @Nullable
+    private final ISearchResultRepo searchResultRepo;
 
     public EntityIO(DatabaseConnection main, @Nullable DatabaseConnection cache) {
-        this.main = new DatabaseWrapper(main);
-        this.cache = cache != null ? new DatabaseWrapper(cache) : null;
+        DatabaseWrapper mainWrapper = new DatabaseWrapper(main);
+        DatabaseWrapper cacheWrapper = cache != null ? new DatabaseWrapper(cache) : null;
+
+        guildConfigRepo = new SqlSauceGuildConfigRepo(mainWrapper);
+        guildDataRepo = new SqlSauceGuildDataRepo(mainWrapper);
+        guildModulesRepo = new SqlSauceGuildModulesRepo(mainWrapper);
+        guildPermsRepo = new SqlSauceGuildPermsRepo(mainWrapper);
+        prefixRepo = new SqlSaucePrefixRepo(mainWrapper);
+        blacklistRepo = new SqlSauceBlacklistRepo(mainWrapper);
+
+        if (cacheWrapper != null) {
+            searchResultRepo = new SqlSauceSearchResultRepo(cacheWrapper);
+        } else {
+            searchResultRepo = null; //todo noop repo for cache entities?
+        }
     }
 
     /**
@@ -119,7 +93,7 @@ public class EntityIO {
      * MessagingExceptions. MessagingExceptions or their causes are currently not expected to be logged further up,
      * that's why we log the cause of it at this place.
      */
-    public static <T> T doUserFriendly(NonnullSupplier<T> operation) {
+    public static <T> T fetchUserFriendly(NonnullSupplier<T> operation) {
         try {
             return operation.get();
         } catch (DatabaseException e) {
@@ -129,76 +103,138 @@ public class EntityIO {
     }
 
     /**
-     * Provide the main database connection to a function describing a database operation, taking a database wrapper and
-     * returning a nonnull value of class T.
-     *
-     * @return a supplier of the nonnull return value of the provided function. The operation will be executed
-     * as soon as {@link NonnullSupplier#get()} on the returned value is called.
+     * Same as {@link EntityIO#fetchUserFriendly(NonnullSupplier)}, just with a nullable return.
      */
-    public <T> NonnullSupplier<T> onMainDb(NonnullFunction<DatabaseWrapper, T> operation) {
-        return () -> operation.apply(main);
-    }
-
-    /**
-     * Similar to {@link EntityIO#onMainDb(NonnullFunction)}, just for the cache database, with measures to handle
-     * the optional nature of it.
-     * Will return an empty optional noop if there is no cache db.
-     */
-    public <T> NonnullSupplier<Optional<T>> onCacheDb(Function<DatabaseWrapper, T> operation) {
-        if (cache == null) {
-            //noinspection Convert2MethodRef
-            return () -> Optional.empty();
-        } else {
-            return () -> Optional.of(operation.apply(cache));
+    @Nullable
+    public static <T> T getUserFriendly(Supplier<T> operation) {
+        try {
+            return operation.get();
+        } catch (DatabaseException e) {
+            log.error("EntityIO database operation failed", e);
+            throw new DatabaseNotReadyException(e);
         }
     }
 
-
-    // Loading of Entities
-
-    public GuildConfig getGuildConfig(Guild guild) {
-        return doUserFriendly(onMainDb(wrapper -> wrapper.getOrCreate(GuildConfig.key(guild))));
-    }
-
-    public GuildPermissions getGuildPermissions(Guild guild) {
-        return doUserFriendly(onMainDb(wrapper -> wrapper.getOrCreate(GuildPermissions.key(guild))));
-    }
-
-    public GuildModules getGuildModules(Guild guild) {
-        return doUserFriendly(onMainDb(wrapper -> wrapper.getOrCreate(GuildModules.key(guild))));
-    }
-
-    public GuildData getGuildData(Guild guild) {
-        return doUserFriendly(onMainDb(wrapper -> wrapper.getOrCreate(GuildData.key(guild))));
+    /**
+     * Same as {@link EntityIO#fetchUserFriendly(NonnullSupplier)}, just without returning anything
+     */
+    public static void doUserFriendly(Runnable operation) {
+        try {
+            operation.run();
+        } catch (DatabaseException e) {
+            log.error("EntityIO database operation failed", e);
+            throw new DatabaseNotReadyException(e);
+        }
     }
 
 
     // Blacklist stuff
 
+    /**
+     * @return the whole blacklist aka all entries. Not a lightweight operation, and shouldn't be called outside
+     * of initial population of the blacklist (and probably not even then, reworking the ratelimiter is planned).
+     */
     public List<BlacklistEntry> loadBlacklist() {
-        return doUserFriendly(onMainDb(wrapper -> wrapper.loadAll(BlacklistEntry.class)));
+        return fetchUserFriendly(blacklistRepo::loadBlacklist);
     }
 
-    public BlacklistEntry mergeBlacklistEntry(BlacklistEntry ble) {
-        return doUserFriendly(onMainDb(wrapper -> wrapper.merge(ble)));
+    public BlacklistEntry mergeBlacklistEntry(BlacklistEntry entry) {
+        return fetchUserFriendly(() -> blacklistRepo.merge(entry));
     }
 
     public void deleteBlacklistEntry(long id) {
-        //language=SQL
-        String query = "DELETE FROM blacklist WHERE id = :id";
-        Map<String, Object> params = new HashMap<>();
-        params.put("id", id);
+        doUserFriendly(() -> blacklistRepo.delete(id));
+    }
 
-        doUserFriendly(onMainDb(wrapper -> wrapper.executeSqlQuery(query, params)));
+
+    // Guild config stuff
+
+    public GuildConfig fetchGuildConfig(Guild guild) {
+        return fetchUserFriendly(() -> guildConfigRepo.fetch(guild));
+    }
+
+
+    public GuildConfig transformGuildConfig(Guild guild, Function<GuildConfig, GuildConfig> transformation) {
+        GuildConfig guildConfig = fetchUserFriendly(() -> guildConfigRepo.fetch(guild));
+        return fetchUserFriendly(() -> guildConfigRepo.merge(transformation.apply(guildConfig)));
     }
 
 
     // Guild data stuff
 
-    public GuildData helloSent(Guild guild) {
-        return doUserFriendly(onMainDb(wrapper -> wrapper.findApplyAndMerge(
-                GuildData.key(guild),
-                GuildData::helloSent)
-        ));
+    public GuildData fetchGuildData(Guild guild) {
+        return fetchUserFriendly(() -> guildDataRepo.fetch(guild));
+    }
+
+    public GuildData transformGuildData(Guild guild, Function<GuildData, GuildData> transformation) {
+        GuildData guildData = fetchUserFriendly(() -> guildDataRepo.fetch(guild));
+        return fetchUserFriendly(() -> guildDataRepo.merge(transformation.apply(guildData)));
+    }
+
+
+    // Guild modules stuff
+
+    public GuildModules fetchGuildModules(Guild guild) {
+        return fetchUserFriendly(() -> guildModulesRepo.fetch(guild));
+    }
+
+    public GuildModules transformGuildModules(Guild guild, Function<GuildModules, GuildModules> transformation) {
+        GuildModules guildModules = fetchUserFriendly(() -> guildModulesRepo.fetch(guild));
+        return fetchUserFriendly(() -> guildModulesRepo.merge(transformation.apply(guildModules)));
+    }
+
+
+    // Guild permission stuff
+
+    public GuildPermissions fetchGuildPermissions(Guild guild) {
+        return fetchUserFriendly(() -> guildPermsRepo.fetch(guild));
+    }
+
+    public GuildPermissions transformGuildPerms(Guild guild, Function<GuildPermissions, GuildPermissions> transformation) {
+        GuildPermissions guildPerms = fetchUserFriendly(() -> guildPermsRepo.fetch(guild));
+        return fetchUserFriendly(() -> guildPermsRepo.merge(transformation.apply(guildPerms)));
+    }
+
+
+    // Prefix stuff
+
+    public Prefix transformPrefix(Guild guild, Function<Prefix, Prefix> transformation) {
+        Prefix prefix = fetchUserFriendly(() -> prefixRepo.fetch(new GuildBotComposite(guild, DiscordUtil.getBotId())));
+        return fetchUserFriendly(() -> prefixRepo.merge(transformation.apply(prefix)));
+    }
+
+    public Optional<String> getPrefix(GuildBotComposite id) {
+        return fetchUserFriendly(() -> Optional.ofNullable(prefixRepo.getPrefix(id)));
+    }
+
+
+    // Search result stuff
+
+    /**
+     * Merge a search result into the database.
+     *
+     * @return the merged SearchResult object, or null when there is no cache database
+     */
+    @Nullable
+    public SearchResult merge(SearchResult searchResult) {
+        if (searchResultRepo != null) {
+            return searchResultRepo.merge(searchResult);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @param maxAgeMillis the maximum age of the cached search result; provide a negative value for eternal cache
+     * @return the cached search result; may return null for a non-existing or outdated search, or when there is no
+     * cache database
+     */
+    @Nullable
+    public SearchResult getSearchResult(SearchResult.SearchResultId id, long maxAgeMillis) {
+        if (searchResultRepo == null) {
+            return null;
+        } else {
+            return getUserFriendly(() -> searchResultRepo.getMaxAged(id, maxAgeMillis));
+        }
     }
 }

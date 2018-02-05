@@ -274,7 +274,7 @@ public class EventListenerBoat extends AbstractEventListener {
                 && player.getPlayingTrack() != null
                 && joinedChannel.getMembers().contains(guild.getSelfMember())
                 && player.getHumanUsersInCurrentVC().size() > 0
-                && BotController.INS.getEntityIO().getGuildConfig(guild).isAutoResume()
+                && BotController.INS.getEntityIO().fetchGuildConfig(guild).isAutoResume()
                 ) {
             player.setPause(false);
             TextChannel activeTextChannel = player.getActiveTextChannel();
@@ -359,7 +359,7 @@ public class EventListenerBoat extends AbstractEventListener {
         //filter guilds that already received a hello message
         // useful for when discord trolls us with fake guild joins
         // or to prevent it send repeatedly due to kick and reinvite
-        GuildData gd = BotController.INS.getEntityIO().getGuildData(guild);
+        GuildData gd = BotController.INS.getEntityIO().fetchGuildData(guild);
         if (gd.getTimestampHelloSent() > 0) {
             return;
         }
@@ -381,6 +381,6 @@ public class EventListenerBoat extends AbstractEventListener {
 
         //send actual hello message and persist on success
         CentralMessaging.sendMessage(channel, HelloCommand.getHello(guild),
-                __ -> BotController.INS.getEntityIO().helloSent(guild));
+                __ -> BotController.INS.getEntityIO().transformGuildData(guild, GuildData::helloSent));
     }
 }

@@ -434,7 +434,7 @@ public class GuildPlayer extends AbstractPlayer {
         try {
             Guild guild = getGuild();
             if (guild != null) {
-                enabled = BotController.INS.getEntityIO().getGuildConfig(guild).isTrackAnnounce();
+                enabled = BotController.INS.getEntityIO().fetchGuildConfig(guild).isTrackAnnounce();
             }
         } catch (DatabaseNotReadyException ignored) {}
 

@@ -31,8 +31,6 @@ import com.sedmelluq.discord.lavaplayer.tools.io.MessageOutput;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
-import fredboat.db.EntityIO;
-import fredboat.main.BotController;
 import fredboat.util.rest.SearchUtil;
 import org.apache.commons.lang3.SerializationUtils;
 import org.hibernate.annotations.Cache;
@@ -47,7 +45,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Created by napster on 27.08.17.
@@ -86,51 +86,10 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
         return EntityKey.of(id, SearchResult.class);
     }
 
-    /**
-     * @param playerManager the PlayerManager to perform encoding and decoding with
-     * @param provider      the search provider that shall be used for this search
-     * @param searchTerm    the query to search for
-     * @param maxAgeMillis  the maximum age of the cached search result; provide a negative value for eternal cache
-     * @return the cached search result; may return null for a non-existing or outdated search, or when there is no
-     *         cache database
-     */
-    @Nullable
-    public static AudioPlaylist load(@Nonnull AudioPlayerManager
-                                             playerManager, @Nonnull SearchUtil.SearchProvider provider,
-                                     @Nonnull String searchTerm, long maxAgeMillis) {
-        //language=JPAQL
-        String query = "SELECT sr FROM SearchResult sr WHERE sr.searchResultId = :id AND sr.timestamp > :oldest";
-        Map<String, Object> params = new HashMap<>();
-        params.put("id", new SearchResultId(provider, searchTerm));
-        params.put("oldest", maxAgeMillis < 0 ? 0 : System.currentTimeMillis() - maxAgeMillis);
-
-        List<SearchResult> queryResult = EntityIO.doUserFriendly(BotController.INS.getEntityIO().onCacheDb(
-                wrapper -> wrapper.selectJpqlQuery(query, params, SearchResult.class, 1)
-        )).orElse(Collections.emptyList());
-
-        if (queryResult.isEmpty()) {
-            return null;
-        } else {
-            return queryResult.get(0).getSearchResult(playerManager);
-        }
-    }
-
-    /**
-     * Merge a search result into the database.
-     *
-     * @return the merged SearchResult object, or null when there is no cache database
-     */
-    @Nullable
-    public SearchResult merge() {
-        return EntityIO.doUserFriendly(BotController.INS.getEntityIO().onCacheDb(
-                wrapper -> wrapper.merge(this)
-        )).orElse(null);
-    }
-
     @Nonnull
     @Override
     public SearchResult save() {
-        throw new UnsupportedOperationException("Use SearchResult#merge() instead");
+        throw new UnsupportedOperationException("Use the repository of this entity instead");
     }
 
     @Nonnull
@@ -184,7 +143,7 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
      * Composite primary key for SearchResults
      */
     @Embeddable
-    static class SearchResultId implements Serializable {
+    public static class SearchResultId implements Serializable {
 
         private static final long serialVersionUID = 8969973651938173208L;
 

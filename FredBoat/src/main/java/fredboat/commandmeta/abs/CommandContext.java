@@ -254,7 +254,7 @@ public class CommandContext extends Context {
 
     @Nonnull
     public Collection<CommandRegistry.Module> getEnabledModules() {
-        return BotController.INS.getEntityIO().getGuildModules(this.guild).getEnabledModules();
+        return BotController.INS.getEntityIO().fetchGuildModules(this.guild).getEnabledModules();
     }
 
     @Nonnull
