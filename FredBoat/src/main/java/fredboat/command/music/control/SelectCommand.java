@@ -116,11 +116,10 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                     if (player.getTrackCount() < 1) {
                         playingStatusOrQueueTime = TextUtils.italicizeText(context.i18n("selectSuccessPartNowPlaying"));
                     } else {
-                        if (Stream.of(
-                                player.getPlayingTrack(),
-                                player.getPlayingTrack().getTrack(),
-                                player.getPlayingTrack().getTrack().getInfo()).anyMatch(Objects::isNull)
-                                || !player.getPlayingTrack().getTrack().getInfo().isStream) {
+                        if (player.getRemainingTracks()
+                                .stream()
+                                .noneMatch(
+                                        audioTrackContext -> audioTrackContext.getTrack().getInfo().isStream)) {
 
                             // Currently is not playing any live stream.
                             long remainingTimeInMillis = player.getTotalRemainingMusicTimeMillis();
