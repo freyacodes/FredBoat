@@ -69,6 +69,7 @@ dependencies {
     compile group: 'org.togglz', name: 'togglz-core', version: '2.5.0.Final'
     compile group: 'com.google.guava', name: 'guava', version: '23.5-jre'
     compile group: 'com.github.vladimir-bukhtoyarov', name: 'bucket4j-core', version: '3.0.2'
+    compile group: 'space.npstr', name: 'annotations', version: '0.0.1'
 
     //tests
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.2'

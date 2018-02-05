@@ -3,6 +3,7 @@ package fredboat.main;
 import fredboat.agent.FredBoatAgent;
 import fredboat.agent.StatsAgent;
 import fredboat.audio.queue.MusicPersistenceHandler;
+import fredboat.db.EntityIO;
 import fredboat.event.EventListenerBoat;
 import net.dv8tion.jda.bot.sharding.ShardManager;
 import org.slf4j.Logger;
@@ -32,6 +33,7 @@ public class BotController {
     //central event listener that all events by all shards pass through
     private EventListenerBoat mainEventListener;
     private final StatsAgent statsAgent = new StatsAgent("bot metrics");
+    private EntityIO entityIO;
     private DatabaseWrapper mainDbWrapper;
     private int shutdownCode = UNKNOWN_SHUTDOWN_CODE;//Used when specifying the intended code for shutdown hooks
 
@@ -71,6 +73,15 @@ public class BotController {
     // Can be null during init, but usually not
     public ShardManager getShardManager() {
         return shardManager;
+    }
+
+    @Nonnull
+    public EntityIO getEntityIO() {
+        return entityIO;
+    }
+
+    public void setEntityIO(@Nonnull EntityIO entityIO) {
+        this.entityIO = entityIO;
     }
 
     @Nonnull

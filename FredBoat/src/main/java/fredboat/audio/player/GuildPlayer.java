@@ -32,12 +32,12 @@ import fredboat.command.music.control.VoteSkipCommand;
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.db.DatabaseNotReadyException;
-import fredboat.db.EntityIO;
 import fredboat.feature.I18n;
+import fredboat.main.BotController;
+import fredboat.main.ShardContext;
 import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
-import fredboat.main.ShardContext;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;
@@ -434,7 +434,7 @@ public class GuildPlayer extends AbstractPlayer {
         try {
             Guild guild = getGuild();
             if (guild != null) {
-                enabled = EntityIO.getGuildConfig(guild).isTrackAnnounce();
+                enabled = BotController.INS.getEntityIO().getGuildConfig(guild).isTrackAnnounce();
             }
         } catch (DatabaseNotReadyException ignored) {}
 

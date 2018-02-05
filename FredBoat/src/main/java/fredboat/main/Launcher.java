@@ -8,6 +8,7 @@ import fredboat.audio.player.LavalinkManager;
 import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.db.DatabaseManager;
+import fredboat.db.EntityIO;
 import fredboat.event.EventListenerBoat;
 import fredboat.event.EventLogger;
 import fredboat.feature.DikeSessionController;
@@ -121,8 +122,9 @@ public class Launcher {
         FredBoatAgent.start(new DBConnectionWatchdogAgent(mainDbConn));
         FBC.setMainDbWrapper(new DatabaseWrapper(mainDbConn));
 
+        DatabaseConnection cacheDbConn = null;
         try {
-            DatabaseConnection cacheDbConn = DatabaseManager.cache();
+            cacheDbConn = DatabaseManager.cache();
             if (cacheDbConn != null) {
                 FBC.setCacheDbWrapper(new DatabaseWrapper(cacheDbConn));
             }
@@ -131,6 +133,8 @@ public class Launcher {
             FBC.shutdown(ExitCodes.EXIT_CODE_ERROR);
         }
         Metrics.instance().hibernateStats.register(); //call this exactly once after all db connections have been created
+
+        FBC.setEntityIO(new EntityIO(mainDbConn, cacheDbConn));
 
         //Initialise event listeners
         FBC.setMainEventListener(new EventListenerBoat());

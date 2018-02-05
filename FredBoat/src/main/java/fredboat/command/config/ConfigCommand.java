@@ -32,6 +32,7 @@ import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IConfigCommand;
 import fredboat.db.EntityIO;
 import fredboat.db.entity.main.GuildConfig;
+import fredboat.main.BotController;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
@@ -58,7 +59,7 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
     }
 
     private void printConfig(CommandContext context) {
-        GuildConfig gc = EntityIO.getGuildConfig(context.guild);
+        GuildConfig gc = BotController.INS.getEntityIO().getGuildConfig(context.guild);
 
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append(context.i18nFormat("configNoArgs", context.guild.getName())).append("\n")
@@ -86,7 +87,7 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
         switch (key) {
             case "track_announce":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
-                    EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper -> wrapper.findApplyAndMerge(
+                    EntityIO.doUserFriendly(BotController.INS.getEntityIO().onMainDb(wrapper -> wrapper.findApplyAndMerge(
                             GuildConfig.key(context.guild),
                             gc -> gc.setTrackAnnounce(Boolean.valueOf(val))
                     )));
@@ -97,7 +98,7 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
                 break;
             case "auto_resume":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
-                    EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper -> wrapper.findApplyAndMerge(
+                    EntityIO.doUserFriendly(BotController.INS.getEntityIO().onMainDb(wrapper -> wrapper.findApplyAndMerge(
                             GuildConfig.key(context.guild),
                             guildConfig -> guildConfig.setAutoResume(Boolean.valueOf(val))
                     )));

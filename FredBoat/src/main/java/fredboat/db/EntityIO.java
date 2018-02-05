@@ -26,16 +26,19 @@
 package fredboat.db;
 
 import fredboat.db.entity.main.*;
-import fredboat.main.BotController;
 import fredboat.util.func.NonnullFunction;
 import fredboat.util.func.NonnullSupplier;
 import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import space.npstr.annotations.FieldsAreNonNullByDefault;
+import space.npstr.annotations.ParametersAreNonnullByDefault;
+import space.npstr.annotations.ReturnTypesAreNonNullByDefault;
+import space.npstr.sqlsauce.DatabaseConnection;
 import space.npstr.sqlsauce.DatabaseException;
 import space.npstr.sqlsauce.DatabaseWrapper;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,18 +97,29 @@ import java.util.function.Function;
  * </pre>
  * Make sure to have a look at {@link space.npstr.sqlsauce.DatabaseWrapper} for more usage examples of the EntityManager.
  */
+@FieldsAreNonNullByDefault
+@ParametersAreNonnullByDefault
+@ReturnTypesAreNonNullByDefault
 public class EntityIO {
 
-    @Nonnull
     private static final Logger log = LoggerFactory.getLogger(EntityIO.class);
+
+    private final DatabaseWrapper main;
+    @Nullable
+    private final DatabaseWrapper cache;
+
+
+    public EntityIO(DatabaseConnection main, @Nullable DatabaseConnection cache) {
+        this.main = new DatabaseWrapper(main);
+        this.cache = cache != null ? new DatabaseWrapper(cache) : null;
+    }
 
     /**
      * Wrap an operation that throws a database exception so that it gets rethrown as one of our user friendly
      * MessagingExceptions. MessagingExceptions or their causes are currently not expected to be logged further up,
      * that's why we log the cause of it at this place.
      */
-    @Nonnull
-    public static <T> T doUserFriendly(@Nonnull NonnullSupplier<T> operation) {
+    public static <T> T doUserFriendly(NonnullSupplier<T> operation) {
         try {
             return operation.get();
         } catch (DatabaseException e) {
@@ -121,9 +135,8 @@ public class EntityIO {
      * @return a supplier of the nonnull return value of the provided function. The operation will be executed
      * as soon as {@link NonnullSupplier#get()} on the returned value is called.
      */
-    @Nonnull
-    public static <T> NonnullSupplier<T> onMainDb(@Nonnull NonnullFunction<DatabaseWrapper, T> operation) {
-        return () -> operation.apply(BotController.INS.getMainDbWrapper());
+    public <T> NonnullSupplier<T> onMainDb(NonnullFunction<DatabaseWrapper, T> operation) {
+        return () -> operation.apply(main);
     }
 
     /**
@@ -131,54 +144,46 @@ public class EntityIO {
      * the optional nature of it.
      * Will return an empty optional noop if there is no cache db.
      */
-    @Nonnull
-    public static <T> NonnullSupplier<Optional<T>> onCacheDb(@Nonnull Function<DatabaseWrapper, T> operation) {
-        DatabaseWrapper cacheDbWrapper = BotController.INS.getCacheDbWrapper();
-        if (cacheDbWrapper == null) {
+    public <T> NonnullSupplier<Optional<T>> onCacheDb(Function<DatabaseWrapper, T> operation) {
+        if (cache == null) {
             //noinspection Convert2MethodRef
             return () -> Optional.empty();
         } else {
-            return () -> Optional.of(operation.apply(cacheDbWrapper));
+            return () -> Optional.of(operation.apply(cache));
         }
     }
 
 
     // Loading of Entities
 
-    @Nonnull
-    public static GuildConfig getGuildConfig(@Nonnull Guild guild) {
+    public GuildConfig getGuildConfig(Guild guild) {
         return doUserFriendly(onMainDb(wrapper -> wrapper.getOrCreate(GuildConfig.key(guild))));
     }
 
-    @Nonnull
-    public static GuildPermissions getGuildPermissions(@Nonnull Guild guild) {
+    public GuildPermissions getGuildPermissions(Guild guild) {
         return doUserFriendly(onMainDb(wrapper -> wrapper.getOrCreate(GuildPermissions.key(guild))));
     }
 
-    @Nonnull
-    public static GuildModules getGuildModules(@Nonnull Guild guild) {
+    public GuildModules getGuildModules(Guild guild) {
         return doUserFriendly(onMainDb(wrapper -> wrapper.getOrCreate(GuildModules.key(guild))));
     }
 
-    @Nonnull
-    public static GuildData getGuildData(@Nonnull Guild guild) {
+    public GuildData getGuildData(Guild guild) {
         return doUserFriendly(onMainDb(wrapper -> wrapper.getOrCreate(GuildData.key(guild))));
     }
 
 
     // Blacklist stuff
 
-    @Nonnull
-    public static List<BlacklistEntry> loadBlacklist() {
+    public List<BlacklistEntry> loadBlacklist() {
         return doUserFriendly(onMainDb(wrapper -> wrapper.loadAll(BlacklistEntry.class)));
     }
 
-    @Nonnull
-    public static BlacklistEntry mergeBlacklistEntry(@Nonnull BlacklistEntry ble) {
+    public BlacklistEntry mergeBlacklistEntry(BlacklistEntry ble) {
         return doUserFriendly(onMainDb(wrapper -> wrapper.merge(ble)));
     }
 
-    public static void deleteBlacklistEntry(long id) {
+    public void deleteBlacklistEntry(long id) {
         //language=SQL
         String query = "DELETE FROM blacklist WHERE id = :id";
         Map<String, Object> params = new HashMap<>();
@@ -190,8 +195,7 @@ public class EntityIO {
 
     // Guild data stuff
 
-    @Nonnull
-    public static GuildData helloSent(@Nonnull Guild guild) {
+    public GuildData helloSent(Guild guild) {
         return doUserFriendly(onMainDb(wrapper -> wrapper.findApplyAndMerge(
                 GuildData.key(guild),
                 GuildData::helloSent)

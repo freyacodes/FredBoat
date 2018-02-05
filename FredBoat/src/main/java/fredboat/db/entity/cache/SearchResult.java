@@ -32,6 +32,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
 import fredboat.db.EntityIO;
+import fredboat.main.BotController;
 import fredboat.util.rest.SearchUtil;
 import org.apache.commons.lang3.SerializationUtils;
 import org.hibernate.annotations.Cache;
@@ -103,7 +104,7 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
         params.put("id", new SearchResultId(provider, searchTerm));
         params.put("oldest", maxAgeMillis < 0 ? 0 : System.currentTimeMillis() - maxAgeMillis);
 
-        List<SearchResult> queryResult = EntityIO.doUserFriendly(EntityIO.onCacheDb(
+        List<SearchResult> queryResult = EntityIO.doUserFriendly(BotController.INS.getEntityIO().onCacheDb(
                 wrapper -> wrapper.selectJpqlQuery(query, params, SearchResult.class, 1)
         )).orElse(Collections.emptyList());
 
@@ -121,7 +122,7 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
      */
     @Nullable
     public SearchResult merge() {
-        return EntityIO.doUserFriendly(EntityIO.onCacheDb(
+        return EntityIO.doUserFriendly(BotController.INS.getEntityIO().onCacheDb(
                 wrapper -> wrapper.merge(this)
         )).orElse(null);
     }

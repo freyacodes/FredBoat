@@ -107,7 +107,7 @@ public class PrefixCommand extends Command implements IConfigCommand {
             newPrefix = context.rawArgs;
         }
 
-        EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper -> wrapper.findApplyAndMerge(
+        EntityIO.doUserFriendly(BotController.INS.getEntityIO().onMainDb(wrapper -> wrapper.findApplyAndMerge(
                 Prefix.key(context.guild),
                 prefixEntity -> prefixEntity.setPrefix(newPrefix)
         )));
