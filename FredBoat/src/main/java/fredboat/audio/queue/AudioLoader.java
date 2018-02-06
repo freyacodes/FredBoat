@@ -38,6 +38,7 @@ import fredboat.audio.source.SpotifyPlaylistSourceManager;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
 import fredboat.messaging.CentralMessaging;
+import fredboat.util.PlayerUtil;
 import fredboat.util.TextUtils;
 import fredboat.util.ratelimit.Ratelimiter;
 import fredboat.util.rest.YoutubeAPI;
@@ -174,11 +175,12 @@ public class AudioLoader implements AudioLoadResultHandler {
             } else {
 
                 if (!context.isQuiet()) {
-                    context.reply(gplayer.isPlaying() ?
-                            context.i18nFormat("loadSingleTrack", TextUtils.escapeAndDefuse(at.getInfo().title))
-                            :
-                            context.i18nFormat("loadSingleTrackAndPlay", TextUtils.escapeAndDefuse(at.getInfo().title))
-                    );
+                    String playingStatusOrQueueTime = PlayerUtil.resolveStatusOrQueueMessage(gplayer, context);
+                    String replyMessage = playingStatusOrQueueTime
+                            + "\n\t"
+                            + TextUtils.boldenText(TextUtils.escapeAndDefuse(at.getInfo().title));
+
+                    context.reply(replyMessage);
                 } else {
                     log.info("Quietly loaded " + at.getIdentifier());
                 }

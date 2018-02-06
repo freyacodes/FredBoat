@@ -38,6 +38,7 @@ import fredboat.main.BotController;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
+import fredboat.util.PlayerUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
@@ -46,8 +47,6 @@ import org.apache.commons.lang3.StringUtils;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.stream.Stream;
 
 public class SelectCommand extends Command implements IMusicCommand, ICommandRestricted {
 
@@ -107,34 +106,9 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                 StringBuilder outputMsgBuilder = new StringBuilder();
 
                 for (int i = 0; i < validChoices.size(); i++) {
-                    int positionInQueue = player.getTrackCount() + 1;
-
                     selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
 
-                    String playingStatusOrQueueTime;
-
-                    if (player.getTrackCount() < 1) {
-                        playingStatusOrQueueTime = TextUtils.italicizeText(context.i18n("selectSuccessPartNowPlaying"));
-                    } else {
-                        if (player.getRemainingTracks()
-                                .stream()
-                                .noneMatch(
-                                        audioTrackContext -> audioTrackContext.getTrack().getInfo().isStream)) {
-
-                            // Currently is not playing any live stream.
-                            long remainingTimeInMillis = player.getTotalRemainingMusicTimeMillis();
-                            String remainingTime = TextUtils.formatTime(remainingTimeInMillis);
-                            playingStatusOrQueueTime = context.i18nFormat(
-                                    "selectSuccessPartQueueWaitTime",
-                                    TextUtils.boldenText(positionInQueue),
-                                    TextUtils.boldenText(remainingTime));
-
-                        } else {
-                            playingStatusOrQueueTime = context.i18nFormat(
-                                    "selectSuccessPartQueueHasStream",
-                                    TextUtils.boldenText(positionInQueue));
-                        }
-                    }
+                    String playingStatusOrQueueTime = PlayerUtil.resolveStatusOrQueueMessage(player, context);
 
                     // Print the selection string.
                     String selectionSuccessString = context.i18nFormat(
