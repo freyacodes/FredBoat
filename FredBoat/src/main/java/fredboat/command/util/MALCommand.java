@@ -25,13 +25,13 @@
 
 package fredboat.command.util;
 
-import fredboat.Config;
-import fredboat.FredBoat;
 import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
 import fredboat.feature.metrics.OkHttpEventMetrics;
+import fredboat.main.BotController;
+import fredboat.main.Config;
 import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
 import fredboat.util.rest.Http;
@@ -85,7 +85,7 @@ public class MALCommand extends Command implements IUtilCommand {
         String term = context.rawArgs.replace(' ', '+').trim();
         log.debug("TERM:" + term);
 
-        FredBoat.executor.submit(() -> requestAsync(term, context));
+        BotController.INS.getExecutor().submit(() -> requestAsync(term, context));
     }
 
     //attempts to find an anime with the provided search term, and if that's not possible looks for a user

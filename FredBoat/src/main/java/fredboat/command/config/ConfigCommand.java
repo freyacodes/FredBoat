@@ -30,9 +30,8 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IConfigCommand;
-import fredboat.db.EntityReader;
-import fredboat.db.EntityWriter;
 import fredboat.db.entity.main.GuildConfig;
+import fredboat.main.BotController;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
@@ -59,7 +58,7 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
     }
 
     private void printConfig(CommandContext context) {
-        GuildConfig gc = EntityReader.getGuildConfig(context.guild.getId());
+        GuildConfig gc = BotController.INS.getEntityIO().fetchGuildConfig(context.guild);
 
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append(context.i18nFormat("configNoArgs", context.guild.getName())).append("\n")
@@ -81,15 +80,14 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
             return;
         }
 
-        GuildConfig gc = EntityReader.getGuildConfig(context.guild.getId());
         String key = context.args[0];
         String val = context.args[1];
 
         switch (key) {
             case "track_announce":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
-                    gc.setTrackAnnounce(Boolean.valueOf(val));
-                    EntityWriter.mergeGuildConfig(gc);
+                    BotController.INS.getEntityIO().transformGuildConfig(
+                            context.guild, gc -> gc.setTrackAnnounce(Boolean.valueOf(val)));
                     context.replyWithName("`track_announce` " + context.i18nFormat("configSetTo", val));
                 } else {
                     context.reply(context.i18nFormat("configMustBeBoolean", TextUtils.escapeAndDefuse(invoker.getEffectiveName())));
@@ -97,8 +95,8 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
                 break;
             case "auto_resume":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
-                    gc.setAutoResume(Boolean.valueOf(val));
-                    EntityWriter.mergeGuildConfig(gc);
+                    BotController.INS.getEntityIO().transformGuildConfig(
+                            context.guild, gc -> gc.setAutoResume(Boolean.valueOf(val)));
                     context.replyWithName("`auto_resume` " + context.i18nFormat("configSetTo", val));
                 } else {
                     context.reply(context.i18nFormat("configMustBeBoolean", TextUtils.escapeAndDefuse(invoker.getEffectiveName())));

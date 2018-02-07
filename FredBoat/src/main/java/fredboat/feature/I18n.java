@@ -26,9 +26,7 @@
 package fredboat.feature;
 
 import fredboat.db.DatabaseNotReadyException;
-import fredboat.db.EntityReader;
-import fredboat.db.EntityWriter;
-import fredboat.db.entity.main.GuildConfig;
+import fredboat.main.BotController;
 import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,11 +93,10 @@ public class I18n {
         return getLocale(guild).getProps();
     }
 
-    public static FredBoatLocale getLocale(Guild guild) {
-        GuildConfig config;
-
+    @Nonnull
+    public static FredBoatLocale getLocale(@Nonnull Guild guild) {
         try {
-            config = EntityReader.getGuildConfig(guild.getId());
+            return LANGS.getOrDefault(BotController.INS.getEntityIO().fetchGuildConfig(guild).getLang(), DEFAULT);
         } catch (DatabaseNotReadyException e) {
             //don't log spam the full exceptions or logs
             return DEFAULT;
@@ -107,17 +104,13 @@ public class I18n {
             log.error("Error when reading entity", e);
             return DEFAULT;
         }
-
-        return LANGS.getOrDefault(config.getLang(), DEFAULT);
     }
 
-    public static void set(Guild guild, String lang) throws LanguageNotSupportedException {
+    public static void set(@Nonnull Guild guild, @Nonnull String lang) throws LanguageNotSupportedException {
         if (!LANGS.containsKey(lang))
             throw new LanguageNotSupportedException("Language not found");
 
-        GuildConfig config = EntityReader.getGuildConfig(guild.getId());
-        config.setLang(lang);
-        EntityWriter.mergeGuildConfig(config);
+        BotController.INS.getEntityIO().transformGuildConfig(guild, config -> config.setLang(lang));
     }
 
     public static class FredBoatLocale {

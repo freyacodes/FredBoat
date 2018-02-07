@@ -5,15 +5,15 @@ buildscript {
 }
 plugins {
     id 'application'
-    id 'com.gorylenko.gradle-git-properties' version '1.4.17'
+    id 'com.gorylenko.gradle-git-properties' version '1.4.20'
     id 'com.sedmelluq.jdaction' version '1.0.2' //check for unused RestActions
-    id 'com.github.johnrengelman.shadow' version '2.0.1'
+    id 'com.github.johnrengelman.shadow' version '2.0.2'
 }
 apply plugin: 'org.junit.platform.gradle.plugin'
 
 description = 'FredBoat Discord Music Bot'
-mainClassName = "fredboat.FredBoat"
-version '2.1'
+mainClassName = "fredboat.main.Launcher"
+version '2.2'
 ext {
     moduleName = 'FredBoat'
 }
@@ -31,15 +31,15 @@ shadowJar {
 
 dependencies {
     compile project(':Shared')
-    compile group: 'net.dv8tion', name: 'JDA', version: '3.3.1_308'
-    compile group: 'com.sedmelluq', name: 'lavaplayer', version: '1.2.45'
+    compile group: 'net.dv8tion', name: 'JDA', version: '3.5.0_332'
+    compile group: 'com.sedmelluq', name: 'lavaplayer', version: '1.2.47'
     compile group: 'com.sedmelluq', name: 'jda-nas', version: '1.0.6'
 
     if (System.getenv('dev') == 'true') {
         compile(group: 'lavalink', name: 'Lavalink-Client', version: '-SNAPSHOT')
     } else {
         //production
-        compile(group: 'com.github.Frederikam.Lavalink', name: 'Lavalink-Client', version: '8fa6dd5d5013cbb2eb0d35be077048022f08c0eb')
+        compile(group: 'com.github.Frederikam.Lavalink', name: 'Lavalink-Client', version: '72bbfffe530816847325ec5b22f673a4e2b99df8')
     }
 
     compile group: 'org.apache.commons', name: 'commons-text', version: '1.1'
@@ -61,14 +61,15 @@ dependencies {
     compile group: 'io.prometheus', name: 'simpleclient_guava', version: '0.1.0'
     compile group: 'io.prometheus', name: 'simpleclient_servlet', version: '0.1.0'
 
-    compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '8a939c06651fd06877d705874834463373cfb596'
-    compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: '8a939c06651fd06877d705874834463373cfb596'
+    compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '1bb3517ef171f9eb7f588f230622129739ff2571'
+    compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: '1bb3517ef171f9eb7f588f230622129739ff2571'
     compile group: 'org.hibernate', name: 'hibernate-ehcache', version: '5.2.12.Final'
     compile group: 'org.flywaydb', name: 'flyway-core', version: '5.0.3'
 
     compile group: 'org.togglz', name: 'togglz-core', version: '2.5.0.Final'
     compile group: 'com.google.guava', name: 'guava', version: '23.5-jre'
     compile group: 'com.github.vladimir-bukhtoyarov', name: 'bucket4j-core', version: '3.0.2'
+    compile group: 'space.npstr', name: 'annotations', version: '0.0.1'
 
     //tests
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.2'

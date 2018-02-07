@@ -467,7 +467,7 @@ public class CentralMessaging {
             message.delete().queue(
                     __ -> Metrics.successfulRestActions.labels("deleteMessage").inc(),
                     getJdaRestActionFailureHandler(String.format("Could not delete message %s in channel %s with content\n%s",
-                            message.getId(), message.getChannel().getId(), message.getRawContent()))
+                            message.getId(), message.getChannel().getId(), message.getContentRaw()))
             );
         } catch (InsufficientPermissionException e) {
             handleInsufficientPermissionsException(message.getChannel(), e);
@@ -507,7 +507,7 @@ public class CentralMessaging {
                 onFail.accept(t);
             } else {
                 String info = String.format("Could not sent message\n%s\nto channel %s in guild %s",
-                        message.getRawContent(), channel.getId(),
+                        message.getContentRaw(), channel.getId(),
                         (channel instanceof TextChannel) ? ((TextChannel) channel).getGuild().getIdLong() : "null");
                 getJdaRestActionFailureHandler(info).accept(t);
             }
@@ -591,7 +591,7 @@ public class CentralMessaging {
                 String info = String.format("Could not edit message %s in channel %s in guild %s with new content %s",
                         oldMessageId, channel.getId(),
                         (channel instanceof TextChannel) ? ((TextChannel) channel).getGuild().getIdLong() : "null",
-                        newMessage.getRawContent());
+                        newMessage.getContentRaw());
                 getJdaRestActionFailureHandler(info).accept(t);
             }
         };

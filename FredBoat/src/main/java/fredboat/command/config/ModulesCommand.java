@@ -25,7 +25,6 @@
 
 package fredboat.command.config;
 
-import fredboat.FredBoat;
 import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.CommandRegistry;
@@ -33,6 +32,7 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IConfigCommand;
 import fredboat.db.entity.main.GuildModules;
+import fredboat.main.BotController;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
@@ -95,23 +95,24 @@ public class ModulesCommand extends Command implements IConfigCommand {
         }
 
         Function<GuildModules, GuildModules> transform;
+        String output;
         if (enable) {
             transform = gm -> gm.enableModule(module);
-            context.reply(context.i18nFormat("moduleEnable", "**" + context.i18n(module.translationKey) + "**")
+            output = context.i18nFormat("moduleEnable", "**" + context.i18n(module.translationKey) + "**")
                     + "\n" + context.i18nFormat("moduleShowCommands",
                     "`" + context.getPrefix() + CommandInitializer.COMMANDS_COMM_NAME
-                            + " " + context.i18n(module.translationKey) + "`")
-            );
+                            + " " + context.i18n(module.translationKey) + "`");
         } else {
             transform = gm -> gm.disableModule(module);
-            context.reply(context.i18nFormat("moduleDisable", "**" + context.i18n(module.translationKey) + "**"));
+            output = context.i18nFormat("moduleDisable", "**" + context.i18n(module.translationKey) + "**");
         }
 
-        FredBoat.getMainDbWrapper().findApplyAndMerge(GuildModules.key(context.guild), transform);
+        BotController.INS.getEntityIO().transformGuildModules(context.guild, transform);
+        context.reply(output);//if the transaction right above this line fails, it won't be reached, which is intended
     }
 
     private static void displayModuleStatus(@Nonnull CommandContext context) {
-        GuildModules gm = FredBoat.getMainDbWrapper().getOrCreate(GuildModules.key(context.guild));
+        GuildModules gm = BotController.INS.getEntityIO().fetchGuildModules(context.guild);
         Function<CommandRegistry.Module, String> moduleStatusFormatter = moduleStatusLine(gm, context);
         String moduleStatus = "";
 

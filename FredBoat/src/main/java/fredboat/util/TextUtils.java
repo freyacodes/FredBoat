@@ -28,7 +28,7 @@ package fredboat.util;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Streams;
-import fredboat.Config;
+import fredboat.main.Config;
 import fredboat.commandmeta.MessagingException;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;

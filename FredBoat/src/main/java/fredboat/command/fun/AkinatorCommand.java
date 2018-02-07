@@ -25,11 +25,11 @@
 
 package fredboat.command.fun;
 
-import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.feature.AkinatorListener;
+import fredboat.main.BotController;
 import fredboat.messaging.internal.Context;
 import org.json.JSONException;
 
@@ -47,7 +47,7 @@ public class AkinatorCommand extends Command implements IFunCommand {
         try {
             String userId = context.invoker.getUser().getId();
             AkinatorListener akinator = new AkinatorListener(context);
-            FredBoat.getMainEventListener().putListener(userId, akinator);
+            BotController.INS.getMainEventListener().putListener(userId, akinator);
         } catch (IOException | JSONException e) {
             throw new RuntimeException(e);
         }

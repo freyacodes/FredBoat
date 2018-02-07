@@ -25,13 +25,12 @@
 
 package fredboat.commandmeta.abs;
 
-import fredboat.Config;
-import fredboat.FredBoat;
 import fredboat.command.config.PrefixCommand;
 import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.CommandRegistry;
-import fredboat.db.entity.main.GuildModules;
 import fredboat.feature.metrics.Metrics;
+import fredboat.main.BotController;
+import fredboat.main.Config;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import net.dv8tion.jda.core.Permission;
@@ -82,7 +81,7 @@ public class CommandContext extends Context {
      * @return The full context for the triggered command, or null if it's not a command that we know.
      */
     public static CommandContext parse(MessageReceivedEvent event) {
-        String raw = event.getMessage().getRawContent();
+        String raw = event.getMessage().getContentRaw();
 
         String input;
         boolean isMention = false;
@@ -255,7 +254,7 @@ public class CommandContext extends Context {
 
     @Nonnull
     public Collection<CommandRegistry.Module> getEnabledModules() {
-        return FredBoat.getMainDbWrapper().getOrCreate(GuildModules.key(this.guild)).getEnabledModules();
+        return BotController.INS.getEntityIO().fetchGuildModules(this.guild).getEnabledModules();
     }
 
     @Nonnull

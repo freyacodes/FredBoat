@@ -27,13 +27,13 @@ package fredboat.feature.metrics;
 
 import ch.qos.logback.classic.LoggerContext;
 import com.zaxxer.hikari.metrics.prometheus.PrometheusMetricsTrackerFactory;
-import fredboat.FredBoat;
 import fredboat.agent.FredBoatAgent;
 import fredboat.audio.player.VideoSelection;
 import fredboat.command.config.PrefixCommand;
 import fredboat.command.info.HelpCommand;
 import fredboat.feature.metrics.collectors.FredBoatCollector;
 import fredboat.feature.metrics.collectors.ThreadPoolCollector;
+import fredboat.main.BotController;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Histogram;
 import io.prometheus.client.guava.cache.CacheMetricsCollector;
@@ -111,7 +111,7 @@ public class Metrics {
         }
 
         //register some of our "important" thread pools
-        threadPoolCollector.addPool("main-executor", (ThreadPoolExecutor) FredBoat.executor);
+        threadPoolCollector.addPool("main-executor", (ThreadPoolExecutor) BotController.INS.getExecutor());
         threadPoolCollector.addPool("agents-scheduler", (ThreadPoolExecutor) FredBoatAgent.getScheduler());
     }
 

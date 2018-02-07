@@ -25,20 +25,20 @@
 
 package fredboat.db.entity.main;
 
-import fredboat.db.entity.IEntity;
+import net.dv8tion.jda.core.entities.Guild;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import space.npstr.sqlsauce.entities.SaucedEntity;
+import space.npstr.sqlsauce.fp.types.EntityKey;
 
+import javax.annotation.Nonnull;
 import javax.persistence.*;
-import java.io.Serializable;
 
 @Entity
 @Table(name = "guild_config")
 @Cacheable
 @Cache(usage= CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region="guild_config")
-public class GuildConfig implements IEntity, Serializable {
-
-    private static final long serialVersionUID = 5055243002380106205L;
+public class GuildConfig extends SaucedEntity<String, GuildConfig> {
 
     @Id
     @Column(name = "guildid", nullable = false)
@@ -53,44 +53,66 @@ public class GuildConfig implements IEntity, Serializable {
     @Column(name = "lang", nullable = false)
     private String lang = "en_US";
 
-    public GuildConfig(String id) {
-        this.guildId = id;
-    }
-
-    @Override
-    public void setId(String id) {
-        this.guildId = id;
-    }
-
+    //for jpa / db wrapper
     public GuildConfig() {
     }
 
-    public String getGuildId() {
-        return guildId;
+    @Nonnull
+    public static EntityKey<String, GuildConfig> key(@Nonnull String guildId) {
+        return EntityKey.of(guildId, GuildConfig.class);
+    }
+
+    @Nonnull
+    public static EntityKey<String, GuildConfig> key(long guildId) {
+        return key(Long.toString(guildId));
+    }
+
+    @Nonnull
+    public static EntityKey<String, GuildConfig> key(@Nonnull Guild guild) {
+        return key(guild.getId());
+    }
+
+    @Nonnull
+    @Override
+    public GuildConfig setId(@Nonnull String id) {
+        this.guildId = id;
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public String getId() {
+        return this.guildId;
     }
 
     public boolean isTrackAnnounce() {
         return trackAnnounce;
     }
 
-    public void setTrackAnnounce(boolean trackAnnounce) {
+    @Nonnull
+    public GuildConfig setTrackAnnounce(boolean trackAnnounce) {
         this.trackAnnounce = trackAnnounce;
+        return this;
     }
 
     public boolean isAutoResume() {
         return autoResume;
     }
 
-    public void setAutoResume(boolean autoplay) {
+    @Nonnull
+    public GuildConfig setAutoResume(boolean autoplay) {
         this.autoResume = autoplay;
+        return this;
     }
 
     public String getLang() {
         return lang;
     }
 
-    public void setLang(String lang) {
+    @Nonnull
+    public GuildConfig setLang(String lang) {
         this.lang = lang;
+        return this;
     }
 
 }

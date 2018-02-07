@@ -1,7 +1,8 @@
 /*
+ *
  * MIT License
  *
- * Copyright (c) 2017 Frederik Ar. Mikkelsen
+ * Copyright (c) 2017-2018 Frederik Ar. Mikkelsen
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,16 +23,18 @@
  * SOFTWARE.
  */
 
-package fredboat.db.entity;
+package fredboat.db.repositories.impl;
+
+import space.npstr.sqlsauce.DatabaseWrapper;
 
 /**
- * Created by napster on 02.05.17.
- * <p>
- * Just fucking around with generics
- * Implement this in all entities to retrieve them easily over a shared function
- * in EntityReader while having some type safety
+ * Created by napster on 05.02.18.
  */
-public interface IEntity {
+public abstract class SqlSauceRepo {
 
-    void setId(String id);
+    protected final DatabaseWrapper dbWrapper;
+
+    public SqlSauceRepo(DatabaseWrapper dbWrapper) {
+        this.dbWrapper = dbWrapper;
+    }
 }

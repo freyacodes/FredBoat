@@ -45,6 +45,8 @@ services:
     restart: on-failure:3
     depends_on:
       - db
+    # related to the restServerEnabled option in the config.yaml. if you are running more than 1 fredboat on a single
+    # machine, comment out the two lines below (or learn how to expose different ports with docker)
     ports:
       - 1356:1356
     volumes:
@@ -53,7 +55,7 @@ services:
       - ./logs:/opt/FredBoat/logs
       - ./music_persistence:/opt/FredBoat/music_persistence
     # Need a bigger memory size or any other custom JVM args? uncomment and edit the line below accordingly
-    #entrypoint: java -jar -Xmx128m FredBoat.jar
+    #entrypoint: java -jar -Xmx256m FredBoat.jar
 
 
   ################################################################################
