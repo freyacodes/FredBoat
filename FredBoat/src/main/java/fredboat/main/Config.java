@@ -23,7 +23,7 @@
  *
  */
 
-package fredboat;
+package fredboat.main;
 
 import com.google.common.base.CharMatcher;
 import fredboat.audio.player.PlayerLimitManager;
@@ -49,6 +49,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Config {
 
@@ -93,9 +94,6 @@ public class Config {
     private boolean localAudio;
     private boolean httpAudio;
 
-    // temporary config values todo remove after merging main + music
-    private boolean useVoiceChannelCleanup;
-
 
     //Credentials
 
@@ -134,9 +132,9 @@ public class Config {
     private String testChannelId;
 
 
-    // unofficial creds
+    // Undocumented creds
     private String carbonKey;
-
+    private String dikeUrl;
 
     //Derived Config values
     private int hikariPoolSize;
@@ -171,10 +169,10 @@ public class Config {
             //Load Config values
 
             // Determine distribution
-            if ((boolean) config.getOrDefault("patron", false)) {
-                distribution = DistributionEnum.PATRON;
-            } else if ((boolean) config.getOrDefault("development", false)) {
+            if ((boolean) config.getOrDefault("development", true)) {
                 distribution = DistributionEnum.DEVELOPMENT;
+            } else if ((boolean) config.getOrDefault("patron", true)) {
+                distribution = DistributionEnum.PATRON;
             } else {
                 distribution = DistributionEnum.MUSIC;
             }
@@ -205,16 +203,15 @@ public class Config {
             localAudio = (Boolean) config.getOrDefault("enableLocal", false);
             httpAudio = (Boolean) config.getOrDefault("enableHttp", false);
 
-            //temp configs
-            useVoiceChannelCleanup = (boolean) config.getOrDefault("tempUseVoiceChannelCleanup", true);
-
 
             //Load Credential values
-
-            Map<String, String> token = (Map) creds.get("token");
-            if (token != null) {
-                botToken = token.getOrDefault(distribution.getId(), "");
-            } else botToken = "";
+            Object token = creds.get("token");
+            if (token instanceof String) {
+                botToken = (String) token;
+            } else {
+                Map<String, String> tokens = (Map) token;
+                botToken = tokens.getOrDefault(distribution.getId(), "");
+            }
             if (botToken == null || botToken.isEmpty()) {
                 throw new RuntimeException("No discord bot token provided for the started distribution " + distribution
                         + "\nMake sure to put a " + distribution.getId() + " token in your credentials file.");
@@ -328,16 +325,33 @@ public class Config {
             }
 
             // misc
-            Map<String, String> linkNodes = (Map<String, String>) creds.get("lavalinkHosts");
+            Object linkNodes = creds.get("lavalinkHosts");
             if (linkNodes != null) {
-                linkNodes.forEach((s, s2) -> {
-                    try {
-                        lavalinkHosts.add(new LavalinkHost(new URI(s), s2));
-                        log.info("Lavalink node added: " + new URI(s));
-                    } catch (URISyntaxException e) {
-                        throw new RuntimeException("Failed parsing lavalink URI", e);
+                if (linkNodes instanceof Map) {
+                    Map<String, String> simpleNodes = (Map<String, String>) linkNodes;
+                    AtomicInteger nodeCounter = new AtomicInteger(0);
+                    simpleNodes.forEach((host, pass) -> {
+                        try {
+                            String name = "Lavalink-Node#" + nodeCounter.getAndIncrement();
+                            URI uri = new URI(host);
+                            lavalinkHosts.add(new LavalinkHost(name, uri, pass));
+                            log.info("Lavalink node added: {} {}", name, uri);
+                        } catch (URISyntaxException e) {
+                            throw new RuntimeException("Failed parsing lavalink URI", e);
+                        }
+                    });
+                } else {
+                    List<Map<String, String>> namedNodes = (List<Map<String, String>>) linkNodes;
+                    for (Map<String, String> node : namedNodes) {
+                        try {
+                            String name = node.get("name");
+                            URI uri = new URI(node.get("host"));
+                            lavalinkHosts.add(new LavalinkHost(name, uri, node.get("pass")));
+                        } catch (URISyntaxException e) {
+                            throw new RuntimeException("Failed parsing lavalink URI", e);
+                        }
                     }
-                });
+                }
             }
 
             eventLogWebhook = (String) creds.getOrDefault("eventLogWebhook", "");
@@ -349,8 +363,9 @@ public class Config {
             testChannelId = creds.getOrDefault("testChannelId", "") + "";
 
 
-            // unofficial creds
+            // Undocumented creds
             carbonKey = (String) creds.getOrDefault("carbonKey", "");
+            dikeUrl = (String) creds.getOrDefault("dikeUrl", null);
 
 
             // Derived Config values
@@ -384,6 +399,9 @@ public class Config {
             log.error("Could not parse the credentials and/or config yaml files! They are probably misformatted. " +
                     "Try using an online yaml validator.", e);
             throw e;
+        } catch (Exception e) {
+            log.error("Could not init config", e);
+            throw e;
         }
     }
 
@@ -413,12 +431,18 @@ public class Config {
 
     public static class LavalinkHost {
 
+        private final String name;
         private final URI uri;
         private final String password;
 
-        public LavalinkHost(URI uri, String password) {
+        public LavalinkHost(String name, URI uri, String password) {
+            this.name = name;
             this.uri = uri;
             this.password = password;
+        }
+
+        public String getName() {
+            return name;
         }
 
         public URI getUri() {
@@ -511,10 +535,6 @@ public class Config {
         return httpAudio;
     }
 
-
-    public boolean useVoiceChannelCleanup() {
-        return useVoiceChannelCleanup;
-    }
 
     // ********************************************************************************
     //                           Credentials Getters
@@ -610,9 +630,8 @@ public class Config {
         return testChannelId;
     }
 
-
     // ********************************************************************************
-    //                       Derived and unofficial values
+    //                       Derived and undocumented values
     // ********************************************************************************
 
     //this static method works even when called from tests with invalid config files leading to a null config
@@ -630,5 +649,10 @@ public class Config {
 
     public String getCarbonKey() {
         return carbonKey;
+    }
+
+    @Nullable
+    public String getDikeUrl() {
+        return dikeUrl;
     }
 }

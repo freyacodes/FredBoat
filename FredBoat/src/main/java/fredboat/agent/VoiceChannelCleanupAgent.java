@@ -25,12 +25,12 @@
 
 package fredboat.agent;
 
-import fredboat.FredBoat;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.command.music.control.VoteSkipCommand;
 import fredboat.feature.metrics.Metrics;
+import fredboat.main.BotController;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 import org.slf4j.Logger;
@@ -68,7 +68,7 @@ public class VoiceChannelCleanupAgent extends FredBoatAgent {
         final AtomicInteger totalVcs = new AtomicInteger(0);
         final AtomicInteger closedVcs = new AtomicInteger(0);
 
-        FredBoat.getAllGuilds().forEach(guild -> {
+        BotController.INS.getShardManager().getGuildCache().stream().forEach(guild -> {
             try {
                 totalGuilds.incrementAndGet();
                 if (guild != null

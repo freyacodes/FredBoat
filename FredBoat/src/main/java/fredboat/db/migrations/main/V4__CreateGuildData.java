@@ -1,4 +1,5 @@
 /*
+ *
  * MIT License
  *
  * Copyright (c) 2017 Frederik Ar. Mikkelsen
@@ -20,42 +21,38 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-package fredboat.command.fun;
+package fredboat.db.migrations.main;
 
-import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.CommandContext;
-import fredboat.commandmeta.abs.IFunCommand;
-import fredboat.feature.AkinatorListener;
-import fredboat.main.BotController;
-import fredboat.messaging.internal.Context;
-import org.json.JSONException;
+import org.flywaydb.core.api.migration.jdbc.JdbcMigration;
 
-import javax.annotation.Nonnull;
-import java.io.IOException;
+import java.sql.Connection;
+import java.sql.Statement;
 
-public class AkinatorCommand extends Command implements IFunCommand {
+/**
+ * Created by napster on 23.01.18.
+ */
+public class V4__CreateGuildData implements JdbcMigration {
 
-    public AkinatorCommand(String name, String... aliases) {
-        super(name, aliases);
-    }
+    private static final String DROP
+            = "DROP TABLE IF EXISTS public.guild_data;";
+
+    private static final String CREATE
+            = "CREATE TABLE public.guild_data "
+            + "( "
+            + "    guild_id      BIGINT NOT NULL, "
+            + "    ts_hello_sent BIGINT NOT NULL, "
+            + "    CONSTRAINT guild_data_pkey PRIMARY KEY (guild_id) "
+            + ");";
 
     @Override
-    public void onInvoke(@Nonnull CommandContext context) {
-        try {
-            String userId = context.invoker.getUser().getId();
-            AkinatorListener akinator = new AkinatorListener(context);
-            BotController.INS.getMainEventListener().putListener(userId, akinator);
-        } catch (IOException | JSONException e) {
-            throw new RuntimeException(e);
+    public void migrate(Connection connection) throws Exception {
+        try (Statement drop = connection.createStatement()) {
+            drop.execute(DROP);
         }
-    }
-
-    @Nonnull
-    @Override
-    public String help(@Nonnull Context context) {
-        return "{0}{1}\n#Play a guessing game with Akinator.";
+        try (Statement create = connection.createStatement()) {
+            create.execute(CREATE);
+        }
     }
 }

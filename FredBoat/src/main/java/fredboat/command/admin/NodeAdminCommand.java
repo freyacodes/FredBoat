@@ -32,10 +32,19 @@ import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
+import fredboat.perms.PermsUtil;
+import fredboat.util.TextUtils;
+import lavalink.client.io.Lavalink;
+import lavalink.client.io.LavalinkLoadBalancer;
+import lavalink.client.io.LavalinkSocket;
+import lavalink.client.io.RemoteStats;
 
 import javax.annotation.Nonnull;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class NodeAdminCommand extends Command implements ICommandRestricted {
 
@@ -66,42 +75,158 @@ public class NodeAdminCommand extends Command implements ICommandRestricted {
                 }
                 break;
             case "add":
-                if (context.args.length < 3) {
+                if (context.args.length < 4) {
                     HelpCommand.sendFormattedCommandHelp(context);
                 } else {
                     add(context);
                 }
                 break;
+            case "show":
+                if (context.args.length < 2) {
+                    HelpCommand.sendFormattedCommandHelp(context);
+                } else {
+                    show(context);
+                }
+                break;
             case "list":
             default:
-                HelpCommand.sendFormattedCommandHelp(context);
+                list(context);
                 break;
         }
     }
 
-    private void remove(CommandContext context) {
-        int key = Integer.valueOf(context.args[1]);
-        LavalinkManager.ins.getLavalink().removeNode(key);
-        context.reply("Removed node #" + key);
-    }
-
-    private void add(CommandContext context) {
-        URI uri;
-        try {
-            uri = new URI(context.args[1]);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
+    private void remove(@Nonnull CommandContext context) {
+        String name = context.args[1];
+        List<LavalinkSocket> nodes = LavalinkManager.ins.getLavalink().getNodes();
+        int key = -1;
+        for (int i = 0; i < nodes.size(); i++) {
+            LavalinkSocket node = nodes.get(i);
+            if (node.getName().equals(name)) {
+                key = i;
+            }
+        }
+        if (key < 0) {
+            context.reply("No node with name " + name + " found.");
+            return;
         }
 
-        String password = context.args[2];
-        LavalinkManager.ins.getLavalink().addNode(uri, password);
-        context.reply("Added node: " + uri.toString());
+        LavalinkManager.ins.getLavalink().removeNode(key);
+        context.reply("Removed node " + name);
+    }
+
+    private void add(@Nonnull CommandContext context) {
+        String name = context.args[1];
+        URI uri;
+        try {
+            uri = new URI(context.args[2]);
+        } catch (URISyntaxException e) {
+            context.reply(context.args[2] + " is not a valid URI");
+            return;
+        }
+
+        String password = context.args[3];
+        LavalinkManager.ins.getLavalink().addNode(name, uri, password);
+        context.reply("Added node: " + name + " @ " + uri.toString());
+    }
+
+    private void show(@Nonnull CommandContext context) {
+        String name = context.args[1];
+        List<LavalinkSocket> nodes = LavalinkManager.ins.getLavalink().getNodes().stream()
+                .filter(ll -> ll.getName().equals(name))
+                .collect(Collectors.toList());
+
+        if (nodes.isEmpty()) {
+            context.reply("No such node: " + name + ", showing a list of all nodes instead");
+            list(context);
+            return;
+        }
+
+
+        RemoteStats stats = nodes.get(0).getStats();
+        String out = "No stats have been received from this node! Is the node down?";
+        if (stats != null) {
+            out = TextUtils.asCodeBlock(stats.getAsJson().toString(4), "json");
+        }
+        context.reply(out);
+    }
+
+    private void list(@Nonnull CommandContext context) {
+        Lavalink lavalink = LavalinkManager.ins.getLavalink();
+
+
+        boolean showHosts = false;
+        if (context.hasArguments() && context.rawArgs.contains("host")) {
+            if (PermsUtil.checkPermsWithFeedback(PermissionLevel.BOT_ADMIN, context)) {
+                showHosts = true;
+            } else {
+                return;
+            }
+        }
+
+        List<LavalinkSocket> nodes = lavalink.getNodes();
+        if (nodes.isEmpty()) {
+            context.replyWithName("There are no remote lavalink nodes registered.");
+            return;
+        }
+
+        List<String> messages = new ArrayList<>();
+
+        for (LavalinkSocket socket : nodes) {
+            RemoteStats stats = socket.getStats();
+            String str = "Name:                " + socket.getName() + "\n";
+
+            if (showHosts) {
+                str += "Host:                    " + socket.getRemoteUri() + "\n";
+            }
+
+            if (stats == null) {
+                str += "No stats have been received from this node! Is the node down?";
+                str += "\n\n";
+                messages.add(str);
+                continue;
+            }
+
+            str += "Playing players:         " + stats.getPlayingPlayers() + "\n";
+            str += "Lavalink load:           " + TextUtils.formatPercent(stats.getLavalinkLoad()) + "\n";
+            str += "System load:             " + TextUtils.formatPercent(stats.getSystemLoad()) + " \n";
+            str += "Memory:                  " + stats.getMemUsed() / 1000000 + "MB/" + stats.getMemReservable() / 1000000 + "MB\n";
+            str += "---------------\n";
+            str += "Average frames sent:     " + stats.getAvgFramesSentPerMinute() + "\n";
+            str += "Average frames nulled:   " + stats.getAvgFramesNulledPerMinute() + "\n";
+            str += "Average frames deficit:  " + stats.getAvgFramesDeficitPerMinute() + "\n";
+            str += "---------------\n";
+            LavalinkLoadBalancer.Penalties penalties = LavalinkLoadBalancer.getPenalties(socket);
+            str += "Penalties Total:    " + penalties.getTotal() + "\n";
+            str += "Player Penalty:          " + penalties.getPlayerPenalty() + "\n";
+            str += "CPU Penalty:             " + penalties.getCpuPenalty() + "\n";
+            str += "Deficit Frame Penalty:   " + penalties.getDeficitFramePenalty() + "\n";
+            str += "Null Frame Penalty:      " + penalties.getNullFramePenalty() + "\n";
+            str += "Raw: " + penalties.toString() + "\n";
+            str += "---------------\n\n";
+
+            messages.add(str);
+        }
+
+        if (showHosts) {
+            for (String str : messages) {
+                context.replyPrivate(TextUtils.asCodeBlock(str), null, null);
+            }
+            context.replyWithName("Sent you a DM with the data. If you did not receive anything, adjust your privacy settings so I can DM you.");
+        } else {
+            for (String str : messages) {
+                context.reply(TextUtils.asCodeBlock(str));
+            }
+        }
     }
 
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1}\n#Add or remove lavalink nodes.";
+        return "{0}{1} list (host)"
+                + "\n{0}{1} show <name>"
+                + "\n{0}{1} add <name> <uri> <pass>"
+                + "\n{0}{1} remove <name>"
+                + "\n#Show information about connected lavalink nodes, or add or remove lavalink nodes.";
     }
 
     @Nonnull

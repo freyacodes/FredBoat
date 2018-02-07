@@ -1,4 +1,5 @@
 /*
+ *
  * MIT License
  *
  * Copyright (c) 2017 Frederik Ar. Mikkelsen
@@ -20,7 +21,6 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
 package fredboat.db.entity.main;
@@ -28,91 +28,65 @@ package fredboat.db.entity.main;
 import net.dv8tion.jda.core.entities.Guild;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.ColumnDefault;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 import space.npstr.sqlsauce.fp.types.EntityKey;
 
+import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.persistence.*;
 
+/**
+ * Created by napster on 23.01.18.
+ * <p>
+ * FredBoat internal info kept on guilds
+ */
 @Entity
-@Table(name = "guild_config")
+@Table(name = "guild_data")
 @Cacheable
-@Cache(usage= CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region="guild_config")
-public class GuildConfig extends SaucedEntity<String, GuildConfig> {
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "guild_data")
+public class GuildData extends SaucedEntity<Long, GuildData> {
 
     @Id
-    @Column(name = "guildid", nullable = false)
-    private String guildId;
+    @Column(name = "guild_id", nullable = false)
+    private long guildId;
 
-    @Column(name = "track_announce", nullable = false)
-    private boolean trackAnnounce = false;
+    @Column(name = "ts_hello_sent",
+            nullable = false)
+    @ColumnDefault(value = "0")
+    private long timestampHelloSent;
 
-    @Column(name = "auto_resume", nullable = false)
-    private boolean autoResume = false;
 
-    @Column(name = "lang", nullable = false)
-    private String lang = "en_US";
-
-    //for jpa / db wrapper
-    public GuildConfig() {
+    //for JPA / SaucedEntity
+    public GuildData() {
     }
 
     @Nonnull
-    public static EntityKey<String, GuildConfig> key(@Nonnull String guildId) {
-        return EntityKey.of(guildId, GuildConfig.class);
-    }
-
-    @Nonnull
-    public static EntityKey<String, GuildConfig> key(long guildId) {
-        return key(Long.toString(guildId));
-    }
-
-    @Nonnull
-    public static EntityKey<String, GuildConfig> key(@Nonnull Guild guild) {
-        return key(guild.getId());
+    public static EntityKey<Long, GuildData> key(@Nonnull Guild guild) {
+        return EntityKey.of(guild.getIdLong(), GuildData.class);
     }
 
     @Nonnull
     @Override
-    public GuildConfig setId(@Nonnull String id) {
-        this.guildId = id;
+    public GuildData setId(@Nonnull Long guildId) {
+        this.guildId = guildId;
         return this;
     }
 
     @Nonnull
     @Override
-    public String getId() {
-        return this.guildId;
+    public Long getId() {
+        return guildId;
     }
 
-    public boolean isTrackAnnounce() {
-        return trackAnnounce;
-    }
-
-    @Nonnull
-    public GuildConfig setTrackAnnounce(boolean trackAnnounce) {
-        this.trackAnnounce = trackAnnounce;
-        return this;
-    }
-
-    public boolean isAutoResume() {
-        return autoResume;
+    public long getTimestampHelloSent() {
+        return timestampHelloSent;
     }
 
     @Nonnull
-    public GuildConfig setAutoResume(boolean autoplay) {
-        this.autoResume = autoplay;
+    @CheckReturnValue
+    public GuildData helloSent() {
+        this.timestampHelloSent = System.currentTimeMillis();
         return this;
     }
-
-    public String getLang() {
-        return lang;
-    }
-
-    @Nonnull
-    public GuildConfig setLang(String lang) {
-        this.lang = lang;
-        return this;
-    }
-
 }

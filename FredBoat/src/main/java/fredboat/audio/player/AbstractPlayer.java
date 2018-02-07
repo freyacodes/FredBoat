@@ -42,7 +42,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import com.sedmelluq.discord.lavaplayer.track.TrackMarker;
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
-import fredboat.Config;
+import fredboat.main.Config;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.audio.queue.ITrackProvider;
 import fredboat.audio.queue.SplitAudioTrackContext;

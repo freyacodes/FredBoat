@@ -1,4 +1,5 @@
 /*
+ *
  * MIT License
  *
  * Copyright (c) 2017 Frederik Ar. Mikkelsen
@@ -20,48 +21,21 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-package fredboat.command.fun.img;
-
-import fredboat.commandmeta.abs.Command;
-import fredboat.commandmeta.abs.CommandContext;
-import fredboat.commandmeta.abs.IFunCommand;
-import fredboat.main.BotController;
-import fredboat.messaging.internal.Context;
-import fredboat.util.rest.Http;
+package fredboat.util.func;
 
 import javax.annotation.Nonnull;
-import java.io.IOException;
+import java.util.function.Supplier;
 
-public class CatgirlCommand extends Command implements IFunCommand {
-
-    private static final String BASE_URL = "https://nekos.life/api/neko";
-
-    public CatgirlCommand(String name, String... aliases) {
-        super(name, aliases);
-    }
-
+/**
+ * Created by napster on 14.01.18.
+ * <p>
+ * Nonnull annotated copypasta of the {@link java.util.function.Supplier}
+ */
+@FunctionalInterface
+public interface NonnullSupplier<T> extends Supplier<T> {
     @Override
-    public void onInvoke(@Nonnull CommandContext context) {
-        context.sendTyping();
-        BotController.INS.getExecutor().submit(() -> postCatgirl(context));
-    }
-
-    private void postCatgirl(CommandContext context) {
-
-        try {
-            String nekoUrl = Http.get(BASE_URL).asJson().getString("neko");
-            context.replyImage(nekoUrl);
-        } catch (IOException e) {
-            context.reply(context.i18nFormat("catgirlFail", BASE_URL));
-        }
-    }
-
     @Nonnull
-    @Override
-    public String help(@Nonnull Context context) {
-        return "{0}{1}\n#Post a catgirl pic.";
-    }
+    T get();
 }

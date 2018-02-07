@@ -49,6 +49,14 @@
         <persistence strategy="localTempSwap"/>
     </cache>
 
+    <cache name="guild_data"
+           maxEntriesLocalHeap="120000"
+           eternal="false"
+           timeToIdleSeconds="60"
+           timeToLiveSeconds="120">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+
     <cache name="guild_modules"
            maxEntriesLocalHeap="120000"
            eternal="false"

@@ -1,4 +1,5 @@
 /*
+ *
  * MIT License
  *
  * Copyright (c) 2017 Frederik Ar. Mikkelsen
@@ -22,16 +23,21 @@
  * SOFTWARE.
  */
 
-package fredboat.db.entity;
+package fredboat.util.func;
+
+import javax.annotation.Nonnull;
+import java.util.function.Function;
 
 /**
- * Created by napster on 02.05.17.
+ * Created by napster on 15.01.18.
  * <p>
- * Just fucking around with generics
- * Implement this in all entities to retrieve them easily over a shared function
- * in EntityReader while having some type safety
+ * Nonnull annotated copypasta of the {@link java.util.function.Function}
  */
-public interface IEntity {
+@FunctionalInterface
+public interface NonnullFunction<T, R> extends Function<T, R> {
 
-    void setId(String id);
+    @Nonnull
+    @Override
+    R apply(@Nonnull T t);
+
 }

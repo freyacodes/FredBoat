@@ -60,6 +60,9 @@ public class CommandInitializer {
     public static final String YOUTUBE_COMM_NAME = "youtube";
     public static final String SOUNDCLOUD_COMM_NAME = "soundcloud";
     public static final String PREFIX_COMM_NAME = "prefix";
+    public static final String PLAY_COMM_NAME = "play";
+    public static final String CONFIG_COMM_NAME = "config";
+    public static final String LANGUAGE_COMM_NAME = "language";
 
     public static void initCommands() {
 
@@ -74,7 +77,7 @@ public class CommandInitializer {
         adminModule.registerCommand(new ExitCommand("exit"));
         adminModule.registerCommand(new GetNodeCommand("getnode"));
         adminModule.registerCommand(new LeaveServerCommand("leaveserver"));
-        adminModule.registerCommand(new NodeAdminCommand("node"));
+        adminModule.registerCommand(new NodeAdminCommand("node", "nodes"));
         adminModule.registerCommand(new PlayerDebugCommand("playerdebug"));
         adminModule.registerCommand(new ReviveCommand("revive"));
         adminModule.registerCommand(new SentryDsnCommand("sentrydsn"));
@@ -91,10 +94,10 @@ public class CommandInitializer {
         infoModule.registerCommand(new FuzzyUserSearchCommand("fuzzy"));
         infoModule.registerCommand(new GetIdCommand("getid"));
         infoModule.registerCommand(new GitInfoCommand("gitinfo", "git"));
+        infoModule.registerCommand(new HelloCommand("hello", "about"));
         infoModule.registerCommand(new HelpCommand(HELP_COMM_NAME, "info"));
         infoModule.registerCommand(new InviteCommand("invite"));
         infoModule.registerCommand(new MusicHelpCommand(MUSICHELP_COMM_NAME, "musichelp"));
-        infoModule.registerCommand(new NodesCommand("nodes"));
         infoModule.registerCommand(new PingCommand("ping"));
         infoModule.registerCommand(new ShardsCommand("shards"));
         infoModule.registerCommand(new StatsCommand("stats", "uptime"));
@@ -105,8 +108,8 @@ public class CommandInitializer {
 
         // Configurational stuff - always on
         CommandRegistry configModule = new CommandRegistry(CommandRegistry.Module.CONFIG);
-        configModule.registerCommand(new ConfigCommand("config", "cfg"));
-        configModule.registerCommand(new LanguageCommand("language", "lang"));
+        configModule.registerCommand(new ConfigCommand(CONFIG_COMM_NAME, "cfg"));
+        configModule.registerCommand(new LanguageCommand(LANGUAGE_COMM_NAME, "lang"));
         configModule.registerCommand(new ModulesCommand("modules", "module", "mods"));
         configModule.registerCommand(new PrefixCommand(PREFIX_COMM_NAME, "pre"));
         /* Perms */
@@ -161,7 +164,7 @@ public class CommandInitializer {
         funModule.registerCommand(new RestrictedRemoteFileCommand(PermissionLevel.BOT_ADMIN, "http://i.imgur.com/i65ss6p.png", "powerpoint"));
 
         funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/DYToB2e.jpg", "ram"));
-        funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/utPRe0e.gif", "welcome"));
+        funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/utPRe0e.gif", "welcome", "whalecum"));
         funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/93VahIh.png", "anime"));
         funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/qz6g1vj.gif", "explosion"));
         funModule.registerCommand(new RemoteFileCommand("http://i.imgur.com/84nbpQe.png", "internetspeed"));
@@ -205,13 +208,13 @@ public class CommandInitializer {
         musicModule.registerCommand(new LeaveCommand("leave", "lv"));
         musicModule.registerCommand(new PauseCommand("pause", "pa", "ps"));
         musicModule.registerCommand(new PlayCommand(Arrays.asList(SearchUtil.SearchProvider.YOUTUBE, SearchUtil.SearchProvider.SOUNDCLOUD),
-                "play", "p"));
+                PLAY_COMM_NAME, "p"));
         musicModule.registerCommand(new PlayCommand(Collections.singletonList(SearchUtil.SearchProvider.YOUTUBE),
                 YOUTUBE_COMM_NAME, "yt"));
         musicModule.registerCommand(new PlayCommand(Collections.singletonList(SearchUtil.SearchProvider.SOUNDCLOUD),
                 SOUNDCLOUD_COMM_NAME, "sc"));
         musicModule.registerCommand(new PlaySplitCommand("split"));
-        musicModule.registerCommand(new RepeatCommand("repeat", "rep"));
+        musicModule.registerCommand(new RepeatCommand("repeat", "rep", "loop"));
         musicModule.registerCommand(new ReshuffleCommand("reshuffle", "resh"));
         musicModule.registerCommand(new SelectCommand("select", buildNumericalSelectAliases("sel")));
         musicModule.registerCommand(new ShuffleCommand("shuffle", "sh", "random"));

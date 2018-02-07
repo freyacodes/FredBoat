@@ -6,7 +6,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import fredboat.Config;
+import fredboat.main.Config;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.metrics.OkHttpEventMetrics;
 import fredboat.util.rest.models.weather.OpenWeatherCurrent;

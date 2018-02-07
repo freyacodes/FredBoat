@@ -26,9 +26,9 @@ package fredboat.event;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import fredboat.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
+import fredboat.command.info.HelloCommand;
 import fredboat.command.info.HelpCommand;
 import fredboat.command.info.ShardsCommand;
 import fredboat.command.info.StatsCommand;
@@ -37,10 +37,14 @@ import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.CommandManager;
 import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.CommandContext;
-import fredboat.db.EntityReader;
+import fredboat.db.EntityIO;
+import fredboat.db.entity.main.GuildData;
 import fredboat.feature.I18n;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
+import fredboat.main.BotController;
+import fredboat.main.Config;
+import fredboat.main.ShardContext;
 import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
@@ -50,6 +54,9 @@ import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
 import io.prometheus.client.Histogram;
 import net.dv8tion.jda.core.entities.*;
+import net.dv8tion.jda.core.events.ReadyEvent;
+import net.dv8tion.jda.core.events.ShutdownEvent;
+import net.dv8tion.jda.core.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceJoinEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceLeaveEvent;
@@ -62,6 +69,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.TimeUnit;
 
 public class EventListenerBoat extends AbstractEventListener {
@@ -101,12 +109,12 @@ public class EventListenerBoat extends AbstractEventListener {
         }
 
         if (event.getPrivateChannel() != null) {
-            log.info("PRIVATE" + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getRawContent());
+            log.info("PRIVATE" + " \t " + event.getAuthor().getName() + " \t " + event.getMessage().getContentRaw());
             return;
         }
 
         if (event.getAuthor().equals(event.getJDA().getSelfUser())) {
-            log.info(event.getMessage().getRawContent());
+            log.info(event.getMessage().getContentRaw());
             return;
         }
 
@@ -119,7 +127,7 @@ public class EventListenerBoat extends AbstractEventListener {
         //preliminary permission filter to avoid a ton of parsing
         //let messages pass on to parsing that contain "help" since we want to answer help requests even from channels
         // where we can't talk in
-        if (!channel.canTalk() && !event.getMessage().getRawContent().toLowerCase().contains(CommandInitializer.HELP_COMM_NAME)) {
+        if (!channel.canTalk() && !event.getMessage().getContentRaw().toLowerCase().contains(CommandInitializer.HELP_COMM_NAME)) {
             return;
         }
 
@@ -127,7 +135,7 @@ public class EventListenerBoat extends AbstractEventListener {
         if (context == null) {
             return;
         }
-        log.info(event.getMessage().getRawContent());
+        log.info(event.getMessage().getContentRaw());
 
         //ignore all commands in channels where we can't write, except for the help command
         if (!channel.canTalk() && !(context.command instanceof HelpCommand)) {
@@ -217,7 +225,7 @@ public class EventListenerBoat extends AbstractEventListener {
                 || DiscordUtil.getOwnerId(event.getJDA()) == event.getAuthor().getIdLong()) {
 
             //hack in / hardcode some commands; this is not meant to look clean
-            String raw = event.getMessage().getRawContent().toLowerCase();
+            String raw = event.getMessage().getContentRaw().toLowerCase();
             if (raw.contains("shard")) {
                 for (Message message : ShardsCommand.getShardStatus(event.getMessage())) {
                     CentralMessaging.sendMessage(event.getChannel(), message);
@@ -267,7 +275,7 @@ public class EventListenerBoat extends AbstractEventListener {
                 && player.getPlayingTrack() != null
                 && joinedChannel.getMembers().contains(guild.getSelfMember())
                 && player.getHumanUsersInCurrentVC().size() > 0
-                && EntityReader.getGuildConfig(guild.getId()).isAutoResume()
+                && EntityIO.getGuildConfig(guild).isAutoResume()
                 ) {
             player.setPause(false);
             TextChannel activeTextChannel = player.getActiveTextChannel();
@@ -312,6 +320,18 @@ public class EventListenerBoat extends AbstractEventListener {
     }
 
     @Override
+    public void onGuildJoin(GuildJoinEvent event) {
+        //wait a few seconds to allow permissions to be set and applied and propagated
+        CentralMessaging.restService.schedule(() -> {
+            //retrieve the guild again - many things may have happened in 10 seconds!
+            Guild g = BotController.INS.getShardManager().getGuildById(event.getGuild().getIdLong());
+            if (g != null) {
+                sendHelloOnJoin(g);
+            }
+        }, 10, TimeUnit.SECONDS);
+    }
+
+    @Override
     public void onGuildLeave(GuildLeaveEvent event) {
         PlayerRegistry.destroyPlayer(event.getGuild());
     }
@@ -322,5 +342,46 @@ public class EventListenerBoat extends AbstractEventListener {
             log.warn("Unsuccessful JDA HTTP Request:\n{}\nResponse:{}\n",
                     event.getRequestRaw(), event.getResponseRaw());
         }
+    }
+
+    /* Shard lifecycle */
+    @Override
+    public void onReady(ReadyEvent event) {
+        ShardContext.of(event.getJDA()).onReady(event);
+    }
+
+    @Override
+    public void onShutdown(ShutdownEvent event) {
+        ShardContext.of(event.getJDA()).onShutdown();
+    }
+
+
+    private static void sendHelloOnJoin(@Nonnull Guild guild) {
+        //filter guilds that already received a hello message
+        // useful for when discord trolls us with fake guild joins
+        // or to prevent it send repeatedly due to kick and reinvite
+        GuildData gd = EntityIO.getGuildData(guild);
+        if (gd.getTimestampHelloSent() > 0) {
+            return;
+        }
+
+        TextChannel channel = guild.getTextChannelById(guild.getIdLong()); //old public channel
+        if (channel == null || !channel.canTalk()) {
+            //find first channel that we can talk in
+            for (TextChannel tc : guild.getTextChannels()) {
+                if (tc.canTalk()) {
+                    channel = tc;
+                    break;
+                }
+            }
+        }
+        if (channel == null) {
+            //no channel found to talk in
+            return;
+        }
+
+        //send actual hello message and persist on success
+        CentralMessaging.sendMessage(channel, HelloCommand.getHello(guild),
+                __ -> EntityIO.helloSent(guild));
     }
 }

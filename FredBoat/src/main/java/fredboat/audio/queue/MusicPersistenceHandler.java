@@ -28,12 +28,11 @@ package fredboat.audio.queue;
 import com.sedmelluq.discord.lavaplayer.tools.io.MessageInput;
 import com.sedmelluq.discord.lavaplayer.tools.io.MessageOutput;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.Config;
-import fredboat.FredBoat;
 import fredboat.audio.player.AbstractPlayer;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.feature.I18n;
+import fredboat.main.Config;
 import fredboat.messaging.CentralMessaging;
 import fredboat.shared.constant.DistributionEnum;
 import fredboat.shared.constant.ExitCodes;
@@ -154,7 +153,7 @@ public class MusicPersistenceHandler {
         }
     }
 
-    public static void reloadPlaylists(FredBoat shard) {
+    public static void reloadPlaylists(JDA jda) {
         File dir = new File("music_persistence");
 
         if(Config.CONFIG.getDistribution() == DistributionEnum.MUSIC) {
@@ -163,7 +162,7 @@ public class MusicPersistenceHandler {
             return;
         }
 
-        log.info("Began reloading playlists for shard {}", shard.getShardInfo().getShardId());
+        log.info("Began reloading playlists for shard {}", jda.getShardInfo().getShardId());
         if (!dir.exists()) {
             log.info("No music persistence directory found.");
             return;
@@ -174,7 +173,6 @@ public class MusicPersistenceHandler {
             return;
         }
 
-        JDA jda = shard.getJda();
         for (File file : files) {
             try {
                 Guild guild = jda.getGuildById(file.getName());

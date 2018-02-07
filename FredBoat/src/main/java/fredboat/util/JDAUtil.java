@@ -24,10 +24,9 @@
  */
 package fredboat.util;
 
-import fredboat.FredBoat;
 import gnu.trove.procedure.TObjectProcedure;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.entities.impl.JDAImpl;
 
@@ -37,7 +36,6 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 /**
  * JDA methods/hacks that had merit to put in its own class.
@@ -51,9 +49,9 @@ public class JDAUtil {
      * shards are unique since each guild can only be present in one shard.
      */
     @CheckReturnValue
-    public static int countGuilds(@Nonnull Collection<FredBoat> shards) {
+    public static int countGuilds(@Nonnull Collection<JDA> shards) {
         long result = shards.stream()
-                .mapToLong(shard -> shard.getJda().getGuildCache().size())
+                .mapToLong(shard -> shard.getGuildCache().size())
                 .sum();
         return Math.toIntExact(result); //the day where there are more than 2^32 guilds served by fredboat will be a glorious one. until then this is fine
     }
@@ -65,9 +63,9 @@ public class JDAUtil {
      * to count the unique values with an approriate size reducing expensive resizing operations.
      */
     @CheckReturnValue
-    public static int countUniqueUsers(@Nonnull Collection<FredBoat> shards, @Nullable AtomicInteger expectedUserCount) {
+    public static int countUniqueUsers(@Nonnull Collection<JDA> shards, @Nullable AtomicInteger expectedUserCount) {
         if (shards.size() == 1) { //a single shard provides a cheap call for getting user cardinality
-            return Math.toIntExact(shards.iterator().next().getJda().getUserCache().size());
+            return Math.toIntExact(shards.iterator().next().getUserCache().size());
         }
 
         int expected = expectedUserCount != null && expectedUserCount.get() > 0 ? expectedUserCount.get() : LongOpenHashSet.DEFAULT_INITIAL_SIZE;
@@ -81,7 +79,7 @@ public class JDAUtil {
                 // careful, touching the map is in not all cases safe
                 // In this case, it just so happens to be safe, because the map is synchronized
                 // this means however, that for the (small) duration, the map cannot be used by other threads (if there are any)
-                shard -> ((JDAImpl) shard.getJda()).getUserMap().forEachValue(adder)
+                shard -> ((JDAImpl) shard).getUserMap().forEachValue(adder)
         );
         return uniqueUsers.size();
     }
@@ -91,9 +89,9 @@ public class JDAUtil {
      * shards are unique since each TextChannel can only be present in one guild which can only be present in one shard.
      */
     @CheckReturnValue
-    public static int countTextChannels(@Nonnull Collection<FredBoat> shards) {
+    public static int countTextChannels(@Nonnull Collection<JDA> shards) {
         long result = shards.stream()
-                .mapToLong(shard -> shard.getJda().getTextChannelCache().size())
+                .mapToLong(shard -> shard.getTextChannelCache().size())
                 .sum();
         return Math.toIntExact(result);
     }
@@ -103,9 +101,9 @@ public class JDAUtil {
      * shards are unique since each VoiceChannel can only be present in one guild which can only be present in one shard.
      */
     @CheckReturnValue
-    public static int countVoiceChannels(@Nonnull Collection<FredBoat> shards) {
+    public static int countVoiceChannels(@Nonnull Collection<JDA> shards) {
         long result = shards.stream()
-                .mapToLong(shard -> shard.getJda().getVoiceChannelCache().size())
+                .mapToLong(shard -> shard.getVoiceChannelCache().size())
                 .sum();
         return Math.toIntExact(result);
     }
@@ -115,9 +113,9 @@ public class JDAUtil {
      * shards are unique since each Category can only be present in one guild which can only be present in one shard.
      */
     @CheckReturnValue
-    public static int countCategories(@Nonnull Collection<FredBoat> shards) {
+    public static int countCategories(@Nonnull Collection<JDA> shards) {
         long result = shards.stream()
-                .mapToLong(shard -> shard.getJda().getCategoryCache().size())
+                .mapToLong(shard -> shard.getCategoryCache().size())
                 .sum();
         return Math.toIntExact(result);
     }
@@ -127,9 +125,9 @@ public class JDAUtil {
      * shards are unique since each Emote can only be present in one guild which can only be present in one shard.
      */
     @CheckReturnValue
-    public static int countEmotes(@Nonnull Collection<FredBoat> shards) {
+    public static int countEmotes(@Nonnull Collection<JDA> shards) {
         long result = shards.stream()
-                .mapToLong(shard -> shard.getJda().getEmoteCache().size())
+                .mapToLong(shard -> shard.getEmoteCache().size())
                 .sum();
         return Math.toIntExact(result);
     }
@@ -139,28 +137,10 @@ public class JDAUtil {
      * shards are unique since each Role can only be present in one guild which can only be present in one shard.
      */
     @CheckReturnValue
-    public static int countRoles(@Nonnull Collection<FredBoat> shards) {
+    public static int countRoles(@Nonnull Collection<JDA> shards) {
         long result = shards.stream()
-                .mapToLong(shard -> shard.getJda().getRoleCache().size())
+                .mapToLong(shard -> shard.getRoleCache().size())
                 .sum();
         return Math.toIntExact(result);
-    }
-
-    /**
-     * @return Returns a non-distinct stream over all Guild entities in the provided shards.
-     */
-    @Nonnull
-    @CheckReturnValue
-    public static Stream<Guild> getGuilds(@Nonnull Collection<FredBoat> shards) {
-        return shards.stream().flatMap(fb -> fb.getJda().getGuildCache().stream());
-    }
-
-    /**
-     * @return Returns a non-distinct stream over all User entities in the provided shards.
-     */
-    @Nonnull
-    @CheckReturnValue
-    public static Stream<User> getUsers(@Nonnull Collection<FredBoat> shards) {
-        return shards.stream().flatMap(fb -> fb.getJda().getUserCache().stream());
     }
 }

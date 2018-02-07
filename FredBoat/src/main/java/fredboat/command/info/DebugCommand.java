@@ -25,7 +25,7 @@
 
 package fredboat.command.info;
 
-import fredboat.FredBoat;
+import fredboat.main.BotController;
 import fredboat.audio.player.AudioLossCounter;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
@@ -67,7 +67,7 @@ public class DebugCommand extends Command implements IInfoCommand, ICommandRestr
                 if (!PermsUtil.checkPermsWithFeedback(PermissionLevel.BOT_ADMIN, context)) {
                     return;
                 }
-                guild = FredBoat.getGuildById(Long.parseLong(context.args[0]));
+                guild = BotController.INS.getShardManager().getGuildById(Long.parseLong(context.args[0]));
             } catch (NumberFormatException ignored) {
                 guild = null;
             }

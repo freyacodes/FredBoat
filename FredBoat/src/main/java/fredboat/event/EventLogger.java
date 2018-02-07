@@ -25,12 +25,13 @@
 
 package fredboat.event;
 
-import fredboat.Config;
-import fredboat.FredBoat;
+import fredboat.main.BotController;
+import fredboat.main.Config;
 import fredboat.messaging.CentralMessaging;
 import fredboat.util.Emojis;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
+import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.events.*;
@@ -129,10 +130,11 @@ public class EventLogger extends ListenerAdapter {
         log.info("Left guild {} with {} users", event.getGuild(), event.getGuild().getMemberCache().size());
     }
 
+    @SuppressWarnings("FieldCanBeLocal")
     private final Runnable ON_SHUTDOWN = () -> {
         String message;
-        if (FredBoat.shutdownCode != FredBoat.UNKNOWN_SHUTDOWN_CODE) {
-            message = Emojis.DOOR + "Exiting with code " + FredBoat.shutdownCode + ".";
+        if (BotController.INS.getShutdownCode() != BotController.UNKNOWN_SHUTDOWN_CODE) {
+            message = Emojis.DOOR + "Exiting with code " + BotController.INS.getShutdownCode() + ".";
         } else {
             message = Emojis.DOOR + "Exiting with unknown code.";
         }
@@ -216,9 +218,11 @@ public class EventLogger extends ListenerAdapter {
                 .addField("Guilds joined", Integer.toString(guildsJoinedEvents.getAndSet(0)), true)
                 .addField("Guilds left", Integer.toString(guildsLeftEvents.getAndSet(0)), true);
 
-        if (!FredBoat.getShards().isEmpty()) {
-            FredBoat anyShard = FredBoat.getShards().get(0);
-            User self = anyShard.getJda().getSelfUser();
+        List<JDA> shards = BotController.INS.getShardManager().getShards();
+
+        if (!shards.isEmpty()) {
+            JDA anyShard = shards.get(0);
+            User self = anyShard.getSelfUser();
             eb.setFooter(self.getName(), self.getEffectiveAvatarUrl());
         }
 

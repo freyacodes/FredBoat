@@ -25,7 +25,7 @@
 
 package fredboat.command.music.control;
 
-import fredboat.Config;
+import fredboat.main.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.MessagingException;

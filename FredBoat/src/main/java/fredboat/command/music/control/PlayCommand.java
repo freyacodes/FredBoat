@@ -120,7 +120,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         } else if(LavalinkManager.ins.getConnectedChannel(guild) == null) {
             // When we just want to continue playing, but the user is not in a VC
             JOIN_COMMAND.onInvoke(context);
-            if(LavalinkManager.ins.getConnectedChannel(guild) != null || guild.getAudioManager().isAttemptingToConnect()) {
+            if(LavalinkManager.ins.getConnectedChannel(guild) != null) {
                 player.play();
                 context.reply(context.i18n("playWillNowPlay"));
             }
