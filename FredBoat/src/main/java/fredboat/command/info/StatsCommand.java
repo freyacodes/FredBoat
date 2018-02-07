@@ -26,6 +26,8 @@
 package fredboat.command.info;
 
 import com.sedmelluq.discord.lavaplayer.tools.PlayerLibrary;
+import fredboat.Config;
+import fredboat.FredBoat;
 import fredboat.agent.FredBoatAgent;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.CommandManager;
@@ -33,13 +35,9 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IInfoCommand;
 import fredboat.feature.I18n;
-import fredboat.main.BotMetrics;
-import fredboat.main.Config;
-import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.AppInfo;
-import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDAInfo;
@@ -63,7 +61,7 @@ public class StatsCommand extends Command implements IInfoCommand {
     }
 
     public static Message getStats(@Nullable Context context, @Nonnull JDA jda) {
-        long totalSecs = (System.currentTimeMillis() - Launcher.START_TIME) / 1000;
+        long totalSecs = (System.currentTimeMillis() - FredBoat.START_TIME) / 1000;
         int days = (int) (totalSecs / (60 * 60 * 24));
         int hours = (int) ((totalSecs / (60 * 60)) % 24);
         int mins = (int) ((totalSecs / 60) % 60);
@@ -95,8 +93,8 @@ public class StatsCommand extends Command implements IInfoCommand {
 
         content += "Sharding:                       " + jda.getShardInfo().getShardString() + "\n";
         content += "Players playing:                " + PlayerRegistry.getPlayingPlayers().size() + "\n";
-        content += "Known servers:                  " + BotMetrics.getTotalGuildsCount() + "\n";
-        content += "Known users in servers:         " + BotMetrics.getTotalUniqueUsersCount() + "\n";
+        content += "Known servers:                  " + FredBoat.getTotalGuildsCount() + "\n";
+        content += "Known users in servers:         " + FredBoat.getTotalUniqueUsersCount() + "\n";
         content += "Distribution:                   " + Config.CONFIG.getDistribution() + "\n";
         content += "JDA responses total:            " + jda.getResponseTotal() + "\n";
         content += "JDA version:                    " + JDAInfo.VERSION + "\n";
@@ -104,12 +102,6 @@ public class StatsCommand extends Command implements IInfoCommand {
         content += "Lavaplayer version:             " + PlayerLibrary.VERSION + "\n";
 
         content += "\n----------\n\n";
-        if (DiscordUtil.isOfficialBot()) {
-            content += "Docker pulls:\n";
-            content += "    FredBoat image:             " + BotMetrics.getDockerPullsBot() + "\n";
-            content += "    Database image:             " + BotMetrics.getDockerPullsDb() + "\n";
-            content += "\n----------\n\n";
-        }
 
         content += "Last agent run times:\n";
         for (Map.Entry<Class<? extends FredBoatAgent>, Long> entry : FredBoatAgent.getLastRunTimes().entrySet()) {

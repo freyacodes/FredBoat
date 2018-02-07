@@ -25,12 +25,10 @@
 
 package fredboat.api;
 
+import fredboat.Config;
+import fredboat.FredBoat;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.feature.metrics.Metrics;
-import fredboat.main.BotController;
-import fredboat.main.BotMetrics;
-import fredboat.main.Config;
-import net.dv8tion.jda.core.JDA;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -70,12 +68,12 @@ public class API {
             JSONObject root = new JSONObject();
             JSONArray a = new JSONArray();
 
-            for (JDA shard : BotController.INS.getShardManager().getShards()) {
+            for (FredBoat fb : FredBoat.getShards()) {
                 JSONObject fbStats = new JSONObject();
-                fbStats.put("id", shard.getShardInfo().getShardId())
-                        .put("guilds", shard.getGuildCache().size())
-                        .put("users", shard.getUserCache().size())
-                        .put("status", shard.getStatus());
+                fbStats.put("id", fb.getShardInfo().getShardId())
+                        .put("guilds", fb.getGuildCount())
+                        .put("users", fb.getUserCount())
+                        .put("status", fb.getJda().getStatus());
 
                 a.put(fbStats);
             }
@@ -84,8 +82,8 @@ public class API {
             g.put("playingPlayers", PlayerRegistry.getPlayingPlayers().size())
                     .put("totalPlayers", PlayerRegistry.getRegistry().size())
                     .put("distribution", Config.CONFIG.getDistribution())
-                    .put("guilds", BotMetrics.getTotalGuildsCount())
-                    .put("users", BotMetrics.getTotalUniqueUsersCount());
+                    .put("guilds", FredBoat.getTotalGuildsCount())
+                    .put("users", FredBoat.getTotalUniqueUsersCount());
 
             root.put("shards", a);
             root.put("global", g);

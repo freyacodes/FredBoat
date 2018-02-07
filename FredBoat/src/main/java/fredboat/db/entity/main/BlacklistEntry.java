@@ -25,9 +25,8 @@
 
 package fredboat.db.entity.main;
 
-import space.npstr.sqlsauce.entities.SaucedEntity;
+import fredboat.db.entity.IEntity;
 
-import javax.annotation.Nonnull;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -40,7 +39,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name = "blacklist")
-public class BlacklistEntry extends SaucedEntity<Long, BlacklistEntry> {
+public class BlacklistEntry implements IEntity {
 
     //id of the user or guild that this blacklist entry belongs to
     @Id
@@ -71,17 +70,9 @@ public class BlacklistEntry extends SaucedEntity<Long, BlacklistEntry> {
         this.blacklistedTimestamp = System.currentTimeMillis();
     }
 
-    @Nonnull
     @Override
-    public BlacklistEntry setId(@Nonnull Long id) {
-        this.id = id;
-        return this;
-    }
-
-    @Nonnull
-    @Override
-    public Long getId() {
-        return id;
+    public void setId(String id) {
+        this.id = Long.valueOf(id);
     }
 
     @Override
@@ -91,8 +82,11 @@ public class BlacklistEntry extends SaucedEntity<Long, BlacklistEntry> {
 
     //Boilerplate code below
 
-    //for jpa / db wrapper
     public BlacklistEntry() {
+    }
+
+    public long getId() {
+        return id;
     }
 
     public int getLevel() {

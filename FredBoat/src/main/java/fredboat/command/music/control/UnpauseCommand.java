@@ -59,7 +59,7 @@ public class UnpauseCommand extends Command implements IMusicCommand, ICommandRe
         } else if (LavalinkManager.ins.getConnectedChannel(context.guild) == null) {
             // When we just want to continue playing, but the user is not in a VC
             JOIN_COMMAND.onInvoke(context);
-            if(LavalinkManager.ins.getConnectedChannel(guild) != null) {
+            if(LavalinkManager.ins.getConnectedChannel(guild) != null || guild.getAudioManager().isAttemptingToConnect()) {
                 player.play();
                 context.reply(context.i18n("unpauseSuccess"));
             }

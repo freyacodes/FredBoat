@@ -31,22 +31,26 @@ import com.sedmelluq.discord.lavaplayer.tools.io.MessageOutput;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
-import fredboat.db.EntityIO;
+import fredboat.FredBoat;
+import fredboat.db.DatabaseNotReadyException;
 import fredboat.util.rest.SearchUtil;
 import org.apache.commons.lang3.SerializationUtils;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import space.npstr.sqlsauce.entities.SaucedEntity;
-import space.npstr.sqlsauce.fp.types.EntityKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import space.npstr.sqlsauce.DatabaseConnection;
+import space.npstr.sqlsauce.DatabaseException;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.persistence.*;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Created by napster on 27.08.17.
@@ -57,7 +61,14 @@ import java.util.*;
 @Table(name = "search_results")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region = "search_results")
-public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, SearchResult> {
+//todo after introducing the db refactoring in the persistent tracklists PR:
+//- refactor load() and save() as calls to EntityReader and EntityWriter
+//- make this class implement IEntity<SearchResultId>
+public class SearchResult implements Serializable {
+
+    private static final long serialVersionUID = -6903579675867836509L;
+
+    private static final Logger log = LoggerFactory.getLogger(SearchResult.class);
 
     @EmbeddedId
     private SearchResultId searchResultId;
@@ -80,11 +91,6 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
         this.serializedSearchResult = SerializationUtils.serialize(new SerializableAudioPlaylist(playerManager, searchResult));
     }
 
-    @Nonnull
-    public static EntityKey<SearchResultId, SearchResult> key(@Nonnull SearchResultId id) {
-        return EntityKey.of(id, SearchResult.class);
-    }
-
     /**
      * @param playerManager the PlayerManager to perform encoding and decoding with
      * @param provider      the search provider that shall be used for this search
@@ -94,53 +100,65 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
      *         cache database
      */
     @Nullable
-    public static AudioPlaylist load(@Nonnull AudioPlayerManager
-                                             playerManager, @Nonnull SearchUtil.SearchProvider provider,
-                                     @Nonnull String searchTerm, long maxAgeMillis) {
-        //language=JPAQL
-        String query = "SELECT sr FROM SearchResult sr WHERE sr.searchResultId = :id AND sr.timestamp > :oldest";
-        Map<String, Object> params = new HashMap<>();
-        params.put("id", new SearchResultId(provider, searchTerm));
-        params.put("oldest", maxAgeMillis < 0 ? 0 : System.currentTimeMillis() - maxAgeMillis);
-
-        List<SearchResult> queryResult = EntityIO.doUserFriendly(EntityIO.onCacheDb(
-                wrapper -> wrapper.selectJpqlQuery(query, params, SearchResult.class, 1)
-        )).orElse(Collections.emptyList());
-
-        if (queryResult.isEmpty()) {
+    public static AudioPlaylist load(AudioPlayerManager playerManager, SearchUtil.SearchProvider provider,
+                                     String searchTerm, long maxAgeMillis) throws DatabaseNotReadyException {
+        EntityManager em = null;
+        SearchResult sr;
+        SearchResultId sId = new SearchResultId(provider, searchTerm);
+        DatabaseConnection cacheDbConn = FredBoat.getCacheDbConnection();
+        if (cacheDbConn == null) {
             return null;
+        }
+        try {
+            em = cacheDbConn.getEntityManager();
+            em.getTransaction().begin();
+            sr = em.find(SearchResult.class, sId);
+            em.getTransaction().commit();
+        } catch (DatabaseException | PersistenceException e) {
+            log.error("Unexpected error while trying to look up a search result for provider {} and search term {}", provider.name(), searchTerm, e);
+            throw new DatabaseNotReadyException(e);
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+
+        if (sr != null && (maxAgeMillis < 0 || System.currentTimeMillis() < sr.timestamp + maxAgeMillis)) {
+            return sr.getSearchResult(playerManager);
         } else {
-            return queryResult.get(0).getSearchResult(playerManager);
+            return null;
         }
     }
 
     /**
-     * Merge a search result into the database.
+     * Persist a search in the database.
      *
      * @return the merged SearchResult object, or null when there is no cache database
      */
     @Nullable
-    public SearchResult merge() {
-        return EntityIO.doUserFriendly(EntityIO.onCacheDb(
-                wrapper -> wrapper.merge(this)
-        )).orElse(null);
-    }
-
-    @Nonnull
-    @Override
     public SearchResult save() {
-        throw new UnsupportedOperationException("Use SearchResult#merge() instead");
+        DatabaseConnection cacheDbConn = FredBoat.getCacheDbConnection();
+        if (cacheDbConn == null) {
+            return null;
+        }
+        EntityManager em = null;
+        try {
+            em = cacheDbConn.getEntityManager();
+            em.getTransaction().begin();
+            SearchResult managed = em.merge(this);
+            em.getTransaction().commit();
+            return managed;
+        } catch (DatabaseException | PersistenceException e) {
+            log.error("Unexpected error while saving a search result for provider {} and search term {}",
+                    searchResultId.provider, searchResultId.searchTerm, e);
+            throw new DatabaseNotReadyException(e);
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
     }
 
-    @Nonnull
-    @Override
-    public SearchResult setId(@Nonnull SearchResultId id) {
-        this.searchResultId = id;
-        return this;
-    }
-
-    @Nonnull
-    @Override
     public SearchResultId getId() {
         return searchResultId;
     }
@@ -169,8 +187,7 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
         this.timestamp = timestamp;
     }
 
-    @Nonnull
-    public AudioPlaylist getSearchResult(@Nonnull AudioPlayerManager playerManager) {
+    public AudioPlaylist getSearchResult(AudioPlayerManager playerManager) {
         SerializableAudioPlaylist sap = SerializationUtils.deserialize(serializedSearchResult);
         return sap.decode(playerManager);
     }
@@ -193,7 +210,7 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
         @Column(name = "search_term", nullable = false, columnDefinition = "text")
         private String searchTerm;
 
-        //for jpa / db wrapper
+        //for jpa
         public SearchResultId() {
         }
 
@@ -236,12 +253,8 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
     private static class SerializableAudioPlaylist implements Serializable {
         private static final long serialVersionUID = -6823555858689776338L;
 
-        @Nullable
         private String name;
-        @SuppressWarnings("NullableProblems") //triggered by the empty no params constructor
-        @Nonnull
         private byte[][] tracks;
-        @Nullable
         private byte[] selectedTrack;
         private boolean isSearchResult;
 
@@ -256,16 +269,18 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
             this.isSearchResult = audioPlaylist.isSearchResult();
         }
 
-        @Nonnull
-        public AudioPlaylist decode(@Nonnull AudioPlayerManager playerManager) {
+        public AudioPlaylist decode(AudioPlayerManager playerManager) {
             return new BasicAudioPlaylist(name,
                     decodeTracks(playerManager, tracks),
                     decodeTrack(playerManager, selectedTrack),
                     isSearchResult);
         }
 
-        @Nonnull
-        private static byte[][] encodeTracks(@Nonnull AudioPlayerManager playerManager, @Nonnull List<AudioTrack> tracks) {
+        private static byte[][] encodeTracks(AudioPlayerManager playerManager, List<AudioTrack> tracks) {
+            if (tracks == null) {
+                return new byte[0][];
+            }
+
             byte[][] encoded = new byte[tracks.size()][];
             int skipped = 0;
             for (int i = 0; i < tracks.size(); i++) {
@@ -288,8 +303,7 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
         }
 
         //may return null if the encoding fails or the input is null
-        @Nullable
-        private static byte[] encodeTrack(@Nonnull AudioPlayerManager playerManager, @Nullable AudioTrack track) {
+        private static byte[] encodeTrack(AudioPlayerManager playerManager, AudioTrack track) {
             if (track == null) {
                 return null;
             }
@@ -301,8 +315,7 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
             }
         }
 
-        @Nonnull
-        private static List<AudioTrack> decodeTracks(@Nonnull AudioPlayerManager playerManager, byte[][] input) {
+        private static List<AudioTrack> decodeTracks(AudioPlayerManager playerManager, byte[][] input) {
             List<AudioTrack> result = new ArrayList<>();
             if (input == null) return result;
 
@@ -316,8 +329,7 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
         }
 
         //may return null if the decoding fails or the input is null
-        @Nullable
-        private static AudioTrack decodeTrack(@Nonnull AudioPlayerManager playerManager, byte[] input) {
+        private static AudioTrack decodeTrack(AudioPlayerManager playerManager, byte[] input) {
             if (input == null) return null;
             ByteArrayInputStream bais = new ByteArrayInputStream(input);
             try {

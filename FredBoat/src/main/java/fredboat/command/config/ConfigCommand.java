@@ -30,7 +30,8 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IConfigCommand;
-import fredboat.db.EntityIO;
+import fredboat.db.EntityReader;
+import fredboat.db.EntityWriter;
 import fredboat.db.entity.main.GuildConfig;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
@@ -58,7 +59,7 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
     }
 
     private void printConfig(CommandContext context) {
-        GuildConfig gc = EntityIO.getGuildConfig(context.guild);
+        GuildConfig gc = EntityReader.getGuildConfig(context.guild.getId());
 
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append(context.i18nFormat("configNoArgs", context.guild.getName())).append("\n")
@@ -80,16 +81,15 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
             return;
         }
 
+        GuildConfig gc = EntityReader.getGuildConfig(context.guild.getId());
         String key = context.args[0];
         String val = context.args[1];
 
         switch (key) {
             case "track_announce":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
-                    EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper -> wrapper.findApplyAndMerge(
-                            GuildConfig.key(context.guild),
-                            gc -> gc.setTrackAnnounce(Boolean.valueOf(val))
-                    )));
+                    gc.setTrackAnnounce(Boolean.valueOf(val));
+                    EntityWriter.mergeGuildConfig(gc);
                     context.replyWithName("`track_announce` " + context.i18nFormat("configSetTo", val));
                 } else {
                     context.reply(context.i18nFormat("configMustBeBoolean", TextUtils.escapeAndDefuse(invoker.getEffectiveName())));
@@ -97,10 +97,8 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
                 break;
             case "auto_resume":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
-                    EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper -> wrapper.findApplyAndMerge(
-                            GuildConfig.key(context.guild),
-                            guildConfig -> guildConfig.setAutoResume(Boolean.valueOf(val))
-                    )));
+                    gc.setAutoResume(Boolean.valueOf(val));
+                    EntityWriter.mergeGuildConfig(gc);
                     context.replyWithName("`auto_resume` " + context.i18nFormat("configSetTo", val));
                 } else {
                     context.reply(context.i18nFormat("configMustBeBoolean", TextUtils.escapeAndDefuse(invoker.getEffectiveName())));

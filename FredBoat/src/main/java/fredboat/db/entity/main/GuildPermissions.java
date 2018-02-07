@@ -25,15 +25,17 @@
 
 package fredboat.db.entity.main;
 
+import fredboat.db.entity.IEntity;
 import fredboat.perms.PermissionLevel;
-import net.dv8tion.jda.core.entities.Guild;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import space.npstr.sqlsauce.entities.SaucedEntity;
-import space.npstr.sqlsauce.fp.types.EntityKey;
 
-import javax.annotation.Nonnull;
-import javax.persistence.*;
+import javax.persistence.Cacheable;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -42,12 +44,25 @@ import java.util.List;
 @Table(name = "guild_permissions")
 @Cacheable
 @Cache(usage= CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region="guild_permissions")
-public class GuildPermissions extends SaucedEntity<String, GuildPermissions> {
+public class GuildPermissions implements IEntity, Serializable {
+
+    private static final long serialVersionUID = 72988747242640626L;
 
     // Guild ID
     @Id
     @Column(name = "id")
     private String id;
+
+    public GuildPermissions() {}
+
+    @Override
+    public void setId(String id) {
+        this.id = id;
+
+        // Set up default permissions. Note that the @everyone role of a guild is of the same snowflake as the guild
+        this.djList = id;
+        this.userList = id;
+    }
 
     @Column(name = "list_admin", nullable = false, columnDefinition = "text")
     private String adminList = "";
@@ -58,51 +73,19 @@ public class GuildPermissions extends SaucedEntity<String, GuildPermissions> {
     @Column(name = "list_user", nullable = false, columnDefinition = "text")
     private String userList = "";
 
-    //for jpa / db wrapper
-    public GuildPermissions() {
-    }
-
-    @Nonnull
-    public static EntityKey<String, GuildPermissions> key(@Nonnull Guild guild) {
-        return EntityKey.of(guild.getId(), GuildPermissions.class);
-    }
-
-    @Nonnull
-    @Override
-    public GuildPermissions setId(@Nonnull String id) {
-        this.id = id;
-
-        //Set up default permissions. Note that the @everyone role of a guild is of the same snowflake as the guild
-        // This code works because setId() is only ever called when creating a new instance of this entity after failing
-        // not finding it in the database, and never else. There is no need to ever set the id on this object outside of
-        // that case.
-        this.djList = id;
-        this.userList = id;
-
-        return this;
-    }
-
-    @Nonnull
-    @Override
-    public String getId() {
-        return id;
-    }
-
     public List<String> getAdminList() {
         if (adminList == null) return new ArrayList<>();
 
         return Arrays.asList(adminList.split(" "));
     }
 
-    @Nonnull
-    public GuildPermissions setAdminList(List<String> list) {
+    public void setAdminList(List<String> list) {
         StringBuilder str = new StringBuilder();
         for (String item : list) {
             str.append(item).append(" ");
         }
 
         adminList = str.toString().trim();
-        return this;
     }
 
     public List<String> getDjList() {
@@ -111,15 +94,13 @@ public class GuildPermissions extends SaucedEntity<String, GuildPermissions> {
         return Arrays.asList(djList.split(" "));
     }
 
-    @Nonnull
-    public GuildPermissions setDjList(List<String> list) {
+    public void setDjList(List<String> list) {
         StringBuilder str = new StringBuilder();
         for (String item : list) {
             str.append(item).append(" ");
         }
 
         djList = str.toString().trim();
-        return this;
     }
 
     public List<String> getUserList() {
@@ -128,15 +109,13 @@ public class GuildPermissions extends SaucedEntity<String, GuildPermissions> {
         return Arrays.asList(userList.split(" "));
     }
 
-    @Nonnull
-    public GuildPermissions setUserList(List<String> list) {
+    public void setUserList(List<String> list) {
         StringBuilder str = new StringBuilder();
         for (String item : list) {
             str.append(item).append(" ");
         }
 
         userList = str.toString().trim();
-        return this;
     }
 
     public List<String> getFromEnum(PermissionLevel level) {
@@ -152,15 +131,17 @@ public class GuildPermissions extends SaucedEntity<String, GuildPermissions> {
         }
     }
 
-    @Nonnull
-    public GuildPermissions setFromEnum(PermissionLevel level, List<String> list) {
+    public void setFromEnum(PermissionLevel level, List<String> list) {
         switch (level) {
             case ADMIN:
-                return setAdminList(list);
+                setAdminList(list);
+                break;
             case DJ:
-                return setDjList(list);
+                setDjList(list);
+                break;
             case USER:
-                return setUserList(list);
+                setUserList(list);
+                break;
             default:
                 throw new IllegalArgumentException("Unexpected enum " + level);
         }

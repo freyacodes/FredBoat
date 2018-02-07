@@ -25,11 +25,10 @@
 
 package fredboat.audio.player;
 
-import fredboat.main.BotController;
-import fredboat.main.Config;
+import fredboat.Config;
+import fredboat.FredBoat;
 import fredboat.util.DiscordUtil;
 import lavalink.client.io.Lavalink;
-import lavalink.client.io.metrics.LavalinkCollector;
 import lavalink.client.player.IPlayer;
 import lavalink.client.player.LavaplayerPlayerWrapper;
 import net.dv8tion.jda.core.entities.Guild;
@@ -53,14 +52,12 @@ public class LavalinkManager {
         lavalink = new Lavalink(
                 Long.toString(DiscordUtil.getBotId()),
                 Config.getNumShards(),
-                shardId -> BotController.INS.getShardManager().getShardById(shardId)
+                shardId -> FredBoat.getShard(shardId).getJda()
         );
 
         List<Config.LavalinkHost> hosts = Config.CONFIG.getLavalinkHosts();
-        hosts.forEach(lavalinkHost -> lavalink.addNode(lavalinkHost.getName(), lavalinkHost.getUri(),
+        hosts.forEach(lavalinkHost -> lavalink.addNode(lavalinkHost.getUri(),
                 lavalinkHost.getPassword()));
-
-        new LavalinkCollector(lavalink).register();
     }
 
     public boolean isEnabled() {

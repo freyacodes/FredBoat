@@ -24,8 +24,8 @@
 
 package fredboat.util.ratelimit;
 
-import fredboat.main.BotController;
-import fredboat.main.Config;
+import fredboat.Config;
+import fredboat.FredBoat;
 import fredboat.audio.queue.PlaylistInfo;
 import fredboat.command.info.ShardsCommand;
 import fredboat.command.music.control.SkipCommand;
@@ -79,7 +79,7 @@ public class Ratelimiter {
         Set<Long> whitelist = ConcurrentHashMap.newKeySet();
 
         //it is ok to use the jda of any shard as long as we aren't using it for guild specific stuff
-        JDA jda = BotController.INS.getShardManager().getShardById(0);
+        JDA jda = FredBoat.getShard(0).getJda();
         whitelist.add(DiscordUtil.getOwnerId(jda));
         whitelist.add(jda.getSelfUser().getIdLong());
         //only works for those admins who are added with their userId and not through a roleId

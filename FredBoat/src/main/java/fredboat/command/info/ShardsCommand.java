@@ -25,11 +25,11 @@
 
 package fredboat.command.info;
 
+import fredboat.Config;
+import fredboat.FredBoat;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IInfoCommand;
-import fredboat.main.BotController;
-import fredboat.main.Config;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
@@ -62,19 +62,19 @@ public class ShardsCommand extends Command implements IInfoCommand {
 
         //do a full report? or just a summary
         boolean full = false;
-        String raw = input.getContentRaw().toLowerCase();
+        String raw = input.getRawContent().toLowerCase();
         if (raw.contains("full") || raw.contains("all")) {
             full = true;
         }
 
-        List<JDA> shards = BotController.INS.getShardManager().getShards();
+        List<FredBoat> shards = FredBoat.getShards();
         int borkenShards = 0;
         int healthyGuilds = 0;
         int healthyUsers = 0;
-        for (JDA shard : shards) {
-            if (shard.getStatus() == JDA.Status.CONNECTED && !full) {
-                healthyGuilds += shard.getGuildCache().size();
-                healthyUsers += shard.getUserCache().size();
+        for (FredBoat fb : shards) {
+            if (fb.getJda().getStatus() == JDA.Status.CONNECTED && !full) {
+                healthyGuilds += fb.getGuildCount();
+                healthyUsers += fb.getUserCount();
             } else {
                 if (borkenShards % SHARDS_PER_MESSAGE == 0) {
                     if (mb != null) {
@@ -84,15 +84,15 @@ public class ShardsCommand extends Command implements IInfoCommand {
                     mb = CentralMessaging.getClearThreadLocalMessageBuilder().append("```diff\n");
                 }
                 //noinspection ConstantConditions
-                mb.append(shard.getStatus() == JDA.Status.CONNECTED ? "+" : "-")
+                mb.append(fb.getJda().getStatus() == JDA.Status.CONNECTED ? "+" : "-")
                         .append(" ")
-                        .append(shard.getShardInfo().getShardString())
+                        .append(fb.getShardInfo().getShardString())
                         .append(" ")
-                        .append(shard.getStatus())
+                        .append(fb.getJda().getStatus())
                         .append(" -- Guilds: ")
-                        .append(String.format("%04d", shard.getGuildCache().size()))
+                        .append(String.format("%04d", fb.getGuildCount()))
                         .append(" -- Users: ")
-                        .append(shard.getUserCache().size())
+                        .append(fb.getUserCount())
                         .append("\n");
                 borkenShards++;
             }
