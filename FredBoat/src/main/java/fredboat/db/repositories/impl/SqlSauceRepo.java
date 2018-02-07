@@ -25,16 +25,53 @@
 
 package fredboat.db.repositories.impl;
 
+import fredboat.db.repositories.api.IRepo;
 import space.npstr.sqlsauce.DatabaseWrapper;
+import space.npstr.sqlsauce.entities.SaucedEntity;
+import space.npstr.sqlsauce.fp.types.EntityKey;
+
+import javax.annotation.Nullable;
+import java.io.Serializable;
 
 /**
  * Created by napster on 05.02.18.
  */
-public abstract class SqlSauceRepo {
+public abstract class SqlSauceRepo<I extends Serializable, E extends SaucedEntity<I, E>> implements IRepo<I, E> {
 
     protected final DatabaseWrapper dbWrapper;
+    protected final Class<E> entityClass;
 
-    public SqlSauceRepo(DatabaseWrapper dbWrapper) {
+    public SqlSauceRepo(DatabaseWrapper dbWrapper, Class<E> entityClass) {
         this.dbWrapper = dbWrapper;
+        this.entityClass = entityClass;
+    }
+
+    public DatabaseWrapper getDatabaseWrapper() {
+        return dbWrapper;
+    }
+
+    public Class<E> getEntityClass() {
+        return entityClass;
+    }
+
+    @Nullable
+    @Override
+    public E get(I id) {
+        return dbWrapper.getEntity(EntityKey.of(id, entityClass));
+    }
+
+    @Override
+    public void delete(I id) {
+        dbWrapper.deleteEntity(EntityKey.of(id, entityClass));
+    }
+
+    @Override
+    public E fetch(I id) {
+        return dbWrapper.getOrCreate(EntityKey.of(id, entityClass));
+    }
+
+    @Override
+    public E merge(E entity) {
+        return dbWrapper.merge(entity);
     }
 }

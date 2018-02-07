@@ -28,37 +28,14 @@ package fredboat.db.repositories.impl;
 import fredboat.db.entity.main.GuildPermissions;
 import fredboat.db.repositories.api.IGuildPermsRepo;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.fp.types.EntityKey;
-
-import javax.annotation.Nullable;
 
 /**
  * Created by napster on 05.02.18.
  */
-public class SqlSauceGuildPermsRepo extends SqlSauceRepo implements IGuildPermsRepo {
+public class SqlSauceGuildPermsRepo extends SqlSauceRepo<String, GuildPermissions> implements IGuildPermsRepo {
 
     public SqlSauceGuildPermsRepo(DatabaseWrapper dbWrapper) {
-        super(dbWrapper);
+        super(dbWrapper, GuildPermissions.class);
     }
 
-    @Nullable
-    @Override
-    public GuildPermissions get(String id) {
-        return dbWrapper.getEntity(EntityKey.of(id, GuildPermissions.class));
-    }
-
-    @Override
-    public void delete(String id) {
-        dbWrapper.deleteEntity(EntityKey.of(id, GuildPermissions.class));
-    }
-
-    @Override
-    public GuildPermissions fetch(String id) {
-        return dbWrapper.getOrCreate(EntityKey.of(id, GuildPermissions.class));
-    }
-
-    @Override
-    public GuildPermissions merge(GuildPermissions entity) {
-        return dbWrapper.merge(entity);
-    }
 }

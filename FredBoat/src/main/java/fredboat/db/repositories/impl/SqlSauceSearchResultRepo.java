@@ -28,7 +28,6 @@ package fredboat.db.repositories.impl;
 import fredboat.db.entity.cache.SearchResult;
 import fredboat.db.repositories.api.ISearchResultRepo;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.fp.types.EntityKey;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -38,31 +37,11 @@ import java.util.Map;
 /**
  * Created by napster on 05.02.18.
  */
-public class SqlSauceSearchResultRepo extends SqlSauceRepo implements ISearchResultRepo {
+public class SqlSauceSearchResultRepo extends SqlSauceRepo<SearchResult.SearchResultId, SearchResult>
+        implements ISearchResultRepo {
 
     public SqlSauceSearchResultRepo(DatabaseWrapper dbWrapper) {
-        super(dbWrapper);
-    }
-
-    @Nullable
-    @Override
-    public SearchResult get(SearchResult.SearchResultId id) {
-        return dbWrapper.getEntity(EntityKey.of(id, SearchResult.class));
-    }
-
-    @Override
-    public void delete(SearchResult.SearchResultId id) {
-        dbWrapper.deleteEntity(EntityKey.of(id, SearchResult.class));
-    }
-
-    @Override
-    public SearchResult fetch(SearchResult.SearchResultId id) {
-        return dbWrapper.getOrCreate(EntityKey.of(id, SearchResult.class));
-    }
-
-    @Override
-    public SearchResult merge(SearchResult entity) {
-        return dbWrapper.merge(entity);
+        super(dbWrapper, SearchResult.class);
     }
 
     @Nullable

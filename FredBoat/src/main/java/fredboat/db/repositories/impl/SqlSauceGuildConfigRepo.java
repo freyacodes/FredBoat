@@ -26,40 +26,16 @@
 package fredboat.db.repositories.impl;
 
 import fredboat.db.entity.main.GuildConfig;
-import fredboat.db.entity.main.GuildPermissions;
 import fredboat.db.repositories.api.IGuildConfigRepo;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.fp.types.EntityKey;
-
-import javax.annotation.Nullable;
 
 /**
  * Created by napster on 05.02.18.
  */
-public class SqlSauceGuildConfigRepo extends SqlSauceRepo implements IGuildConfigRepo {
+public class SqlSauceGuildConfigRepo extends SqlSauceRepo<String, GuildConfig> implements IGuildConfigRepo {
 
     public SqlSauceGuildConfigRepo(DatabaseWrapper dbWrapper) {
-        super(dbWrapper);
+        super(dbWrapper, GuildConfig.class);
     }
 
-    @Nullable
-    @Override
-    public GuildConfig get(String id) {
-        return dbWrapper.getEntity(EntityKey.of(id, GuildConfig.class));
-    }
-
-    @Override
-    public void delete(String id) {
-        dbWrapper.deleteEntity(EntityKey.of(id, GuildPermissions.class));
-    }
-
-    @Override
-    public GuildConfig fetch(String id) {
-        return dbWrapper.getOrCreate(EntityKey.of(id, GuildConfig.class));
-    }
-
-    @Override
-    public GuildConfig merge(GuildConfig entity) {
-        return dbWrapper.merge(entity);
-    }
 }

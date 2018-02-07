@@ -25,42 +25,17 @@
 
 package fredboat.db.repositories.impl;
 
-import fredboat.db.entity.main.GuildData;
 import fredboat.db.entity.main.GuildModules;
 import fredboat.db.repositories.api.IGuildModulesRepo;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.fp.types.EntityKey;
-
-import javax.annotation.Nullable;
 
 /**
  * Created by napster on 05.02.18.
  */
-public class SqlSauceGuildModulesRepo extends SqlSauceRepo implements IGuildModulesRepo {
+public class SqlSauceGuildModulesRepo extends SqlSauceRepo<Long, GuildModules> implements IGuildModulesRepo {
 
     public SqlSauceGuildModulesRepo(DatabaseWrapper dbWrapper) {
-        super(dbWrapper);
-    }
-
-    @Nullable
-    @Override
-    public GuildModules get(Long id) {
-        return dbWrapper.getEntity(EntityKey.of(id, GuildModules.class));
-    }
-
-    @Override
-    public void delete(Long id) {
-        dbWrapper.deleteEntity(EntityKey.of(id, GuildData.class));
-    }
-
-    @Override
-    public GuildModules fetch(Long id) {
-        return dbWrapper.getOrCreate(EntityKey.of(id, GuildModules.class));
-    }
-
-    @Override
-    public GuildModules merge(GuildModules entity) {
-        return dbWrapper.merge(entity);
+        super(dbWrapper, GuildModules.class);
     }
 
 }

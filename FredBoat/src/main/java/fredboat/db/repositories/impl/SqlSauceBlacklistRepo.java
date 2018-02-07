@@ -28,46 +28,16 @@ package fredboat.db.repositories.impl;
 import fredboat.db.entity.main.BlacklistEntry;
 import fredboat.db.repositories.api.IBlacklistRepo;
 import space.npstr.sqlsauce.DatabaseWrapper;
-import space.npstr.sqlsauce.fp.types.EntityKey;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 /**
  * Created by napster on 05.02.18.
  */
-public class SqlSauceBlacklistRepo extends SqlSauceRepo implements IBlacklistRepo {
+public class SqlSauceBlacklistRepo extends SqlSauceRepo<Long, BlacklistEntry> implements IBlacklistRepo {
 
     public SqlSauceBlacklistRepo(DatabaseWrapper dbWrapper) {
-        super(dbWrapper);
-    }
-
-    @Nullable
-    @Override
-    public BlacklistEntry get(Long id) {
-        return dbWrapper.getEntity(EntityKey.of(id, BlacklistEntry.class));
-    }
-
-    @Override
-    public void delete(Long id) {
-        dbWrapper.deleteEntity(EntityKey.of(id, BlacklistEntry.class));
-        // old code, which is slightly more efficient?
-//        //language=SQL
-//        String query = "DELETE FROM blacklist WHERE id = :id";
-//        Map<String, Object> params = new HashMap<>();
-//        params.put("id", id);
-//
-//        doUserFriendly(onMainDb(wrapper -> wrapper.executeSqlQuery(query, params)));
-    }
-
-    @Override
-    public BlacklistEntry fetch(Long id) {
-        return dbWrapper.getOrCreate(EntityKey.of(id, BlacklistEntry.class));
-    }
-
-    @Override
-    public BlacklistEntry merge(BlacklistEntry entity) {
-        return dbWrapper.merge(entity);
+        super(dbWrapper, BlacklistEntry.class);
     }
 
     @Override

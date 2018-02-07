@@ -29,7 +29,6 @@ import fredboat.db.entity.main.Prefix;
 import fredboat.db.repositories.api.IPrefixRepo;
 import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.entities.GuildBotComposite;
-import space.npstr.sqlsauce.fp.types.EntityKey;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -39,31 +38,10 @@ import java.util.Map;
 /**
  * Created by napster on 05.02.18.
  */
-public class SqlSaucePrefixRepo extends SqlSauceRepo implements IPrefixRepo {
+public class SqlSaucePrefixRepo extends SqlSauceRepo<GuildBotComposite, Prefix> implements IPrefixRepo {
 
     public SqlSaucePrefixRepo(DatabaseWrapper dbWrapper) {
-        super(dbWrapper);
-    }
-
-    @Nullable
-    @Override
-    public Prefix get(GuildBotComposite id) {
-        return dbWrapper.getEntity(EntityKey.of(id, Prefix.class));
-    }
-
-    @Override
-    public void delete(GuildBotComposite id) {
-        dbWrapper.deleteEntity(EntityKey.of(id, Prefix.class));
-    }
-
-    @Override
-    public Prefix fetch(GuildBotComposite id) {
-        return dbWrapper.getOrCreate(EntityKey.of(id, Prefix.class));
-    }
-
-    @Override
-    public Prefix merge(Prefix entity) {
-        return dbWrapper.merge(entity);
+        super(dbWrapper, Prefix.class);
     }
 
     @Nullable
