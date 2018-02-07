@@ -93,7 +93,7 @@ public class EntityIO {
      * MessagingExceptions. MessagingExceptions or their causes are currently not expected to be logged further up,
      * that's why we log the cause of it at this place.
      */
-    public static <T> T fetchUserFriendly(NonnullSupplier<T> operation) {
+    private static <T> T fetchUserFriendly(NonnullSupplier<T> operation) {
         try {
             return operation.get();
         } catch (DatabaseException e) {
@@ -106,7 +106,7 @@ public class EntityIO {
      * Same as {@link EntityIO#fetchUserFriendly(NonnullSupplier)}, just with a nullable return.
      */
     @Nullable
-    public static <T> T getUserFriendly(Supplier<T> operation) {
+    private static <T> T getUserFriendly(Supplier<T> operation) {
         try {
             return operation.get();
         } catch (DatabaseException e) {
@@ -118,7 +118,7 @@ public class EntityIO {
     /**
      * Same as {@link EntityIO#fetchUserFriendly(NonnullSupplier)}, just without returning anything
      */
-    public static void doUserFriendly(Runnable operation) {
+    private static void doUserFriendly(Runnable operation) {
         try {
             operation.run();
         } catch (DatabaseException e) {
