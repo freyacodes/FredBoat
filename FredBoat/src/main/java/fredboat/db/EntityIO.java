@@ -25,6 +25,7 @@
 
 package fredboat.db;
 
+import fredboat.db.api.*;
 import fredboat.db.entity.cache.SearchResult;
 import fredboat.db.entity.main.*;
 import fredboat.db.repositories.api.*;
@@ -56,7 +57,8 @@ import java.util.function.Supplier;
 @FieldsAreNonNullByDefault
 @ParametersAreNonnullByDefault
 @ReturnTypesAreNonNullByDefault
-public class EntityIO {
+public class EntityIO implements IBlacklistIO, IGuildConfigIO, IGuildDataIO, IGuildModulesIO, IGuildPermsIO, IPrefixIO,
+        ISearchResultIO {
 
     private static final Logger log = LoggerFactory.getLogger(EntityIO.class);
 
@@ -134,14 +136,17 @@ public class EntityIO {
      * @return the whole blacklist aka all entries. Not a lightweight operation, and shouldn't be called outside
      * of initial population of the blacklist (and probably not even then, reworking the ratelimiter is planned).
      */
+    @Override
     public List<BlacklistEntry> loadBlacklist() {
         return fetchUserFriendly(blacklistRepo::loadBlacklist);
     }
 
+    @Override
     public BlacklistEntry mergeBlacklistEntry(BlacklistEntry entry) {
         return fetchUserFriendly(() -> blacklistRepo.merge(entry));
     }
 
+    @Override
     public void deleteBlacklistEntry(long id) {
         doUserFriendly(() -> blacklistRepo.delete(id));
     }
@@ -149,11 +154,13 @@ public class EntityIO {
 
     // Guild config stuff
 
+    @Override
     public GuildConfig fetchGuildConfig(Guild guild) {
         return fetchUserFriendly(() -> guildConfigRepo.fetch(guild));
     }
 
 
+    @Override
     public GuildConfig transformGuildConfig(Guild guild, Function<GuildConfig, GuildConfig> transformation) {
         GuildConfig guildConfig = fetchUserFriendly(() -> guildConfigRepo.fetch(guild));
         return fetchUserFriendly(() -> guildConfigRepo.merge(transformation.apply(guildConfig)));
@@ -162,10 +169,12 @@ public class EntityIO {
 
     // Guild data stuff
 
+    @Override
     public GuildData fetchGuildData(Guild guild) {
         return fetchUserFriendly(() -> guildDataRepo.fetch(guild));
     }
 
+    @Override
     public GuildData transformGuildData(Guild guild, Function<GuildData, GuildData> transformation) {
         GuildData guildData = fetchUserFriendly(() -> guildDataRepo.fetch(guild));
         return fetchUserFriendly(() -> guildDataRepo.merge(transformation.apply(guildData)));
@@ -174,10 +183,12 @@ public class EntityIO {
 
     // Guild modules stuff
 
+    @Override
     public GuildModules fetchGuildModules(Guild guild) {
         return fetchUserFriendly(() -> guildModulesRepo.fetch(guild));
     }
 
+    @Override
     public GuildModules transformGuildModules(Guild guild, Function<GuildModules, GuildModules> transformation) {
         GuildModules guildModules = fetchUserFriendly(() -> guildModulesRepo.fetch(guild));
         return fetchUserFriendly(() -> guildModulesRepo.merge(transformation.apply(guildModules)));
@@ -186,10 +197,12 @@ public class EntityIO {
 
     // Guild permission stuff
 
+    @Override
     public GuildPermissions fetchGuildPermissions(Guild guild) {
         return fetchUserFriendly(() -> guildPermsRepo.fetch(guild));
     }
 
+    @Override
     public GuildPermissions transformGuildPerms(Guild guild, Function<GuildPermissions, GuildPermissions> transformation) {
         GuildPermissions guildPerms = fetchUserFriendly(() -> guildPermsRepo.fetch(guild));
         return fetchUserFriendly(() -> guildPermsRepo.merge(transformation.apply(guildPerms)));
@@ -198,11 +211,13 @@ public class EntityIO {
 
     // Prefix stuff
 
+    @Override
     public Prefix transformPrefix(Guild guild, Function<Prefix, Prefix> transformation) {
         Prefix prefix = fetchUserFriendly(() -> prefixRepo.fetch(new GuildBotComposite(guild, DiscordUtil.getBotId())));
         return fetchUserFriendly(() -> prefixRepo.merge(transformation.apply(prefix)));
     }
 
+    @Override
     public Optional<String> getPrefix(GuildBotComposite id) {
         return fetchUserFriendly(() -> Optional.ofNullable(prefixRepo.getPrefix(id)));
     }
@@ -215,6 +230,7 @@ public class EntityIO {
      *
      * @return the merged SearchResult object, or null when there is no cache database
      */
+    @Override
     @Nullable
     public SearchResult merge(SearchResult searchResult) {
         if (searchResultRepo != null) {
@@ -229,6 +245,7 @@ public class EntityIO {
      * @return the cached search result; may return null for a non-existing or outdated search, or when there is no
      * cache database
      */
+    @Override
     @Nullable
     public SearchResult getSearchResult(SearchResult.SearchResultId id, long maxAgeMillis) {
         if (searchResultRepo == null) {
