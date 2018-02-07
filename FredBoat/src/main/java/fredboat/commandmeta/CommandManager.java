@@ -27,7 +27,11 @@ package fredboat.commandmeta;
 
 
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.commandmeta.abs.*;
+import fredboat.command.fun.AkinatorCommand;
+import fredboat.commandmeta.abs.Command;
+import fredboat.commandmeta.abs.CommandContext;
+import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.commandmeta.abs.IMusicCommand;
 import fredboat.feature.PatronageChecker;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
@@ -35,7 +39,6 @@ import fredboat.messaging.CentralMessaging;
 import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
-import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
@@ -78,13 +81,16 @@ public class CommandManager {
             }
         }
 
-        //Hardcode music commands in FredBoatHangout. Blacklist any channel that isn't #spam_and_music or #staff, but whitelist Admins
-        if (guild.getIdLong() == BotConstants.FREDBOAT_HANGOUT_ID && DiscordUtil.isOfficialBot()) {
+        //Hardcode music commands in FredBoatHangout. Blacklist any channel that isn't #general or #staff, but whitelist Frederikam
+        if ((invoked instanceof IMusicCommand || invoked instanceof AkinatorCommand) // the hate is real
+                && guild.getIdLong() == BotConstants.FREDBOAT_HANGOUT_ID
+                && guild.getJDA().getSelfUser().getIdLong() == BotConstants.MUSIC_BOT_ID) {
             if (!channel.getId().equals("174821093633294338") // #spam_and_music
                     && !channel.getId().equals("217526705298866177") // #staff
-                    && !PermsUtil.checkPerms(PermissionLevel.ADMIN, invoker)) {
+                    && !invoker.getUser().getId().equals("203330266461110272")//Cynth
+                    && !invoker.getUser().getId().equals("81011298891993088")) { // Fre_d
                 context.deleteMessage();
-                context.replyWithName("Please read <#219483023257763842> for server rules and only use commands in <#174821093633294338>!",
+                context.replyWithName("Please don't spam music commands outside of <#174821093633294338>.",
                         msg -> CentralMessaging.restService.schedule(() -> CentralMessaging.deleteMessage(msg),
                                 5, TimeUnit.SECONDS));
                 return;

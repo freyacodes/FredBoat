@@ -24,7 +24,8 @@
 
 package fredboat.util.ratelimit;
 
-import fredboat.db.EntityIO;
+import fredboat.db.EntityReader;
+import fredboat.db.EntityWriter;
 import fredboat.db.entity.main.BlacklistEntry;
 import fredboat.feature.metrics.Metrics;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -70,7 +71,7 @@ public class Blacklist {
     public Blacklist(Set<Long> userWhiteList, long rateLimitHitsBeforeBlacklist) {
         this.blacklist = new Long2ObjectOpenHashMap<>();
         //load blacklist from database
-        for (BlacklistEntry ble : EntityIO.loadBlacklist()) {
+        for (BlacklistEntry ble : EntityReader.loadBlacklist()) {
             blacklist.put(ble.id, ble);
         }
 
@@ -135,8 +136,7 @@ public class Blacklist {
             }
             //persist it
             //if this turns up to be a performance bottleneck, have an agent run that persists the blacklist occasionally
-            blEntry = EntityIO.mergeBlacklistEntry(blEntry);
-            blacklist.put(blEntry.id, blEntry);
+            EntityWriter.mergeBlacklistEntry(blEntry);
             return blacklistingLength;
         }
     }
@@ -161,7 +161,7 @@ public class Blacklist {
      */
     public synchronized void liftBlacklist(long id) {
         blacklist.remove(id);
-        EntityIO.deleteBlacklistEntry(id);
+        EntityWriter.deleteBlacklistEntry(id);
     }
 
     /**

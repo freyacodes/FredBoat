@@ -54,7 +54,8 @@ public class AudioDebugCommand extends Command implements IInfoCommand {
     }
 
     private void handleLavalink(CommandContext context) {
-        context.replyWithName("Lavalink remote nodes are enabled. No local lavaplayer stats are available.");
+        context.replyWithName("LavaLink is enabled! Showing LavaLink status instead.");
+        NodesCommand.handleLavalink(context);
     }
 
     private void handleLavaplayer(CommandContext context) {

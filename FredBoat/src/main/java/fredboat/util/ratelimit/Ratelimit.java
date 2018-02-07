@@ -24,7 +24,7 @@
 
 package fredboat.util.ratelimit;
 
-import fredboat.main.BotController;
+import fredboat.FredBoat;
 import fredboat.messaging.internal.Context;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -132,7 +132,7 @@ public class Ratelimit {
         //the following code has to handle that
 
         if (blacklist != null && scope == Scope.USER)
-            BotController.INS.getExecutor().submit(() -> bannerinoUserino(context, blacklist));
+            FredBoat.executor.submit(() -> bannerinoUserino(context, blacklist));
         return false;
     }
 

@@ -25,7 +25,7 @@
 
 package fredboat.command.admin;
 
-import fredboat.main.BotController;
+import fredboat.FredBoat;
 import fredboat.audio.player.LavalinkManager;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
@@ -54,7 +54,7 @@ public class GetNodeCommand extends Command implements ICommandRestricted {
         if (context.hasArguments()) {
             try {
                 long guildId = Long.parseUnsignedLong(context.args[0]);
-                guild = BotController.INS.getShardManager().getGuildById(guildId);
+                guild = FredBoat.getGuildById(guildId);
             } catch (NumberFormatException ignored) {
             }
             if (guild == null) {
@@ -64,7 +64,7 @@ public class GetNodeCommand extends Command implements ICommandRestricted {
         } else {
             guild = context.guild;
         }
-        LavalinkSocket node = LavalinkManager.ins.getLavalink().getLink(guild).getNode();
+        LavalinkSocket node = LavalinkManager.ins.getLavalink().getLink(guild).getCurrentSocket();
 
         String reply = String.format("Guild %s id `%s` lavalink socket: `%s`",
                 context.guild.getName(), context.guild.getIdLong(), String.valueOf(node));

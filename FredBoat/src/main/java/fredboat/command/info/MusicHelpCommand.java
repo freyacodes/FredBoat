@@ -25,6 +25,7 @@
 
 package fredboat.command.info;
 
+import fredboat.FredBoat;
 import fredboat.command.music.control.*;
 import fredboat.command.music.info.*;
 import fredboat.command.music.seeking.ForwardCommand;
@@ -36,7 +37,6 @@ import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IInfoCommand;
-import fredboat.main.BotController;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.perms.PermissionLevel;
@@ -48,7 +48,6 @@ import net.dv8tion.jda.core.entities.TextChannel;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -116,7 +115,7 @@ public class MusicHelpCommand extends Command implements IInfoCommand {
             return;
         }
 
-        TextChannel fbhMusicCommandsChannel = BotController.INS.getShardManager().getTextChannelById(channelId);
+        TextChannel fbhMusicCommandsChannel = FredBoat.getTextChannelById(channelId);
         if (fbhMusicCommandsChannel == null) {
             context.reply("Could not find the requested channel with id " + channelId);
             return;
@@ -189,33 +188,6 @@ public class MusicHelpCommand extends Command implements IInfoCommand {
      */
     static class MusicCommandsComparator implements Comparator<Command> {
 
-        private static final List<? extends Class<? extends Command>> commandOrdering = Arrays.asList(
-                PlayCommand.class,
-                ListCommand.class,
-                NowplayingCommand.class,
-                SkipCommand.class,
-                VoteSkipCommand.class,
-                StopCommand.class,
-                PauseCommand.class,
-                UnpauseCommand.class,
-                JoinCommand.class,
-                LeaveCommand.class,
-                RepeatCommand.class,
-                ShuffleCommand.class,
-                ReshuffleCommand.class,
-                ForwardCommand.class,
-                RewindCommand.class,
-                SeekCommand.class,
-                RestartCommand.class,
-                HistoryCommand.class,
-                ExportCommand.class,
-                PlaySplitCommand.class,
-                SelectCommand.class,
-                GensokyoRadioCommand.class,
-                VolumeCommand.class,
-                DestroyCommand.class
-        );
-
         @Override
         public int compare(Command o1, Command o2) {
             return getCommandRank(o1) - getCommandRank(o2);
@@ -226,13 +198,63 @@ public class MusicHelpCommand extends Command implements IInfoCommand {
          * http://stackoverflow.com/a/2790215
          */
         private static int getCommandRank(Command c) {
-            int rank = commandOrdering.indexOf(c.getClass());
 
-            if (rank == -1) {
-                return commandOrdering.size(); //put at the end
+            int result;
+
+            if (c instanceof PlayCommand) {
+                result = 10050;
+            } else if (c instanceof ListCommand) {
+                result = 10100;
+            } else if (c instanceof NowplayingCommand) {
+                result = 10150;
+            } else if (c instanceof SkipCommand) {
+                result = 10200;
+            } else if (c instanceof VoteSkipCommand) {
+                result = 10225;
+            } else if (c instanceof StopCommand) {
+                result = 10250;
+            } else if (c instanceof PauseCommand) {
+                result = 10300;
+            } else if (c instanceof UnpauseCommand) {
+                result = 10350;
+            } else if (c instanceof JoinCommand) {
+                result = 10400;
+            } else if (c instanceof LeaveCommand) {
+                result = 10450;
+            } else if (c instanceof RepeatCommand) {
+                result = 10500;
+            } else if (c instanceof ShuffleCommand) {
+                result = 10550;
+            } else if (c instanceof ReshuffleCommand) {
+                result = 10560;
+            } else if (c instanceof ForwardCommand) {
+                result = 10600;
+            } else if (c instanceof RewindCommand) {
+                result = 10650;
+            } else if (c instanceof SeekCommand) {
+                result = 10700;
+            } else if (c instanceof RestartCommand) {
+                result = 10750;
+            } else if (c instanceof HistoryCommand) {
+                result = 10775;
+            } else if (c instanceof ExportCommand) {
+                result = 10800;
+            } else if (c instanceof PlaySplitCommand) {
+                result = 10850;
+            } else if (c instanceof SelectCommand) {
+                result = 10900;
+            } else if (c instanceof GensokyoRadioCommand) {
+                result = 10950;
+            } else if (c instanceof VolumeCommand) {
+                result = 10970;
+            } else if (c instanceof DestroyCommand) {
+                result = 10985;
             } else {
-                return rank;
+                //everything else
+                //newly added commands will land here, just add them to the giant if construct above to assign them a fixed place
+                result = 10999;
             }
+            return result;
         }
     }
 }

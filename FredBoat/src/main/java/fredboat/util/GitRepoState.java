@@ -64,10 +64,8 @@ public class GitRepoState {
         Properties properties = new Properties();
         try {
             properties.load(GitRepoState.class.getClassLoader().getResourceAsStream(propsName));
-        } catch (NullPointerException e) {
-            log.info("Failed to load git repo information"); //need to build with build tool to get them
-        } catch (IOException e) {
-            log.info("Failed to load git repo information due to suspicious IOException", e);
+        } catch (NullPointerException | IOException e) {
+            log.info("Failed to load git repo information", e); //need to build with build tool to get them
         }
 
         this.branch = String.valueOf(properties.getOrDefault("git.branch", ""));

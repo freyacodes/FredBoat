@@ -25,7 +25,7 @@
 
 package fredboat.util.rest;
 
-import fredboat.main.Config;
+import fredboat.Config;
 import fredboat.audio.queue.PlaylistInfo;
 import okhttp3.Credentials;
 import org.json.JSONArray;
