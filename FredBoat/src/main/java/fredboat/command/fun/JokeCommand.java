@@ -68,7 +68,7 @@ public class JokeCommand extends Command implements IFunCommand {
             context.reply(joke);
         } catch (IOException | JSONException e) {
             log.error("Failed to fetch joke", e);
-            context.reply(context.i18n("Please try again later."));//todo i18n a generic try again error message for api dependent commands
+            context.reply(context.i18n("tryLater"));
         }
     }
 

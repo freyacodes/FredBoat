@@ -58,10 +58,10 @@ public class ShardContext {
 
     public void onReady(@Nonnull ReadyEvent readyEvent) {
         BotController.INS.getStatsAgent().addAction(new ShardStatsCounter(getJda().getShardInfo(),
-                () -> jdaEntityCountsShard.count(Collections.singletonList(getJda()))));
+                () -> jdaEntityCountsShard.count(() -> Collections.singletonList(getJda()))));
 
         log.info("Received ready event for {}", readyEvent.getJDA().getShardInfo().toString());
-        jdaEntityCountsShard.count(Collections.singletonList(getJda()), true);//jda finished loading, do a single count to init values
+        jdaEntityCountsShard.count(() -> Collections.singletonList(getJda()), true);//jda finished loading, do a single count to init values
 
 
         if (Config.getNumShards() <= 10) {

@@ -5,7 +5,7 @@ buildscript {
 }
 plugins {
     id 'application'
-    id 'com.gorylenko.gradle-git-properties' version '1.4.20'
+    id 'com.gorylenko.gradle-git-properties' version '1.4.17' //do not upgrade to .20, fails builds on some machines
     id 'com.sedmelluq.jdaction' version '1.0.2' //check for unused RestActions
     id 'com.github.johnrengelman.shadow' version '2.0.2'
 }
@@ -13,7 +13,7 @@ apply plugin: 'org.junit.platform.gradle.plugin'
 
 description = 'FredBoat Discord Music Bot'
 mainClassName = "fredboat.main.Launcher"
-version '2.2'
+version '2.3'
 ext {
     moduleName = 'FredBoat'
 }
@@ -32,7 +32,7 @@ shadowJar {
 dependencies {
     compile project(':Shared')
     compile group: 'net.dv8tion', name: 'JDA', version: '3.5.0_332'
-    compile group: 'com.sedmelluq', name: 'lavaplayer', version: '1.2.45'
+    compile group: 'com.sedmelluq', name: 'lavaplayer', version: '1.2.47'
     compile group: 'com.sedmelluq', name: 'jda-nas', version: '1.0.6'
 
     if (System.getenv('dev') == 'true') {

@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 public class BotMetrics {
 
@@ -77,7 +78,8 @@ public class BotMetrics {
         // also checks shards for readiness and only counts if all of them are ready
         // the force is an option for when we want to do a count when receiving the onReady event, but JDAs status is
         // not CONNECTED at that point
-        protected boolean count(Collection<JDA> shards, boolean... force) {
+        protected boolean count(Supplier<Collection<JDA>> shardSupplier, boolean... force) {
+            Collection<JDA> shards = shardSupplier.get();
             for (JDA shard : shards) {
                 if ((shard.getStatus() != JDA.Status.CONNECTED) && (force.length < 1 || !force[0])) {
                     log.info("Skipping counts since not all requested shards are ready.");

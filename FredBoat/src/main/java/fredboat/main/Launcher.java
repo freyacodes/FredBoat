@@ -42,7 +42,6 @@ import space.npstr.sqlsauce.DatabaseWrapper;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
@@ -287,15 +286,14 @@ public class Launcher {
         StatsAgent statsAgent = FBC.getStatsAgent();
         //force some metrics to be populated, then turn on metrics to be served
         try {
-            List<JDA> shards = FBC.getShardManager().getShards();
             BotMetrics.JdaEntityCounts jdaEntityCountsTotal = BotMetrics.getJdaEntityCountsTotal();
             try {
-                jdaEntityCountsTotal.count(shards);
+                jdaEntityCountsTotal.count(() -> FBC.getShardManager().getShards());
             } catch (Exception ignored) {
             }
 
             statsAgent.addAction(new BotMetrics.JdaEntityStatsCounter(
-                    () -> jdaEntityCountsTotal.count(shards)));
+                    () -> jdaEntityCountsTotal.count(() -> FBC.getShardManager().getShards())));
 
             if (DiscordUtil.isOfficialBot()) {
                 BotMetrics.DockerStats dockerStats = BotMetrics.getDockerStats();
