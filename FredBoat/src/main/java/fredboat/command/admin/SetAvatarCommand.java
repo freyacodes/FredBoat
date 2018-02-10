@@ -163,7 +163,10 @@ public class SetAvatarCommand extends Command implements ICommandRestricted {
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1} <imageUrl> OR <attachment>\n#Set the bot avatar to the image provided by the url or attachment.";
+        return "{0}{1} <imageUrl>, <attachment> OR <keyword>\n" +
+                "#Set the bot's profile picture to a different image by providing a url, attachment, or select a default image from our keyword list below:\n" +
+                "#  " + String.join(", ", AVATARS.keySet()) + "\n" +
+                "#The url can be a file:///, http(s)://, or branding: url\n";
     }
 
     @Nonnull
