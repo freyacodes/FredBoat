@@ -44,6 +44,7 @@ import fredboat.util.ratelimit.Ratelimiter;
 import fredboat.util.rest.YoutubeAPI;
 import fredboat.util.rest.YoutubeVideo;
 import net.dv8tion.jda.core.MessageBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.LoggerFactory;
@@ -176,7 +177,7 @@ public class AudioLoader implements AudioLoadResultHandler {
             } else {
 
                 if (!context.isQuiet()) {
-                    context.reply(buildMusicQueueMessage(at.getInfo().title, at.getInfo().length));
+                    context.reply(this.buildMusicQueueMessage(at.getInfo().title, at.getInfo().length));
 
                 } else {
                     log.info("Quietly loaded " + at.getIdentifier());
@@ -211,7 +212,7 @@ public class AudioLoader implements AudioLoadResultHandler {
                 if (statusMessageCount < MAX_QUEUE_MESSAGE_DISPLAY){
                     statusMessageCount++;
 
-                    replyMessage.append(buildMusicQueueMessage(at.getInfo().title, at.getInfo().length))
+                    replyMessage.append(this.buildMusicQueueMessage(at.getInfo().title, at.getInfo().length))
                             .append("\n\n");
                 }
 
@@ -306,8 +307,10 @@ public class AudioLoader implements AudioLoadResultHandler {
 
             SplitAudioTrackContext atc = new SplitAudioTrackContext(newAt, ic.getMember(), startPos, endPos, pair.getRight());
 
-            if (i < MAX_QUEUE_MESSAGE_DISPLAY) {
-                mb.append(buildMusicQueueMessage(atc.getEffectiveTitle(), atc.getEffectiveDuration()))
+            if (i < MAX_QUEUE_MESSAGE_DISPLAY
+                    && !StringUtils.isBlank(atc.getEffectiveTitle())) {
+
+                mb.append(this.buildMusicQueueMessage(atc.getEffectiveTitle(), atc.getEffectiveDuration()))
                         .append("\n\n");
             }
 
@@ -368,7 +371,7 @@ public class AudioLoader implements AudioLoadResultHandler {
      * @param duration Duration of the music.
      * @return String object representing the message to reply for each queue.
      */
-    private String buildMusicQueueMessage(@Nonnull String title, @Nonnull long duration){
+    private String buildMusicQueueMessage(@Nonnull String title, long duration){
 
         String playingStatusOrQueueTime = PlayerUtil.resolveStatusOrQueueMessage(gplayer, context);
         String songTitleAndMusic =
