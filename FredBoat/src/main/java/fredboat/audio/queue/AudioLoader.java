@@ -306,13 +306,17 @@ public class AudioLoader implements AudioLoadResultHandler {
 
             SplitAudioTrackContext atc = new SplitAudioTrackContext(newAt, ic.getMember(), startPos, endPos, pair.getRight());
 
-            mb.append(buildMusicQueueMessage(atc.getEffectiveTitle(), atc.getEffectiveDuration()))
-                    .append("\n\n");
+            if (i < MAX_QUEUE_MESSAGE_DISPLAY) {
+                mb.append(buildMusicQueueMessage(atc.getEffectiveTitle(), atc.getEffectiveDuration()))
+                        .append("\n\n");
+            }
 
             gplayer.queue(atc);
 
             i++;
         }
+
+        mb.append(context.i18nFormat("loadListSuccess", i, at.getInfo().title));
 
         // This is pretty spammy .. let's use a shorter one
         if (mb.length() > 800) {
