@@ -62,7 +62,7 @@ public class AudioLoader implements AudioLoadResultHandler {
     //Matches a timestamp and the description
     private static final Pattern SPLIT_DESCRIPTION_PATTERN = Pattern.compile("(.*?)[( \\[]*((?:\\d?\\d:)?\\d?\\d:\\d\\d)[) \\]]*(.*)");
     private static final int QUEUE_TRACK_LIMIT = 10000;
-    private static final int MAX_QUEUE_MESSAGE_DISPLAY = 5;
+    private static final int MAX_QUEUE_MESSAGE_DISPLAY = 3;
 
     private final ITrackProvider trackProvider;
     private final AudioPlayerManager playerManager;
@@ -209,7 +209,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
             StringBuilder replyMessage = new StringBuilder();
             for (AudioTrack at : ap.getTracks()) {
-                if (statusMessageCount < MAX_QUEUE_MESSAGE_DISPLAY){
+                if (statusMessageCount < MAX_QUEUE_MESSAGE_DISPLAY) {
                     statusMessageCount++;
 
                     replyMessage.append(this.buildMusicQueueMessage(at.getInfo().title, at.getInfo().length))
@@ -219,7 +219,11 @@ public class AudioLoader implements AudioLoadResultHandler {
                 trackProvider.add(new AudioTrackContext(at, context.getMember()));
             }
 
-            context.reply(replyMessage + context.i18nFormat("loadListSuccess", ap.getTracks().size(), ap.getName()));
+            if (ap.getTracks().size() > MAX_QUEUE_MESSAGE_DISPLAY) {
+                replyMessage.append("...\n");
+                context.reply(replyMessage + context.i18nFormat("loadListSuccess", ap.getTracks().size(), ap.getName()));
+            }
+
             if (!gplayer.isPaused()) {
                 gplayer.play();
             }
@@ -276,8 +280,6 @@ public class AudioLoader implements AudioLoadResultHandler {
             } else {
                 pairs.add(new ImmutablePair<>(timestamp, title2));
             }
-
-
         }
 
         if(pairs.size() < 2) {
@@ -319,7 +321,10 @@ public class AudioLoader implements AudioLoadResultHandler {
             i++;
         }
 
-        mb.append(context.i18nFormat("loadListSuccess", i, at.getInfo().title));
+        if (i > MAX_QUEUE_MESSAGE_DISPLAY) {
+            mb.append("...\n");
+            mb.append(context.i18nFormat("loadListSuccess", i, at.getInfo().title));
+        }
 
         // This is pretty spammy .. let's use a shorter one
         if (mb.length() > 800) {
