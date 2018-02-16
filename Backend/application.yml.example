@@ -1,0 +1,6 @@
+fredboat:
+  db:
+    main:
+      jdbcUrl: ""
+    cache:
+      jdbcUrl: ""

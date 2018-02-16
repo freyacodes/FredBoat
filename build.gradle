@@ -78,6 +78,7 @@ subprojects {
         togglzVersion               = '2.5.0.Final'
         guavaVersion                = '24.0-jre'
         bucket4jVersion             = '3.1.1'
+        gsonVersion                 = '2.8.2'
 
         //logging / monitoring deps
         logbackVersion              = '1.2.3'

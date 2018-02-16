@@ -1,0 +1,27 @@
+apply plugin: 'propdeps'
+apply plugin: 'propdeps-idea'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+
+description = 'FredBoat backend, providing REST database services'
+version '1.0'
+ext {
+    moduleName = 'Backend'
+}
+
+dependencies {
+    compile project(':Database')
+
+    compile group: 'com.google.code.gson', name: 'gson', version: gsonVersion
+
+    //versioning is handled by spring
+    compile "org.springframework.boot:spring-boot-starter-data-jpa"
+    compile "org.springframework.boot:spring-boot-starter-data-rest"
+    testCompile "org.springframework.boot:spring-boot-starter-test"
+    optional "org.springframework.boot:spring-boot-configuration-processor"
+}
+
+//required by spring boot configuration processor
+compileJava.dependsOn(processResources)
+

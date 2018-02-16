@@ -1,0 +1,14 @@
+{
+  "properties": [
+    {
+      "name": "fredboat.db.main.jdbcUrl",
+      "type": "java.lang.String",
+      "description": "Jdbc url of the main database including username and password."
+    },
+    {
+      "name": "fredboat.db.cache.jdbcUrl",
+      "type": "java.lang.String",
+      "description": "Jdbc url of the cache database including username and password."
+    }
+  ]
+}
