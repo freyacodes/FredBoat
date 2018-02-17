@@ -29,6 +29,7 @@ import fredboat.db.DatabaseManager;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Scope;
 import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -67,6 +68,7 @@ public class DbConfig {
                 });
     }
 
+    @Primary
     @Bean("mainDbWrapper")
     public DatabaseWrapper getMainDbWrapper(DatabaseManager databaseManager) {
         return databaseManager.getMainDbWrapper();

@@ -37,7 +37,7 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
  * Created by napster on 16.02.18.
  */
 @SpringBootApplication
-@EnableAutoConfiguration(exclude = { //we handle these ourselves
+@EnableAutoConfiguration(exclude = { //we handle these ourselves via the DatabaseManager
         DataSourceAutoConfiguration.class,
         DataSourceTransactionManagerAutoConfiguration.class,
         HibernateJpaAutoConfiguration.class,
