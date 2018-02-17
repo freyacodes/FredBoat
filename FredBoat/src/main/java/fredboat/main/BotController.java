@@ -4,10 +4,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import fredboat.agent.FredBoatAgent;
 import fredboat.audio.player.AudioConnectionFacade;
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.config.property.AppConfig;
-import fredboat.config.property.AudioSourcesConfig;
-import fredboat.config.property.ConfigPropertiesProvider;
-import fredboat.config.property.Credentials;
+import fredboat.config.property.*;
 import fredboat.db.DatabaseManager;
 import fredboat.db.EntityIO;
 import fredboat.event.EventListenerBoat;
@@ -64,7 +61,9 @@ public class BotController {
         this.shutdownHandler = shutdownHandler;
         this.databaseManager = databaseManager;
         this.entityIO = entityIO;
-        hibernateStats.register(); //call this exactly once after all db connections have been created
+        try {
+            hibernateStats.register(); //call this exactly once after all db connections have been created
+        } catch (IllegalStateException ignored) {}//can happen when using the REST repos
         this.executor = executor;
         this.playerRegistry = playerRegistry;
         this.jdaEntityProvider = jdaEntityProvider;
@@ -81,6 +80,10 @@ public class BotController {
 
     public AudioSourcesConfig getAudioSourcesConfig() {
         return configProvider.getAudioSourcesConfig();
+    }
+
+    public BackendConfig getBackendConfig() {
+        return configProvider.getBackendConfig();
     }
 
     public Credentials getCredentials() {

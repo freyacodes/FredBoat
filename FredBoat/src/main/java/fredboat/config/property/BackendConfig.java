@@ -25,23 +25,9 @@
 package fredboat.config.property;
 
 /**
- * Created by napster on 23.02.18.
- * <p>
- * Provide access to our property based configs
+ * Created by napster on 27.02.18.
  */
-public interface ConfigPropertiesProvider {
+public interface BackendConfig {
 
-    AppConfig getAppConfig();
-
-    AudioSourcesConfig getAudioSourcesConfig();
-
-    BackendConfig getBackendConfig();
-
-    Credentials getCredentials();
-
-    DatabaseConfig getDatabaseConfig();
-
-    EventLoggerConfig getEventLoggerConfig();
-
-    LavalinkConfig getLavalinkConfig();
+    String getHost();
 }

@@ -33,16 +33,18 @@ import org.springframework.stereotype.Component;
 public class SpringConfigPropertiesProvider implements ConfigPropertiesProvider {
 
     private final AppConfig appConfig;
+    private final BackendConfig backendConfig;
     private final AudioSourcesConfig audioSourcesConfig;
     private final Credentials credentials;
     private final DatabaseConfig databaseConfig;
     private final EventLoggerConfig eventLoggerConfig;
     private final LavalinkConfig lavalinkConfig;
 
-    public SpringConfigPropertiesProvider(AppConfig appConfig, AudioSourcesConfig audioSourcesConfig,
+    public SpringConfigPropertiesProvider(AppConfig appConfig, BackendConfig backendConfig, AudioSourcesConfig audioSourcesConfig,
                                           Credentials credentials, DatabaseConfig databaseConfig,
                                           EventLoggerConfig eventLoggerConfig, LavalinkConfig lavalinkConfig) {
         this.appConfig = appConfig;
+        this.backendConfig = backendConfig;
         this.audioSourcesConfig = audioSourcesConfig;
         this.credentials = credentials;
         this.databaseConfig = databaseConfig;
@@ -58,6 +60,11 @@ public class SpringConfigPropertiesProvider implements ConfigPropertiesProvider 
     @Override
     public AudioSourcesConfig getAudioSourcesConfig() {
         return audioSourcesConfig;
+    }
+
+    @Override
+    public BackendConfig getBackendConfig() {
+        return backendConfig;
     }
 
     @Override

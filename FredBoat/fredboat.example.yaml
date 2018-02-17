@@ -136,6 +136,12 @@ event-logger:
 ###        Developers and very experienced users only
 ################################################################
 
+backend:
+  host: ""
+  user: ""
+  pass: ""
+
+
 database:
   main:
     # FredBoat was written to work with PostgreSQL.

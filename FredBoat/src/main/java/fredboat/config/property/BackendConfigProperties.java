@@ -24,24 +24,23 @@
 
 package fredboat.config.property;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
 /**
- * Created by napster on 23.02.18.
- * <p>
- * Provide access to our property based configs
+ * Created by napster on 03.03.18.
  */
-public interface ConfigPropertiesProvider {
+@Component
+@ConfigurationProperties(prefix = "backend")
+public class BackendConfigProperties implements BackendConfig {
 
-    AppConfig getAppConfig();
+    private String host = "";
 
-    AudioSourcesConfig getAudioSourcesConfig();
+    public String getHost() {
+        return host;
+    }
 
-    BackendConfig getBackendConfig();
-
-    Credentials getCredentials();
-
-    DatabaseConfig getDatabaseConfig();
-
-    EventLoggerConfig getEventLoggerConfig();
-
-    LavalinkConfig getLavalinkConfig();
+    public void setHost(String host) {
+        this.host = host;
+    }
 }
