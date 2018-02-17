@@ -92,6 +92,14 @@ public class Http {
                 .url(url));
     }
 
+    @Nonnull
+    @CheckReturnValue
+    public SimpleRequest delete(@Nonnull String url) {
+        return new SimpleRequest(new Request.Builder()
+                .delete()
+                .url(url));
+    }
+
 
     @Nonnull
     @CheckReturnValue

@@ -15,4 +15,6 @@ dependencies {
     compile group: 'org.flywaydb', name: 'flyway-core', version: flywayVersion
     compile group: 'net.ttddyy', name: 'datasource-proxy', version: dsProxyVersion
     compile group: 'javax.xml.bind', name: 'jaxb-api', version: jaxbApiVersion // required by hibernate for java 9
+
+    compile group: 'com.google.code.gson', name: 'gson', version: gsonVersion
 }

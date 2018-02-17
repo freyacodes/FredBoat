@@ -23,20 +23,17 @@
  * SOFTWARE.
  */
 
-package fredboat.db.repos.impl.main;
+package fredboat.db.repositories.impl;
 
 import fredboat.db.entity.main.GuildConfig;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
+import fredboat.db.repositories.api.GuildConfigRepo;
 
 /**
- * Created by napster on 16.02.18.
+ * Created by napster on 17.02.18.
  */
-@Repository
-public interface SpringGuildConfigRepo extends JpaRepository<GuildConfig, String> {
+public class RestGuildConfigRepo extends RestRepo<String, GuildConfig> implements GuildConfigRepo {
 
-    @Override
-    Optional<GuildConfig> findById(String id);
+    public RestGuildConfigRepo(String path) {
+        super(path, GuildConfig.class);
+    }
 }

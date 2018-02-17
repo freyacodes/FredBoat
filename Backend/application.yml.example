@@ -1,3 +1,7 @@
+spring:
+  http:
+    converters:
+      preferred-json-mapper: gson
 fredboat:
   db:
     main:
