@@ -23,7 +23,7 @@
  * SOFTWARE.
  */
 
-package fredboat.db.repositories.impl;
+package fredboat.db.repositories.impl.rest;
 
 import com.google.gson.Gson;
 import fredboat.db.repositories.api.Repo;
@@ -38,21 +38,23 @@ import java.io.Serializable;
 
 /**
  * Created by napster on 17.02.18.
+ *
+ * Counterpart to the EntityController of the Backend module.
  */
 public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I, E>> implements Repo<I, E> {
 
-    private static final Logger log = LoggerFactory.getLogger(RestRepo.class);
+    protected static final Logger log = LoggerFactory.getLogger(RestRepo.class);
 
     protected final String path;
     protected final Class<E> entityClass;
     protected final Http http;
     protected final Gson gson;
 
-    public RestRepo(String path, Class<E> entityClass) {
+    public RestRepo(String path, Class<E> entityClass, Http http, Gson gson) {
         this.path = path;
         this.entityClass = entityClass;
-        this.http = new Http(Http.DEFAULT_BUILDER.newBuilder().build()); //todo add metrics?
-        this.gson = new Gson();
+        this.http = http;
+        this.gson = gson;
     }
 
     public Class<E> getEntityClass() {
@@ -63,7 +65,8 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
     @Override
     public E get(I id) {
         try {
-            return gson.fromJson(http.get(path + "/get/" + id).asString(), entityClass);
+            Http.SimpleRequest get = http.post(path + "/get", gson.toJson(id), "application/json");
+            return gson.fromJson(get.asString(), entityClass);
         } catch (IOException e) {  //todo decide on error handling strategy
             log.error("Could not GET entity with id {} of class {}", id, entityClass, e);
             return null;
@@ -71,10 +74,11 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
     }
 
     @Override
-    public void delete(I id) {
+    public void delete(I id) { //todo success handling?
         try {
+            Http.SimpleRequest delete = http.post(path + "/delete", gson.toJson(id), "application/json");
             //noinspection ResultOfMethodCallIgnored
-            http.delete(path + "/delete/" + id).execute();
+            delete.execute();
         } catch (IOException e) { //todo decide on error handling strategy
             log.error("Could not DELETE entity with id {} of class {}", id, entityClass, e);
         }
@@ -83,7 +87,8 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
     @Override
     public E fetch(I id) {
         try {
-            return gson.fromJson(http.get(path + "/fetch/" + id).asString(), entityClass);
+            Http.SimpleRequest fetch = http.post(path + "/fetch", gson.toJson(id), "application/json");
+            return gson.fromJson(fetch.asString(), entityClass);
         } catch (IOException e) { //todo decide on error handling strategy
             log.error("Could not FETCH entity with id {} of class {}", id, entityClass, e);
             return null;
@@ -93,7 +98,7 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
     @Override
     public E merge(E entity) {
         try {
-            Http.SimpleRequest merge = http.post(path + "/merge/", gson.toJson(entity), "application/json");
+            Http.SimpleRequest merge = http.post(path + "/merge", gson.toJson(entity), "application/json");
             return gson.fromJson(merge.asString(), entityClass);
         } catch (IOException e) { //todo decide on error handling strategy
             log.error("Could not MERGE entity with id {} of class {}", entity.getId(), entityClass, e);

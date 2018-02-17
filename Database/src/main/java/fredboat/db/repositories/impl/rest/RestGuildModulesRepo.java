@@ -23,17 +23,21 @@
  * SOFTWARE.
  */
 
-package fredboat.db.repositories.impl;
+package fredboat.db.repositories.impl.rest;
 
-import fredboat.db.entity.main.GuildConfig;
-import fredboat.db.repositories.api.GuildConfigRepo;
+import com.google.gson.Gson;
+import fredboat.db.entity.main.GuildModules;
+import fredboat.db.repositories.api.GuildModulesRepo;
+import fredboat.util.rest.Http;
 
 /**
  * Created by napster on 17.02.18.
  */
-public class RestGuildConfigRepo extends RestRepo<String, GuildConfig> implements GuildConfigRepo {
+public class RestGuildModulesRepo extends RestRepo<Long, GuildModules> implements GuildModulesRepo {
 
-    public RestGuildConfigRepo(String path) {
-        super(path, GuildConfig.class);
+    public static final String PATH = "/guildmodules";
+
+    public RestGuildModulesRepo(String apiBasePath, Http http, Gson gson) {
+        super(apiBasePath + PATH, GuildModules.class, http, gson);
     }
 }
