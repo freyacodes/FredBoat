@@ -29,15 +29,22 @@ import com.google.gson.Gson;
 import fredboat.db.entity.main.GuildConfig;
 import fredboat.db.repositories.api.GuildConfigRepo;
 import fredboat.util.rest.Http;
+import io.prometheus.client.guava.cache.CacheMetricsCollector;
 
 /**
  * Created by napster on 17.02.18.
  */
-public class RestGuildConfigRepo extends RestRepo<String, GuildConfig> implements GuildConfigRepo {
+public class RestGuildConfigRepo extends CachedRestRepo<String, GuildConfig> implements GuildConfigRepo {
 
     public static final String PATH = "/guildconfig";
 
     public RestGuildConfigRepo(String apiBasePath, Http http, Gson gson) {
         super(apiBasePath + PATH, GuildConfig.class, http, gson);
+    }
+
+    @Override
+    public RestGuildConfigRepo registerCacheStats(CacheMetricsCollector cacheMetrics, String name) {
+        super.registerCacheStats(cacheMetrics, name);
+        return this;
     }
 }

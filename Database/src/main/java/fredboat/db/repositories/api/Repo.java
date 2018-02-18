@@ -25,19 +25,10 @@
 
 package fredboat.db.repositories.api;
 
-import javax.annotation.Nullable;
-
 /**
  * Created by napster on 05.02.18.
  */
 public interface Repo<I, E> {
-
-    /**
-     * @param id id of the entity that shall be returned
-     * @return the entity of the provided id, if such an entity exists in the database, null otherwise
-     */
-    @Nullable
-    E get(I id);
 
     /**
      * @param id of the entity that shall be deleted

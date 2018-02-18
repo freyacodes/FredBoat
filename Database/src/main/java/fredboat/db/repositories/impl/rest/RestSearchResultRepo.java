@@ -29,6 +29,7 @@ import com.google.gson.Gson;
 import fredboat.db.entity.cache.SearchResult;
 import fredboat.db.repositories.api.SearchResultRepo;
 import fredboat.util.rest.Http;
+import io.prometheus.client.guava.cache.CacheMetricsCollector;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -36,12 +37,18 @@ import java.io.IOException;
 /**
  * Created by napster on 17.02.18.
  */
-public class RestSearchResultRepo extends RestRepo<SearchResult.SearchResultId, SearchResult> implements SearchResultRepo {
+public class RestSearchResultRepo extends CachedRestRepo<SearchResult.SearchResultId, SearchResult> implements SearchResultRepo {
 
     public static final String PATH = "/searchresult";
 
     public RestSearchResultRepo(String apiBasePath, Http http, Gson gson) {
         super(apiBasePath + PATH, SearchResult.class, http, gson);
+    }
+
+    @Override
+    public RestSearchResultRepo registerCacheStats(CacheMetricsCollector cacheMetrics, String name) {
+        super.registerCacheStats(cacheMetrics, name);
+        return this;
     }
 
     @Nullable

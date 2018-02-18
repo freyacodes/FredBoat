@@ -30,7 +30,6 @@ import space.npstr.sqlsauce.DatabaseWrapper;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 import space.npstr.sqlsauce.fp.types.EntityKey;
 
-import javax.annotation.Nullable;
 import java.io.Serializable;
 
 /**
@@ -52,12 +51,6 @@ public abstract class SqlSauceRepo<I extends Serializable, E extends SaucedEntit
 
     public Class<E> getEntityClass() {
         return entityClass;
-    }
-
-    @Nullable
-    @Override
-    public E get(I id) {
-        return dbWrapper.getEntity(EntityKey.of(id, entityClass));
     }
 
     @Override

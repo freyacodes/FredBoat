@@ -30,6 +30,7 @@ import com.google.gson.reflect.TypeToken;
 import fredboat.db.entity.main.BlacklistEntry;
 import fredboat.db.repositories.api.BlacklistRepo;
 import fredboat.util.rest.Http;
+import io.prometheus.client.guava.cache.CacheMetricsCollector;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -38,12 +39,19 @@ import java.util.List;
 /**
  * Created by napster on 17.02.18.
  */
-public class RestBlacklistRepo extends RestRepo<Long, BlacklistEntry> implements BlacklistRepo {
+public class RestBlacklistRepo extends CachedRestRepo<Long, BlacklistEntry> implements BlacklistRepo {
 
     public static final String PATH = "/blacklist";
 
     public RestBlacklistRepo(String apiBasePath, Http http, Gson gson) {
         super(apiBasePath + PATH, BlacklistEntry.class, http, gson);
+    }
+
+
+    @Override
+    public RestBlacklistRepo registerCacheStats(CacheMetricsCollector cacheMetrics, String name) {
+        super.registerCacheStats(cacheMetrics, name);
+        return this;
     }
 
     @Override

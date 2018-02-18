@@ -29,6 +29,7 @@ import com.google.gson.Gson;
 import fredboat.db.entity.main.Prefix;
 import fredboat.db.repositories.api.PrefixRepo;
 import fredboat.util.rest.Http;
+import io.prometheus.client.guava.cache.CacheMetricsCollector;
 import space.npstr.sqlsauce.entities.GuildBotComposite;
 
 import javax.annotation.Nullable;
@@ -37,12 +38,18 @@ import java.io.IOException;
 /**
  * Created by napster on 17.02.18.
  */
-public class RestPrefixRepo extends RestRepo<GuildBotComposite, Prefix> implements PrefixRepo {
+public class RestPrefixRepo extends CachedRestRepo<GuildBotComposite, Prefix> implements PrefixRepo {
 
     public static final String PATH = "/prefix";
 
     public RestPrefixRepo(String apiBasePath, Http http, Gson gson) {
         super(apiBasePath + PATH, Prefix.class, http, gson);
+    }
+
+    @Override
+    public RestPrefixRepo registerCacheStats(CacheMetricsCollector cacheMetrics, String name) {
+        super.registerCacheStats(cacheMetrics, name);
+        return this;
     }
 
     @Nullable

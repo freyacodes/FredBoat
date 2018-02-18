@@ -56,7 +56,6 @@ dependencies {
     compile group: 'it.unimi.dsi', name: 'fastutil', version: fastUtilVersion
 
     compile group: 'org.togglz', name: 'togglz-core', version: togglzVersion
-    compile group: 'com.google.guava', name: 'guava', version: guavaVersion
     compile group: 'com.github.vladimir-bukhtoyarov', name: 'bucket4j-core', version: bucket4jVersion
 
     //tests

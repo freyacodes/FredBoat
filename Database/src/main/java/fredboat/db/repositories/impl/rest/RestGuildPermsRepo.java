@@ -29,15 +29,22 @@ import com.google.gson.Gson;
 import fredboat.db.entity.main.GuildPermissions;
 import fredboat.db.repositories.api.GuildPermsRepo;
 import fredboat.util.rest.Http;
+import io.prometheus.client.guava.cache.CacheMetricsCollector;
 
 /**
  * Created by napster on 17.02.18.
  */
-public class RestGuildPermsRepo extends RestRepo<String, GuildPermissions> implements GuildPermsRepo {
+public class RestGuildPermsRepo extends CachedRestRepo<String, GuildPermissions> implements GuildPermsRepo {
 
     public static final String PATH = "/guildperms";
 
     public RestGuildPermsRepo(String apiBasePath, Http http, Gson gson) {
         super(apiBasePath + PATH, GuildPermissions.class, http, gson);
+    }
+
+    @Override
+    public RestGuildPermsRepo registerCacheStats(CacheMetricsCollector cacheMetrics, String name) {
+        super.registerCacheStats(cacheMetrics, name);
+        return this;
     }
 }

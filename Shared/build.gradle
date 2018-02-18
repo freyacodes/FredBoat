@@ -18,6 +18,8 @@ dependencies {
 
     compile group: 'com.squareup.okhttp3', name: 'okhttp', version: okhttpVersion
 
+    compile group: 'com.google.guava', name: 'guava', version: guavaVersion
+
     compile group: 'io.prometheus', name: 'simpleclient', version: prometheusClientVersion
     compile group: 'io.prometheus', name: 'simpleclient_hotspot', version: prometheusClientVersion
     compile group: 'io.prometheus', name: 'simpleclient_logback', version: prometheusClientVersion

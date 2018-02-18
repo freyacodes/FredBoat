@@ -27,8 +27,6 @@ package fredboat.db.repositories.api;
 
 import net.dv8tion.jda.core.entities.Guild;
 
-import javax.annotation.Nullable;
-
 /**
  * Created by napster on 05.02.18.
  * <p>
@@ -38,22 +36,14 @@ import javax.annotation.Nullable;
 public interface LegacyGuildBasedRepo<E> extends Repo<String, E> {
 
     /**
-     * Type safety on top of {@link Repo#get(Object)} for entities based on guilds.
-     */
-    @Nullable
-    default E get(Guild guild) {
-        return get(guild.getId());
-    }
-
-    /**
-     * Type safety on top of {@link Repo#get(Object)} for entities based on guilds.
+     * Type safety on top of {@link Repo#delete(Object)} for entities based on guilds.
      */
     default void delete(Guild guild) {
         delete(guild.getId());
     }
 
     /**
-     * Type safety on top of {@link Repo#get(Object)} for entities based on guilds.
+     * Type safety on top of {@link Repo#fetch(Object)} for entities based on guilds.
      */
     default E fetch(Guild guild) {
         return fetch(guild.getId());

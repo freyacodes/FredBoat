@@ -31,7 +31,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 
-import javax.annotation.Nullable;
 import java.io.Serializable;
 
 /**
@@ -49,13 +48,6 @@ public abstract class EntityController<I extends Serializable, E extends SaucedE
 
     public EntityController(Repo<I, E> repo) {
         this.repo = repo;
-    }
-
-    @Override
-    @PostMapping("/get")
-    @Nullable
-    public E get(@RequestBody I id) {
-        return repo.get(id);
     }
 
     @Override

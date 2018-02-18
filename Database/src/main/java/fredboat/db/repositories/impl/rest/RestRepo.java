@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import space.npstr.sqlsauce.entities.SaucedEntity;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
 
@@ -59,18 +58,6 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
 
     public Class<E> getEntityClass() {
         return entityClass;
-    }
-
-    @Nullable
-    @Override
-    public E get(I id) {
-        try {
-            Http.SimpleRequest get = http.post(path + "/get", gson.toJson(id), "application/json");
-            return gson.fromJson(get.asString(), entityClass);
-        } catch (IOException e) {  //todo decide on error handling strategy
-            log.error("Could not GET entity with id {} of class {}", id, entityClass, e);
-            return null;
-        }
     }
 
     @Override
