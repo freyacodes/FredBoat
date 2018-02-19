@@ -35,12 +35,42 @@ import org.springframework.stereotype.Component;
 public class BackendConfigProperties implements BackendConfig {
 
     private String host = "";
+    private String user = "";
+    private String pass = "";
+    private String auth = "";
 
+    @Override
     public String getHost() {
         return host;
     }
 
+    @Override
+    public String getUser() {
+        return user;
+    }
+
+    @Override
+    public String getPass() {
+        return pass;
+    }
+
+    @Override
+    public String getBasicAuth() {
+        if (auth.isEmpty()) {
+            auth = okhttp3.Credentials.basic(getUser(), getPass());
+        }
+        return auth;
+    }
+
     public void setHost(String host) {
         this.host = host;
+    }
+
+    public void setUser(String user) {
+        this.user = user;
+    }
+
+    public void setPass(String pass) {
+        this.pass = pass;
     }
 }

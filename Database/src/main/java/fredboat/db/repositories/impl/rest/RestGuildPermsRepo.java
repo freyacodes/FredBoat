@@ -38,8 +38,8 @@ public class RestGuildPermsRepo extends CachedRestRepo<String, GuildPermissions>
 
     public static final String PATH = "/guildperms";
 
-    public RestGuildPermsRepo(String apiBasePath, Http http, Gson gson) {
-        super(apiBasePath + PATH, GuildPermissions.class, http, gson);
+    public RestGuildPermsRepo(String apiBasePath, Http http, Gson gson, String auth) {
+        super(apiBasePath + PATH, GuildPermissions.class, http, gson, auth);
     }
 
     @Override

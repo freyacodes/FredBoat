@@ -28,27 +28,33 @@ package fredboat.backend.config;
 import fredboat.db.DatabaseManager;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Scope;
 import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
-import org.springframework.stereotype.Component;
 import space.npstr.sqlsauce.DatabaseWrapper;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by napster on 16.02.18.
+ *
+ * Mirrors the fredboat tree of the application.yaml
  */
-@ConfigurationProperties(prefix = "fredboat.db")
-@Component
-public class DbConfig {
+@ConfigurationProperties(prefix = "fredboat")
+@Configuration
+@EnableConfigurationProperties
+public class AppConfig {
 
     @Bean("databaseManager")
     @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
-    public DatabaseManager getDatabaseManager(DbConfig dbConfig) {
+    public DatabaseManager getDatabaseManager(Db dbConfig) {
         //todo improve these parameters
         return new DatabaseManager(null, null,
                 4, "Backend", true,
@@ -80,39 +86,90 @@ public class DbConfig {
         return databaseManager.getCacheDbWrapper();
     }
 
-    private final Main main = new Main();
+    private final Db db = new Db();
 
-    public Main getMain() {
-        return main;
+    @Bean
+    public Db getDb() {
+        return db;
     }
 
-    private final Cache cache = new Cache();
+    public static class Db {
 
-    public Cache getCache() {
-        return cache;
+        private final Main main = new Main();
+
+        public Main getMain() {
+            return main;
+        }
+
+        private final Cache cache = new Cache();
+
+        public Cache getCache() {
+            return cache;
+        }
+
+        public static class Main {
+            private String jdbcUrl = "";
+
+            public String getJdbcUrl() {
+                return jdbcUrl;
+            }
+
+            public void setJdbcUrl(String jdbcUrl) {
+                this.jdbcUrl = jdbcUrl;
+            }
+        }
+
+        public static class Cache {
+            private String jdbcUrl = "";
+
+            public String getJdbcUrl() {
+                return jdbcUrl;
+            }
+
+            public void setJdbcUrl(String jdbcUrl) {
+                this.jdbcUrl = jdbcUrl;
+            }
+        }
     }
 
-    public static class Main {
-        private String jdbcUrl = "";
+    private final Security security = new Security();
 
-        public String getJdbcUrl() {
-            return jdbcUrl;
-        }
-
-        public void setJdbcUrl(String jdbcUrl) {
-            this.jdbcUrl = jdbcUrl;
-        }
+    @Bean
+    public Security getSecurity() {
+        return security;
     }
 
-    public static class Cache {
-        private String jdbcUrl = "";
+    public static class Security {
 
-        public String getJdbcUrl() {
-            return jdbcUrl;
+        private List<Admin> admins = new ArrayList<>();
+
+        public List<Admin> getAdmins() {
+            return admins;
         }
 
-        public void setJdbcUrl(String jdbcUrl) {
-            this.jdbcUrl = jdbcUrl;
+        public void setAdmins(List<Admin> admins) {
+            this.admins = admins;
+        }
+
+        public static class Admin {
+            private String name = "";
+            private String pass = "";
+
+            public String getName() {
+                return name;
+            }
+
+            public void setName(String name) {
+                this.name = name;
+            }
+
+            public String getPass() {
+                return pass;
+            }
+
+            public void setPass(String pass) {
+                this.pass = pass;
+            }
         }
     }
 }

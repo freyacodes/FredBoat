@@ -30,4 +30,10 @@ package fredboat.config.property;
 public interface BackendConfig {
 
     String getHost();
+
+    String getUser();
+
+    String getPass();
+
+    String getBasicAuth();
 }

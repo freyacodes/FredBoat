@@ -41,8 +41,8 @@ public class RestSearchResultRepo extends CachedRestRepo<SearchResult.SearchResu
 
     public static final String PATH = "/searchresult";
 
-    public RestSearchResultRepo(String apiBasePath, Http http, Gson gson) {
-        super(apiBasePath + PATH, SearchResult.class, http, gson);
+    public RestSearchResultRepo(String apiBasePath, Http http, Gson gson, String auth) {
+        super(apiBasePath + PATH, SearchResult.class, http, gson, auth);
     }
 
     @Override
@@ -58,7 +58,7 @@ public class RestSearchResultRepo extends CachedRestRepo<SearchResult.SearchResu
             String url = path + "/getmaxaged";
             Http.SimpleRequest getMaxAged = http.post(url, gson.toJson(id), "application/json")
                     .url(url, Http.Params.of("millis", Long.toString(maxAgeMillis)));
-            return gson.fromJson(getMaxAged.asString(), SearchResult.class);
+            return gson.fromJson(auth(getMaxAged).asString(), SearchResult.class);
         } catch (IOException e) {  //todo decide on error handling strategy
             log.error("Could not get search result", e);
             return null;

@@ -42,8 +42,8 @@ public class RestPrefixRepo extends CachedRestRepo<GuildBotComposite, Prefix> im
 
     public static final String PATH = "/prefix";
 
-    public RestPrefixRepo(String apiBasePath, Http http, Gson gson) {
-        super(apiBasePath + PATH, Prefix.class, http, gson);
+    public RestPrefixRepo(String apiBasePath, Http http, Gson gson, String auth) {
+        super(apiBasePath + PATH, Prefix.class, http, gson, auth);
     }
 
     @Override
@@ -59,7 +59,7 @@ public class RestPrefixRepo extends CachedRestRepo<GuildBotComposite, Prefix> im
             String payload = gson.toJson(id);
             log.debug("Payload: " + payload);
             Http.SimpleRequest getRaw = http.post(path + "/getraw", payload, "application/json");
-            return gson.fromJson(getRaw.asString(), String.class);
+            return gson.fromJson(auth(getRaw).asString(), String.class);
         } catch (IOException e) {  //todo decide on error handling strategy
             log.error("Could not get raw prefix", e);
             return null;

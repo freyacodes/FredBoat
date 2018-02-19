@@ -8,3 +8,9 @@ fredboat:
       jdbcUrl: ""
     cache:
       jdbcUrl: ""
+  security:
+    admins:
+      - name: fredbotto
+        pass: 123
+      - name: patronbotto
+        pass: 456

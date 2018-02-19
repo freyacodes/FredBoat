@@ -43,8 +43,8 @@ public class RestBlacklistRepo extends CachedRestRepo<Long, BlacklistEntry> impl
 
     public static final String PATH = "/blacklist";
 
-    public RestBlacklistRepo(String apiBasePath, Http http, Gson gson) {
-        super(apiBasePath + PATH, BlacklistEntry.class, http, gson);
+    public RestBlacklistRepo(String apiBasePath, Http http, Gson gson, String auth) {
+        super(apiBasePath + PATH, BlacklistEntry.class, http, gson, auth);
     }
 
 
@@ -58,7 +58,7 @@ public class RestBlacklistRepo extends CachedRestRepo<Long, BlacklistEntry> impl
     public List<BlacklistEntry> loadBlacklist() {
         try {
             Http.SimpleRequest get = http.get(path + "/loadall");
-            return gson.fromJson(get.asString(), new TypeToken<List<BlacklistEntry>>() {
+            return gson.fromJson(auth(get).asString(), new TypeToken<List<BlacklistEntry>>() {
             }.getType());
         } catch (IOException e) {  //todo decide on error handling strategy
             log.error("Could not load the blacklist", e);

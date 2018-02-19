@@ -47,8 +47,8 @@ public abstract class CachedRestRepo<I extends Serializable, E extends SaucedEnt
     /**
      * Create the CachedRestRepo using a default cache
      */
-    public CachedRestRepo(String path, Class<E> entityClass, Http http, Gson gson) {
-        this(path, entityClass, http, gson,
+    public CachedRestRepo(String path, Class<E> entityClass, Http http, Gson gson, String auth) {
+        this(path, entityClass, http, gson, auth,
                 CacheBuilder.newBuilder()
                         .expireAfterAccess(60, TimeUnit.SECONDS)
                         .expireAfterWrite(120, TimeUnit.SECONDS)
@@ -56,8 +56,8 @@ public abstract class CachedRestRepo<I extends Serializable, E extends SaucedEnt
         );
     }
 
-    public CachedRestRepo(String path, Class<E> entityClass, Http http, Gson gson, CacheBuilder<Object, Object> cacheBuilder) {
-        super(path, entityClass, http, gson);
+    public CachedRestRepo(String path, Class<E> entityClass, Http http, Gson gson, String auth, CacheBuilder<Object, Object> cacheBuilder) {
+        super(path, entityClass, http, gson, auth);
         this.cache = cacheBuilder.build(CacheLoader.from(super::fetch));
     }
 

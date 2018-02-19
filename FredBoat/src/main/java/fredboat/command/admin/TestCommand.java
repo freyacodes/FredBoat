@@ -60,7 +60,7 @@ public class TestCommand extends Command implements ICommandRestricted {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        if (Launcher.getBotController().getBackendConfig().getBackendUrl().isEmpty()) {
+        if (Launcher.getBotController().getBackendConfig().getHost().isEmpty()) {
             Launcher.getBotController().getExecutor().submit(
                     () -> invoke(Launcher.getBotController().getDatabaseManager().getMainDbConn(), context, context.args)
             );

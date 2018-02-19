@@ -162,12 +162,20 @@ public class Http {
             return this;
         }
 
+        //set a basic authorization header
+        @Nonnull
+        @CheckReturnValue
+        public SimpleRequest basicAuth(@Nonnull String user, @Nonnull String pass) {
+            requestBuilder.header("Authorization", Credentials.basic(user, pass));
+            return this;
+        }
+
         //remember to close the response
         @Nonnull
         @CheckReturnValue
         public Response execute() throws IOException {
             Request req = requestBuilder.build();
-            log.debug("{} {}", req.method(), req.url().toString());
+            log.debug("{} {} {}", req.method(), req.url().toString(), req.body() != null ? req.body() : "");
             return httpClient.newCall(req).execute();
         }
 

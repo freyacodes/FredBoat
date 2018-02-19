@@ -48,12 +48,14 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
     protected final Class<E> entityClass;
     protected final Http http;
     protected final Gson gson;
+    protected final String auth;
 
-    public RestRepo(String path, Class<E> entityClass, Http http, Gson gson) {
+    public RestRepo(String path, Class<E> entityClass, Http http, Gson gson, String auth) {
         this.path = path;
         this.entityClass = entityClass;
         this.http = http;
         this.gson = gson;
+        this.auth = auth;
     }
 
     public Class<E> getEntityClass() {
@@ -65,7 +67,7 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
         try {
             Http.SimpleRequest delete = http.post(path + "/delete", gson.toJson(id), "application/json");
             //noinspection ResultOfMethodCallIgnored
-            delete.execute();
+            auth(delete).execute();
         } catch (IOException e) { //todo decide on error handling strategy
             log.error("Could not DELETE entity with id {} of class {}", id, entityClass, e);
         }
@@ -75,7 +77,7 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
     public E fetch(I id) {
         try {
             Http.SimpleRequest fetch = http.post(path + "/fetch", gson.toJson(id), "application/json");
-            return gson.fromJson(fetch.asString(), entityClass);
+            return gson.fromJson(auth(fetch).asString(), entityClass);
         } catch (IOException e) { //todo decide on error handling strategy
             log.error("Could not FETCH entity with id {} of class {}", id, entityClass, e);
             return null;
@@ -86,10 +88,17 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
     public E merge(E entity) {
         try {
             Http.SimpleRequest merge = http.post(path + "/merge", gson.toJson(entity), "application/json");
-            return gson.fromJson(merge.asString(), entityClass);
+            return gson.fromJson(auth(merge).asString(), entityClass);
         } catch (IOException e) { //todo decide on error handling strategy
             log.error("Could not MERGE entity with id {} of class {}", entity.getId(), entityClass, e);
             return null;
         }
+    }
+
+    /**
+     * @return the provided request but authed
+     */
+    protected Http.SimpleRequest auth(Http.SimpleRequest request) {
+        return request.auth(auth);
     }
 }

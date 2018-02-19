@@ -38,8 +38,8 @@ public class RestGuildDataRepo extends CachedRestRepo<Long, GuildData> implement
 
     public static final String PATH = "/guilddata";
 
-    public RestGuildDataRepo(String apiBasePath, Http http, Gson gson) {
-        super(apiBasePath + PATH, GuildData.class, http, gson);
+    public RestGuildDataRepo(String apiBasePath, Http http, Gson gson, String auth) {
+        super(apiBasePath + PATH, GuildData.class, http, gson, auth);
     }
 
     @Override
