@@ -390,20 +390,38 @@ public class TextUtils {
         return shortened.toString();
     }
 
-    //put a zero width space between any @ and "here" and "everyone" in the input string
-    @Nonnull
-    public static String defuseMentions(@Nonnull String input) {
-        return input.replaceAll("@here", "@" + ZERO_WIDTH_CHAR + "here")
-                .replaceAll("@everyone", "@" + ZERO_WIDTH_CHAR + "everyone");
-    }
-
     /**
-     * @return the input, with escaped markdown and defused mentions
+     * @return the input, with escaped markdown and defused mentions and URLs
      * It is a good idea to use this on any user generated values that we reply in plain text.
      */
     @Nonnull
     public static String escapeAndDefuse(@Nonnull String input) {
-        return defuseMentions(escapeMarkdown(input));
+        return defuse(escapeMarkdown(input));
+    }
+
+    /**
+     * Defuses some content that Discord couldn't know wasn't our intention.
+     *
+     * <p>When the nickname contains a link, or a mention, the bot uses that as-is in the text.
+     * Since Discord can't know the bot didn't mean to do that, we escape it so it will not be interpreted.</p>
+     *
+     * @param input the string to escape, e.g. track titles, nicknames, supplied values
+     * @return defused content
+     */
+    @Nonnull
+    public static String defuse(@Nonnull String input) {
+        return defuseUrls(defuseMentions(input));
+    }
+
+    @Nonnull
+    private static String defuseMentions(@Nonnull String input) {
+        return input.replaceAll("@here", "@" + ZERO_WIDTH_CHAR + "here")
+                .replaceAll("@everyone", "@" + ZERO_WIDTH_CHAR + "everyone");
+    }
+
+    @Nonnull
+    private static String defuseUrls(@Nonnull String input) {
+        return input.replaceAll("://", ":" + ZERO_WIDTH_CHAR + "//");
     }
 
     @Nonnull
