@@ -106,6 +106,13 @@ public class DatabaseManager {
         this.cacheJdbc = cacheJdbc;
         this.cacheTunnel = cacheTunnel;
         this.entityManagerFactoryBuilder = entityManagerFactoryBuilder;
+
+        if (mainJdbc.isEmpty()) {
+            log.error("Main jdbc url is empty - database creation will fail");
+        }
+        if (cacheJdbc != null && cacheJdbc.isEmpty()) {
+            log.error("Cache jdbc url is empty - database creation will fail");
+        }
     }
 
     public DatabaseConnection getMainDbConn() {
