@@ -129,7 +129,7 @@ public class AnnounceCommand extends Command implements ICommandRestricted {
 
     private static void printProgress(Message message, int done, int total, int error) {
         CentralMessaging.editMessage(message, MessageFormat.format(
-                            "`[{0}/{1}]`{2,choice,0#|0< {2} failed}",
+                            "[{0}/{1}]{2,choice,0#|0< {2} failed}",
                             done, total, error)
         );
     }
