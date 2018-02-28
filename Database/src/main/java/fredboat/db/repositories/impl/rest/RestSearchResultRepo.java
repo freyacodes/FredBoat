@@ -59,9 +59,8 @@ public class RestSearchResultRepo extends CachedRestRepo<SearchResult.SearchResu
             Http.SimpleRequest getMaxAged = http.post(url, gson.toJson(id), "application/json")
                     .url(url, Http.Params.of("millis", Long.toString(maxAgeMillis)));
             return gson.fromJson(auth(getMaxAged).asString(), SearchResult.class);
-        } catch (IOException e) {  //todo decide on error handling strategy
-            log.error("Could not get search result", e);
-            return null;
+        } catch (IOException e) {
+            throw new BackendException("Could not get search result for " + id, e);
         }
     }
 }

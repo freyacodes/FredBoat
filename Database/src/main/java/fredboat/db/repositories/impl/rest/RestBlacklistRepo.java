@@ -33,7 +33,6 @@ import fredboat.util.rest.Http;
 import io.prometheus.client.guava.cache.CacheMetricsCollector;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -60,9 +59,8 @@ public class RestBlacklistRepo extends CachedRestRepo<Long, BlacklistEntry> impl
             Http.SimpleRequest get = http.get(path + "/loadall");
             return gson.fromJson(auth(get).asString(), new TypeToken<List<BlacklistEntry>>() {
             }.getType());
-        } catch (IOException e) {  //todo decide on error handling strategy
-            log.error("Could not load the blacklist", e);
-            return Collections.emptyList();
+        } catch (IOException e) {
+            throw new BackendException("Could not load the blacklist", e);
         }
     }
 }

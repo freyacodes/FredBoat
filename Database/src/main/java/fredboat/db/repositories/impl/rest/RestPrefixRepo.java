@@ -60,9 +60,8 @@ public class RestPrefixRepo extends CachedRestRepo<GuildBotComposite, Prefix> im
             log.debug("Payload: " + payload);
             Http.SimpleRequest getRaw = http.post(path + "/getraw", payload, "application/json");
             return gson.fromJson(auth(getRaw).asString(), String.class);
-        } catch (IOException e) {  //todo decide on error handling strategy
-            log.error("Could not get raw prefix", e);
-            return null;
+        } catch (IOException e) {
+            throw new BackendException("Could not get prefix for guild " + id.getGuildId(), e);
         }
     }
 }

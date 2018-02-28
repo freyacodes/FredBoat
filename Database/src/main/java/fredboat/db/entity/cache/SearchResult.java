@@ -190,6 +190,11 @@ public class SearchResult extends SaucedEntity<SearchResult.SearchResultId, Sear
             SearchResultId other = (SearchResultId) o;
             return provider.equals(other.provider) && searchTerm.equals(other.searchTerm);
         }
+
+        @Override
+        public String toString() {
+            return "Search: Provider " + provider + " Term " + searchTerm;
+        }
     }
 
 

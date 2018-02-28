@@ -30,6 +30,7 @@ import fredboat.db.api.*;
 import fredboat.db.entity.cache.SearchResult;
 import fredboat.db.entity.main.*;
 import fredboat.db.repositories.api.*;
+import fredboat.db.repositories.impl.rest.BackendException;
 import fredboat.util.DiscordUtil;
 import fredboat.util.func.NonnullSupplier;
 import net.dv8tion.jda.core.entities.Guild;
@@ -89,7 +90,7 @@ public class EntityIO implements BlacklistIO, GuildConfigIO, GuildDataIO, GuildM
     private static <T> T fetchUserFriendly(NonnullSupplier<T> operation) {
         try {
             return operation.get();
-        } catch (DatabaseException e) {
+        } catch (DatabaseException | BackendException e) {
             log.error("EntityIO database operation failed", e);
             throw new DatabaseNotReadyException(e);
         }
@@ -102,7 +103,7 @@ public class EntityIO implements BlacklistIO, GuildConfigIO, GuildDataIO, GuildM
     private static <T> T getUserFriendly(Supplier<T> operation) {
         try {
             return operation.get();
-        } catch (DatabaseException e) {
+        } catch (DatabaseException | BackendException e) {
             log.error("EntityIO database operation failed", e);
             throw new DatabaseNotReadyException(e);
         }
@@ -114,7 +115,7 @@ public class EntityIO implements BlacklistIO, GuildConfigIO, GuildDataIO, GuildM
     private static void doUserFriendly(Runnable operation) {
         try {
             operation.run();
-        } catch (DatabaseException e) {
+        } catch (DatabaseException | BackendException e) {
             log.error("EntityIO database operation failed", e);
             throw new DatabaseNotReadyException(e);
         }
@@ -225,7 +226,7 @@ public class EntityIO implements BlacklistIO, GuildConfigIO, GuildDataIO, GuildM
     @Nullable
     public SearchResult merge(SearchResult searchResult) {
         if (searchResultRepo != null) {
-            return searchResultRepo.merge(searchResult);
+            return fetchUserFriendly(() -> searchResultRepo.merge(searchResult));
         } else {
             return null;
         }

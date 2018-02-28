@@ -68,8 +68,8 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
             Http.SimpleRequest delete = http.post(path + "/delete", gson.toJson(id), "application/json");
             //noinspection ResultOfMethodCallIgnored
             auth(delete).execute();
-        } catch (IOException e) { //todo decide on error handling strategy
-            log.error("Could not DELETE entity with id {} of class {}", id, entityClass, e);
+        } catch (IOException e) {
+            throw new BackendException(String.format("Could not delete entity with id %s of class %s", id, entityClass), e);
         }
     }
 
@@ -78,9 +78,8 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
         try {
             Http.SimpleRequest fetch = http.post(path + "/fetch", gson.toJson(id), "application/json");
             return gson.fromJson(auth(fetch).asString(), entityClass);
-        } catch (IOException e) { //todo decide on error handling strategy
-            log.error("Could not FETCH entity with id {} of class {}", id, entityClass, e);
-            return null;
+        } catch (IOException e) {
+            throw new BackendException(String.format("Could not fetch entity with id %s of class %s", id, entityClass), e);
         }
     }
 
@@ -89,9 +88,8 @@ public abstract class RestRepo<I extends Serializable, E extends SaucedEntity<I,
         try {
             Http.SimpleRequest merge = http.post(path + "/merge", gson.toJson(entity), "application/json");
             return gson.fromJson(auth(merge).asString(), entityClass);
-        } catch (IOException e) { //todo decide on error handling strategy
-            log.error("Could not MERGE entity with id {} of class {}", entity.getId(), entityClass, e);
-            return null;
+        } catch (IOException e) {
+            throw new BackendException(String.format("Could not merge entity with id %s of class %s", entity.getId(), entityClass), e);
         }
     }
 
