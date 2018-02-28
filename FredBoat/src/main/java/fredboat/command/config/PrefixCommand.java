@@ -121,7 +121,7 @@ public class PrefixCommand extends Command implements IConfigCommand {
 
     public static void showPrefix(@Nonnull Context context, @Nonnull String prefix) {
         String p = prefix.isEmpty() ? "No Prefix" : prefix;
-        context.reply(context.i18nFormat("prefixGuild", "``" + p + "``")
+        context.reply(context.i18nFormat("prefixGuild", "`" + p + "`")
                 + "\n" + context.i18n("prefixShowAgain"));
     }
 
