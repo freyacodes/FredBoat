@@ -111,7 +111,7 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
 
                     String msg = context.i18nFormat("selectSuccess", validChoices.get(i),
                             TextUtils.escapeAndDefuse(selectedTracks[i].getInfo().title),
-                            TextUtils.formatTime(selectedTracks[0].getInfo().length));
+                            TextUtils.formatTime(selectedTracks[i].getInfo().length));
                     if (i < validChoices.size()) {
                         outputMsgBuilder.append("\n");
                     }
