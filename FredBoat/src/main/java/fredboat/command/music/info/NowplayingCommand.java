@@ -98,11 +98,11 @@ public class NowplayingCommand extends Command implements IMusicCommand {
 
     private EmbedBuilder getYoutubeEmbed(AudioTrackContext atc, GuildPlayer player, YoutubeAudioTrack at) {
         YoutubeVideo yv = YoutubeAPI.getVideoFromID(at.getIdentifier(), true);
-        String timeField = "["
+        String timeField = "`["
                 + TextUtils.formatTime(atc.getEffectivePosition(player))
                 + "/"
                 + TextUtils.formatTime(atc.getEffectiveDuration())
-                + "]";
+                + "]`";
 
         String desc = yv.getDescription();
 
