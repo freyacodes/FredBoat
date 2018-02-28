@@ -11,6 +11,6 @@ fredboat:
   security:
     admins:
       - name: fredbotto
-        pass: 123
+        pass:
       - name: patronbotto
-        pass: 456
+        pass:
