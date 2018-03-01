@@ -46,7 +46,6 @@ import org.springframework.context.annotation.ComponentScan;
 import space.npstr.sqlsauce.DatabaseException;
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -113,19 +112,20 @@ public class Launcher implements ApplicationRunner {
             SentryDsnCommand.turnOff();
         }
 
-        String javaVersionMinor = null;
+        int javaVersionMajor = -1;
+
         try {
-            javaVersionMinor = System.getProperty("java.version").split("\\.")[1];
+            javaVersionMajor = Runtime.version().major();
         } catch (Exception e) {
-            log.error("Exception while checking if java 8", e);
+            log.error("Exception while checking if java 9", e);
         }
-        if (!Objects.equals(javaVersionMinor, "8")) {
+        if (javaVersionMajor != 9) {
             log.warn("\n\t\t __      ___   ___ _  _ ___ _  _  ___ \n" +
                     "\t\t \\ \\    / /_\\ | _ \\ \\| |_ _| \\| |/ __|\n" +
                     "\t\t  \\ \\/\\/ / _ \\|   / .` || || .` | (_ |\n" +
                     "\t\t   \\_/\\_/_/ \\_\\_|_\\_|\\_|___|_|\\_|\\___|\n" +
                     "\t\t                                      ");
-            log.warn("FredBoat only officially supports Java 8. You are running Java {}", System.getProperty("java.version"));
+            log.warn("FredBoat only officially supports Java 9. You are running Java {}", Runtime.version());
         }
 
         System.setProperty("spring.main.web-application-type", "none"); //todo enable again after spark API is migrated

@@ -20,7 +20,6 @@ subprojects {
 
             //plugin versions
             gradleGitVersion        = '1.4.17'          //do not upgrade to 1.4.20, it fails builds randomly
-            jdactionVersion         = '1.0.2'
             shadowVersion           = '2.0.2'
             springBootVersion       = '2.0.0.RC1'
             jUnitPluginVersion      = '1.0.2'
@@ -37,7 +36,6 @@ subprojects {
         }
         dependencies {
             classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:${gradleGitVersion}"
-            classpath "gradle.plugin.com.sedmelluq:jdaction:${jdactionVersion}"
             classpath "com.github.jengelman.gradle.plugins:shadow:${shadowVersion}"
             classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
             classpath "org.junit.platform:junit-platform-gradle-plugin:${jUnitPluginVersion}"
@@ -46,8 +44,8 @@ subprojects {
     }
     apply plugin: 'java'
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 9
+    targetCompatibility = 9
 
     compileJava.dependsOn 'clean'
     compileJava.options.encoding = 'UTF-8'
@@ -99,6 +97,7 @@ subprojects {
         hibernateVersion            = '5.2.13.Final'
         flywayVersion               = '5.0.7'
         dsProxyVersion              = '1.4.6'
+        jaxbApiVersion              = '2.3.0'
 
         //testing deps
         junitVersion                = '5.0.3'
