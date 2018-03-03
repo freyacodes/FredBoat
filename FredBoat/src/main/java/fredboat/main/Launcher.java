@@ -1,5 +1,6 @@
 package fredboat.main;
 
+import com.google.common.base.CharMatcher;
 import com.sedmelluq.discord.lavaplayer.tools.PlayerLibrary;
 import fredboat.agent.CarbonitexAgent;
 import fredboat.agent.FredBoatAgent;
@@ -12,8 +13,7 @@ import fredboat.audio.player.VideoSelectionCache;
 import fredboat.command.admin.SentryDsnCommand;
 import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.CommandRegistry;
-import fredboat.config.property.FileConfig;
-import fredboat.config.property.PropertyConfigProvider;
+import fredboat.config.property.ConfigPropertiesProvider;
 import fredboat.feature.I18n;
 import fredboat.feature.metrics.BotMetrics;
 import fredboat.feature.metrics.MetricsServletAdapter;
@@ -30,9 +30,11 @@ import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDAInfo;
 import okhttp3.Credentials;
 import okhttp3.Response;
+import org.apache.commons.io.FileUtils;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
@@ -43,9 +45,13 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
+import org.yaml.snakeyaml.Yaml;
 import space.npstr.sqlsauce.DatabaseException;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -77,7 +83,7 @@ public class Launcher implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(Launcher.class);
     public static final long START_TIME = System.currentTimeMillis();
     private static BotController BC; //temporary hack access to the bot context
-    private final PropertyConfigProvider configProvider;
+    private final ConfigPropertiesProvider configProvider;
     private final ExecutorService executor;
     private final MetricsServletAdapter metricsServlet;
     private final CacheMetricsCollector cacheMetrics;
@@ -90,6 +96,7 @@ public class Launcher implements ApplicationRunner {
     private final VideoSelectionCache videoSelectionCache;
     private final ShardProvider shardProvider;
     private final GuildProvider guildProvider;
+    private final int apiPort;
 
     public static void main(String[] args) throws IllegalArgumentException, DatabaseException {
         //just post the info to the console
@@ -105,12 +112,7 @@ public class Launcher implements ApplicationRunner {
         log.info(getVersionInfo());
 
         //create the sentry appender as early as possible
-        String sentryDsn = FileConfig.get().getSentryDsn();
-        if (!sentryDsn.isEmpty()) {
-            SentryDsnCommand.turnOn(sentryDsn);
-        } else {
-            SentryDsnCommand.turnOff();
-        }
+        setUpSentry();
 
         int javaVersionMajor = -1;
 
@@ -137,11 +139,12 @@ public class Launcher implements ApplicationRunner {
         return BC;
     }
 
-    public Launcher(BotController botController, PropertyConfigProvider configProvider, ExecutorService executor,
+    public Launcher(BotController botController, ConfigPropertiesProvider configProvider, ExecutorService executor,
                     MetricsServletAdapter metricsServlet, CacheMetricsCollector cacheMetrics, PlayerRegistry playerRegistry,
                     StatsAgent statsAgent, BotMetrics botMetrics, Weather weather,
                     AudioConnectionFacade audioConnectionFacade, TrackSearcher trackSearcher,
-                    VideoSelectionCache videoSelectionCache, ShardProvider shardProvider, GuildProvider guildProvider) {
+                    VideoSelectionCache videoSelectionCache, ShardProvider shardProvider, GuildProvider guildProvider,
+                    @Value("${server.port:" + API.DEFAULT_PORT + "}") int apiPort) {
         Launcher.BC = botController;
         this.configProvider = configProvider;
         this.executor = executor;
@@ -156,6 +159,7 @@ public class Launcher implements ApplicationRunner {
         this.videoSelectionCache = videoSelectionCache;
         this.shardProvider = shardProvider;
         this.guildProvider = guildProvider;
+        this.apiPort = apiPort;
     }
 
     @Override
@@ -164,7 +168,7 @@ public class Launcher implements ApplicationRunner {
         I18n.start();
 
         try {
-            API.start(playerRegistry, botMetrics, shardProvider);
+            API.start(playerRegistry, botMetrics, shardProvider, apiPort);
         } catch (Exception e) {
             log.info("Failed to ignite Spark, FredBoat API unavailable", e);
         }
@@ -295,5 +299,57 @@ public class Launcher implements ApplicationRunner {
                 + "\n\tJDA:           " + JDAInfo.VERSION
                 + "\n\tLavaplayer     " + PlayerLibrary.VERSION
                 + "\n";
+    }
+
+    private static void setUpSentry() {
+        String sentryDsn = System.getProperty("sentry.dsn");
+        if (sentryDsn == null || sentryDsn.isEmpty()) {
+            sentryDsn = System.getenv("SENTRY_DSN");
+        }
+        if (sentryDsn == null || sentryDsn.isEmpty()) {
+            try {
+                File configFile = loadConfigFile("fredboat");
+                cleanTabs(configFile);
+                String configFileStr = FileUtils.readFileToString(configFile, "UTF-8");
+                Yaml yaml = new Yaml();
+                Map<String, Object> config = yaml.load(configFileStr);
+                @SuppressWarnings("unchecked") Map<String, Object> credentials
+                        = (Map<String, Object>) config.getOrDefault("credentials", null);
+                sentryDsn = (String) credentials.getOrDefault("sentryDsn", "");
+            } catch (Exception e) {
+                log.error("Failed to preload config to extract sentry dsn");
+            }
+        }
+
+        log.info("Senstry dsn: {}", sentryDsn);
+        if (sentryDsn != null && !sentryDsn.isEmpty()) {
+            SentryDsnCommand.turnOn(sentryDsn);
+        } else {
+            SentryDsnCommand.turnOff();
+        }
+    }
+
+    /**
+     * @param name relative name of a config file, without the file extension
+     * @return a handle on the requested file
+     */
+    private static File loadConfigFile(String name) throws IOException {
+        String path = "./" + name + ".yaml";
+        File file = new File(path);
+        if (!file.exists() || file.isDirectory()) {
+            throw new FileNotFoundException("Could not find '" + path + "' file.");
+        }
+        return file;
+    }
+
+    //replace tabs with double spaces in a file
+    private static void cleanTabs(File file) throws IOException {
+        String content = FileUtils.readFileToString(file, "UTF-8");
+        CharMatcher tab = CharMatcher.is('\t');
+        if (tab.matchesAnyOf(content)) {
+            log.warn("{} contains tab characters! Trying a fix-up.", file);
+            String newContent = tab.replaceFrom(content, "  ");
+            FileUtils.writeStringToFile(file, newContent, "UTF-8");
+        }
     }
 }

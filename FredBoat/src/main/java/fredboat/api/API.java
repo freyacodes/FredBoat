@@ -41,21 +41,21 @@ import spark.Spark;
 
 public class API {
 
-    private static final Logger log = LoggerFactory.getLogger(API.class);
+    public static final int DEFAULT_PORT = 1356;
 
-    private static final int PORT = 1356;
+    private static final Logger log = LoggerFactory.getLogger(API.class);
 
     private API() {}
 
-    public static void start(PlayerRegistry playerRegistry, BotMetrics botMetrics, ShardProvider shardProvider) {
+    public static void start(PlayerRegistry playerRegistry, BotMetrics botMetrics, ShardProvider shardProvider,
+                             int apiPort) {
         if (!Launcher.getBotController().getAppConfig().isRestServerEnabled()) {
             log.warn("Rest server is not enabled. Skipping Spark ignition!");
             return;
         }
 
-        log.info("Igniting Spark API on port: " + PORT);
-
-        Spark.port(PORT);
+        log.info("Igniting Spark API on port: " + apiPort);
+        Spark.port(apiPort);
 
         Spark.before((request, response) -> {
             log.info(request.requestMethod() + " " + request.pathInfo());

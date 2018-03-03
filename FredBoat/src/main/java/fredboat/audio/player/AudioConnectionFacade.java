@@ -63,7 +63,7 @@ public class AudioConnectionFacade implements EventListener {
                                  ShardProvider shardProvider) {
         this.debugConnectionListenerProvider = debugConnectionListenerProvider;
         this.audioPlayerManager = audioPlayerManager;
-        if (lavalinkConfig.getLavalinkHosts().isEmpty()) {
+        if (lavalinkConfig.getNodes().isEmpty()) {
             lavalink = null; //local playback
             audioPlayerManager.enableGcMonitoring();
             return;
@@ -76,9 +76,9 @@ public class AudioConnectionFacade implements EventListener {
         );
         Runtime.getRuntime().addShutdownHook(new Thread(lavalink::shutdown, "lavalink-shutdown-hook"));
 
-        List<LavalinkConfig.LavalinkHost> hosts = lavalinkConfig.getLavalinkHosts();
-        hosts.forEach(lavalinkHost -> lavalink.addNode(lavalinkHost.getName(), lavalinkHost.getUri(),
-                lavalinkHost.getPassword()));
+        List<LavalinkConfig.LavalinkNode> nodes = lavalinkConfig.getNodes();
+        nodes.forEach(lavalinkNode -> lavalink.addNode(lavalinkNode.getName(), lavalinkNode.getUri(),
+                lavalinkNode.getPassword()));
 
         new LavalinkCollector(lavalink).register();
     }

@@ -95,7 +95,7 @@ public class MockConfig implements AppConfig, AudioSourcesConfig, Credentials, D
     }
 
     @Override
-    public List<String> getAdminIds() {
+    public List<Long> getAdminIds() {
         return Collections.emptyList();
     }
 
@@ -228,7 +228,7 @@ public class MockConfig implements AppConfig, AudioSourcesConfig, Credentials, D
     }
 
     @Override
-    public List<LavalinkHost> getLavalinkHosts() {
+    public List<LavalinkNode> getNodes() {
         return Collections.emptyList();
     }
 

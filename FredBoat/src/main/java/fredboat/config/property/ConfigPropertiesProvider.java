@@ -29,7 +29,7 @@ package fredboat.config.property;
  * <p>
  * Provide access to our property based configs
  */
-public interface PropertyConfigProvider {
+public interface ConfigPropertiesProvider {
 
     AppConfig getAppConfig();
 

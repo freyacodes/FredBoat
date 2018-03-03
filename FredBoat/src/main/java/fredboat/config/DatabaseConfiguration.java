@@ -28,7 +28,7 @@ import com.zaxxer.hikari.metrics.prometheus.PrometheusMetricsTrackerFactory;
 import fredboat.agent.DBConnectionWatchdogAgent;
 import fredboat.agent.FredBoatAgent;
 import fredboat.config.property.DatabaseConfig;
-import fredboat.config.property.PropertyConfigProvider;
+import fredboat.config.property.ConfigPropertiesProvider;
 import fredboat.db.DatabaseManager;
 import fredboat.main.ShutdownHandler;
 import fredboat.shared.constant.BotConstants;
@@ -116,7 +116,7 @@ public class DatabaseConfiguration {
     }
 
     @Bean
-    public DatabaseManager databaseManager(PropertyConfigProvider configProvider, HibernateStatisticsCollector hibernateStats,
+    public DatabaseManager databaseManager(ConfigPropertiesProvider configProvider, HibernateStatisticsCollector hibernateStats,
                                            PrometheusMetricsTrackerFactory hikariStats) {
         //run migrations except when its the patron boat
         boolean migrateAndValidate = DiscordUtil.getBotId(configProvider.getCredentials()) != BotConstants.PATRON_BOT_ID;

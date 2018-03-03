@@ -26,7 +26,6 @@
 package fredboat.event;
 
 import fredboat.config.property.EventLoggerConfig;
-import fredboat.config.property.PropertyConfigProvider;
 import fredboat.jda.ShardProvider;
 import fredboat.main.ShutdownHandler;
 import fredboat.messaging.CentralMessaging;
@@ -180,12 +179,11 @@ public class EventLogger extends ListenerAdapter {
     }
 
     //actual constructor
-    public EventLogger(PropertyConfigProvider configProvider, ShutdownHandler shutdownHandler, ShardProvider shardProvider) {
+    public EventLogger(EventLoggerConfig eventLoggerConfig, ShutdownHandler shutdownHandler, ShardProvider shardProvider) {
         this.shardProvider = shardProvider;
-        EventLoggerConfig config = configProvider.getEventLoggerConfig();
         Runtime.getRuntime().addShutdownHook(new Thread(createShutdownHook(shutdownHandler), EventLogger.class.getSimpleName() + " shutdownhook"));
 
-        String eventLoggerWebhookUrl = config.getEventLogWebhook();
+        String eventLoggerWebhookUrl = eventLoggerConfig.getEventLogWebhook();
         WebhookClient eventLoggerWebhook = null;
         if (!eventLoggerWebhookUrl.isEmpty()) {
             try {
@@ -220,11 +218,11 @@ public class EventLogger extends ListenerAdapter {
                 } catch (Exception e) {
                     log.error("Failed to send shard status summary to event log webhook", e);
                 }
-            }, 0, Math.max(config.getEventLogInterval(), 1), TimeUnit.MINUTES);
+            }, 0, Math.max(eventLoggerConfig.getEventLogInterval(), 1), TimeUnit.MINUTES);
         }
 
 
-        String guildStatsWebhookUrl = config.getGuildStatsWebhook();
+        String guildStatsWebhookUrl = eventLoggerConfig.getGuildStatsWebhook();
         WebhookClient guildStatsWebhook = null;
         if (!guildStatsWebhookUrl.isEmpty()) {
             try {
@@ -251,7 +249,7 @@ public class EventLogger extends ListenerAdapter {
         }
         this.guildStatsWebhook = workingWebhook;
 
-        int interval = Math.max(config.getGuildStatsInterval(), 1);
+        int interval = Math.max(eventLoggerConfig.getGuildStatsInterval(), 1);
         if (this.guildStatsWebhook != null) {
             scheduler.scheduleAtFixedRate(() -> {
                 try {

@@ -24,55 +24,28 @@
 
 package fredboat.config.property;
 
-import fredboat.commandmeta.CommandInitializer;
-import fredboat.shared.constant.DistributionEnum;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by napster on 19.02.18.
+ * Created by napster on 03.03.18.
  */
-public interface AppConfig {
+@Component
+@ConfigurationProperties(prefix = "lavalink")
+public class LavalinkConfigProperties implements LavalinkConfig {
 
-    String DEFAULT_PREFIX = ";;";
+    private List<LavalinkNode> nodes = new ArrayList<>();
 
-    DistributionEnum getDistribution();
 
-    default boolean isPatronDistribution() {
-        return getDistribution() == DistributionEnum.PATRON;
+    @Override
+    public List<LavalinkNode> getNodes() {
+        return nodes;
     }
 
-    default boolean isDevDistribution() {
-        return getDistribution() == DistributionEnum.DEVELOPMENT;
+    public void setNodes(List<LavalinkNode> nodes) {
+        this.nodes = nodes;
     }
-
-    default boolean isMusicDistribution() {
-        return getDistribution() == DistributionEnum.MUSIC;
-    }
-
-    default String getPrefix() {
-        return DEFAULT_PREFIX;
-    }
-
-    boolean isRestServerEnabled();
-
-    List<Long> getAdminIds();
-
-    boolean useAutoBlacklist();
-
-    /**
-     * @return empty string for default status
-     */
-    String getGame();
-
-    default String getStatus() {
-        String game = getGame();
-        if (game.isEmpty()) {
-            return "Say " + getPrefix() + CommandInitializer.HELP_COMM_NAME;
-        } else {
-            return game;
-        }
-    }
-
-    boolean getContinuePlayback();
 }

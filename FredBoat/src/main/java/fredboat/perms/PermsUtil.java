@@ -90,9 +90,9 @@ public class PermsUtil {
      */
     private static boolean isBotAdmin(Member member) {
         boolean botAdmin = false;
-        for (String id : Launcher.getBotController().getAppConfig().getAdminIds()) {
+        for (long id : Launcher.getBotController().getAppConfig().getAdminIds()) {
             Role r = member.getGuild().getRoleById(id);
-            if (member.getUser().getId().equals(id)
+            if (member.getUser().getIdLong() == id
                     || (r != null && member.getRoles().contains(r))) {
                 botAdmin = true;
                 break;

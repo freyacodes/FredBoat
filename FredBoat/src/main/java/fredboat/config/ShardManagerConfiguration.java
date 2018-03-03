@@ -26,8 +26,8 @@ package fredboat.config;
 
 import com.sedmelluq.discord.lavaplayer.jdaudp.NativeAudioSendFactory;
 import fredboat.audio.player.AudioConnectionFacade;
+import fredboat.config.property.ConfigPropertiesProvider;
 import fredboat.config.property.Credentials;
-import fredboat.config.property.PropertyConfigProvider;
 import fredboat.event.EventListenerBoat;
 import fredboat.event.EventLogger;
 import fredboat.event.MusicPersistenceHandler;
@@ -68,7 +68,7 @@ public class ShardManagerConfiguration {
     }
 
     @Bean
-    public ShardManager buildShardManager(PropertyConfigProvider configProvider, EventListenerBoat mainEventListener,
+    public ShardManager buildShardManager(ConfigPropertiesProvider configProvider, EventListenerBoat mainEventListener,
                                           AudioConnectionFacade audioConnectionFacade, SessionController sessionController,
                                           EventLogger eventLogger, JdaEventsMetricsListener jdaEventsMetricsListener,
                                           ShardReviveHandler shardReviveHandler, MusicPersistenceHandler musicPersistenceHandler,
@@ -76,7 +76,7 @@ public class ShardManagerConfiguration {
 
         DefaultShardManagerBuilder builder = new DefaultShardManagerBuilder()
                 .setToken(configProvider.getCredentials().getBotToken())
-                .setGame(Game.playing(configProvider.getAppConfig().getGame()))
+                .setGame(Game.playing(configProvider.getAppConfig().getStatus()))
                 .setBulkDeleteSplittingEnabled(false)
                 .setEnableShutdownHook(false)
                 .setAudioEnabled(true)

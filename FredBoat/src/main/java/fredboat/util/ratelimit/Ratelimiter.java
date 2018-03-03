@@ -63,9 +63,7 @@ public class Ratelimiter {
         Set<Long> whitelist = ConcurrentHashMap.newKeySet();
 
         //only works for those admins who are added with their userId and not through a roleId
-        for (String admin : appConfig.getAdminIds()) {
-            whitelist.add(Long.valueOf(admin));
-        }
+        whitelist.addAll(appConfig.getAdminIds());
 
         //Create all the rate limiters we want
         ratelimits = new ArrayList<>();

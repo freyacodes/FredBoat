@@ -25,6 +25,7 @@
 package fredboat.config.property;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 
 /**
@@ -35,19 +36,13 @@ public interface LavalinkConfig {
     /**
      * @return Lavalink nodes
      */
-    List<LavalinkConfig.LavalinkHost> getLavalinkHosts();
+    List<LavalinkNode> getNodes();
 
-    class LavalinkHost {
+    class LavalinkNode {
 
-        private final String name;
-        private final URI uri;
-        private final String password;
-
-        public LavalinkHost(String name, URI uri, String password) {
-            this.name = name;
-            this.uri = uri;
-            this.password = password;
-        }
+        private String name = "";
+        private URI uri;
+        private String pass = "";
 
         public String getName() {
             return name;
@@ -58,7 +53,19 @@ public interface LavalinkConfig {
         }
 
         public String getPassword() {
-            return password;
+            return pass;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public void setHost(String host) throws URISyntaxException {
+            this.uri = new URI(host);
+        }
+
+        public void setPass(String pass) {
+            this.pass = pass;
         }
     }
 }

@@ -27,43 +27,56 @@ package fredboat.config.property;
 import org.springframework.stereotype.Component;
 
 /**
- * Created by napster on 23.02.18.
- * <p>
- * Proxy calls to our reloading property configs
+ * Created by napster on 03.03.18.
  */
 @Component
-public class FilePropertyConfigProvider implements PropertyConfigProvider {
+public class SpringConfigPropertiesProvider implements ConfigPropertiesProvider {
 
-    public FilePropertyConfigProvider() {
+    private final AppConfig appConfig;
+    private final AudioSourcesConfig audioSourcesConfig;
+    private final Credentials credentials;
+    private final DatabaseConfig databaseConfig;
+    private final EventLoggerConfig eventLoggerConfig;
+    private final LavalinkConfig lavalinkConfig;
+
+    public SpringConfigPropertiesProvider(AppConfig appConfig, AudioSourcesConfig audioSourcesConfig,
+                                          Credentials credentials, DatabaseConfig databaseConfig,
+                                          EventLoggerConfig eventLoggerConfig, LavalinkConfig lavalinkConfig) {
+        this.appConfig = appConfig;
+        this.audioSourcesConfig = audioSourcesConfig;
+        this.credentials = credentials;
+        this.databaseConfig = databaseConfig;
+        this.eventLoggerConfig = eventLoggerConfig;
+        this.lavalinkConfig = lavalinkConfig;
     }
 
     @Override
     public AppConfig getAppConfig() {
-        return FileConfig.get();
+        return appConfig;
     }
 
     @Override
     public AudioSourcesConfig getAudioSourcesConfig() {
-        return FileConfig.get();
+        return audioSourcesConfig;
     }
 
     @Override
     public Credentials getCredentials() {
-        return FileConfig.get();
+        return credentials;
     }
 
     @Override
     public DatabaseConfig getDatabaseConfig() {
-        return FileConfig.get();
+        return databaseConfig;
     }
 
     @Override
     public EventLoggerConfig getEventLoggerConfig() {
-        return FileConfig.get();
+        return eventLoggerConfig;
     }
 
     @Override
     public LavalinkConfig getLavalinkConfig() {
-        return FileConfig.get();
+        return lavalinkConfig;
     }
 }

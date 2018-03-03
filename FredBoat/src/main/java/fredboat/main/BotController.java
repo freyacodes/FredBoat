@@ -6,8 +6,8 @@ import fredboat.audio.player.AudioConnectionFacade;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.config.property.AppConfig;
 import fredboat.config.property.AudioSourcesConfig;
+import fredboat.config.property.ConfigPropertiesProvider;
 import fredboat.config.property.Credentials;
-import fredboat.config.property.PropertyConfigProvider;
 import fredboat.db.DatabaseManager;
 import fredboat.db.EntityIO;
 import fredboat.event.EventListenerBoat;
@@ -35,7 +35,7 @@ public class BotController {
             .eventListener(new OkHttpEventMetrics("default", Metrics.httpEventCounter))
             .build());
 
-    private final PropertyConfigProvider configProvider;
+    private final ConfigPropertiesProvider configProvider;
     private final AudioConnectionFacade audioConnectionFacade;
     private final ShardManager shardManager;
     //central event listener that all events by all shards pass through
@@ -51,7 +51,7 @@ public class BotController {
     private final Ratelimiter ratelimiter;
 
 
-    public BotController(PropertyConfigProvider configProvider, AudioConnectionFacade audioConnectionFacade, ShardManager shardManager,
+    public BotController(ConfigPropertiesProvider configProvider, AudioConnectionFacade audioConnectionFacade, ShardManager shardManager,
                          EventListenerBoat eventListenerBoat, ShutdownHandler shutdownHandler, DatabaseManager databaseManager,
                          EntityIO entityIO, ExecutorService executor, HibernateStatisticsCollector hibernateStats,
                          PlayerRegistry playerRegistry, JdaEntityProvider jdaEntityProvider, BotMetrics botMetrics,

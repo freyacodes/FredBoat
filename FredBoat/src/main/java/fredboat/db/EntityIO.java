@@ -25,7 +25,7 @@
 
 package fredboat.db;
 
-import fredboat.config.property.PropertyConfigProvider;
+import fredboat.config.property.ConfigPropertiesProvider;
 import fredboat.db.api.*;
 import fredboat.db.entity.cache.SearchResult;
 import fredboat.db.entity.main.*;
@@ -56,7 +56,7 @@ public class EntityIO implements BlacklistIO, GuildConfigIO, GuildDataIO, GuildM
 
     private static final Logger log = LoggerFactory.getLogger(EntityIO.class);
 
-    private final PropertyConfigProvider configProvider;
+    private final ConfigPropertiesProvider configProvider;
 
     private final GuildConfigRepo guildConfigRepo;
     private final GuildDataRepo guildDataRepo;
@@ -68,7 +68,7 @@ public class EntityIO implements BlacklistIO, GuildConfigIO, GuildDataIO, GuildM
     @Nullable
     private final SearchResultRepo searchResultRepo;
 
-    public EntityIO(PropertyConfigProvider configProvider, BlacklistRepo blacklistRepo, GuildConfigRepo guildConfigRepo,
+    public EntityIO(ConfigPropertiesProvider configProvider, BlacklistRepo blacklistRepo, GuildConfigRepo guildConfigRepo,
                     GuildDataRepo guildDataRepo, GuildModulesRepo guildModulesRepo, GuildPermsRepo guildPermsRepo,
                     PrefixRepo prefixRepo, @Nullable SearchResultRepo searchResultRepo) {
         this.configProvider = configProvider;

@@ -138,7 +138,7 @@ public class DatabaseManager {
 
     @Nullable //may return null if no cache db is configured
     public DatabaseConnection getCacheDbConn() {
-        if (cacheJdbc == null) {
+        if (cacheJdbc == null || cacheJdbc.isEmpty()) {
             return null;
         }
         DatabaseConnection singleton = cacheDbConn;
