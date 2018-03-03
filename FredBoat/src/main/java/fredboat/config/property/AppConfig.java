@@ -60,6 +60,8 @@ public interface AppConfig {
 
     boolean useAutoBlacklist();
 
+    int getPlayerLimit();
+
     /**
      * @return empty string for default status
      */

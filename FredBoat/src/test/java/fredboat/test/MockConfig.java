@@ -115,6 +115,11 @@ public class MockConfig implements AppConfig, AudioSourcesConfig, Credentials, D
     }
 
     @Override
+    public int getPlayerLimit() {
+        return -1;
+    }
+
+    @Override
     public boolean isYouTubeEnabled() {
         return false;
     }

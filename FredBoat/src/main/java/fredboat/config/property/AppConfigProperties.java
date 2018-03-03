@@ -24,6 +24,7 @@
 
 package fredboat.config.property;
 
+import fredboat.audio.player.PlayerLimitManager;
 import fredboat.shared.constant.DistributionEnum;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -48,6 +49,8 @@ public class AppConfigProperties implements AppConfig {
     private String game = "";
     private boolean continuePlayback;
 
+    //undocumented
+    private int playerLimit = -1;
 
     @Override
     public DistributionEnum getDistribution() {
@@ -86,6 +89,11 @@ public class AppConfigProperties implements AppConfig {
         return continuePlayback;
     }
 
+    @Override
+    public int getPlayerLimit() {
+        return playerLimit;
+    }
+
     public void setDevelopment(boolean development) {
         this.development = development;
     }
@@ -116,5 +124,10 @@ public class AppConfigProperties implements AppConfig {
 
     public void setContinuePlayback(boolean continuePlayback) {
         this.continuePlayback = continuePlayback;
+    }
+
+    public void setPlayerLimit(int playerLimit) {
+        this.playerLimit = playerLimit;
+        PlayerLimitManager.setLimit(playerLimit); //todo make the playlimitmanager a component
     }
 }
