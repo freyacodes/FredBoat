@@ -14,12 +14,26 @@
 ###
 ###   key: value
 ###
+###
 ### You can wrap most values into quotation marks, except numbers and booleans:
 ###
 ###   someUrl: "http://example.com"
 ###   someToken: "123.qwe.456[DFG="
 ###   somePortNumber: 22
 ###   useSomeFeature: true
+###
+###
+### You can have a list of things like this:
+###
+###   listOfStrings: ["string1", "string2", "string3"]
+###
+### or like this:
+###
+###   listOfStrings:
+###     - "string1"
+###     - "string2"
+###     - "string3"
+###
 ###
 ### More information on correctly formatting yaml files: http://www.yaml.org/start.html
 
