@@ -55,8 +55,7 @@ services:
     ports:
       - 1356:1356
     volumes:
-      - ./config.yaml:/opt/FredBoat/config.yaml
-      - ./credentials.yaml:/opt/FredBoat/credentials.yaml
+      - ./fredboat.yaml:/opt/FredBoat/fredboat.yaml
       - ./logs:/opt/FredBoat/logs
       - ./music_persistence:/opt/FredBoat/music_persistence
       # Local audio files (dev branch only currently)

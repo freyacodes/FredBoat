@@ -72,10 +72,7 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
         long nanoTime = System.nanoTime();
         FileConfig c;
         try {
-            c = new FileConfig(
-                    loadConfigFile("credentials"),
-                    loadConfigFile("config")
-            );
+            c = new FileConfig(loadConfigFile("fredboat"));
         } catch (Exception e) {
             if (lastSuccessfulLoaded != null) {
                 log.error("Reloading config file failed! Serving last successfully loaded one.", e);
@@ -154,20 +151,16 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
      * The config is regularly reloaded, it should not be doing any blocking calls.
      */
     @SuppressWarnings("unchecked")
-    private FileConfig(File credentialsFile, File configFile) {
+    private FileConfig(File configFile) {
         try {
             Yaml yaml = new Yaml();
-            String credsFileStr = FileUtils.readFileToString(credentialsFile, "UTF-8");
             String configFileStr = FileUtils.readFileToString(configFile, "UTF-8");
             //remove those pesky tab characters so a potential json file is YAML conform
-            credsFileStr = cleanTabs(credsFileStr, "credentials.yaml");
-            configFileStr = cleanTabs(configFileStr, "config.yaml");
+            configFileStr = cleanTabs(configFileStr, "fredboat.yaml");
 
-            Map<String, Object> creds = yaml.load(credsFileStr);
             Map<String, Object> config = yaml.load(configFileStr);
 
             //avoid null values, rather change them to empty strings
-            creds.keySet().forEach((String key) -> creds.putIfAbsent(key, ""));
             config.keySet().forEach((String key) -> config.putIfAbsent(key, ""));
 
 
@@ -210,7 +203,7 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
 
 
             //Load Credential values
-            Object token = creds.get("token");
+            Object token = config.get("token");
             if (token instanceof String) {
                 botToken = (String) token;
             } else {
@@ -219,10 +212,10 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
             }
             if (botToken == null || botToken.isEmpty()) {
                 throw new RuntimeException("No discord bot token provided for the started distribution " + distribution
-                        + "\nMake sure to put a " + distribution.getId() + " token in your credentials file.");
+                        + "\nMake sure to put a " + distribution.getId() + " token in your fredboat.yaml file.");
             }
 
-            Object gkeys = creds.get("googleServerKeys");
+            Object gkeys = config.get("googleServerKeys");
             if (gkeys instanceof List) {
                 ((List) gkeys).forEach((Object str) -> googleKeys.add((String) str));
             } else if (gkeys instanceof String) {
@@ -232,20 +225,20 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
             }
 
             // apis
-            malUser = (String) creds.getOrDefault("malUser", "");
-            malPassword = (String) creds.getOrDefault("malPassword", "");
+            malUser = (String) config.getOrDefault("malUser", "");
+            malPassword = (String) config.getOrDefault("malPassword", "");
 
-            imgurClientId = (String) creds.getOrDefault("imgurClientId", "");
+            imgurClientId = (String) config.getOrDefault("imgurClientId", "");
 
-            spotifyId = (String) creds.getOrDefault("spotifyId", "");
-            spotifySecret = (String) creds.getOrDefault("spotifySecret", "");
+            spotifyId = (String) config.getOrDefault("spotifyId", "");
+            spotifySecret = (String) config.getOrDefault("spotifySecret", "");
 
-            openWeatherKey = (String) creds.getOrDefault("openWeatherKey", "");
-            sentryDsn = (String) creds.getOrDefault("sentryDsn", "");
+            openWeatherKey = (String) config.getOrDefault("openWeatherKey", "");
+            sentryDsn = (String) config.getOrDefault("sentryDsn", "");
 
 
             // main database
-            jdbcUrl = (String) creds.getOrDefault("jdbcUrl", "");
+            jdbcUrl = (String) config.getOrDefault("jdbcUrl", "");
             if (jdbcUrl == null || jdbcUrl.isEmpty()) {
                 if ("docker".equals(System.getenv("ENV"))) {
                     log.info("No main JDBC URL found, docker environment detected. Using default docker main JDBC url");
@@ -256,10 +249,10 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
                     throw new RuntimeException(message);
                 }
             }
-            boolean useSshTunnel = (boolean) creds.getOrDefault("useSshTunnel", false);
+            boolean useSshTunnel = (boolean) config.getOrDefault("useSshTunnel", false);
             if (useSshTunnel) {
                 //Parse host:port
-                String sshHostRaw = (String) creds.getOrDefault("sshHost", "localhost:22");
+                String sshHostRaw = (String) config.getOrDefault("sshHost", "localhost:22");
                 String sshHost = sshHostRaw.split(":")[0];
                 int sshPort;
                 try {
@@ -267,15 +260,15 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
                 } catch (Exception e) {
                     sshPort = 22;
                 }
-                String sshUser = (String) creds.getOrDefault("sshUser", "fredboat");
-                String sshPrivateKeyFile = (String) creds.getOrDefault("sshPrivateKeyFile", "database.ppk");
-                String sshKeyPassphrase = (String) creds.getOrDefault("sshKeyPassphrase", "");
-                int tunnelLocalPort = (int) creds.getOrDefault("tunnelLocalPort", 9333);//9333 is a legacy port for backwards compatibility
+                String sshUser = (String) config.getOrDefault("sshUser", "fredboat");
+                String sshPrivateKeyFile = (String) config.getOrDefault("sshPrivateKeyFile", "database.ppk");
+                String sshKeyPassphrase = (String) config.getOrDefault("sshKeyPassphrase", "");
+                int tunnelLocalPort = (int) config.getOrDefault("tunnelLocalPort", 9333);//9333 is a legacy port for backwards compatibility
                 String tunnelRemotePortKey = "tunnelRemotePort";
-                if (creds.containsKey("forwardToPort")) {//legacy check
+                if (config.containsKey("forwardToPort")) {//legacy check
                     tunnelRemotePortKey = "forwardToPort";
                 }
-                int tunnelRemotePort = (int) creds.getOrDefault(tunnelRemotePortKey, 5432);
+                int tunnelRemotePort = (int) config.getOrDefault(tunnelRemotePortKey, 5432);
 
                 mainSshTunnelConfig = new SshTunnel.SshDetails(sshHost, sshUser)
                         .setKeyFile(sshPrivateKeyFile)
@@ -287,7 +280,7 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
 
 
             // cache database
-            cacheJdbcUrl = (String) creds.getOrDefault("cacheJdbcUrl", "");
+            cacheJdbcUrl = (String) config.getOrDefault("cacheJdbcUrl", "");
             if (cacheJdbcUrl == null || cacheJdbcUrl.isEmpty()) {
                 if ("docker".equals(System.getenv("ENV"))) {
                     log.info("No cache jdbcUrl found, docker environment detected. Using default docker cache JDBC url");
@@ -300,15 +293,14 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
             }
             if (jdbcUrl.equals(cacheJdbcUrl)) {
                 log.warn("The main and cache jdbc urls may not point to the same database due to how flyway handles migrations. "
-                        + "Please read (an updated version of) the credentials.yaml.example on configuring the cache jdbc url. "
                         + "The cache database will not be available in this execution of FredBoat. This may lead to a degraded performance, "
                         + "especially in a high usage environment, or when using Spotify playlists.");
                 cacheJdbcUrl = null;
             }
-            boolean cacheUseSshTunnel = (boolean) creds.getOrDefault("cacheUseSshTunnel", false);
+            boolean cacheUseSshTunnel = (boolean) config.getOrDefault("cacheUseSshTunnel", false);
             if (cacheUseSshTunnel) {
                 //Parse host:port
-                String cacheSshHostRaw = (String) creds.getOrDefault("cacheSshHost", "localhost:22");
+                String cacheSshHostRaw = (String) config.getOrDefault("cacheSshHost", "localhost:22");
                 String cacheSshHost = cacheSshHostRaw.split(":")[0];
                 int cacheSshPort;
                 try {
@@ -316,11 +308,11 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
                 } catch (Exception e) {
                     cacheSshPort = 22;
                 }
-                String cacheSshUser = (String) creds.getOrDefault("cacheSshUser", "fredboat");
-                String cacheSshPrivateKeyFile = (String) creds.getOrDefault("cacheSshPrivateKeyFile", "database.ppk");
-                String cacheSshKeyPassphrase = (String) creds.getOrDefault("cacheSshKeyPassphrase", "");
-                int cacheTunnelLocalPort = (int) creds.getOrDefault("cacheTunnelLocalPort", 5433);
-                int cacheTunnelRemotePort = (int) creds.getOrDefault("cacheTunnelRemotePort", 5432);
+                String cacheSshUser = (String) config.getOrDefault("cacheSshUser", "fredboat");
+                String cacheSshPrivateKeyFile = (String) config.getOrDefault("cacheSshPrivateKeyFile", "database.ppk");
+                String cacheSshKeyPassphrase = (String) config.getOrDefault("cacheSshKeyPassphrase", "");
+                int cacheTunnelLocalPort = (int) config.getOrDefault("cacheTunnelLocalPort", 5433);
+                int cacheTunnelRemotePort = (int) config.getOrDefault("cacheTunnelRemotePort", 5432);
 
                 cacheSshTunnelConfig = new SshTunnel.SshDetails(cacheSshHost, cacheSshUser)
                         .setKeyFile(cacheSshPrivateKeyFile)
@@ -331,7 +323,7 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
             }
 
             // misc
-            Object linkNodes = creds.get("lavalinkHosts");
+            Object linkNodes = config.get("lavalinkHosts");
             if (linkNodes != null) {
                 if (linkNodes instanceof Map) {
                     Map<String, String> simpleNodes = (Map<String, String>) linkNodes;
@@ -360,27 +352,27 @@ public class FileConfig implements AppConfig, AudioSourcesConfig, Credentials, E
                 }
             }
 
-            eventLogWebhook = (String) creds.getOrDefault("eventLogWebhook", "");
-            eventLogInterval = (int) creds.getOrDefault("eventLogInterval", 1); //minutes
-            guildStatsWebhook = (String) creds.getOrDefault("guildStatsWebhook", "");
-            guildStatsInterval = (int) creds.getOrDefault("guildStatsInterval", 60); //minutes
+            eventLogWebhook = (String) config.getOrDefault("eventLogWebhook", "");
+            eventLogInterval = (int) config.getOrDefault("eventLogInterval", 1); //minutes
+            guildStatsWebhook = (String) config.getOrDefault("guildStatsWebhook", "");
+            guildStatsInterval = (int) config.getOrDefault("guildStatsInterval", 60); //minutes
 
 
             // Undocumented creds
-            carbonKey = (String) creds.getOrDefault("carbonKey", "");
-            dikeUrl = (String) creds.getOrDefault("dikeUrl", "");
+            carbonKey = (String) config.getOrDefault("carbonKey", "");
+            dikeUrl = (String) config.getOrDefault("dikeUrl", "");
 
 
             PlayerLimitManager.setLimit((Integer) config.getOrDefault("playerLimit", -1));
         } catch (IOException e) {
-            log.error("Failed to read config and or credentials files into strings.", e);
-            throw new RuntimeException("Failed to read config and or credentials files into strings.", e);
+            log.error("Failed to read one or more yaml files into strings", e);
+            throw new RuntimeException("Failed to read one or more yaml files into strings.", e);
         } catch (YAMLException | ClassCastException e) {
-            log.error("Could not parse the credentials and/or config yaml files! They are probably misformatted. " +
+            log.error("Could not parse one or more yaml files! They are probably misformatted. " +
                     "Try using an online yaml validator.", e);
             throw e;
         } catch (Exception e) {
-            log.error("Could not init config", e);
+            log.error("Could not init file config", e);
             throw e;
         }
     }

@@ -56,7 +56,7 @@ public class MockConfig implements AppConfig, AudioSourcesConfig, Credentials, D
     public MockConfig() {
         try {
             Yaml yaml = new Yaml();
-            String credsFileStr = FileUtils.readFileToString(new File("credentials.yaml"), "UTF-8");
+            String credsFileStr = FileUtils.readFileToString(new File("fredboat.yaml"), "UTF-8");
             Map<String, Object> creds = yaml.load(credsFileStr);
             creds.keySet().forEach((String key) -> creds.putIfAbsent(key, ""));
 

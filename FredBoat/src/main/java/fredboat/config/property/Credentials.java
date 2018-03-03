@@ -33,7 +33,7 @@ import java.util.List;
 /**
  * Created by napster on 19.02.18.
  * <p>
- * All of these are documented in depth in the credentials.yaml.example file (to help selfhosters)
+ * All of these are documented in depth in the fredboat.yaml.example file (to help selfhosters)
  */
 public interface Credentials {
 
@@ -53,7 +53,7 @@ public interface Credentials {
     default String getRandomGoogleKey() {
         List<String> googleKeys = getGoogleKeys();
         if (googleKeys.isEmpty()) {
-            throw new MessagingException("No Youtube API key detected. Please read the documentation of the credentials file on how to obtain one.");
+            throw new MessagingException("No Youtube API key detected. Please read the documentation of the fredboat.yaml file on how to obtain one.");
         }
         return googleKeys.get((int) Math.floor(Math.random() * getGoogleKeys().size()));
     }

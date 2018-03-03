@@ -115,7 +115,7 @@ Obtaining a well functioning and productive setup of the IDE may be an intimidat
 
 ### Running the bot
 
-Add `credentials.yaml` and `config.yaml` files to the FredBoat root directory.
+Add the `fredboat.yaml` file to the FredBoat root directory (symlinking recommended).
 
 To run the FredBoat bot in IntelliJ IDEA, find the little green play button in the main class `FredBoat.java` and start it from there:
 <details><summary>Click me</summary>

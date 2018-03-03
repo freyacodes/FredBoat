@@ -1,5 +1,4 @@
 ---
-
 ################################################################
 ###                    *** WARNING ***
 ################################################################
@@ -24,6 +23,30 @@
 ###
 ### More information on correctly formatting yaml files: http://www.yaml.org/start.html
 
+
+################################################################
+###                 Basic configuration
+################################################################
+
+development:       true        # Set this to false for selfhosting. If you leave this enabled and complain about weird
+                               # things happening to your bot in the selfhosting chat you will be publicly taunted.
+
+prefix:            '<<'        # Default prefix used by the bot
+restServerEnabled: true        # Set this to false if you are running multiple FredBoat bots on the same machine
+admins:            []          # Add comma separated userIds and roleIds that should have access to bot admin commands. Find role ids with the ;;roleinfo command
+useAutoBlacklist:  true        # Set to true to automatically blacklist users who frequently hit the rate limits
+game:              ""          # Set the displayed game/status. Leave empty quote marks for the default status
+continuePlayback:  false       # Set to true to force the player to continue playback even if left alone
+
+enableYouTube:     true        # Set to true to enable playing YouTube links
+enableSoundCloud:  true        # Set to true to enable playing SoundCloud links
+enableBandCamp:    true        # Set to true to enable playing BandCamp links
+enableTwitch:      true        # Set to true to enable playing Twitch links
+enableVimeo:       true        # Set to true to enable playing Vimeo links
+enableMixer:       true        # Set to true to enable playing Mixer links
+enableSpotify:     true        # Set to true to enable playing Spotify links
+enableLocal:       false       # Set to true to enable playing local files
+enableHttp:        false       # Set to true to enable playing direct links
 
 
 ################################################################
