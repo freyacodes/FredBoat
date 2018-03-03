@@ -24,6 +24,8 @@
 
 package fredboat.config.property;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +39,8 @@ import java.util.List;
 @ConfigurationProperties(prefix = "lavalink")
 public class LavalinkConfigProperties implements LavalinkConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(LavalinkConfigProperties.class);
+
     private List<LavalinkNode> nodes = new ArrayList<>();
 
 
@@ -47,5 +51,8 @@ public class LavalinkConfigProperties implements LavalinkConfig {
 
     public void setNodes(List<LavalinkNode> nodes) {
         this.nodes = nodes;
+        for (LavalinkNode node : nodes) {
+            log.info("Lavalink node added: {} {}", node.getName(), node.getUri());
+        }
     }
 }

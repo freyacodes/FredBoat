@@ -24,6 +24,8 @@
 
 package fredboat.config.property;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +38,8 @@ import java.util.List;
 @Component
 @ConfigurationProperties(prefix = "credentials")
 public class CredentialsProperties implements Credentials {
+
+    private static final Logger log = LoggerFactory.getLogger(CredentialsProperties.class);
 
     private String discordBotToken = "";
     private List<String> googleApiKeys = new ArrayList<>();
@@ -107,10 +111,18 @@ public class CredentialsProperties implements Credentials {
 
     public void setDiscordBotToken(String discordBotToken) {
         this.discordBotToken = discordBotToken;
+        //noinspection ConstantConditions
+        if (discordBotToken == null || discordBotToken.isEmpty()) {
+            throw new RuntimeException("No discord bot token provided."
+                    + "\nMake sure to put a discord bot token into your fredboat.yaml file.");
+        }
     }
 
     public void setGoogleApiKeys(List<String> googleApiKeys) {
         this.googleApiKeys = googleApiKeys;
+        if (googleApiKeys.isEmpty()) {
+            log.warn("No google API keys found. Some commands may not work, check the documentation.");
+        }
     }
 
     public void setMalUser(String malUser) {

@@ -24,6 +24,8 @@
 
 package fredboat.config.property;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import space.npstr.sqlsauce.ssh.SshTunnel;
@@ -38,12 +40,27 @@ import javax.annotation.Nullable;
 @SuppressWarnings("unused")
 public class DatabaseConfigProperties implements DatabaseConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(DatabaseConfigProperties.class);
+
     private Db main = new Db();
     private Db cache = new Db();
 
     @Override
     public String getMainJdbcUrl() {
-        return main.getJdbcUrl();
+        String jdbcUrl = main.getJdbcUrl();
+        //noinspection ConstantConditions
+        if (jdbcUrl == null || jdbcUrl.isEmpty()) {
+            if ("docker".equals(System.getenv("ENV"))) {
+                log.info("No main JDBC URL found, docker environment detected. Using default docker main JDBC url");
+                jdbcUrl = "jdbc:postgresql://db:5432/fredboat?user=fredboat";
+                main.setJdbcUrl(jdbcUrl);
+            } else {
+                String message = "No main jdbcUrl provided in a non-docker environment. FredBoat cannot work without a database.";
+                log.error(message);
+                throw new RuntimeException(message);
+            }
+        }
+        return jdbcUrl;
     }
 
     @Nullable
@@ -52,11 +69,41 @@ public class DatabaseConfigProperties implements DatabaseConfig {
         return main.getTunnel().toDetails();
     }
 
+    private boolean hasWarnedEmptyCacheJdbc = false;
+    private boolean hasWarnedSameJdbcs = false;
+
+
     @Nullable
     @Override
     public String getCacheJdbcUrl() {
-        String cacheJdbcUrl = cache.getJdbcUrl();
-        return !cacheJdbcUrl.isEmpty() ? cacheJdbcUrl : null;
+        String jdbcUrl = cache.getJdbcUrl();
+        //noinspection ConstantConditions
+        if (jdbcUrl == null || jdbcUrl.isEmpty()) {
+            if ("docker".equals(System.getenv("ENV"))) {
+                log.info("No cache jdbcUrl found, docker environment detected. Using default docker cache JDBC url");
+                jdbcUrl = "jdbc:postgresql://db:5432/fredboat_cache?user=fredboat";
+                cache.setJdbcUrl(jdbcUrl);
+            } else {
+                if (!hasWarnedEmptyCacheJdbc) {
+                    log.warn("No cache jdbcUrl provided in a non-docker environment. This may lead to a degraded performance, "
+                            + "especially in a high usage environment, or when using Spotify playlists.");
+                    hasWarnedEmptyCacheJdbc = true;
+                }
+                jdbcUrl = "";
+            }
+        }
+
+        if (!jdbcUrl.isEmpty() && jdbcUrl.equals(getMainJdbcUrl())) {
+            if (!hasWarnedSameJdbcs) {
+                log.warn("The main and cache jdbc urls may not point to the same database due to how flyway handles migrations. "
+                        + "The cache database will not be available in this execution of FredBoat. This may lead to a degraded performance, "
+                        + "especially in a high usage environment, or when using Spotify playlists.");
+                hasWarnedSameJdbcs = true;
+            }
+            jdbcUrl = "";
+        }
+
+        return !jdbcUrl.isEmpty() ? jdbcUrl : null;
     }
 
     @Nullable

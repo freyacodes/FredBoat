@@ -26,6 +26,8 @@ package fredboat.config.property;
 
 import fredboat.audio.player.PlayerLimitManager;
 import fredboat.shared.constant.DistributionEnum;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +40,8 @@ import java.util.List;
 @Component
 @ConfigurationProperties(prefix = "config")
 public class AppConfigProperties implements AppConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(AppConfigProperties.class);
 
     private boolean development = true;
     private boolean patron = true;
@@ -52,11 +56,19 @@ public class AppConfigProperties implements AppConfig {
     //undocumented
     private int playerLimit = -1;
 
+    private boolean distributionLogged = false;
+
+
     @Override
     public DistributionEnum getDistribution() {
-        return development ? DistributionEnum.DEVELOPMENT
+        DistributionEnum distribution = development ? DistributionEnum.DEVELOPMENT
                 : patron ? DistributionEnum.PATRON
                 : DistributionEnum.MUSIC;
+        if (!distributionLogged) {
+            log.info("Determined distribution: {}", distribution);
+            distributionLogged = true;
+        }
+        return distribution;
     }
 
     @Override
@@ -104,6 +116,7 @@ public class AppConfigProperties implements AppConfig {
 
     public void setPrefix(String prefix) {
         this.prefix = prefix;
+        log.info("Using prefix: {}", prefix);
     }
 
     public void setRestServerEnabled(boolean restServerEnabled) {
