@@ -4,7 +4,7 @@ ENV ENV docker
 
 RUN mkdir -p /opt/FredBoat
 
-COPY fredboat.yaml.example /opt/FredBoat/fredboat.yaml
+COPY fredboat.example.yaml /opt/FredBoat/fredboat.yaml
 COPY FredBoat.jar /opt/FredBoat/FredBoat.jar
 
 EXPOSE 1356
