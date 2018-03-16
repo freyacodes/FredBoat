@@ -25,7 +25,7 @@
 
 package fredboat.messaging.internal;
 
-import fredboat.main.BotController;
+import fredboat.jda.JdaEntityProvider;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
@@ -42,19 +42,21 @@ import javax.annotation.Nullable;
  */
 public class LeakSafeContext extends Context {
 
+    protected final JdaEntityProvider jdaEntityProvider;
     protected final long channelId;
     protected final long guildId;
     protected final long userId;
 
-    public LeakSafeContext(@Nonnull TextChannel channel, @Nonnull Member member) {
-        this(channel.getIdLong(), member.getGuild().getIdLong(), member.getUser().getIdLong());
+    public LeakSafeContext(@Nonnull JdaEntityProvider jdaEntityProvider, @Nonnull TextChannel channel, @Nonnull Member member) {
+        this(jdaEntityProvider, channel.getIdLong(), member.getGuild().getIdLong(), member.getUser().getIdLong());
     }
 
-    public LeakSafeContext(@Nonnull Context context) {
-        this(context.getTextChannel(), context.getMember());
+    public LeakSafeContext(@Nonnull JdaEntityProvider jdaEntityProvider, @Nonnull Context context) {
+        this(jdaEntityProvider, context.getTextChannel(), context.getMember());
     }
 
-    protected LeakSafeContext(long channelId, long guildId, long userId) {
+    protected LeakSafeContext(JdaEntityProvider jdaEntityProvider, long channelId, long guildId, long userId) {
+        this.jdaEntityProvider = jdaEntityProvider;
         this.channelId = channelId;
         this.guildId = guildId;
         this.userId = userId;
@@ -63,13 +65,13 @@ public class LeakSafeContext extends Context {
     @Override
     @Nullable
     public TextChannel getTextChannel() {
-        return BotController.INS.getShardManager().getTextChannelById(channelId);
+        return jdaEntityProvider.getTextChannelById(channelId);
     }
 
     @Override
     @Nullable
     public Guild getGuild() {
-        return BotController.INS.getShardManager().getGuildById(guildId);
+        return jdaEntityProvider.getGuildById(guildId);
     }
 
     @Override

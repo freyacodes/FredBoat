@@ -11,7 +11,7 @@
 ### on the FredBoat Hangout Discord server: https://discord.gg/cgPFW4q
 
 
-version: '3'
+version: '3' # This is not the FredBoat version, do not touch this line.
 services:
 
   ################################################################################
@@ -19,6 +19,7 @@ services:
   ################################################################################
   db:
     image: fredboat/postgres
+    #build: ./FredBoat/docker/database/ #useful alternative for developers
     restart: always
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
@@ -32,26 +33,49 @@ services:
     #volumes:
       #- postgres-data-volume:/var/lib/postgresql/data
 
+  ################################################################################
+  ##                     Quarterdeck (Database Backend)
+  ################################################################################
+  quarterdeck:
+    # pick one of these: stable or dev
+    # dev receives more frequent updates than stable but may have more bugs / things breaking
+    # versions (example: v2) receive continous non-breaking (best effort) updates via watchtower. switching between versions
+    # (example: going from v2 to v3) usually requires manual migration. what exactly is needed is published on the
+    # FredBoat selfhosting website and/or the selfhosters channel (see top of this file for how to get to these places)
+    # Once you use the dev branch, you may not be able to go back to stable without deleting your database.
+    image: fredboat/quarterdeck:stable-v1
+    #image: fredboat/quarterdeck:dev-v1
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    depends_on:
+      - db
+    volumes:
+      - ./quarterdeck.yaml:/opt/Quarterdeck/quarterdeck.yaml
+      - ./quarterdeck_logs:/opt/Quarterdeck/logs
+    # Need a bigger memory size or any other custom JVM args? uncomment and edit the line below accordingly
+    #entrypoint: java -Xmx128m -jar Quarterdeck.jar
 
   ################################################################################
   ##                               FredBoat
   ################################################################################
   bot:
-    # pick one of these:
-    # dev receives more frequent updates than stable but may have more bugs / things breaking
-    image: fredboat/fredboat:stable
-    #image: fredboat/fredboat:dev
+    # for choosing between stable or dev, read the paragraph above in the Quarterdeck section
+    # IMPORTANT: both quarterdeck and fredboat need to either be on the stable, or on the dev branch
+    image: fredboat/fredboat:stable-v3
+    #image: fredboat/fredboat:dev-v3
+    #build: ./FredBoat #useful alternative for developers
+
     restart: on-failure:3
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
     depends_on:
-      - db
+      - quarterdeck
     ports:
       - 1356:1356
     volumes:
-      - ./config.yaml:/opt/FredBoat/config.yaml
-      - ./credentials.yaml:/opt/FredBoat/credentials.yaml
-      - ./logs:/opt/FredBoat/logs
+      - ./fredboat.yaml:/opt/FredBoat/fredboat.yaml
+      - ./fredboat_logs:/opt/FredBoat/logs
       - ./music_persistence:/opt/FredBoat/music_persistence
       # Local audio files (dev branch only currently)
       # If your music directory looks like this: /home/user/music/directory/rickroll.mp3 or C:\Users\user\Music\rickroll.mp3
@@ -62,7 +86,7 @@ services:
       #- C:\Users\your_user_name\Music:/opt/FredBoat/music
 
     # Need a bigger memory size or any other custom JVM args? uncomment and edit the line below accordingly
-    #entrypoint: java -jar -Xmx128m FredBoat.jar
+    #entrypoint: java -Xmx256m -jar FredBoat.jar
 
 
   ################################################################################

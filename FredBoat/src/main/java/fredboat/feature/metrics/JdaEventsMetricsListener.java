@@ -27,12 +27,14 @@ package fredboat.feature.metrics;
 
 import net.dv8tion.jda.core.events.Event;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
+import org.springframework.stereotype.Component;
 
 /**
  * Created by napster on 18.10.17.
  * <p>
  * Jda listener, drop it into all the shards to get stats on all events received.
  */
+@Component
 public class JdaEventsMetricsListener extends ListenerAdapter {
 
     @Override

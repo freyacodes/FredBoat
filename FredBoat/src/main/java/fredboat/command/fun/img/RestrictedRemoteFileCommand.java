@@ -26,7 +26,7 @@
 package fredboat.command.fun.img;
 
 import fredboat.commandmeta.abs.ICommandRestricted;
-import fredboat.perms.PermissionLevel;
+import fredboat.definitions.PermissionLevel;
 
 import javax.annotation.Nonnull;
 

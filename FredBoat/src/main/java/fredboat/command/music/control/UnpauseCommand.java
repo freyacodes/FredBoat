@@ -26,14 +26,13 @@
 package fredboat.command.music.control;
 
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.LavalinkManager;
-import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.entities.Guild;
 
 import javax.annotation.Nonnull;
@@ -49,17 +48,17 @@ public class UnpauseCommand extends Command implements IMusicCommand, ICommandRe
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         Guild guild = context.guild;
-        GuildPlayer player = PlayerRegistry.getOrCreate(guild);
-        if (player.isQueueEmpty()) {
+        GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getExisting(guild);
+        if (player == null || player.isQueueEmpty()) {
             context.reply(context.i18n("unpauseQueueEmpty"));
         } else if (!player.isPaused()) {
             context.reply(context.i18n("unpausePlayerNotPaused"));
-        } else if (player.getHumanUsersInCurrentVC().isEmpty() && player.isPaused() && LavalinkManager.ins.getConnectedChannel(guild) != null) {
+        } else if (player.getHumanUsersInCurrentVC().isEmpty() && player.isPaused() && guild.getSelfMember().getVoiceState().getChannel() != null) {
             context.reply(context.i18n("unpauseNoUsers"));
-        } else if (LavalinkManager.ins.getConnectedChannel(context.guild) == null) {
+        } else if (guild.getSelfMember().getVoiceState().getChannel() == null) {
             // When we just want to continue playing, but the user is not in a VC
             JOIN_COMMAND.onInvoke(context);
-            if(LavalinkManager.ins.getConnectedChannel(guild) != null) {
+            if (guild.getSelfMember().getVoiceState().getChannel() != null) {
                 player.play();
                 context.reply(context.i18n("unpauseSuccess"));
             }

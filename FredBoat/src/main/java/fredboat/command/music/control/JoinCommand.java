@@ -26,13 +26,13 @@
 package fredboat.command.music.control;
 
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import net.dv8tion.jda.core.entities.VoiceChannel;
 
 import javax.annotation.Nonnull;
@@ -45,7 +45,7 @@ public class JoinCommand extends Command implements IMusicCommand, ICommandRestr
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
+        GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getOrCreate(context.guild);
         VoiceChannel vc = player.getUserCurrentVoiceChannel(context.invoker);
         try {
             player.joinChannel(vc);

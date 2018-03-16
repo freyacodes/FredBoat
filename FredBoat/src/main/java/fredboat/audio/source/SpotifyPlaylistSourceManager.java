@@ -27,15 +27,11 @@ package fredboat.audio.source;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
-import com.sedmelluq.discord.lavaplayer.track.AudioItem;
-import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
-import com.sedmelluq.discord.lavaplayer.track.AudioReference;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
-import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
+import com.sedmelluq.discord.lavaplayer.track.*;
 import fredboat.audio.queue.PlaylistInfo;
-import fredboat.util.rest.SearchUtil;
+import fredboat.definitions.SearchProvider;
 import fredboat.util.rest.SpotifyAPIWrapper;
+import fredboat.util.rest.TrackSearcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,11 +41,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,7 +56,7 @@ import java.util.regex.Pattern;
  */
 public class SpotifyPlaylistSourceManager implements AudioSourceManager, PlaylistImporter {
 
-    public static long CACHE_DURATION = TimeUnit.DAYS.toMillis(7);// 1 week;
+    public static long CACHE_DURATION = TimeUnit.DAYS.toMillis(30);// 1 month;
 
     private static final Logger log = LoggerFactory.getLogger(SpotifyPlaylistSourceManager.class);
 
@@ -75,8 +67,15 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
     // Upping the threads will also fire search requests more aggressively against Youtube which is probably better avoided.
     public static ScheduledExecutorService loader = Executors.newScheduledThreadPool(1);
 
-    private static final List<SearchUtil.SearchProvider> searchProviders
-            = Arrays.asList(SearchUtil.SearchProvider.YOUTUBE, SearchUtil.SearchProvider.SOUNDCLOUD);
+    private static final List<SearchProvider> searchProviders
+            = Arrays.asList(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD);
+    private final TrackSearcher trackSearcher;
+    private final SpotifyAPIWrapper spotifyAPIWrapper;
+
+    public SpotifyPlaylistSourceManager(TrackSearcher trackSearcher, SpotifyAPIWrapper spotifyAPIWrapper) {
+        this.trackSearcher = trackSearcher;
+        this.spotifyAPIWrapper = spotifyAPIWrapper;
+    }
 
     @Override
     public String getSourceName() {
@@ -91,11 +90,9 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
         final String spotifyUser = data[0];
         final String spotifyListId = data[1];
 
-        final SpotifyAPIWrapper saw = SpotifyAPIWrapper.getApi();
-
         PlaylistInfo plData;
         try {
-            plData = saw.getPlaylistDataBlocking(spotifyUser, spotifyListId);
+            plData = spotifyAPIWrapper.getPlaylistDataBlocking(spotifyUser, spotifyListId);
         } catch (Exception e) {
             log.warn("Could not retrieve playlist " + spotifyListId + " of user " + spotifyUser, e);
             throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);
@@ -109,7 +106,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
         final List<String> trackListSearchTerms;
 
         try {
-            trackListSearchTerms = saw.getPlaylistTracksSearchTermsBlocking(spotifyUser, spotifyListId);
+            trackListSearchTerms = spotifyAPIWrapper.getPlaylistTracksSearchTermsBlocking(spotifyUser, spotifyListId);
         } catch (Exception e) {
             log.warn("Could not retrieve tracks for playlist " + spotifyListId + " of user " + spotifyUser, e);
             throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);
@@ -120,7 +117,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
         List<CompletableFuture<AudioTrack>> taskList = new ArrayList<>();
         for (final String s : trackListSearchTerms) {
             //remove all punctuation
-            final String query = s.replaceAll(SearchUtil.PUNCTUATION_REGEX, "");
+            final String query = s.replaceAll(TrackSearcher.PUNCTUATION_REGEX, "");
 
             CompletableFuture<AudioTrack> f = CompletableFuture.supplyAsync(() -> searchSingleTrack(query), loader);
             taskList.add(f);
@@ -155,7 +152,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
      */
     private AudioTrack searchSingleTrack(final String query) {
         try {
-            AudioPlaylist list = SearchUtil.searchForTracks(query, CACHE_DURATION, 60000, searchProviders);
+            AudioPlaylist list = trackSearcher.searchForTracks(query, CACHE_DURATION, 60000, searchProviders);
             //didn't find anything
             if (list == null || list.getTracks().isEmpty()) {
                 return null;
@@ -170,7 +167,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
             //result:     lots of low quality (covers, pitched up/down, etc) tracks loaded.
             //conclusion: there's room for improvement to this whole method
             return list.getTracks().get(0);
-        } catch (SearchUtil.SearchingException e) {
+        } catch (TrackSearcher.SearchingException e) {
             //youtube & soundcloud not available
             return null;
         }
@@ -223,7 +220,7 @@ public class SpotifyPlaylistSourceManager implements AudioSourceManager, Playlis
         final String spotifyListId = data[1];
 
         try {
-            return SpotifyAPIWrapper.getApi().getPlaylistDataBlocking(spotifyUser, spotifyListId);
+            return spotifyAPIWrapper.getPlaylistDataBlocking(spotifyUser, spotifyListId);
         } catch (Exception e) {
             log.warn("Could not retrieve playlist " + spotifyListId + " of user " + spotifyUser, e);
             throw new FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e);

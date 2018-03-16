@@ -25,13 +25,13 @@
 
 package fredboat.command.admin;
 
-import fredboat.audio.player.AbstractPlayer;
-import fredboat.audio.player.PlayerRegistry;
+import fredboat.audio.player.GuildPlayer;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.Guild;
@@ -39,18 +39,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 public class EvalCommand extends Command implements ICommandRestricted {
 
     private static final Logger log = LoggerFactory.getLogger(EvalCommand.class);
+
+    @Nullable
+    private Future lastTask;
 
     //Thanks Dinos!
     private ScriptEngine engine;
@@ -62,43 +62,72 @@ public class EvalCommand extends Command implements ICommandRestricted {
             engine.eval("var imports = new JavaImporter(java.io, java.lang, java.util);");
 
         } catch (ScriptException ex) {
-            ex.printStackTrace();
+            log.error("Failed to init eval command", ex);
         }
     }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        Guild guild = context.guild;
-        JDA jda = guild.getJDA();
+        final long started = System.currentTimeMillis();
+
+        String source = context.rawArgs;
+
+        if (context.hasArguments() && (context.args[0].equals("-k") || context.args[0].equals("kill"))) {
+            if (this.lastTask != null) {
+                if (this.lastTask.isDone() || this.lastTask.isCancelled()) {
+                    context.reply("Task isn't running.");
+                } else {
+                    this.lastTask.cancel(true);
+                    context.reply("Task killed.");
+                }
+            } else {
+                context.reply("No task found to kill.");
+            }
+            return;
+        }
+
         context.sendTyping();
 
-        final String source = context.rawArgs;
+        final int timeOut;
+        if (context.args.length > 1 && (context.args[0].equals("-t") || context.args[0].equals("timeout"))) {
+            timeOut = Integer.parseInt(context.args[1]);
+            source = source.replaceFirst(context.args[0], "");
+            source = source.replaceFirst(context.args[1], "");
+        } else timeOut = -1;
+
+        final String finalSource = source.trim();
+
+        Guild guild = context.guild;
+        JDA jda = guild.getJDA();
 
         engine.put("jda", jda);
         engine.put("api", jda);
         engine.put("channel", context.channel);
-        engine.put("vc", PlayerRegistry.getExisting(guild) != null ? PlayerRegistry.getExisting(guild).getCurrentVoiceChannel() : null);
-        engine.put("author", context.invoker);
+        GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getExisting(guild);
+        engine.put("vc", player != null ? player.getCurrentVoiceChannel() : null);
+        engine.put("author", context.msg.getAuthor());
+        engine.put("invoker", context.invoker);
         engine.put("bot", jda.getSelfUser());
         engine.put("member", guild.getSelfMember());
         engine.put("message", context.msg);
         engine.put("guild", guild);
-        engine.put("player", PlayerRegistry.getExisting(guild));
-        engine.put("pm", AbstractPlayer.getPlayerManager());
+        engine.put("player", player);
+        engine.put("pm", Launcher.getBotController().getAudioPlayerManager());
         engine.put("context", context);
 
-        ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
-        ScheduledFuture<?> future = service.schedule(() -> {
+        ScheduledExecutorService service = Executors.newScheduledThreadPool(1, r -> new Thread(r, "Eval comm execution"));
 
+        Future<?> future = service.submit(() -> {
             Object out;
             try {
                 out = engine.eval(
                         "(function() {"
-                        + "with (imports) {\n" + source + "\n}"
-                        + "})();");
+                                + "with (imports) {\n" + finalSource + "\n}"
+                                + "})();");
 
             } catch (Exception ex) {
-                context.reply("`" + ex.getMessage() + "`");
+                context.reply(String.format("`%s`\n\n`%sms`",
+                        ex.getMessage(), System.currentTimeMillis() - started));
                 log.info("Error occurred in eval", ex);
                 return;
             }
@@ -111,22 +140,25 @@ public class EvalCommand extends Command implements ICommandRestricted {
             } else {
                 outputS = "\nEval: `" + out.toString() + "`";
             }
+            context.reply(String.format("```java\n%s```\n%s\n`%sms`",
+                    finalSource, outputS, System.currentTimeMillis() - started));
 
-            context.reply(TextUtils.asCodeBlock(source, "java") + "\n" + outputS);
+        });
+        this.lastTask = future;
 
-        }, 0, TimeUnit.MILLISECONDS);
-
-        Thread script = new Thread("Eval") {
+        Thread script = new Thread("Eval comm waiter") {
             @Override
             public void run() {
                 try {
-                    future.get(10, TimeUnit.SECONDS);
-
-                } catch (TimeoutException ex) {
+                    if (timeOut > -1) {
+                        future.get(timeOut, TimeUnit.SECONDS);
+                    }
+                } catch (final TimeoutException ex) {
                     future.cancel(true);
-                    context.reply("Task exceeded time limit.");
-                } catch (Exception ex) {
-                    context.reply("`" + ex.getMessage() + "`");
+                    context.reply("Task exceeded time limit of " + timeOut + " seconds.");
+                } catch (final Exception ex) {
+                    context.reply(String.format("`%s`\n\n`%sms`",
+                            ex.getMessage(), System.currentTimeMillis() - started));
                 }
             }
         };
@@ -136,7 +168,10 @@ public class EvalCommand extends Command implements ICommandRestricted {
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1} <Java-code>\\n#Run the provided Java code.";
+        return "{0}{1} [-t seconds | -k] <javascript-code>\n#Run the provided javascript code with the Nashorn engine."
+                + " By default no timeout is set for the task, set a timeout by passing `-t` as the first argument and"
+                + " the amount of seconds to wait for the task to finish as the second argument."
+                + " Run with `-k` or `kill` as first argument to stop the last submitted eval task if it's still ongoing.";
     }
 
     @Nonnull

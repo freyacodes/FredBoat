@@ -26,13 +26,13 @@
 package fredboat.command.music.control;
 
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 
 import javax.annotation.Nonnull;
 
@@ -44,7 +44,7 @@ public class ShuffleCommand extends Command implements IMusicCommand, ICommandRe
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
+        GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getOrCreate(context.guild);
         player.setShuffle(!player.isShuffle());
 
         if (player.isShuffle()) {

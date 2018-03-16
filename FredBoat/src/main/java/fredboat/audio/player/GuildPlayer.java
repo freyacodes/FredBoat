@@ -26,26 +26,26 @@
 package fredboat.audio.player;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.audio.queue.*;
 import fredboat.command.music.control.VoteSkipCommand;
 import fredboat.commandmeta.MessagingException;
 import fredboat.commandmeta.abs.CommandContext;
-import fredboat.db.DatabaseNotReadyException;
-import fredboat.db.EntityIO;
+import fredboat.db.api.GuildConfigService;
+import fredboat.definitions.PermissionLevel;
 import fredboat.feature.I18n;
+import fredboat.jda.JdaEntityProvider;
 import fredboat.messaging.CentralMessaging;
-import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
-import fredboat.main.ShardContext;
 import fredboat.util.TextUtils;
-import net.dv8tion.jda.core.JDA;
+import fredboat.util.ratelimit.Ratelimiter;
+import fredboat.util.rest.YoutubeAPI;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.VoiceChannel;
-import net.dv8tion.jda.core.managers.AudioManager;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -63,29 +63,36 @@ public class GuildPlayer extends AbstractPlayer {
 
     private static final Logger log = LoggerFactory.getLogger(GuildPlayer.class);
 
-    private final ShardContext shard;
     private final long guildId;
-    private long currentTCId;
 
     private final AudioLoader audioLoader;
 
+    private final MusicTextChannelProvider musicTextChannelProvider;
+    private final JdaEntityProvider jdaEntityProvider;
+    private final AudioConnectionFacade audioConnectionFacade;
+    private final GuildConfigService guildConfigService;
+    private final YoutubeAPI youtubeAPI;
+
     @SuppressWarnings("LeakingThisInConstructor")
-    public GuildPlayer(Guild guild) {
-        super(guild.getId());
+    public GuildPlayer(Guild guild, MusicTextChannelProvider musicTextChannelProvider, JdaEntityProvider jdaEntityProvider,
+                       AudioConnectionFacade audioConnectionFacade, AudioPlayerManager audioPlayerManager,
+                       GuildConfigService guildConfigService, Ratelimiter ratelimiter, YoutubeAPI youtubeAPI) {
+        super(guild.getId(), audioConnectionFacade);
+        this.youtubeAPI = youtubeAPI;
         log.debug("Constructing GuildPlayer({})", guild.getIdLong());
 
+        this.jdaEntityProvider = jdaEntityProvider;
+        this.musicTextChannelProvider = musicTextChannelProvider;
+        this.audioConnectionFacade = audioConnectionFacade;
+        this.guildConfigService = guildConfigService;
         onPlayHook = this::announceTrack;
         onErrorHook = this::handleError;
 
-        this.shard = ShardContext.of(guild.getJDA());
         this.guildId = guild.getIdLong();
 
-        if (!LavalinkManager.ins.isEnabled()) {
-            AudioManager manager = guild.getAudioManager();
-            manager.setSendingHandler(this);
-        }
         audioTrackProvider = new SimpleTrackProvider();
-        audioLoader = new AudioLoader(audioTrackProvider, getPlayerManager(), this);
+        audioLoader = new AudioLoader(jdaEntityProvider, ratelimiter, audioTrackProvider, audioPlayerManager,
+                this, youtubeAPI);
     }
 
     private void announceTrack(AudioTrackContext atc) {
@@ -102,9 +109,9 @@ public class GuildPlayer extends AbstractPlayer {
         if (!(t instanceof MessagingException)) {
             log.error("Guild player error", t);
         }
-        TextChannel tc = getActiveTextChannel();
-        if (tc != null) {
-            CentralMessaging.sendMessage(tc, "Something went wrong!\n" + t.getMessage());
+        TextChannel activeTextChannel = getActiveTextChannel();
+        if (activeTextChannel != null) {
+            CentralMessaging.sendMessage(activeTextChannel, "Something went wrong!\n" + t.getMessage());
         }
     }
 
@@ -117,38 +124,48 @@ public class GuildPlayer extends AbstractPlayer {
         if (targetChannel == null) {
             throw new MessagingException(I18n.get(getGuild()).getString("playerUserNotInChannel"));
         }
-        if (targetChannel.equals(getCurrentVoiceChannel(targetChannel.getJDA()))) {
+        if (targetChannel.equals(getCurrentVoiceChannel())) {
             // already connected to the channel
             return;
         }
 
-        if (!targetChannel.getGuild().getSelfMember().hasPermission(targetChannel, Permission.VOICE_CONNECT)
-                && !targetChannel.getMembers().contains(getGuild().getSelfMember())) {
+        Guild guild = targetChannel.getGuild();
+
+        if (!guild.getSelfMember().hasPermission(targetChannel, Permission.VOICE_CONNECT)
+                && !targetChannel.getMembers().contains(guild.getSelfMember())) {
             throw new MessagingException(I18n.get(getGuild()).getString("playerJoinConnectDenied"));
         }
 
-        if (!targetChannel.getGuild().getSelfMember().hasPermission(targetChannel, Permission.VOICE_SPEAK)) {
+        if (!guild.getSelfMember().hasPermission(targetChannel, Permission.VOICE_SPEAK)) {
             throw new MessagingException(I18n.get(getGuild()).getString("playerJoinSpeakDenied"));
         }
 
-        LavalinkManager.ins.openConnection(targetChannel);
-        if (!LavalinkManager.ins.isEnabled()) {
-            getGuild().getAudioManager().setConnectionListener(new DebugConnectionListener(guildId, shard.getJda().getShardInfo()));
+        if (targetChannel.getUserLimit() > 0
+                && targetChannel.getUserLimit() <= targetChannel.getMembers().size()
+                && !guild.getSelfMember().hasPermission(Permission.VOICE_MOVE_OTHERS)) {
+            throw new MessagingException(String.format("The channel you want me to join is full!"
+                            + " Please free up some space, or give me the permission to **%s** to bypass the limit.",//todo i18n
+                    Permission.VOICE_MOVE_OTHERS.getName()));
         }
 
-        log.info("Connected to voice channel " + targetChannel);
+        try {
+            audioConnectionFacade.openConnection(targetChannel, this);
+            log.info("Connected to voice channel " + targetChannel);
+        } catch (Exception e) {
+            log.error("Failed to join voice channel {}", targetChannel, e);
+        }
     }
 
     public void leaveVoiceChannelRequest(CommandContext commandContext, boolean silent) {
         if (!silent) {
-            VoiceChannel currentVc = LavalinkManager.ins.getConnectedChannel(commandContext.guild);
+            VoiceChannel currentVc = commandContext.guild.getSelfMember().getVoiceState().getChannel();
             if (currentVc == null) {
                 commandContext.reply(commandContext.i18n("playerNotInChannel"));
             } else {
                 commandContext.reply(commandContext.i18nFormat("playerLeftChannel", currentVc.getName()));
             }
         }
-        LavalinkManager.ins.closeConnection(getGuild());
+        audioConnectionFacade.closeConnection(getGuild());
     }
 
     /**
@@ -160,7 +177,7 @@ public class GuildPlayer extends AbstractPlayer {
     }
 
     public void queue(String identifier, CommandContext context) {
-        IdentifierContext ic = new IdentifierContext(identifier, context.channel, context.invoker);
+        IdentifierContext ic = new IdentifierContext(jdaEntityProvider, identifier, context.channel, context.invoker);
 
         joinChannel(context.invoker);
 
@@ -176,12 +193,20 @@ public class GuildPlayer extends AbstractPlayer {
     }
 
     public void queue(AudioTrackContext atc){
-        Member member = getGuild().getMemberById(atc.getUserId());
-        if (member != null) {
-            joinChannel(member);
+        Guild guild = getGuild();
+        if (guild != null) {
+            Member member = guild.getMemberById(atc.getUserId());
+            if (member != null) {
+                joinChannel(member);
+            }
         }
         audioTrackProvider.add(atc);
         play();
+    }
+
+    //add a bunch of tracks to the track provider
+    public void loadAll(Collection<AudioTrackContext> tracks){
+        audioTrackProvider.addAll(tracks);
     }
 
     public int getTrackCount() {
@@ -196,6 +221,7 @@ public class GuildPlayer extends AbstractPlayer {
         List<AudioTrackContext> result = new ArrayList<>();
 
         //adjust args for whether there is a track playing or not
+        //noinspection StatementWithEmptyBody
         if (player.getPlayingTrack() != null) {
             if (start <= 0) {
                 result.add(context);
@@ -217,9 +243,7 @@ public class GuildPlayer extends AbstractPlayer {
     public List<Long> getTrackIdsInRange(int start, int end) {
         log.debug("getTrackIdsInRange({} {})", start, end);
 
-        List<Long> result = new ArrayList<>();
-        result.addAll(getTracksInRange(start, end).stream().map(AudioTrackContext::getTrackId).collect(Collectors.toList()));
-        return result;
+        return getTracksInRange(start, end).stream().map(AudioTrackContext::getTrackId).collect(Collectors.toList());
     }
 
     public long getTotalRemainingMusicTimeMillis() {
@@ -242,45 +266,24 @@ public class GuildPlayer extends AbstractPlayer {
     }
 
 
-    //optionally pass a jda object to use for the lookup
     @Nullable
-    public VoiceChannel getCurrentVoiceChannel(JDA... jda) {
-        JDA j;
-        if (jda.length == 0) {
-            j = getJda();
-        } else {
-            j = jda[0];
-        }
-        Guild guild = j.getGuildById(guildId);
-        if (guild != null)
-            return LavalinkManager.ins.getConnectedChannel(guild);
-        else
-            return null;
+    public VoiceChannel getCurrentVoiceChannel() {
+        Guild guild = jdaEntityProvider.getGuildById(guildId);
+        return guild == null ? null : guild.getSelfMember().getVoiceState().getChannel();
     }
 
     /**
      * @return The text channel currently used for music commands.
      *
      * May return null if the channel was deleted.
-     * Do not use the default channel, because that one doesnt give us write permissions.
      */
     @Nullable
     public TextChannel getActiveTextChannel() {
-        TextChannel currentTc = getCurrentTC();
-        if (currentTc != null) {
-            return currentTc;
-        } else {
-            log.warn("No currentTC in guild {}! Trying to look up a channel where we can talk...", guildId);
-            Guild g = getGuild();
-            if (g != null) {
-                for (TextChannel tc : g.getTextChannels()) {
-                    if (tc.canTalk()) {
-                        return tc;
-                    }
-                }
-            }
+        Guild g = getGuild();
+        if (g == null) {
             return null;
         }
+        return musicTextChannelProvider.getMusicTextChannel(g);
     }
 
     @Nonnull
@@ -307,12 +310,16 @@ public class GuildPlayer extends AbstractPlayer {
 
     @Override
     public String toString() {
-        return "[GP:" + getGuild().getId() + "]";
+        return "[GP:" + guildId + "]";
     }
 
     @Nullable
     public Guild getGuild() {
-        return getJda().getGuildById(guildId);
+        return jdaEntityProvider.getGuildById(guildId);
+    }
+
+    public long getGuildId() {
+        return guildId;
     }
 
     public RepeatMode getRepeatMode() {
@@ -347,20 +354,6 @@ public class GuildPlayer extends AbstractPlayer {
         } else {
             throw new UnsupportedOperationException("Can't reshuffle " + audioTrackProvider.getClass());
         }
-    }
-
-    public void setCurrentTC(@Nonnull TextChannel tc) {
-        if (this.currentTCId != tc.getIdLong()) {
-            this.currentTCId = tc.getIdLong();
-        }
-    }
-
-    /**
-     * @return currently used TextChannel or null if there is none
-     */
-    @Nullable
-    private TextChannel getCurrentTC() {
-        return shard.getJda().getTextChannelById(currentTCId);
     }
 
     //Success, fail message
@@ -434,16 +427,12 @@ public class GuildPlayer extends AbstractPlayer {
         try {
             Guild guild = getGuild();
             if (guild != null) {
-                enabled = EntityIO.getGuildConfig(guild).isTrackAnnounce();
+                enabled = guildConfigService.fetchGuildConfig(guild).isTrackAnnounce();
             }
-        } catch (DatabaseNotReadyException ignored) {}
+        } catch (Exception ignored) {
+        }
 
         return enabled;
-    }
-
-    @Nonnull
-    public JDA getJda() {
-        return shard.getJda();
     }
 
     @Override

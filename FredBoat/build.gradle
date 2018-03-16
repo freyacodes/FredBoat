@@ -1,24 +1,29 @@
-buildscript {
-    dependencies {
-        classpath 'org.junit.platform:junit-platform-gradle-plugin:1.0.2'
-    }
-}
-plugins {
-    id 'application'
-    id 'com.gorylenko.gradle-git-properties' version '1.4.20'
-    id 'com.sedmelluq.jdaction' version '1.0.2' //check for unused RestActions
-    id 'com.github.johnrengelman.shadow' version '2.0.2'
-}
-apply plugin: 'org.junit.platform.gradle.plugin'
+apply plugin: 'com.gorylenko.gradle-git-properties'
+apply plugin: 'application'
+apply plugin: 'propdeps'
+apply plugin: 'propdeps-idea'
+apply plugin: 'org.springframework.boot'
 
 description = 'FredBoat Discord Music Bot'
 mainClassName = "fredboat.main.Launcher"
-version '2.2'
+version = rootProject.version
 ext {
     moduleName = 'FredBoat'
 }
 
-shadowJar {
+bootRun {
+    //compiling tests during bootRun increases the likelyhood of catching broken tests locally instead of on the CI
+    dependsOn compileTestJava
+
+    //pass in custom jvm args
+    // source: https://stackoverflow.com/a/25079415
+    // example: ./gradlew bootRun -PjvmArgs="--illegal-access=debug -Dwhatever=value"
+    if (project.hasProperty('jvmArgs')) {
+        jvmArgs project.jvmArgs.split('\\s+')
+    }
+}
+
+bootJar {
     archiveName = "FredBoat.jar"
     doLast {
         //copies the jar into a place where the Dockerfile can find it easily (and users maybe too)
@@ -31,51 +36,38 @@ shadowJar {
 
 dependencies {
     compile project(':Shared')
-    compile group: 'net.dv8tion', name: 'JDA', version: '3.5.0_331'
-    compile group: 'com.sedmelluq', name: 'lavaplayer', version: '1.2.45'
-    compile group: 'com.sedmelluq', name: 'jda-nas', version: '1.0.6'
+    compile project(':Database')
+    compile group: 'net.dv8tion', name: 'JDA', version: jdaVersion
+    compile group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
+    compile group: 'com.sedmelluq', name: 'jda-nas', version: jdaNasVersion
 
     if (System.getenv('dev') == 'true') {
         compile(group: 'lavalink', name: 'Lavalink-Client', version: '-SNAPSHOT')
     } else {
         //production
-        compile(group: 'com.github.Frederikam.Lavalink', name: 'Lavalink-Client', version: 'f8a85f33cb4e31253ce378ecade629c3550a1a30')
+        compile(group: 'com.github.Frederikam', name: 'Lavalink', version: lavalinkVersion)
     }
 
-    compile group: 'org.apache.commons', name: 'commons-text', version: '1.1'
-    compile group: 'commons-io', name: 'commons-io', version: '2.6'
-    compile group: 'commons-codec', name: 'commons-codec', version: '1.11'
-    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.3'
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
-    compile group: 'io.sentry', name: 'sentry-logback', version: '1.6.3'
-    compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.9.1'
-    compile group: 'com.sparkjava', name: 'spark-core', version: '2.7.1'
-    compile group: 'org.yaml', name: 'snakeyaml', version: '1.19'
-    compile group: 'it.unimi.dsi', name: 'fastutil', version: '8.1.1'
-    compile group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: '3.1.1'
+    compile(group: 'org.springframework.boot', name: 'spring-boot-starter-webflux', version: springBootVersion) {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat' //we're using undertow instead
+    }
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-undertow', version: springBootVersion
+    compile group: 'it.unimi.dsi', name: 'fastutil', version: fastUtilVersion
 
-    compile group: 'io.prometheus', name: 'simpleclient', version: '0.1.0'
-    compile group: 'io.prometheus', name: 'simpleclient_hotspot', version: '0.1.0'
-    compile group: 'io.prometheus', name: 'simpleclient_logback', version: '0.1.0'
-    compile group: 'io.prometheus', name: 'simpleclient_hibernate', version: '0.1.0'
-    compile group: 'io.prometheus', name: 'simpleclient_guava', version: '0.1.0'
-    compile group: 'io.prometheus', name: 'simpleclient_servlet', version: '0.1.0'
-
-    compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: '1bb3517ef171f9eb7f588f230622129739ff2571'
-    compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: '1bb3517ef171f9eb7f588f230622129739ff2571'
-    compile group: 'org.hibernate', name: 'hibernate-ehcache', version: '5.2.12.Final'
-    compile group: 'org.flywaydb', name: 'flyway-core', version: '5.0.3'
-
-    compile group: 'org.togglz', name: 'togglz-core', version: '2.5.0.Final'
-    compile group: 'com.google.guava', name: 'guava', version: '23.5-jre'
-    compile group: 'com.github.vladimir-bukhtoyarov', name: 'bucket4j-core', version: '3.0.2'
+    compile group: 'org.togglz', name: 'togglz-core', version: togglzVersion
+    compile group: 'com.github.vladimir-bukhtoyarov', name: 'bucket4j-core', version: bucket4jVersion
 
     //tests
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.2'
-    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.2'
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: junitVersion
+    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junitVersion
     // To avoid compiler warnings about @API annotations in JUnit code.
-    testCompileOnly group: 'org.apiguardian', name: 'apiguardian-api', version: '1.0.0'
+    testCompileOnly group: 'org.apiguardian', name: 'apiguardian-api', version: apiGuardianVersion
+    testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion
+    optional group: 'org.springframework.boot', name: 'spring-boot-configuration-processor', version: springBootVersion
 }
+
+//required by spring boot configuration processor
+compileJava.dependsOn(processResources)
 
 import org.apache.tools.ant.filters.ReplaceTokens
 

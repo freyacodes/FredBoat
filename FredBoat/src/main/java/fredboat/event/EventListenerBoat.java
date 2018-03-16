@@ -33,29 +33,32 @@ import fredboat.command.info.HelpCommand;
 import fredboat.command.info.ShardsCommand;
 import fredboat.command.info.StatsCommand;
 import fredboat.command.music.control.SkipCommand;
+import fredboat.commandmeta.CommandContextParser;
 import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.CommandManager;
-import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.CommandContext;
-import fredboat.db.EntityIO;
+import fredboat.config.SentryConfiguration;
+import fredboat.config.property.AppConfig;
+import fredboat.db.api.GuildConfigService;
+import fredboat.db.api.GuildDataService;
 import fredboat.db.entity.main.GuildData;
+import fredboat.definitions.Module;
+import fredboat.definitions.PermissionLevel;
 import fredboat.feature.I18n;
 import fredboat.feature.metrics.Metrics;
+import fredboat.feature.metrics.ShardStatsCounterProvider;
 import fredboat.feature.togglz.FeatureFlags;
-import fredboat.main.BotController;
-import fredboat.main.Config;
-import fredboat.main.ShardContext;
+import fredboat.jda.JdaEntityProvider;
 import fredboat.messaging.CentralMessaging;
-import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import fredboat.util.Tuple2;
 import fredboat.util.ratelimit.Ratelimiter;
 import io.prometheus.client.Histogram;
+import io.prometheus.client.guava.cache.CacheMetricsCollector;
 import net.dv8tion.jda.core.entities.*;
 import net.dv8tion.jda.core.events.ReadyEvent;
-import net.dv8tion.jda.core.events.ShutdownEvent;
 import net.dv8tion.jda.core.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.core.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.core.events.guild.voice.GuildVoiceJoinEvent;
@@ -68,10 +71,12 @@ import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.TimeUnit;
 
+@Component
 public class EventListenerBoat extends AbstractEventListener {
 
     private static final Logger log = LoggerFactory.getLogger(EventListenerBoat.class);
@@ -83,17 +88,42 @@ public class EventListenerBoat extends AbstractEventListener {
             .expireAfterWrite(6, TimeUnit.HOURS)
             .build();
 
+    private final CommandManager commandManager;
+    private final CommandContextParser commandContextParser;
+    private final PlayerRegistry playerRegistry;
+    private final ShardStatsCounterProvider shardStatsCounterProvider;
+    private final JdaEntityProvider jdaEntityProvider;
+    private final Ratelimiter ratelimiter;
+    private final AppConfig appConfig;
+    private final GuildDataService guildDataService;
+    private final GuildConfigService guildConfigService;
 
-    public EventListenerBoat() {
-        Metrics.instance().cacheMetrics.addCache("messagesToDeleteIfIdDeleted", messagesToDeleteIfIdDeleted);
+    public EventListenerBoat(CommandManager commandManager, CommandContextParser commandContextParser,
+                             PlayerRegistry playerRegistry, CacheMetricsCollector cacheMetrics,
+                             ShardStatsCounterProvider shardStatsCounterProvider, JdaEntityProvider jdaEntityProvider,
+                             Ratelimiter ratelimiter, AppConfig appConfig, GuildDataService guildDataService,
+                             GuildConfigService guildConfigService) {
+        this.commandManager = commandManager;
+        this.commandContextParser = commandContextParser;
+        this.playerRegistry = playerRegistry;
+        this.shardStatsCounterProvider = shardStatsCounterProvider;
+        this.jdaEntityProvider = jdaEntityProvider;
+        this.ratelimiter = ratelimiter;
+        this.appConfig = appConfig;
+        this.guildDataService = guildDataService;
+        this.guildConfigService = guildConfigService;
+        cacheMetrics.addCache("messagesToDeleteIfIdDeleted", messagesToDeleteIfIdDeleted);
     }
 
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         try (// before execution set some variables that can help with finding traces that belong to each other
-                MDC.MDCCloseable _guild = MDC.putCloseable("guild", event.getGuild() != null ? event.getGuild().getId() : "PRIVATE");
-                MDC.MDCCloseable _channel = MDC.putCloseable("channel", event.getChannel().getId());
-                MDC.MDCCloseable _invoker = MDC.putCloseable("invoker", event.getAuthor().getId());
+             MDC.MDCCloseable _guild = MDC.putCloseable(SentryConfiguration.SENTRY_MDC_TAG_GUILD,
+                     event.getGuild() != null ? event.getGuild().getId() : "PRIVATE");
+             MDC.MDCCloseable _channel = MDC.putCloseable(SentryConfiguration.SENTRY_MDC_TAG_CHANNEL,
+                     event.getChannel().getId());
+             MDC.MDCCloseable _invoker = MDC.putCloseable(SentryConfiguration.SENTRY_MDC_TAG_INVOKER,
+                     event.getAuthor().getId());
                 ) {
 
             doOnMessageReceived(event);
@@ -102,7 +132,7 @@ public class EventListenerBoat extends AbstractEventListener {
 
     private void doOnMessageReceived(MessageReceivedEvent event) {
         if (FeatureFlags.RATE_LIMITER.isActive()) {
-            if (Ratelimiter.getRatelimiter().isBlacklisted(event.getAuthor().getIdLong())) {
+            if (ratelimiter.isBlacklisted(event.getAuthor().getIdLong())) {
                 Metrics.blacklistedMessagesReceived.inc();
                 return;
             }
@@ -131,7 +161,7 @@ public class EventListenerBoat extends AbstractEventListener {
             return;
         }
 
-        CommandContext context = CommandContext.parse(event);
+        CommandContext context = commandContextParser.parse(event);
         if (context == null) {
             return;
         }
@@ -149,7 +179,7 @@ public class EventListenerBoat extends AbstractEventListener {
         if (!PermsUtil.checkPerms(PermissionLevel.BOT_ADMIN, event.getMember())) {
 
             //ignore commands of disabled modules for plebs
-            CommandRegistry.Module module = context.command.getModule();
+            Module module = context.command.getModule();
             if (module != null && !context.getEnabledModules().contains(module)) {
                 log.debug("Ignoring command {} because its module {} is disabled in guild {}",
                         context.command.name, module.name(), event.getGuild().getIdLong());
@@ -167,7 +197,7 @@ public class EventListenerBoat extends AbstractEventListener {
     private void limitOrExecuteCommand(CommandContext context) {
         Tuple2<Boolean, Class> ratelimiterResult = new Tuple2<>(true, null);
         if (FeatureFlags.RATE_LIMITER.isActive()) {
-            ratelimiterResult = Ratelimiter.getRatelimiter().isAllowed(context, context.command, 1);
+            ratelimiterResult = ratelimiter.isAllowed(context, context.command, 1);
         }
 
         if (ratelimiterResult.a) {
@@ -176,7 +206,7 @@ public class EventListenerBoat extends AbstractEventListener {
                 executionTimer = Metrics.executionTime.labels(context.command.getClass().getSimpleName()).startTimer();
             }
             try {
-                CommandManager.prefixCalled(context);
+                commandManager.prefixCalled(context);
             } finally {
                 //NOTE: Some commands, like ;;mal, run async and will not reflect the real performance of FredBoat
                 if (FeatureFlags.FULL_METRICS.isActive() && executionTimer != null) {
@@ -207,7 +237,7 @@ public class EventListenerBoat extends AbstractEventListener {
     public void onPrivateMessageReceived(PrivateMessageReceivedEvent event) {
 
         if (FeatureFlags.RATE_LIMITER.isActive()) {
-            if (Ratelimiter.getRatelimiter().isBlacklisted(event.getAuthor().getIdLong())) {
+            if (ratelimiter.isBlacklisted(event.getAuthor().getIdLong())) {
                 //dont need to inc() the metrics counter here, because private message events are a subset of
                 // MessageReceivedEvents where we inc() the blacklisted messages counter already
                 return;
@@ -221,7 +251,7 @@ public class EventListenerBoat extends AbstractEventListener {
         }
 
         //quick n dirty bot admin / owner check
-        if (Config.CONFIG.getAdminIds().contains(event.getAuthor().getId())
+        if (appConfig.getAdminIds().contains(event.getAuthor().getIdLong())
                 || DiscordUtil.getOwnerId(event.getJDA()) == event.getAuthor().getIdLong()) {
 
             //hack in / hardcode some commands; this is not meant to look clean
@@ -268,14 +298,14 @@ public class EventListenerBoat extends AbstractEventListener {
         if (joined.getUser().isBot()
                 && guild.getSelfMember().getUser().getIdLong() != joined.getUser().getIdLong()) return;
 
-        GuildPlayer player = PlayerRegistry.getExisting(guild);
+        GuildPlayer player = playerRegistry.getExisting(guild);
 
         if (player != null
                 && player.isPaused()
                 && player.getPlayingTrack() != null
                 && joinedChannel.getMembers().contains(guild.getSelfMember())
                 && player.getHumanUsersInCurrentVC().size() > 0
-                && EntityIO.getGuildConfig(guild).isAutoResume()
+                && guildConfigService.fetchGuildConfig(guild).isAutoResume()
                 ) {
             player.setPause(false);
             TextChannel activeTextChannel = player.getActiveTextChannel();
@@ -286,11 +316,11 @@ public class EventListenerBoat extends AbstractEventListener {
     }
 
     private void checkForAutoPause(VoiceChannel channelLeft) {
-        if (Config.CONFIG.getContinuePlayback())
+        if (appConfig.getContinuePlayback())
             return;
 
         Guild guild = channelLeft.getGuild();
-        GuildPlayer player = PlayerRegistry.getExisting(guild);
+        GuildPlayer player = playerRegistry.getExisting(guild);
 
         if (player == null) {
             return;
@@ -324,7 +354,7 @@ public class EventListenerBoat extends AbstractEventListener {
         //wait a few seconds to allow permissions to be set and applied and propagated
         CentralMessaging.restService.schedule(() -> {
             //retrieve the guild again - many things may have happened in 10 seconds!
-            Guild g = BotController.INS.getShardManager().getGuildById(event.getGuild().getIdLong());
+            Guild g = jdaEntityProvider.getGuildById(event.getGuild().getIdLong());
             if (g != null) {
                 sendHelloOnJoin(g);
             }
@@ -333,7 +363,7 @@ public class EventListenerBoat extends AbstractEventListener {
 
     @Override
     public void onGuildLeave(GuildLeaveEvent event) {
-        PlayerRegistry.destroyPlayer(event.getGuild());
+        playerRegistry.destroyPlayer(event.getGuild());
     }
 
     @Override
@@ -347,20 +377,16 @@ public class EventListenerBoat extends AbstractEventListener {
     /* Shard lifecycle */
     @Override
     public void onReady(ReadyEvent event) {
-        ShardContext.of(event.getJDA()).onReady(event);
+        log.info("Received ready event for {}", event.getJDA().getShardInfo().toString());
+
+        shardStatsCounterProvider.registerShard(event.getJDA().getShardInfo());
     }
 
-    @Override
-    public void onShutdown(ShutdownEvent event) {
-        ShardContext.of(event.getJDA()).onShutdown();
-    }
-
-
-    private static void sendHelloOnJoin(@Nonnull Guild guild) {
+    private void sendHelloOnJoin(@Nonnull Guild guild) {
         //filter guilds that already received a hello message
         // useful for when discord trolls us with fake guild joins
         // or to prevent it send repeatedly due to kick and reinvite
-        GuildData gd = EntityIO.getGuildData(guild);
+        GuildData gd = guildDataService.fetchGuildData(guild);
         if (gd.getTimestampHelloSent() > 0) {
             return;
         }
@@ -382,6 +408,6 @@ public class EventListenerBoat extends AbstractEventListener {
 
         //send actual hello message and persist on success
         CentralMessaging.sendMessage(channel, HelloCommand.getHello(guild),
-                __ -> EntityIO.helloSent(guild));
+                __ -> guildDataService.transformGuildData(guild, GuildData::helloSent));
     }
 }

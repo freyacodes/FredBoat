@@ -2,8 +2,11 @@ allprojects {
     repositories {
         mavenCentral()                     // main maven repo
         jcenter()                          // JDA and some other stuff
+        maven { url 'https://dl.bintray.com/napster/SqlSauce' }
         mavenLocal()                       // useful for developing
         maven { url "https://jitpack.io" } // build projects directly from github
+        maven { url "https://repo.spring.io/snapshot" }
+        maven { url "https://repo.spring.io/milestone" }
     }
 
     apply plugin: 'idea'
@@ -11,10 +14,36 @@ allprojects {
 }
 
 subprojects {
+    buildscript {
+        ext {
+            //@formatter:off
+
+            //plugin versions
+            gradleGitVersion        = '1.4.21'
+            shadowVersion           = '2.0.2'
+            springBootVersion       = '2.0.0.RELEASE'
+            propDepsVersion         = '0.0.9.RELEASE'
+
+            //@formatter:on
+        }
+        repositories {
+            maven { url "https://plugins.gradle.org/m2/" }
+            maven { url 'http://repo.spring.io/plugins-release' }
+            maven { url "https://repo.spring.io/snapshot" }
+            maven { url "https://repo.spring.io/milestone" }
+            mavenCentral()
+        }
+        dependencies {
+            classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:${gradleGitVersion}"
+            classpath "com.github.jengelman.gradle.plugins:shadow:${shadowVersion}"
+            classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
+            classpath "io.spring.gradle:propdeps-plugin:${propDepsVersion}"
+        }
+    }
     apply plugin: 'java'
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 9
+    targetCompatibility = 9
 
     compileJava.dependsOn 'clean'
     compileJava.options.encoding = 'UTF-8'
@@ -23,9 +52,66 @@ subprojects {
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
     }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    ext {
+        //@formatter:off
+
+        springBootVersion           = "${springBootVersion}"
+        //discord deps
+        jdaVersion                  = '3.5.1_347'
+
+        //audio deps
+        lavaplayerVersion           = '1.2.56'
+        jdaNasVersion               = '1.0.6'
+        lavalinkVersion             = '3c54c0566e'
+
+        //utility deps
+        jsonOrgVersion              = '20180130'
+        commonsTextVersion          = '1.2'
+        commonsIOVersion            = '2.6'
+        commonsCodecVersion         = '1.11'
+        commonsCollectionsVersion   = '4.1'
+        snakeYamlVersion            = '1.19' //do not upgrade to 1.20, app wont start up
+        fastUtilVersion             = '8.1.1'
+        togglzVersion               = '2.5.0.Final'
+        guavaVersion                = '24.0-jre'
+        bucket4jVersion             = '3.1.1'
+        gsonVersion                 = '2.8.2'
+
+        //logging / monitoring deps
+        logbackVersion              = '1.2.3'
+        sentryVersion               = '1.7.1'
+        prometheusClientVersion     = '0.3.0'
+
+        //http / web deps
+        okhttpVersion               = '3.10.0'
+        sparkVersion                = '2.7.2'
+
+        //QA deps
+        spotbugsVersion             = '3.1.2'
+        napsterAnnotations          = '0.0.1'
+
+        //database deps
+        sqlsauceVersion             = '0.0.13'
+        hibernateVersion            = '5.2.14.Final'
+        flywayVersion               = '5.0.7'
+        dsProxyVersion              = '1.4.7'
+        jaxbApiVersion              = '2.3.0'
+
+        //testing deps
+        junitVersion                = '5.1.0'
+        apiGuardianVersion          = '1.0.0'
+
+
+        //@formatter:on
+    }
 }
 
-version = '1.0'
+version = '3.0'
 ext {
     moduleName = 'FredBoat-Root'
 }
@@ -33,6 +119,13 @@ ext {
 import org.gradle.api.tasks.wrapper.Wrapper.DistributionType
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '4.4.1'
+    gradleVersion = '4.6'
     distributionType = DistributionType.ALL
 }
+
+//create a simple version file that we will be reading to create appropriate docker tags
+void versionTxt() {
+    new File("$projectDir/VERSION.txt").text = "$rootProject.version\n"
+}
+
+versionTxt()

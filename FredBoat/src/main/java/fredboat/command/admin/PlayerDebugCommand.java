@@ -26,12 +26,12 @@
 package fredboat.command.admin;
 
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -53,8 +53,8 @@ public class PlayerDebugCommand extends Command implements ICommandRestricted {
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
         JSONArray a = new JSONArray();
-        
-        for(GuildPlayer gp : PlayerRegistry.getRegistry().values()){
+
+        for (GuildPlayer gp : Launcher.getBotController().getPlayerRegistry().getRegistry().values()) {
             JSONObject data = new JSONObject();
             data.put("name", gp.getGuild().getName());
             data.put("id", gp.getGuild().getId());

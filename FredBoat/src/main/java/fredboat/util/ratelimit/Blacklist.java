@@ -24,7 +24,7 @@
 
 package fredboat.util.ratelimit;
 
-import fredboat.db.EntityIO;
+import fredboat.db.api.BlacklistService;
 import fredboat.db.entity.main.BlacklistEntry;
 import fredboat.feature.metrics.Metrics;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -66,11 +66,14 @@ public class Blacklist {
     //users that can never be blacklisted
     private final Set<Long> userWhiteList;
 
+    private final BlacklistService blacklistService;
 
-    public Blacklist(Set<Long> userWhiteList, long rateLimitHitsBeforeBlacklist) {
+
+    public Blacklist(BlacklistService blacklistService, Set<Long> userWhiteList, long rateLimitHitsBeforeBlacklist) {
+        this.blacklistService = blacklistService;
         this.blacklist = new Long2ObjectOpenHashMap<>();
         //load blacklist from database
-        for (BlacklistEntry ble : EntityIO.loadBlacklist()) {
+        for (BlacklistEntry ble : blacklistService.loadBlacklist()) {
             blacklist.put(ble.id, ble);
         }
 
@@ -95,8 +98,10 @@ public class Blacklist {
         if (blEntry.level < 0) return false;   //blacklist entry exists, but id hasn't actually been blacklisted yet
 
         //id was a blacklisted, but it has run out
-        if (System.currentTimeMillis() > blEntry.blacklistedTimestamp + (getBlacklistTimeLength(blEntry.level)))
+        //noinspection RedundantIfStatement
+        if (System.currentTimeMillis() > blEntry.blacklistedTimestamp + (getBlacklistTimeLength(blEntry.level))) {
             return false;
+        }
 
         //looks like this id is blacklisted ¯\_(ツ)_/¯
         return true;
@@ -135,7 +140,7 @@ public class Blacklist {
             }
             //persist it
             //if this turns up to be a performance bottleneck, have an agent run that persists the blacklist occasionally
-            blEntry = EntityIO.mergeBlacklistEntry(blEntry);
+            blEntry = blacklistService.mergeBlacklistEntry(blEntry);
             blacklist.put(blEntry.id, blEntry);
             return blacklistingLength;
         }
@@ -161,7 +166,7 @@ public class Blacklist {
      */
     public synchronized void liftBlacklist(long id) {
         blacklist.remove(id);
-        EntityIO.deleteBlacklistEntry(id);
+        blacklistService.deleteBlacklistEntry(id);
     }
 
     /**

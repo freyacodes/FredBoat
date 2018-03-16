@@ -29,17 +29,20 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
-import fredboat.main.Config;
+import fredboat.config.property.Credentials;
+import fredboat.main.BotController;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class YoutubeAPI {
 
     private static final Logger log = LoggerFactory.getLogger(YoutubeAPI.class);
@@ -48,20 +51,22 @@ public class YoutubeAPI {
     public static final String YOUTUBE_VIDEO_VERBOSE = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet";
     public static final String YOUTUBE_SEARCH = "https://www.googleapis.com/youtube/v3/search?part=snippet";
     public static final String YOUTUBE_CHANNEL = "https://www.googleapis.com/youtube/v3/channels?part=snippet&fields=items(snippet/thumbnails)";
+    private final Credentials credentials;
 
-    private YoutubeAPI() {
+    public YoutubeAPI(Credentials credentials) {
+        this.credentials = credentials;
     }
 
-    private static YoutubeVideo getVideoFromID(String id) {
-        Http.SimpleRequest simpleRequest = Http.get(YOUTUBE_VIDEO, Http.Params.of(
+    private YoutubeVideo getVideoFromID(String id) {
+        Http.SimpleRequest simpleRequest = BotController.HTTP.get(YOUTUBE_VIDEO, Http.Params.of(
                 "id", id,
-                "key", Config.CONFIG.getRandomGoogleKey()
+                "key", credentials.getRandomGoogleKey()
         ));
 
         JSONObject data = null;
         try {
             data = simpleRequest.asJson();
-            YoutubeVideo vid = new YoutubeVideo();
+            YoutubeVideo vid = new YoutubeVideo(credentials);
             vid.id = data.getJSONArray("items").getJSONObject(0).getString("id");
             vid.name = data.getJSONArray("items").getJSONObject(0).getJSONObject("snippet").getString("title");
             vid.duration = data.getJSONArray("items").getJSONObject(0).getJSONObject("contentDetails").getString("duration");
@@ -75,10 +80,10 @@ public class YoutubeAPI {
         }
     }
 
-    public static YoutubeVideo getVideoFromID(String id, boolean verbose) {
+    public YoutubeVideo getVideoFromID(String id, boolean verbose) {
         if(verbose){
-            String gkey = Config.CONFIG.getRandomGoogleKey();
-            Http.SimpleRequest request = Http.get(YOUTUBE_VIDEO_VERBOSE, Http.Params.of(
+            String gkey = credentials.getRandomGoogleKey();
+            Http.SimpleRequest request = BotController.HTTP.get(YOUTUBE_VIDEO_VERBOSE, Http.Params.of(
                     "id", id,
                     "key", gkey
             ));
@@ -86,7 +91,7 @@ public class YoutubeAPI {
             JSONObject data = null;
             try {
                 data = request.asJson();
-                YoutubeVideo vid = new YoutubeVideo();
+                YoutubeVideo vid = new YoutubeVideo(credentials);
                 vid.id = data.getJSONArray("items").getJSONObject(0).getString("id");
                 vid.name = data.getJSONArray("items").getJSONObject(0).getJSONObject("snippet").getString("title");
                 vid.duration = data.getJSONArray("items").getJSONObject(0).getJSONObject("contentDetails").getString("duration");
@@ -118,12 +123,12 @@ public class YoutubeAPI {
      */
     //docs: https://developers.google.com/youtube/v3/docs/search/list
     //theres a lot of room for tweaking the searches
-    public static AudioPlaylist search(String query, int maxResults, YoutubeAudioSourceManager sourceManager)
-            throws SearchUtil.SearchingException {
+    public AudioPlaylist search(String query, int maxResults, YoutubeAudioSourceManager sourceManager)
+            throws TrackSearcher.SearchingException {
         JSONObject data;
-        String gkey = Config.CONFIG.getRandomGoogleKey();
+        String gkey = credentials.getRandomGoogleKey();
 
-        Http.SimpleRequest request = Http.get(YOUTUBE_SEARCH, Http.Params.of(
+        Http.SimpleRequest request = BotController.HTTP.get(YOUTUBE_SEARCH, Http.Params.of(
                 "key", gkey,
                 "type", "video",
                 "maxResults", Integer.toString(maxResults),
@@ -132,7 +137,7 @@ public class YoutubeAPI {
         try {
             data = request.asJson();
         } catch (IOException e) {
-            throw new SearchUtil.SearchingException("Youtube API search failed", e);
+            throw new TrackSearcher.SearchingException("Youtube API search failed", e);
         }
 
         //The search contains all values we need, except for the duration :feelsbadman:
@@ -147,7 +152,7 @@ public class YoutubeAPI {
         } catch (JSONException e) {
             String message = String.format("Youtube search with API key ending on %s for query %s returned unexpected JSON:\n%s",
                     gkey.substring(20), query, data.toString());
-            throw new SearchUtil.SearchingException(message, e);
+            throw new TrackSearcher.SearchingException(message, e);
         }
 
         List<AudioTrack> tracks = new ArrayList<>();
@@ -156,7 +161,7 @@ public class YoutubeAPI {
                 YoutubeVideo vid = getVideoFromID(id, true);
                 tracks.add(sourceManager.buildTrackObject(id, vid.name, vid.channelTitle, vid.isStream, vid.getDurationInMillis()));
             } catch (RuntimeException e) {
-                throw new SearchUtil.SearchingException("Could not look up details for youtube video with id " + id, e);
+                throw new TrackSearcher.SearchingException("Could not look up details for youtube video with id " + id, e);
             }
         }
         return new BasicAudioPlaylist("Search results for: " + query, tracks, null, true);

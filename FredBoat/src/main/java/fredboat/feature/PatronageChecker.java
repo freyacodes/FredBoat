@@ -28,20 +28,21 @@ package fredboat.feature;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import fredboat.main.Config;
-import fredboat.feature.metrics.Metrics;
-import fredboat.shared.constant.DistributionEnum;
+import fredboat.config.property.AppConfig;
+import fredboat.main.BotController;
 import fredboat.util.rest.CacheUtil;
-import fredboat.util.rest.Http;
+import io.prometheus.client.guava.cache.CacheMetricsCollector;
 import net.dv8tion.jda.core.entities.Guild;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+@Component
 public class PatronageChecker {
 
     private static final Logger log = LoggerFactory.getLogger(PatronageChecker.class);
@@ -58,9 +59,11 @@ public class PatronageChecker {
         thread.setName("patreon-denial-cleaner");
         return thread;
     });
+    private final AppConfig appConfig;
 
     // Pay attention to how we also clear the status early if we get an exception
-    public PatronageChecker() {
+    public PatronageChecker(CacheMetricsCollector cacheMetrics, AppConfig appConfig) {
+        this.appConfig = appConfig;
         denialCleaner.scheduleAtFixedRate(
                 () -> cache.asMap().replaceAll(
                         (__, status) -> status.isValid() || status.isCausedByError() ? status : null
@@ -68,7 +71,7 @@ public class PatronageChecker {
                 , 0, 1, TimeUnit.MINUTES);
 
         log.info("Began patronage checker");
-        Metrics.instance().cacheMetrics.addCache("patronageChecker", cache);
+        cacheMetrics.addCache("patronageChecker", cache);
     }
 
     public Status getStatus(Guild guild) {
@@ -110,11 +113,11 @@ public class PatronageChecker {
 
         @SuppressWarnings("NullableProblems")
         @Override
-        public Status load(String key) throws Exception {
+        public Status load(String key) {
             //TODO prevent selfhosters from running this?
             try {
                 return new Status(
-                        Http.get(Config.CONFIG.getDistribution() == DistributionEnum.PATRON
+                        BotController.HTTP.get(appConfig.isPatronDistribution()
                                 ? "https://patronapi.fredboat.com/api/drm/" + key
                                 : "http://localhost:4500/api/drm/" + key)
                                 .asJson()
@@ -127,7 +130,7 @@ public class PatronageChecker {
     }
 
     @Override
-    protected void finalize() throws Throwable {
+    protected void finalize() {
         denialCleaner.shutdown();
     }
 

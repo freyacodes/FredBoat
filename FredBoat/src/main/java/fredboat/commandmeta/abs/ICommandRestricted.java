@@ -25,7 +25,7 @@
 
 package fredboat.commandmeta.abs;
 
-import fredboat.perms.PermissionLevel;
+import fredboat.definitions.PermissionLevel;
 
 import javax.annotation.Nonnull;
 

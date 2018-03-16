@@ -32,9 +32,10 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IInfoCommand;
+import fredboat.definitions.Module;
+import fredboat.definitions.PermissionLevel;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
@@ -65,9 +66,9 @@ public class CommandsCommand extends Command implements IInfoCommand {
 
         if (!context.hasArguments()) {
 
-            Collection<CommandRegistry.Module> enabledModules = context.getEnabledModules();
+            Collection<Module> enabledModules = context.getEnabledModules();
             if (!PermsUtil.checkPerms(PermissionLevel.BOT_ADMIN, context.invoker)) {
-                enabledModules.remove(CommandRegistry.Module.ADMIN);//dont show admin commands/modules for non admins
+                enabledModules.remove(Module.ADMIN);//dont show admin commands/modules for non admins
             }
 
             String prefixAndCommand = "`" + context.getPrefix() + CommandInitializer.COMMANDS_COMM_NAME;
@@ -81,14 +82,14 @@ public class CommandsCommand extends Command implements IInfoCommand {
             return;
         }
 
-        List<CommandRegistry.Module> showHelpFor;
+        List<Module> showHelpFor;
         if (context.rawArgs.toLowerCase().contains(ALL.toLowerCase())) {
-            showHelpFor = new ArrayList<>(Arrays.asList(CommandRegistry.Module.values()));
+            showHelpFor = new ArrayList<>(Arrays.asList(Module.values()));
             if (!PermsUtil.checkPerms(PermissionLevel.BOT_ADMIN, context.invoker)) {
-                showHelpFor.remove(CommandRegistry.Module.ADMIN);//dont show admin commands/modules for non admins
+                showHelpFor.remove(Module.ADMIN);//dont show admin commands/modules for non admins
             }
         } else {
-            CommandRegistry.Module module = CommandRegistry.Module.which(context.rawArgs, context);
+            Module module = CommandRegistry.whichModule(context.rawArgs, context);
             if (module == null) {
                 context.reply(context.i18nFormat("moduleCantParse",
                         "`" + context.getPrefix() + context.command.name) + "`");
@@ -99,7 +100,7 @@ public class CommandsCommand extends Command implements IInfoCommand {
         }
 
         EmbedBuilder eb = CentralMessaging.getColoredEmbedBuilder();
-        for (CommandRegistry.Module module : showHelpFor) {
+        for (Module module : showHelpFor) {
             eb = addModuleCommands(eb, context, CommandRegistry.getCommandModule(module));
         }
         eb.addField("", context.i18nFormat("commandsMoreHelp",

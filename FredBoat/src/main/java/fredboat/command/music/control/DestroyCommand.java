@@ -25,13 +25,13 @@
 
 package fredboat.command.music.control;
 
-import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 
 import javax.annotation.Nonnull;
 
@@ -43,7 +43,7 @@ public class DestroyCommand extends Command implements IMusicCommand, ICommandRe
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        PlayerRegistry.destroyPlayer(context.guild);
+        Launcher.getBotController().getPlayerRegistry().destroyPlayer(context.guild);
         context.replyWithName(context.i18n("destroySucc"));
     }
 

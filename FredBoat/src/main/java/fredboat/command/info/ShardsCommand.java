@@ -28,18 +28,18 @@ package fredboat.command.info;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IInfoCommand;
-import fredboat.main.BotController;
-import fredboat.main.Config;
+import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.JDA;
-import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Message;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ShardsCommand extends Command implements IInfoCommand {
 
@@ -57,55 +57,55 @@ public class ShardsCommand extends Command implements IInfoCommand {
     }
 
     public static List<Message> getShardStatus(@Nonnull Message input) {
-        MessageBuilder mb = null;
-        List<Message> messages = new ArrayList<>();
+        List<String> lines = new ArrayList<>();
 
         //do a full report? or just a summary
-        boolean full = false;
         String raw = input.getContentRaw().toLowerCase();
-        if (raw.contains("full") || raw.contains("all")) {
-            full = true;
-        }
+        boolean full = raw.contains("full") || raw.contains("all");
 
-        List<JDA> shards = BotController.INS.getShardManager().getShards();
-        int borkenShards = 0;
-        int healthyGuilds = 0;
-        int healthyUsers = 0;
-        for (JDA shard : shards) {
+        AtomicInteger shardCounter = new AtomicInteger(0);
+        AtomicInteger borkenShards = new AtomicInteger(0);
+        AtomicLong healthyGuilds = new AtomicLong(0);
+        AtomicLong healthyUsers = new AtomicLong(0);
+        Launcher.getBotController().getJdaEntityProvider().streamShards().forEach(shard -> {
+            shardCounter.incrementAndGet();
             if (shard.getStatus() == JDA.Status.CONNECTED && !full) {
-                healthyGuilds += shard.getGuildCache().size();
-                healthyUsers += shard.getUserCache().size();
+                healthyGuilds.addAndGet(shard.getGuildCache().size());
+                healthyUsers.addAndGet(shard.getUserCache().size());
             } else {
-                if (borkenShards % SHARDS_PER_MESSAGE == 0) {
-                    if (mb != null) {
-                        mb.append("```");
-                        messages.add(mb.build());
-                    }
-                    mb = CentralMessaging.getClearThreadLocalMessageBuilder().append("```diff\n");
-                }
                 //noinspection ConstantConditions
-                mb.append(shard.getStatus() == JDA.Status.CONNECTED ? "+" : "-")
-                        .append(" ")
-                        .append(shard.getShardInfo().getShardString())
-                        .append(" ")
-                        .append(shard.getStatus())
-                        .append(" -- Guilds: ")
-                        .append(String.format("%04d", shard.getGuildCache().size()))
-                        .append(" -- Users: ")
-                        .append(shard.getUserCache().size())
-                        .append("\n");
-                borkenShards++;
+                lines.add((shard.getStatus() == JDA.Status.CONNECTED ? "+" : "-")
+                        + " "
+                        + shard.getShardInfo().getShardString()
+                        + " "
+                        + shard.getStatus()
+                        + " -- Guilds: "
+                        + String.format("%04d", shard.getGuildCache().size())
+                        + " -- Users: "
+                        + shard.getUserCache().size()
+                        + "\n");
+                borkenShards.incrementAndGet();
             }
-        }
-        if (mb != null && borkenShards % SHARDS_PER_MESSAGE != 0) {
-            mb.append("```");
-            messages.add(mb.build());
+        });
+
+        List<Message> messages = new ArrayList<>();
+
+        StringBuilder stringBuilder = new StringBuilder();
+        int lineCounter = 0;
+        for (String line : lines) {
+            stringBuilder.append(line);
+            lineCounter++;
+            if (lineCounter % SHARDS_PER_MESSAGE == 0 || lineCounter == lines.size()) {
+                messages.add(CentralMessaging.getClearThreadLocalMessageBuilder()
+                        .appendCodeBlock(stringBuilder.toString(), "diff").build());
+                stringBuilder = new StringBuilder();
+            }
         }
 
         //healthy shards summary, contains sensible data only if we aren't doing a full report
         if (!full) {
-            String content = String.format("+ %s of %s shards are %s -- Guilds: %s -- Users: %s", (shards.size() - borkenShards),
-                    Config.getNumShards(), JDA.Status.CONNECTED, healthyGuilds, healthyUsers);
+            String content = String.format("+ %s of %s shards are %s -- Guilds: %s -- Users: %s", (shardCounter.get() - borkenShards.get()),
+                    Launcher.getBotController().getCredentials().getRecommendedShardCount(), JDA.Status.CONNECTED, healthyGuilds, healthyUsers);
             messages.add(0, CentralMessaging.getClearThreadLocalMessageBuilder().append(TextUtils.asCodeBlock(content, "diff")).build());
         }
 

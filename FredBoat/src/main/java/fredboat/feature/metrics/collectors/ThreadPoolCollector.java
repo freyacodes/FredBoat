@@ -28,6 +28,7 @@ package fredboat.feature.metrics.collectors;
 import io.prometheus.client.Collector;
 import io.prometheus.client.CounterMetricFamily;
 import io.prometheus.client.GaugeMetricFamily;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,6 +41,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * Created by napster on 19.10.17.
  */
+@Component
 public class ThreadPoolCollector extends Collector {
 
     protected final ConcurrentMap<String, ThreadPoolExecutor> pools = new ConcurrentHashMap<>();

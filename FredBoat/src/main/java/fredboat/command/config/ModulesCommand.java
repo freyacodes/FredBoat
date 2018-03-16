@@ -31,11 +31,12 @@ import fredboat.commandmeta.CommandRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IConfigCommand;
-import fredboat.db.EntityIO;
 import fredboat.db.entity.main.GuildModules;
+import fredboat.definitions.Module;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.Emojis;
 
@@ -83,7 +84,7 @@ public class ModulesCommand extends Command implements IConfigCommand {
             return;
         }
 
-        CommandRegistry.Module module = CommandRegistry.Module.which(args, context);
+        Module module = CommandRegistry.whichModule(args, context);
         if (module == null) {
             context.reply(context.i18nFormat("moduleCantParse",
                     context.getPrefix() + context.command.name));
@@ -107,30 +108,28 @@ public class ModulesCommand extends Command implements IConfigCommand {
             output = context.i18nFormat("moduleDisable", "**" + context.i18n(module.translationKey) + "**");
         }
 
-        EntityIO.doUserFriendly(EntityIO.onMainDb(
-                wrapper -> wrapper.findApplyAndMerge(GuildModules.key(context.guild), transform)
-        ));
+        Launcher.getBotController().getGuildModulesService().transformGuildModules(context.guild, transform);
         context.reply(output);//if the transaction right above this line fails, it won't be reached, which is intended
     }
 
     private static void displayModuleStatus(@Nonnull CommandContext context) {
-        GuildModules gm = EntityIO.getGuildModules(context.guild);
-        Function<CommandRegistry.Module, String> moduleStatusFormatter = moduleStatusLine(gm, context);
+        GuildModules gm = Launcher.getBotController().getGuildModulesService().fetchGuildModules(context.guild);
+        Function<Module, String> moduleStatusFormatter = moduleStatusLine(gm, context);
         String moduleStatus = "";
 
         if (PermsUtil.checkPerms(PermissionLevel.BOT_ADMIN, context.invoker)) {
             moduleStatus
-                    = moduleStatusFormatter.apply(CommandRegistry.Module.ADMIN) + " " + Emojis.LOCK + "\n"
-                    + moduleStatusFormatter.apply(CommandRegistry.Module.INFO) + " " + Emojis.LOCK + "\n"
-                    + moduleStatusFormatter.apply(CommandRegistry.Module.CONFIG) + " " + Emojis.LOCK + "\n"
+                    = moduleStatusFormatter.apply(Module.ADMIN) + " " + Emojis.LOCK + "\n"
+                    + moduleStatusFormatter.apply(Module.INFO) + " " + Emojis.LOCK + "\n"
+                    + moduleStatusFormatter.apply(Module.CONFIG) + " " + Emojis.LOCK + "\n"
             ;
         }
 
         moduleStatus
-                += moduleStatusFormatter.apply(CommandRegistry.Module.MUSIC) + " " + Emojis.LOCK + "\n"
-                + moduleStatusFormatter.apply(CommandRegistry.Module.MOD) + "\n"
-                + moduleStatusFormatter.apply(CommandRegistry.Module.UTIL) + "\n"
-                + moduleStatusFormatter.apply(CommandRegistry.Module.FUN) + "\n"
+                += moduleStatusFormatter.apply(Module.MUSIC) + " " + Emojis.LOCK + "\n"
+                + moduleStatusFormatter.apply(Module.MOD) + "\n"
+                + moduleStatusFormatter.apply(Module.UTIL) + "\n"
+                + moduleStatusFormatter.apply(Module.FUN) + "\n"
         ;
 
         String howto = "`" + context.getPrefix() + CommandInitializer.MODULES_COMM_NAME + " " + ENABLE + "/" + DISABLE + " <module>`";
@@ -143,7 +142,7 @@ public class ModulesCommand extends Command implements IConfigCommand {
 
     @Nonnull
     //nicely format modules for displaying to users
-    private static Function<CommandRegistry.Module, String> moduleStatusLine(@Nonnull GuildModules gm, @Nonnull Context context) {
+    private static Function<Module, String> moduleStatusLine(@Nonnull GuildModules gm, @Nonnull Context context) {
         return (module) -> (gm.isModuleEnabled(module, module.enabledByDefault) ? Emojis.OK : Emojis.BAD)
                 + module.emoji
                 + " "

@@ -25,13 +25,12 @@
 
 package fredboat.command.admin;
 
-import fredboat.main.BotController;
-import fredboat.audio.player.LavalinkManager;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import lavalink.client.io.LavalinkSocket;
 import net.dv8tion.jda.core.entities.Guild;
 
@@ -45,7 +44,7 @@ public class GetNodeCommand extends Command implements ICommandRestricted {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        if (!LavalinkManager.ins.isEnabled()) {
+        if (Launcher.getBotController().getAudioConnectionFacade().isLocal()) {
             context.replyWithName("Lavalink is not enabled.");
             return;
         }
@@ -54,7 +53,7 @@ public class GetNodeCommand extends Command implements ICommandRestricted {
         if (context.hasArguments()) {
             try {
                 long guildId = Long.parseUnsignedLong(context.args[0]);
-                guild = BotController.INS.getShardManager().getGuildById(guildId);
+                guild = Launcher.getBotController().getJdaEntityProvider().getGuildById(guildId);
             } catch (NumberFormatException ignored) {
             }
             if (guild == null) {
@@ -64,7 +63,7 @@ public class GetNodeCommand extends Command implements ICommandRestricted {
         } else {
             guild = context.guild;
         }
-        LavalinkSocket node = LavalinkManager.ins.getLavalink().getLink(guild).getNode();
+        LavalinkSocket node = Launcher.getBotController().getAudioConnectionFacade().getLavalink().getLink(guild).getNode();
 
         String reply = String.format("Guild %s id `%s` lavalink socket: `%s`",
                 context.guild.getName(), context.guild.getIdLong(), String.valueOf(node));

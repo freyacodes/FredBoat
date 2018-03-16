@@ -26,19 +26,19 @@
 package fredboat.bootloader;
 
 import fredboat.shared.constant.ExitCodes;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Scanner;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 public class Bootloader {
 
-    private static JSONArray command;
+    private static List<String> command;
     private static String jarName;
     private static int recentBoots = 0;
     private static long lastBoot = 0L;
@@ -46,13 +46,22 @@ public class Bootloader {
     public static void main(String[] args) throws IOException, InterruptedException {
         OUTER:
         while (true) {
-            InputStream is = new FileInputStream(new File("./bootloader.json"));
-            Scanner scanner = new Scanner(is);
-            JSONObject json = new JSONObject(scanner.useDelimiter("\\A").next());
-            scanner.close();
+            File bootloaderConfig = new File("./bootloader.yaml");
+            if (!bootloaderConfig.exists()) {
+                bootloaderConfig = new File("./bootloader.yml");
+            }
+            if (!bootloaderConfig.exists()) {
+                System.out.println("Yaml config not found, falling back to json file");
+                bootloaderConfig = new File("./bootloader.json");
+            }
+            if (!bootloaderConfig.exists()) {
+                System.err.println("Neither yaml nor json config files found for the bootloader!");
+            }
 
-            command = json.getJSONArray("command");
-            jarName = json.getString("jarName");
+            Map<String, Object> config = new Yaml().load(new FileInputStream(bootloaderConfig));
+            @SuppressWarnings("unchecked") List<String> c = (List<String>) config.getOrDefault("command", Collections.emptyList());
+            command = c;
+            jarName = (String) config.getOrDefault("jarName", "");
 
             Process process = boot();
             process.waitFor();
@@ -92,15 +101,8 @@ public class Bootloader {
         //ProcessBuilder pb = new ProcessBuilder(System.getProperty("java.home") + "/bin/java -jar "+new File("FredBoat-1.0.jar").getAbsolutePath())
         ProcessBuilder pb = new ProcessBuilder()
                 .inheritIO();
-        ArrayList<String> list = new ArrayList<>();
-        command.forEach((Object str) -> {
-            list.add((String) str);
-        });
-
-        pb.command(list);
-
-        Process process = pb.start();
-        return process;
+        pb.command(new ArrayList<>(command));
+        return pb.start();
     }
 
     private static void update() {

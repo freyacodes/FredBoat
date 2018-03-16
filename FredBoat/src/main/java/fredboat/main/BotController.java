@@ -1,53 +1,99 @@
 package fredboat.main;
 
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import fredboat.agent.FredBoatAgent;
-import fredboat.agent.StatsAgent;
-import fredboat.audio.queue.MusicPersistenceHandler;
+import fredboat.audio.player.AudioConnectionFacade;
+import fredboat.audio.player.PlayerRegistry;
+import fredboat.config.property.*;
+import fredboat.db.EntityService;
+import fredboat.db.api.*;
 import fredboat.event.EventListenerBoat;
+import fredboat.feature.metrics.BotMetrics;
+import fredboat.feature.metrics.Metrics;
+import fredboat.jda.JdaEntityProvider;
+import fredboat.metrics.OkHttpEventMetrics;
+import fredboat.util.ratelimit.Ratelimiter;
+import fredboat.util.rest.Http;
+import io.prometheus.client.hibernate.HibernateStatisticsCollector;
 import net.dv8tion.jda.bot.sharding.ShardManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import space.npstr.sqlsauce.DatabaseConnection;
-import space.npstr.sqlsauce.DatabaseWrapper;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Class responsible for controlling FredBoat at large
  */
+@Component
 public class BotController {
 
-    public static final BotController INS = new BotController();
-    private static final Logger log = LoggerFactory.getLogger(BotController.class);
-    private ShardManager shardManager = null;
-    public static final int UNKNOWN_SHUTDOWN_CODE = -991023;
+    public static final Http HTTP = new Http(Http.DEFAULT_BUILDER.newBuilder()
+            .eventListener(new OkHttpEventMetrics("default", Metrics.httpEventCounter))
+            .build());
 
-    //unlimited threads = http://i.imgur.com/H3b7H1S.gif
-    //use this executor for various small async tasks
-    private final ExecutorService executor = Executors.newCachedThreadPool();
-
+    private final ConfigPropertiesProvider configProvider;
+    private final AudioConnectionFacade audioConnectionFacade;
+    private final ShardManager shardManager;
     //central event listener that all events by all shards pass through
-    private EventListenerBoat mainEventListener;
-    private final StatsAgent statsAgent = new StatsAgent("bot metrics");
-    private DatabaseWrapper mainDbWrapper;
-    private int shutdownCode = UNKNOWN_SHUTDOWN_CODE;//Used when specifying the intended code for shutdown hooks
+    private final EventListenerBoat mainEventListener;
+    private final ShutdownHandler shutdownHandler;
+    private final EntityService entityService;
+    private final PlayerRegistry playerRegistry;
+    private final JdaEntityProvider jdaEntityProvider;
+    private final BotMetrics botMetrics;
+    private final ExecutorService executor;
+    private final AudioPlayerManager audioPlayerManager;
+    private final Ratelimiter ratelimiter;
 
-    @Nullable //will be null if no cache database has been configured
-    private DatabaseWrapper cacheDbWrapper;
 
-    /**
-     * Initialises the event listener. This can't be done during construction,
-     *   since that causes an NPE as ins is null during that time
-     */
-    void postInit() {
-        mainEventListener = new EventListenerBoat();
+    public BotController(ConfigPropertiesProvider configProvider, AudioConnectionFacade audioConnectionFacade, ShardManager shardManager,
+                         EventListenerBoat eventListenerBoat, ShutdownHandler shutdownHandler,
+                         EntityService entityService, ExecutorService executor, HibernateStatisticsCollector hibernateStats,
+                         PlayerRegistry playerRegistry, JdaEntityProvider jdaEntityProvider, BotMetrics botMetrics,
+                         @Qualifier("loadAudioPlayerManager") AudioPlayerManager audioPlayerManager,
+                         Ratelimiter ratelimiter) {
+        this.configProvider = configProvider;
+        this.audioConnectionFacade = audioConnectionFacade;
+        this.shardManager = shardManager;
+        this.mainEventListener = eventListenerBoat;
+        this.shutdownHandler = shutdownHandler;
+        this.entityService = entityService;
+        try {
+            hibernateStats.register(); //call this exactly once after all db connections have been created
+        } catch (IllegalStateException ignored) {}//can happen when using the REST repos
+        this.executor = executor;
+        this.playerRegistry = playerRegistry;
+        this.jdaEntityProvider = jdaEntityProvider;
+        this.botMetrics = botMetrics;
+        this.audioPlayerManager = audioPlayerManager;
+        this.ratelimiter = ratelimiter;
+
+        Runtime.getRuntime().addShutdownHook(new Thread(createShutdownHook(), "FredBoat main shutdownhook"));
     }
 
-    void setShardManager(@Nonnull ShardManager shardManager) {
-        this.shardManager = shardManager;
+    public AppConfig getAppConfig() {
+        return configProvider.getAppConfig();
+    }
+
+    public AudioSourcesConfig getAudioSourcesConfig() {
+        return configProvider.getAudioSourcesConfig();
+    }
+
+    public BackendConfig getBackendConfig() {
+        return configProvider.getBackendConfig();
+    }
+
+    public Credentials getCredentials() {
+        return configProvider.getCredentials();
+    }
+
+    public AudioConnectionFacade getAudioConnectionFacade() {
+        return audioConnectionFacade;
+    }
+
+    public ShutdownHandler getShutdownHandler() {
+        return shutdownHandler;
     }
 
     @Nonnull
@@ -59,80 +105,52 @@ public class BotController {
         return mainEventListener;
     }
 
-    protected void setMainEventListener(@Nonnull EventListenerBoat mainEventListener) {
-        this.mainEventListener = mainEventListener;
-    }
-
-    @Nonnull
-    protected StatsAgent getStatsAgent() {
-        return statsAgent;
-    }
-
-    // Can be null during init, but usually not
     public ShardManager getShardManager() {
         return shardManager;
     }
 
-    @Nonnull
-    public DatabaseConnection getMainDbConnection() {
-        return mainDbWrapper.unwrap();
+    public GuildConfigService getGuildConfigService() {
+        return entityService;
     }
 
-    @Nonnull
-    public DatabaseWrapper getMainDbWrapper() {
-        return mainDbWrapper;
+    public GuildModulesService getGuildModulesService() {
+        return entityService;
     }
 
-    @Nullable
-    public DatabaseConnection getCacheDbConnection() {
-        return cacheDbWrapper != null ? cacheDbWrapper.unwrap() : null;
+    public GuildPermsService getGuildPermsService() {
+        return entityService;
     }
 
-    @Nullable
-    public DatabaseWrapper getCacheDbWrapper() {
-        return cacheDbWrapper;
+    public PrefixService getPrefixService() {
+        return entityService;
     }
 
-    public void setMainDbWrapper(@Nonnull DatabaseWrapper mainDbWrapper) {
-        this.mainDbWrapper = mainDbWrapper;
+    public SearchResultService getSearchResultService() {
+        return entityService;
     }
 
-    public void setCacheDbWrapper(@Nullable DatabaseWrapper cacheDbWrapper) {
-        this.cacheDbWrapper = cacheDbWrapper;
+    public PlayerRegistry getPlayerRegistry() {
+        return playerRegistry;
     }
 
-    public void shutdown(int code) {
-        log.info("Shutting down with exit code " + code);
-        shutdownCode = code;
+    public JdaEntityProvider getJdaEntityProvider() {
+        return jdaEntityProvider;
+    }
 
-        System.exit(code);
+    public BotMetrics getBotMetrics() {
+        return botMetrics;
+    }
+
+    public AudioPlayerManager getAudioPlayerManager() {
+        return audioPlayerManager;
+    }
+
+    public Ratelimiter getRatelimiter() {
+        return ratelimiter;
     }
 
     //Shutdown hook
-    protected final Runnable shutdownHook = () -> {
-        int code = shutdownCode != UNKNOWN_SHUTDOWN_CODE ? shutdownCode : -1;
-
-        FredBoatAgent.shutdown();
-
-        try {
-            MusicPersistenceHandler.handlePreShutdown(code);
-        } catch (Exception e) {
-            log.error("Critical error while handling music persistence.", e);
-        }
-
-        shardManager.shutdown();
-
-        executor.shutdown();
-        if (cacheDbWrapper != null) {
-            cacheDbWrapper.unwrap().shutdown();
-        }
-        if (mainDbWrapper != null) {
-            mainDbWrapper.unwrap().shutdown();
-        }
-    };
-
-    public int getShutdownCode() {
-        return shutdownCode;
+    private Runnable createShutdownHook() {
+        return FredBoatAgent::shutdown;
     }
-
 }

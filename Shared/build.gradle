@@ -3,6 +3,54 @@ version '1.0'
 ext {
     moduleName = 'Shared'
 }
+
+
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId rootProject.group
+            artifactId moduleName
+
+            from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+        }
+    }
+}
+
+task install(dependsOn: 'publishToMavenLocal')
+publishToMavenLocal.dependsOn 'jar'
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+}
+
 dependencies {
-    compile group: 'org.json', name: 'json', version: '20171018'
+    compile group: 'org.json', name: 'json', version: jsonOrgVersion
+    compile group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsVersion
+    compile group: 'space.npstr', name: 'annotations', version: napsterAnnotations
+
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+    compile group: 'io.sentry', name: 'sentry-logback', version: sentryVersion
+
+    compile group: 'org.apache.commons', name: 'commons-text', version: commonsTextVersion
+    compile group: 'commons-io', name: 'commons-io', version: commonsIOVersion
+    compile group: 'commons-codec', name: 'commons-codec', version: commonsCodecVersion
+    compile group: 'org.apache.commons', name: 'commons-collections4', version: commonsCollectionsVersion
+    compile group: 'org.yaml', name: 'snakeyaml', version: snakeYamlVersion
+
+    compile group: 'com.squareup.okhttp3', name: 'okhttp', version: okhttpVersion
+
+    compile group: 'com.google.guava', name: 'guava', version: guavaVersion
+
+    compile group: 'io.prometheus', name: 'simpleclient', version: prometheusClientVersion
+    compile group: 'io.prometheus', name: 'simpleclient_hotspot', version: prometheusClientVersion
+    compile group: 'io.prometheus', name: 'simpleclient_logback', version: prometheusClientVersion
+    compile group: 'io.prometheus', name: 'simpleclient_hibernate', version: prometheusClientVersion
+    compile group: 'io.prometheus', name: 'simpleclient_guava', version: prometheusClientVersion
+    compile group: 'io.prometheus', name: 'simpleclient_servlet', version: prometheusClientVersion
 }

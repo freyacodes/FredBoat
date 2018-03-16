@@ -26,8 +26,7 @@
 package fredboat.feature;
 
 import fredboat.db.DatabaseNotReadyException;
-import fredboat.db.EntityIO;
-import fredboat.db.entity.main.GuildConfig;
+import fredboat.main.Launcher;
 import net.dv8tion.jda.core.entities.Guild;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +96,7 @@ public class I18n {
     @Nonnull
     public static FredBoatLocale getLocale(@Nonnull Guild guild) {
         try {
-            return LANGS.getOrDefault(EntityIO.getGuildConfig(guild).getLang(), DEFAULT);
+            return LANGS.getOrDefault(Launcher.getBotController().getGuildConfigService().fetchGuildConfig(guild).getLang(), DEFAULT);
         } catch (DatabaseNotReadyException e) {
             //don't log spam the full exceptions or logs
             return DEFAULT;
@@ -111,10 +110,7 @@ public class I18n {
         if (!LANGS.containsKey(lang))
             throw new LanguageNotSupportedException("Language not found");
 
-        EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper -> wrapper.findApplyAndMerge(
-                GuildConfig.key(guild),
-                config -> config.setLang(lang)
-        )));
+        Launcher.getBotController().getGuildConfigService().transformGuildConfig(guild, config -> config.setLang(lang));
     }
 
     public static class FredBoatLocale {

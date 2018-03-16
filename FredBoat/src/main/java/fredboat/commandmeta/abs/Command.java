@@ -25,7 +25,7 @@
 
 package fredboat.commandmeta.abs;
 
-import fredboat.commandmeta.CommandRegistry;
+import fredboat.definitions.Module;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,19 +38,19 @@ public abstract class Command implements ICommand {
     public final List<String> aliases;
 
     @Nullable
-    private CommandRegistry.Module module;
+    private Module module;
 
     protected Command(@Nonnull String name, String... aliases) {
         this.name = name;
         this.aliases = Arrays.asList(aliases);
     }
 
-    public void setModule(@Nullable CommandRegistry.Module module) {
+    public void setModule(@Nullable Module module) {
         this.module = module;
     }
 
     @Nullable
-    public CommandRegistry.Module getModule() {
+    public Module getModule() {
         return module;
     }
 

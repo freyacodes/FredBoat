@@ -1,0 +1,45 @@
+description = 'FredBoat database'
+version '1.0'
+ext {
+    moduleName = 'Database'
+}
+
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId rootProject.group
+            artifactId moduleName
+
+            from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+        }
+    }
+}
+
+task install(dependsOn: 'publishToMavenLocal')
+publishToMavenLocal.dependsOn 'jar'
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+}
+
+dependencies {
+    compile project(':Shared')
+
+    compile group: 'net.dv8tion', name: 'JDA', version: jdaVersion
+    compile group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
+
+    compile group: 'space.npstr.SqlSauce', name: 'sqlsauce-core', version: sqlsauceVersion
+    compile group: 'space.npstr.SqlSauce', name: 'discord-entities', version: sqlsauceVersion
+    compile group: 'org.hibernate', name: 'hibernate-ehcache', version: hibernateVersion
+    compile group: 'org.flywaydb', name: 'flyway-core', version: flywayVersion
+    compile group: 'net.ttddyy', name: 'datasource-proxy', version: dsProxyVersion
+    compile group: 'javax.xml.bind', name: 'jaxb-api', version: jaxbApiVersion // required by hibernate for java 9
+
+    compile group: 'com.google.code.gson', name: 'gson', version: gsonVersion
+}

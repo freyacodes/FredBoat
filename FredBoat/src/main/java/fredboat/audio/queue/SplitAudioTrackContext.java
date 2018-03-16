@@ -26,6 +26,8 @@
 package fredboat.audio.queue;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.jda.JdaEntityProvider;
 import lavalink.client.player.TrackData;
 import net.dv8tion.jda.core.entities.Member;
 
@@ -35,12 +37,12 @@ public class SplitAudioTrackContext extends AudioTrackContext {
     private final long endPos;
     private final String title;
 
-    public SplitAudioTrackContext(AudioTrack at, Member member, long startPos, long endPos, String title) {
-        this(at, member.getUser().getIdLong(), member.getGuild().getIdLong(), startPos, endPos, title);
+    public SplitAudioTrackContext(JdaEntityProvider jdaEntityProvider, AudioTrack at, Member member, long startPos, long endPos, String title) {
+        this(jdaEntityProvider, at, member.getUser().getIdLong(), member.getGuild().getIdLong(), startPos, endPos, title);
     }
 
-    public SplitAudioTrackContext(AudioTrack at, long userId, long guildId, long startPos, long endPos, String title) {
-        super(at, guildId, userId);
+    public SplitAudioTrackContext(JdaEntityProvider jdaEntityProvider, AudioTrack at, long userId, long guildId, long startPos, long endPos, String title) {
+        super(jdaEntityProvider, at, guildId, userId);
         this.startPos = startPos;
         this.endPos = endPos;
         this.title = title;
@@ -54,8 +56,8 @@ public class SplitAudioTrackContext extends AudioTrackContext {
     }
 
     @Override
-    public long getEffectivePosition() {
-        return super.getEffectivePosition() - startPos;
+    public long getEffectivePosition(GuildPlayer guildPlayer) {
+        return super.getEffectivePosition(guildPlayer) - startPos;
     }
 
     @Override
@@ -72,6 +74,6 @@ public class SplitAudioTrackContext extends AudioTrackContext {
     public AudioTrackContext makeClone() {
         AudioTrack track = getTrack().makeClone();
         track.setPosition(startPos);
-        return new SplitAudioTrackContext(track, getUserId(), getGuildId(), startPos, endPos, title);
+        return new SplitAudioTrackContext(jdaEntityProvider, track, getUserId(), getGuildId(), startPos, endPos, title);
     }
 }

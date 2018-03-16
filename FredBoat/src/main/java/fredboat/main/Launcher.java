@@ -1,60 +1,99 @@
 package fredboat.main;
 
-import com.sedmelluq.discord.lavaplayer.jdaudp.NativeAudioSendFactory;
 import com.sedmelluq.discord.lavaplayer.tools.PlayerLibrary;
-import fredboat.agent.*;
-import fredboat.api.API;
-import fredboat.audio.player.LavalinkManager;
+import fredboat.agent.CarbonitexAgent;
+import fredboat.agent.FredBoatAgent;
+import fredboat.agent.StatsAgent;
+import fredboat.agent.VoiceChannelCleanupAgent;
+import fredboat.audio.player.AudioConnectionFacade;
+import fredboat.audio.player.PlayerLimiter;
+import fredboat.audio.player.PlayerRegistry;
+import fredboat.audio.player.VideoSelectionCache;
 import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.CommandRegistry;
-import fredboat.db.DatabaseManager;
-import fredboat.event.EventListenerBoat;
-import fredboat.event.EventLogger;
-import fredboat.feature.DikeSessionController;
+import fredboat.config.SentryConfiguration;
+import fredboat.config.property.ConfigPropertiesProvider;
 import fredboat.feature.I18n;
-import fredboat.feature.metrics.Metrics;
-import fredboat.feature.metrics.OkHttpEventMetrics;
-import fredboat.shared.constant.DistributionEnum;
-import fredboat.shared.constant.ExitCodes;
+import fredboat.feature.metrics.BotMetrics;
+import fredboat.jda.GuildProvider;
+import fredboat.jda.ShardProvider;
 import fredboat.util.AppInfo;
-import fredboat.util.DiscordUtil;
 import fredboat.util.GitRepoState;
 import fredboat.util.TextUtils;
 import fredboat.util.rest.Http;
-import fredboat.util.rest.OpenWeatherAPI;
-import fredboat.util.rest.models.weather.RetrievedWeather;
-import net.dv8tion.jda.bot.sharding.DefaultShardManagerBuilder;
-import net.dv8tion.jda.bot.sharding.ShardManager;
+import fredboat.util.rest.TrackSearcher;
+import fredboat.util.rest.Weather;
+import fredboat.util.rest.YoutubeAPI;
+import io.prometheus.client.guava.cache.CacheMetricsCollector;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDAInfo;
-import net.dv8tion.jda.core.entities.Game;
-import net.dv8tion.jda.core.utils.SessionController;
-import net.dv8tion.jda.core.utils.SessionControllerAdapter;
 import okhttp3.Credentials;
 import okhttp3.Response;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import space.npstr.sqlsauce.DatabaseConnection;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.context.annotation.ComponentScan;
 import space.npstr.sqlsauce.DatabaseException;
-import space.npstr.sqlsauce.DatabaseWrapper;
 
-import javax.security.auth.login.LoginException;
 import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
 /**
  * The class responsible for launching FredBoat
  */
-public class Launcher {
+@SpringBootApplication
+@EnableAutoConfiguration(exclude = { //we handle these ourselves
+        DataSourceAutoConfiguration.class,
+        DataSourceTransactionManagerAutoConfiguration.class,
+        HibernateJpaAutoConfiguration.class,
+        FlywayAutoConfiguration.class
+})
+@ComponentScan(basePackages = {
+        "fredboat.api",
+        "fredboat.audio.player",
+        "fredboat.audio.queue",
+        "fredboat.commandmeta",
+        "fredboat.config",
+        "fredboat.db",
+        "fredboat.event",
+        "fredboat.feature",
+        "fredboat.feature.metrics",
+        "fredboat.jda",
+        "fredboat.main",
+        "fredboat.util.ratelimit",
+        "fredboat.util.rest",
+})
+public class Launcher implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(Launcher.class);
     public static final long START_TIME = System.currentTimeMillis();
-    private static final BotController FBC = BotController.INS;
+    private static BotController BC; //temporary hack access to the bot context
+    private final ConfigPropertiesProvider configProvider;
+    private final ExecutorService executor;
+    private final CacheMetricsCollector cacheMetrics;
+    private final PlayerRegistry playerRegistry;
+    private final StatsAgent statsAgent;
+    private final BotMetrics botMetrics;
+    private final Weather weather;
+    private final AudioConnectionFacade audioConnectionFacade;
+    private final TrackSearcher trackSearcher;
+    private final VideoSelectionCache videoSelectionCache;
+    private final ShardProvider shardProvider;
+    private final GuildProvider guildProvider;
+    private final SentryConfiguration sentryConfiguration;
+    private final PlayerLimiter playerLimiter;
+    private final YoutubeAPI youtubeAPI;
 
-    public static void main(String[] args) throws IllegalArgumentException, InterruptedException, DatabaseException {
+    public static void main(String[] args) throws IllegalArgumentException, DatabaseException {
         //just post the info to the console
         if (args.length > 0 &&
                 (args[0].equalsIgnoreCase("-v")
@@ -65,128 +104,100 @@ public class Launcher {
             System.out.println("Version info printed, exiting.");
             return;
         }
-
-        Runtime.getRuntime().addShutdownHook(new Thread(FBC.shutdownHook, "FredBoat main shutdownhook"));
         log.info(getVersionInfo());
 
-        String javaVersionMinor = null;
+        int javaVersionMajor = -1;
         try {
-            javaVersionMinor = System.getProperty("java.version").split("\\.")[1];
+            javaVersionMajor = Runtime.version().major();
         } catch (Exception e) {
-            log.error("Exception while checking if java 8", e);
+            log.error("Exception while checking if java 9", e);
         }
-
-        if (!Objects.equals(javaVersionMinor, "8")) {
+        if (javaVersionMajor != 9) {
             log.warn("\n\t\t __      ___   ___ _  _ ___ _  _  ___ \n" +
                     "\t\t \\ \\    / /_\\ | _ \\ \\| |_ _| \\| |/ __|\n" +
                     "\t\t  \\ \\/\\/ / _ \\|   / .` || || .` | (_ |\n" +
                     "\t\t   \\_/\\_/_/ \\_\\_|_\\_|\\_|___|_|\\_|\\___|\n" +
                     "\t\t                                      ");
-            log.warn("FredBoat only officially supports Java 8. You are running Java {}", System.getProperty("java.version"));
+            log.warn("FredBoat only officially supports Java 9. You are running Java {}", Runtime.version());
         }
 
-        FBC.postInit();
+        System.setProperty("spring.config.name", "fredboat");
+        SpringApplication.run(Launcher.class, args);
+    }
 
-        Metrics.setup();
+    public static BotController getBotController() {
+        return BC;
+    }
+
+    public Launcher(BotController botController, ConfigPropertiesProvider configProvider, ExecutorService executor,
+                    CacheMetricsCollector cacheMetrics, PlayerRegistry playerRegistry,
+                    StatsAgent statsAgent, BotMetrics botMetrics, Weather weather,
+                    AudioConnectionFacade audioConnectionFacade, TrackSearcher trackSearcher,
+                    VideoSelectionCache videoSelectionCache, ShardProvider shardProvider, GuildProvider guildProvider,
+                    SentryConfiguration sentryConfiguration, PlayerLimiter playerLimiter, YoutubeAPI youtubeAPI) {
+        Launcher.BC = botController;
+        this.configProvider = configProvider;
+        this.executor = executor;
+        this.cacheMetrics = cacheMetrics;
+        this.playerRegistry = playerRegistry;
+        this.statsAgent = statsAgent;
+        this.botMetrics = botMetrics;
+        this.weather = weather;
+        this.audioConnectionFacade = audioConnectionFacade;
+        this.trackSearcher = trackSearcher;
+        this.videoSelectionCache = videoSelectionCache;
+        this.shardProvider = shardProvider;
+        this.guildProvider = guildProvider;
+        this.sentryConfiguration = sentryConfiguration;
+        this.playerLimiter = playerLimiter;
+        this.youtubeAPI = youtubeAPI;
+    }
+
+    @Override
+    public void run(ApplicationArguments args) throws InterruptedException {
 
         I18n.start();
 
-        try {
-            API.start();
-        } catch (Exception e) {
-            log.info("Failed to ignite Spark, FredBoat API unavailable", e);
-        }
-
-        //attempt to connect to the database a few times
-        // this is relevant in a dockerized environment because after a reboot there is no guarantee that the db
-        // container will be started before the fredboat one
-        int dbConnectionAttempts = 0;
-        DatabaseConnection mainDbConn = null;
-        while ((mainDbConn == null || !mainDbConn.isAvailable()) && dbConnectionAttempts++ < 10) {
-            try {
-                if (mainDbConn != null) {
-                    mainDbConn.shutdown();
-                }
-                mainDbConn = DatabaseManager.main();
-            } catch (Exception e) {
-                log.info("Could not connect to the database. Retrying in a moment...", e);
-                Thread.sleep(6000);
-            }
-        }
-        if (mainDbConn == null || !mainDbConn.isAvailable()) {
-            log.error("Could not establish database connection. Exiting...");
-            FBC.shutdown(ExitCodes.EXIT_CODE_ERROR);
-            return;
-        }
-        FredBoatAgent.start(new DBConnectionWatchdogAgent(mainDbConn));
-        FBC.setMainDbWrapper(new DatabaseWrapper(mainDbConn));
-
-        try {
-            DatabaseConnection cacheDbConn = DatabaseManager.cache();
-            if (cacheDbConn != null) {
-                FBC.setCacheDbWrapper(new DatabaseWrapper(cacheDbConn));
-            }
-        } catch (Exception e) {
-            log.error("Exception when connecting to cache db", e);
-            FBC.shutdown(ExitCodes.EXIT_CODE_ERROR);
-        }
-        Metrics.instance().hibernateStats.register(); //call this exactly once after all db connections have been created
-
-        //Initialise event listeners
-        FBC.setMainEventListener(new EventListenerBoat());
-        LavalinkManager.ins.start();
-
         //Commands
-        CommandInitializer.initCommands();
+        CommandInitializer.initCommands(cacheMetrics, weather, trackSearcher, videoSelectionCache, sentryConfiguration,
+                playerLimiter, youtubeAPI);
         log.info("Loaded commands, registry size is " + CommandRegistry.getTotalSize());
 
-        if (!Config.CONFIG.isPatronDistribution()) {
+        if (!configProvider.getAppConfig().isPatronDistribution()) {
             log.info("Starting VoiceChannelCleanupAgent.");
-            FredBoatAgent.start(new VoiceChannelCleanupAgent());
+            FredBoatAgent.start(new VoiceChannelCleanupAgent(playerRegistry, guildProvider, audioConnectionFacade));
         } else {
             log.info("Skipped setting up the VoiceChannelCleanupAgent, " +
                     "either running Patron distro or overridden by temp config");
         }
 
-        ExecutorService executor = FBC.getExecutor();
-
         //Check MAL creds
-        executor.submit(Launcher::hasValidMALLogin);
+        executor.submit(this::hasValidMALLogin);
 
         //Check imgur creds
-        executor.submit(Launcher::hasValidImgurCredentials);
-
-        //Check OpenWeather key
-        executor.submit(Launcher::hasValidOpenWeatherKey);
-
-        String carbonKey = Config.CONFIG.getCarbonKey();
-        if (Config.CONFIG.getDistribution() == DistributionEnum.MUSIC && carbonKey != null && !carbonKey.isEmpty()) {
-            FredBoatAgent.start(new CarbonitexAgent(carbonKey));
-        }
-
-        // Log into Discord
-        try {
-            FBC.setShardManager(buildShardManager());
-        } catch (LoginException e) {
-            throw new RuntimeException("Failed to log in to Discord! Is your token invalid?", e);
-        }
+        executor.submit(this::hasValidImgurCredentials);
 
         enableMetrics();
+
+        String carbonKey = configProvider.getCredentials().getCarbonKey();
+        if (configProvider.getAppConfig().isMusicDistribution() && !carbonKey.isEmpty()) {
+            FredBoatAgent.start(new CarbonitexAgent(configProvider.getCredentials(), botMetrics, shardProvider));
+        }
     }
 
     // ################################################################################
     // ##                     Login / credential tests
     // ################################################################################
 
-    private static boolean hasValidMALLogin() {
-        String malUser = Config.CONFIG.getMalUser();
-        String malPassWord = Config.CONFIG.getMalPassword();
-        if (malUser == null || malUser.isEmpty() || malPassWord == null || malPassWord.isEmpty()) {
+    private boolean hasValidMALLogin() {
+        String malUser = configProvider.getCredentials().getMalUser();
+        String malPassWord = configProvider.getCredentials().getMalPassword();
+        if (malUser.isEmpty() || malPassWord.isEmpty()) {
             log.info("MAL credentials not found. MAL related commands will not be available.");
             return false;
         }
 
-        Http.SimpleRequest request = Http.get("https://myanimelist.net/api/account/verify_credentials.xml")
+        Http.SimpleRequest request = BotController.HTTP.get("https://myanimelist.net/api/account/verify_credentials.xml")
                 .auth(Credentials.basic(malUser, malPassWord));
 
         try (Response response = request.execute()) {
@@ -203,13 +214,13 @@ public class Launcher {
         return false;
     }
 
-    private static boolean hasValidImgurCredentials() {
-        String imgurClientId = Config.CONFIG.getImgurClientId();
-        if (imgurClientId == null || imgurClientId.isEmpty()) {
+    private boolean hasValidImgurCredentials() {
+        String imgurClientId = configProvider.getCredentials().getImgurClientId();
+        if (imgurClientId.isEmpty()) {
             log.info("Imgur credentials not found. Commands relying on Imgur will not work properly.");
             return false;
         }
-        Http.SimpleRequest request = Http.get("https://api.imgur.com/3/credits")
+        Http.SimpleRequest request = BotController.HTTP.get("https://api.imgur.com/3/credits")
                 .auth("Client-ID " + imgurClientId);
         try (Response response = request.execute()) {
             //noinspection ConstantConditions
@@ -239,72 +250,21 @@ public class Launcher {
         return false;
     }
 
-    /**
-     * Method to check if there is an error to retrieve open weather data.
-     *
-     * @return True if it can retrieve data, else return false.
-     */
-    private static boolean hasValidOpenWeatherKey() {
-        if ("".equals(Config.CONFIG.getOpenWeatherKey())) {
-            log.warn("Open Weather API credentials not found. Weather related commands will not work properly.");
-            return false;
-        }
-
-        OpenWeatherAPI api = new OpenWeatherAPI();
-        RetrievedWeather weather = api.getCurrentWeatherByCity("san francisco");
-
-        boolean isSuccess = !(weather == null || weather.isError());
-
-        if (isSuccess) {
-            log.info("Open Weather API check successful");
-        } else {
-            log.warn("Open Weather API check failed. It may be down, the provided credentials may be invalid, or temporarily blocked.");
-        }
-        return isSuccess;
-    }
-
     //returns true if all registered shards are reporting back as CONNECTED, false otherwise
-    private static boolean areWeReadyYet() {
-        for (JDA.Status status : FBC.getShardManager().getStatuses().values()) {
-            if (status != JDA.Status.CONNECTED) {
-                return false;
-            }
-        }
-
-        return true;
+    private boolean areThereNotConnectedShards() {
+        return shardProvider.streamShards()
+                .anyMatch(shard -> shard.getStatus() != JDA.Status.CONNECTED);
     }
 
-    private static void enableMetrics() throws InterruptedException {
-        //wait for all shards to ready up before requesting a total count of jda entities
-        while (!areWeReadyYet()) {
+    //wait for all shards to ready up before requesting a total count of jda entities and enabling further stats counts
+    private void enableMetrics() throws InterruptedException {
+        while (areThereNotConnectedShards()) {
             Thread.sleep(1000);
         }
 
-        StatsAgent statsAgent = FBC.getStatsAgent();
         //force some metrics to be populated, then turn on metrics to be served
-        try {
-            List<JDA> shards = FBC.getShardManager().getShards();
-            BotMetrics.JdaEntityCounts jdaEntityCountsTotal = BotMetrics.getJdaEntityCountsTotal();
-            try {
-                jdaEntityCountsTotal.count(shards);
-            } catch (Exception ignored) {
-            }
-
-            statsAgent.addAction(new BotMetrics.JdaEntityStatsCounter(
-                    () -> jdaEntityCountsTotal.count(shards)));
-
-            if (DiscordUtil.isOfficialBot()) {
-                BotMetrics.DockerStats dockerStats = BotMetrics.getDockerStats();
-                try {
-                    dockerStats.fetch();
-                } catch (Exception ignored) {
-                }
-                statsAgent.addAction(dockerStats::fetch);
-            }
-        } finally {
-            FredBoatAgent.start(statsAgent);
-            API.turnOnMetrics();
-        }
+        botMetrics.start(shardProvider, configProvider.getCredentials());
+        FredBoatAgent.start(statsAgent);
     }
 
     private static String getVersionInfo() {
@@ -325,46 +285,4 @@ public class Launcher {
                 + "\n\tLavaplayer     " + PlayerLibrary.VERSION
                 + "\n";
     }
-
-    private static ShardManager buildShardManager() throws LoginException {
-        SessionController sessionController = Config.CONFIG.getDikeUrl() == null
-                ? new SessionControllerAdapter()
-                : new DikeSessionController();
-
-        DefaultShardManagerBuilder builder = new DefaultShardManagerBuilder()
-                .setToken(Config.CONFIG.getBotToken())
-                .setGame(Game.playing(Config.CONFIG.getGame()))
-                .setBulkDeleteSplittingEnabled(false)
-                .setEnableShutdownHook(false)
-                .setAudioEnabled(true)
-                .setAutoReconnect(true)
-                .setSessionController(sessionController)
-                .setContextEnabled(false)
-                .setHttpClientBuilder(Http.defaultHttpClient.newBuilder()
-                        .eventListener(new OkHttpEventMetrics("jda")))
-                .addEventListeners(BotController.INS.getMainEventListener())
-                .addEventListeners(Metrics.instance().jdaEventsMetricsListener)
-                .setShardsTotal(Config.getNumShards());
-
-        String eventLogWebhook = Config.CONFIG.getEventLogWebhook();
-        if (eventLogWebhook != null && !eventLogWebhook.isEmpty()) {
-            try {
-                builder.addEventListeners(new EventLogger());
-            } catch (Exception e) {
-                log.error("Failed to create Eventlogger, events will not be logged to discord via webhook", e);
-            }
-        }
-
-        if (LavalinkManager.ins.isEnabled()) {
-            builder.addEventListeners(LavalinkManager.ins.getLavalink());
-        }
-
-        if (!System.getProperty("os.arch").equalsIgnoreCase("arm")
-                && !System.getProperty("os.arch").equalsIgnoreCase("arm-linux")) {
-            builder.setAudioSendFactory(new NativeAudioSendFactory(800));
-        }
-
-        return builder.build();
-    }
-
 }

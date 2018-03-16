@@ -2,7 +2,9 @@ rootProject.name = 'FredBoat-Root'
 include ':FredBoat'
 include ':Bootloader'
 include ':Shared'
+include ':Database'
 
 project(':FredBoat').projectDir = "$rootDir/FredBoat" as File
 project(':Bootloader').projectDir = "$rootDir/Bootloader" as File
 project(':Shared').projectDir = "$rootDir/Shared" as File
+project(':Database').projectDir = "$rootDir/Database" as File

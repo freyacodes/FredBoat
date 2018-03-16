@@ -25,14 +25,14 @@
 
 package fredboat.command.config;
 
-import fredboat.main.Config;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IConfigCommand;
+import fredboat.config.property.AppConfig;
+import fredboat.definitions.PermissionLevel;
 import fredboat.feature.I18n;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -73,7 +73,7 @@ public class LanguageCommand extends Command implements IConfigCommand {
 
     private void handleNoArgs(CommandContext context) {
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(context.i18n("langInfo").replace(Config.DEFAULT_PREFIX, TextUtils.escapeMarkdown(context.getPrefix())))
+                .append(context.i18n("langInfo").replace(AppConfig.DEFAULT_PREFIX, TextUtils.escapeMarkdown(context.getPrefix())))
                 .append("\n\n");
 
         List<String> keys = new ArrayList<>(I18n.LANGS.keySet());

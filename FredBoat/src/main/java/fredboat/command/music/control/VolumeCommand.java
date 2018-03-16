@@ -25,7 +25,6 @@
 
 package fredboat.command.music.control;
 
-import fredboat.main.Config;
 import fredboat.audio.player.GuildPlayer;
 import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.MessagingException;
@@ -33,9 +32,10 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.BotConstants;
 
 import javax.annotation.Nonnull;
@@ -50,9 +50,9 @@ public class VolumeCommand extends Command implements IMusicCommand, ICommandRes
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
 
-        if(Config.CONFIG.getDistribution().volumeSupported()) {
+        if (Launcher.getBotController().getAppConfig().getDistribution().volumeSupported()) {
 
-            GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
+            GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getOrCreate(context.guild);
             try {
                 float volume = Float.parseFloat(context.args[0]) / 100;
                 volume = Math.max(0, Math.min(1.5f, volume));

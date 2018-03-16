@@ -27,35 +27,47 @@ package fredboat.command.music.control;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.audio.player.*;
+import fredboat.audio.player.GuildPlayer;
+import fredboat.audio.player.PlayerLimiter;
+import fredboat.audio.player.VideoSelectionCache;
+import fredboat.audio.player.VideoSelectionCache.VideoSelection;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.definitions.PermissionLevel;
+import fredboat.definitions.SearchProvider;
+import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.BotConstants;
 import fredboat.util.TextUtils;
-import fredboat.util.rest.SearchUtil;
+import fredboat.util.rest.TrackSearcher;
 import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message.Attachment;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class PlayCommand extends Command implements IMusicCommand, ICommandRestricted {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(PlayCommand.class);
-    private final List<SearchUtil.SearchProvider> searchProviders;
+    private final PlayerLimiter playerLimiter;
+    private final TrackSearcher trackSearcher;
+    private final VideoSelectionCache videoSelectionCache;
+    private final List<SearchProvider> searchProviders;
     private static final JoinCommand JOIN_COMMAND = new JoinCommand("");
     private static final String FILE_PREFIX = "file://";
 
-    public PlayCommand(List<SearchUtil.SearchProvider> searchProviders, String name, String... aliases) {
+    public PlayCommand(PlayerLimiter playerLimiter, TrackSearcher trackSearcher, VideoSelectionCache videoSelectionCache,
+                       List<SearchProvider> searchProviders, String name, String... aliases) {
         super(name, aliases);
+        this.playerLimiter = playerLimiter;
+        this.trackSearcher = trackSearcher;
+        this.videoSelectionCache = videoSelectionCache;
         this.searchProviders = searchProviders;
     }
 
@@ -66,10 +78,10 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
             return;
         }
 
-        if (!PlayerLimitManager.checkLimitResponsive(context)) return;
+        if (!playerLimiter.checkLimitResponsive(context, Launcher.getBotController().getPlayerRegistry())) return;
 
         if (!context.msg.getAttachments().isEmpty()) {
-            GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
+            GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getOrCreate(context.guild);
 
             for (Attachment atc : context.msg.getAttachments()) {
                 player.queue(atc.getUrl(), context);
@@ -81,12 +93,13 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
         }
 
         if (!context.hasArguments()) {
-            handleNoArguments(context);
+            GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getExisting(context.guild);
+            handleNoArguments(context, player);
             return;
         }
 
         if (TextUtils.isSplitSelect(context.rawArgs)) {
-            SelectCommand.select(context);
+            SelectCommand.select(context, videoSelectionCache);
             return;
         }
 
@@ -100,27 +113,24 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
             url = url.replaceFirst(FILE_PREFIX, ""); //LocalAudioSourceManager does not manage this itself
         }
 
-        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
-
+        GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getOrCreate(context.guild);
         player.queue(url, context);
         player.setPause(false);
 
         context.deleteMessage();
     }
 
-    private void handleNoArguments(CommandContext context) {
-        Guild guild = context.guild;
-        GuildPlayer player = PlayerRegistry.getOrCreate(guild);
-        if (player.isQueueEmpty()) {
+    private void handleNoArguments(CommandContext context, @Nullable GuildPlayer player) {
+        if (player == null || player.isQueueEmpty()) {
             context.reply(context.i18n("playQueueEmpty"));
         } else if (player.isPlaying()) {
             context.reply(context.i18n("playAlreadyPlaying"));
-        } else if (player.getHumanUsersInCurrentVC().isEmpty() && LavalinkManager.ins.getConnectedChannel(guild) != null) {
+        } else if (player.getHumanUsersInCurrentVC().isEmpty() && context.guild.getSelfMember().getVoiceState().getChannel() != null) {
             context.reply(context.i18n("playVCEmpty"));
-        } else if(LavalinkManager.ins.getConnectedChannel(guild) == null) {
+        } else if (context.guild.getSelfMember().getVoiceState().getChannel() == null) {
             // When we just want to continue playing, but the user is not in a VC
             JOIN_COMMAND.onInvoke(context);
-            if(LavalinkManager.ins.getConnectedChannel(guild) != null) {
+            if (context.guild.getSelfMember().getVoiceState().getChannel() != null) {
                 player.play();
                 context.reply(context.i18n("playWillNowPlay"));
             }
@@ -132,13 +142,13 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
 
     private void searchForVideos(CommandContext context) {
         //Now remove all punctuation
-        String query = context.rawArgs.replaceAll(SearchUtil.PUNCTUATION_REGEX, "");
+        String query = context.rawArgs.replaceAll(TrackSearcher.PUNCTUATION_REGEX, "");
 
         context.reply(context.i18n("playSearching").replace("{q}", query), outMsg -> {
             AudioPlaylist list;
             try {
-                list = SearchUtil.searchForTracks(query, searchProviders);
-            } catch (SearchUtil.SearchingException e) {
+                list = trackSearcher.searchForTracks(query, searchProviders);
+            } catch (TrackSearcher.SearchingException e) {
                 context.reply(context.i18n("playYoutubeSearchError"));
                 log.error("YouTube search exception", e);
                 return;
@@ -151,9 +161,9 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
 
             } else {
                 //Get at most 5 tracks
-                List<AudioTrack> selectable = list.getTracks().subList(0, Math.min(SearchUtil.MAX_RESULTS, list.getTracks().size()));
+                List<AudioTrack> selectable = list.getTracks().subList(0, Math.min(TrackSearcher.MAX_RESULTS, list.getTracks().size()));
 
-                VideoSelection oldSelection = VideoSelection.remove(context.invoker);
+                VideoSelection oldSelection = videoSelectionCache.remove(context.invoker);
                 if(oldSelection != null) {
                     oldSelection.deleteMessage();
                 }
@@ -175,7 +185,7 @@ public class PlayCommand extends Command implements IMusicCommand, ICommandRestr
                 }
 
                 CentralMessaging.editMessage(outMsg, builder.build());
-                VideoSelection.put(context.invoker, new VideoSelection(selectable, outMsg));
+                videoSelectionCache.put(context.invoker, selectable, outMsg);
             }
         });
     }

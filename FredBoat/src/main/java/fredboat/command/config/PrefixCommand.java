@@ -31,17 +31,15 @@ import com.google.common.cache.LoadingCache;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IConfigCommand;
-import fredboat.db.EntityIO;
-import fredboat.db.entity.main.Prefix;
-import fredboat.main.BotController;
-import fredboat.main.Config;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.DiscordUtil;
-import fredboat.util.TextUtils;
 import fredboat.util.rest.CacheUtil;
+import io.prometheus.client.guava.cache.CacheMetricsCollector;
 import net.dv8tion.jda.core.entities.Guild;
+import space.npstr.sqlsauce.entities.GuildBotComposite;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -53,8 +51,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class PrefixCommand extends Command implements IConfigCommand {
 
-    public PrefixCommand(@Nonnull String name, String... aliases) {
+    public PrefixCommand(@Nullable CacheMetricsCollector cacheMetrics, @Nonnull String name, String... aliases) {
         super(name, aliases);
+        if (cacheMetrics != null) {
+            cacheMetrics.addCache("customPrefixes", CUSTOM_PREFIXES);
+        }
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -66,19 +67,21 @@ public class PrefixCommand extends Command implements IConfigCommand {
             .recordStats()
             .refreshAfterWrite(1, TimeUnit.MINUTES) //NOTE: never use refreshing without async reloading, because Guavas cache uses the thread calling it to do cleanup tasks (including refreshing)
             .expireAfterAccess(1, TimeUnit.MINUTES) //evict inactive guilds
-            .concurrencyLevel(Config.getNumShards())  //each shard has a thread (main JDA thread) accessing this cache many times
-            .build(CacheLoader.asyncReloading(CacheLoader.from(guildId -> Prefix.getPrefix(guildId, DiscordUtil.getBotId())), BotController.INS.getExecutor()));
+            .concurrencyLevel(Launcher.getBotController().getCredentials().getRecommendedShardCount())  //each shard has a thread (main JDA thread) accessing this cache many times
+            .build(CacheLoader.asyncReloading(CacheLoader.from(
+                    guildId -> Launcher.getBotController().getPrefixService().getPrefix(new GuildBotComposite(guildId, DiscordUtil.getBotId(Launcher.getBotController().getCredentials())))),
+                    Launcher.getBotController().getExecutor()));
 
     @Nonnull
     private static String giefPrefix(long guildId) {
         return CacheUtil.getUncheckedUnwrapped(CUSTOM_PREFIXES, guildId)
-                .orElse(Config.CONFIG.getPrefix());
+                .orElse(Launcher.getBotController().getAppConfig().getPrefix());
     }
 
     @Nonnull
     public static String giefPrefix(@Nullable Guild guild) {
         if (guild == null) {
-            return Config.CONFIG.getPrefix();
+            return Launcher.getBotController().getAppConfig().getPrefix();
         }
 
         return giefPrefix(guild.getIdLong());
@@ -107,25 +110,18 @@ public class PrefixCommand extends Command implements IConfigCommand {
             newPrefix = context.rawArgs;
         }
 
-        EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper -> wrapper.findApplyAndMerge(
-                Prefix.key(context.guild),
-                prefixEntity -> prefixEntity.setPrefix(newPrefix)
-        )));
+        Launcher.getBotController().getPrefixService().transformPrefix(context.guild, prefixEntity -> prefixEntity.setPrefix(newPrefix));
 
         //we could do a put instead of invalidate here and probably safe one lookup, but that undermines the database
         // as being the single source of truth for prefixes
         CUSTOM_PREFIXES.invalidate(context.guild.getIdLong());
 
-        if (newPrefix == null) {//was reset
-            showPrefix(context, Config.CONFIG.getPrefix());
-        } else {
-            showPrefix(context, newPrefix);
-        }
+        showPrefix(context, giefPrefix(context.guild));
     }
 
     public static void showPrefix(@Nonnull Context context, @Nonnull String prefix) {
-        String escapedPrefix = prefix.isEmpty() ? "No Prefix" : TextUtils.escapeMarkdown(prefix);
-        context.reply(context.i18nFormat("prefixGuild", "**" + escapedPrefix + "**")
+        String p = prefix.isEmpty() ? "No Prefix" : prefix;
+        context.reply(context.i18nFormat("prefixGuild", "``" + p + "``")
                 + "\n" + context.i18n("prefixShowAgain"));
     }
 

@@ -29,12 +29,12 @@ import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IConfigCommand;
-import fredboat.db.EntityIO;
 import fredboat.db.entity.main.GuildPermissions;
+import fredboat.definitions.PermissionLevel;
 import fredboat.feature.togglz.FeatureFlags;
+import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.shared.constant.BotConstants;
 import fredboat.util.ArgumentUtil;
@@ -136,9 +136,7 @@ public class PermissionsCommand extends Command implements IConfigCommand {
             context.replyWithName(context.i18nFormat("permsRemoved", mentionableToName(selected), permissionLevel));
             return gp.setFromEnum(permissionLevel, newList);
         };
-        EntityIO.doUserFriendly(EntityIO.onMainDb(
-                wrapper -> wrapper.findApplyAndMerge(GuildPermissions.key(context.guild), transformation)
-        ));
+        Launcher.getBotController().getGuildPermsService().transformGuildPerms(context.guild, transformation);
     }
 
     public void add(CommandContext context) {
@@ -168,15 +166,13 @@ public class PermissionsCommand extends Command implements IConfigCommand {
                     TextUtils.escapeMarkdown(mentionableToName(selected)), permissionLevel));
             return gp.setFromEnum(permissionLevel, newList);
         };
-        EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper ->
-                wrapper.findApplyAndMerge(GuildPermissions.key(context.guild), transformation)
-        ));
+        Launcher.getBotController().getGuildPermsService().transformGuildPerms(context.guild, transformation);
     }
 
     public void list(CommandContext context) {
         Guild guild = context.guild;
         Member invoker = context.invoker;
-        GuildPermissions gp = EntityIO.getGuildPermissions(guild);
+        GuildPermissions gp = Launcher.getBotController().getGuildPermsService().fetchGuildPermissions(guild);
 
         List<IMentionable> mentionables = idsToMentionables(guild, gp.getFromEnum(permissionLevel));
 

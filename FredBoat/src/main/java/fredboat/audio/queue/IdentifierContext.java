@@ -25,24 +25,24 @@
 
 package fredboat.audio.queue;
 
+import fredboat.jda.JdaEntityProvider;
 import fredboat.messaging.internal.LeakSafeContext;
-import fredboat.main.ShardContext;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.User;
 
+import javax.annotation.Nullable;
+
 public class IdentifierContext extends LeakSafeContext {
 
-    public final ShardContext shard;
     public final String identifier;
     private boolean quiet = false;
     private boolean split = false;
     private long position = 0L;
 
-    public IdentifierContext(String identifier, TextChannel textChannel, Member member) {
-        super(textChannel, member);
-        this.shard = ShardContext.of(textChannel.getJDA());
+    public IdentifierContext(JdaEntityProvider jdaEntityProvider, String identifier, TextChannel textChannel, Member member) {
+        super(jdaEntityProvider, textChannel, member);
         this.identifier = identifier;
     }
 
@@ -71,22 +71,27 @@ public class IdentifierContext extends LeakSafeContext {
     }
 
     @Override
+    @Nullable
     public TextChannel getTextChannel() {
-        return shard.getJda().getTextChannelById(channelId);
+        return jdaEntityProvider.getTextChannelById(channelId);
     }
 
     @Override
+    @Nullable
     public Guild getGuild() {
-        return shard.getJda().getGuildById(guildId);
+        return jdaEntityProvider.getGuildById(guildId);
     }
 
     @Override
+    @Nullable
     public Member getMember() {
-        return shard.getJda().getGuildById(guildId).getMemberById(userId);
+        Guild guild = getGuild();
+        return guild == null ? null : guild.getMemberById(userId);
     }
 
     @Override
+    @Nullable
     public User getUser() {
-        return shard.getJda().getUserById(userId);
+        return jdaEntityProvider.getUserById(userId);
     }
 }

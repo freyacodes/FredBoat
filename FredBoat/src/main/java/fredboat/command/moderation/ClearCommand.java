@@ -31,7 +31,7 @@ import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
+import fredboat.definitions.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.Permission;

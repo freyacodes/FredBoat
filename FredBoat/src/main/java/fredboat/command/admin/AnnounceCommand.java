@@ -26,14 +26,14 @@
 package fredboat.command.admin;
 
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.PlayerRegistry;
 import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
@@ -63,7 +63,7 @@ public class AnnounceCommand extends Command implements ICommandRestricted {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        List<GuildPlayer> players = PlayerRegistry.getPlayingPlayers();
+        List<GuildPlayer> players = Launcher.getBotController().getPlayerRegistry().getPlayingPlayers();
 
         if (players.isEmpty()) {
             context.reply("No currently playing players.");

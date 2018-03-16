@@ -27,6 +27,7 @@ package fredboat.feature;
 
 import fredboat.event.UserListener;
 import fredboat.main.BotController;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
 import fredboat.messaging.internal.LeakSafeContext;
 import fredboat.util.TextUtils;
@@ -68,14 +69,14 @@ public final class AkinatorListener extends UserListener {
 
 
     public AkinatorListener(Context context) throws IOException, JSONException {
-        this.context = new LeakSafeContext(context);
+        this.context = new LeakSafeContext(Launcher.getBotController().getJdaEntityProvider(), context);
         this.userId = context.getMember().getUser().getId();
         this.channelId = context.getTextChannel().getId();
 
         context.sendTyping();
 
         //Start new session
-        Http.SimpleRequest request = Http.get(NEW_SESSION_URL, Http.Params.of(
+        Http.SimpleRequest request = BotController.HTTP.get(NEW_SESSION_URL, Http.Params.of(
                 "player", userId
         ));
 
@@ -89,7 +90,7 @@ public final class AkinatorListener extends UserListener {
 
     private void checkTimeout() {
         if (System.currentTimeMillis() - lastActionReceived > TimeUnit.MINUTES.toMillis(5)) {
-            BotController.INS.getMainEventListener().removeListener(userId);
+            Launcher.getBotController().getMainEventListener().removeListener(userId);
             timeoutTask.cancel(false);
         }
     }
@@ -110,7 +111,7 @@ public final class AkinatorListener extends UserListener {
     }
 
     private void answerQuestion(byte answer) {
-        Http.SimpleRequest request = Http.get(ANSWER_URL, Http.Params.of(
+        Http.SimpleRequest request = BotController.HTTP.get(ANSWER_URL, Http.Params.of(
                 "session", session,
                 "signature", signature,
                 "step", String.valueOf(stepInfo.getStepNum()),
@@ -123,7 +124,7 @@ public final class AkinatorListener extends UserListener {
                 context.reply("Bravo !\n"
                         + "You have defeated me !\n"
                         + "<http://akinator.com>");
-                BotController.INS.getMainEventListener().removeListener(userId);
+                Launcher.getBotController().getMainEventListener().removeListener(userId);
                 return;
             }
 
@@ -140,7 +141,7 @@ public final class AkinatorListener extends UserListener {
     private void answerGuess(byte answer) {
         try {
             if (answer == 0) {
-                Http.get(CHOICE_URL,
+                BotController.HTTP.get(CHOICE_URL,
                         Http.Params.of(
                                 "session", session,
                                 "signature", signature,
@@ -153,9 +154,9 @@ public final class AkinatorListener extends UserListener {
                 context.reply("Great! Guessed right one more time.\n"
                         + "I love playing with you!\n"
                         + "<http://akinator.com>");
-                BotController.INS.getMainEventListener().removeListener(userId);
+                Launcher.getBotController().getMainEventListener().removeListener(userId);
             } else if (answer == 1) {
-                Http.get(EXCLUSION_URL,
+                BotController.HTTP.get(EXCLUSION_URL,
                         Http.Params.of(
                                 "session", session,
                                 "signature", signature,
@@ -297,7 +298,7 @@ public final class AkinatorListener extends UserListener {
         private final String imgPath;
 
         Guess() throws IOException, JSONException {
-            Http.SimpleRequest request = Http.get(GET_GUESS_URL, Http.Params.of(
+            Http.SimpleRequest request = BotController.HTTP.get(GET_GUESS_URL, Http.Params.of(
                     "session", session,
                     "signature", signature,
                     "step", Integer.toString(stepInfo.getStepNum())

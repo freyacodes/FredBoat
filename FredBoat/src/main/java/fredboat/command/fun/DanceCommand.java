@@ -32,13 +32,14 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IFunCommand;
 import fredboat.event.EventListenerBoat;
-import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
+import io.prometheus.client.guava.cache.CacheMetricsCollector;
 import net.dv8tion.jda.core.entities.Guild;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
@@ -51,14 +52,16 @@ public class DanceCommand extends Command implements IFunCommand {
 
     private final Semaphore allowed = new Semaphore(5);
 
-    public DanceCommand(String name, String... aliases) {
+    public DanceCommand(@Nullable CacheMetricsCollector cacheMetrics, String name, String... aliases) {
         super(name, aliases);
 
         LoadingCache<String, ReentrantLock> danceLockCache = CacheBuilder.newBuilder()
                 .recordStats()
                 .maximumSize(128) //any value will do, but not too big
                 .build(CacheLoader.from(() -> new ReentrantLock()));
-        Metrics.instance().cacheMetrics.addCache("danceLockCache", danceLockCache);
+        if (cacheMetrics != null) {
+            cacheMetrics.addCache("danceLockCache", danceLockCache);
+        }
         locks = danceLockCache.compose(Guild::getId); //mapping guild id to a lock
     }
 

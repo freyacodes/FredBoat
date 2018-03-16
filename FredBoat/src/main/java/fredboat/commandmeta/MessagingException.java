@@ -25,7 +25,16 @@
 
 package fredboat.commandmeta;
 
+import fredboat.messaging.internal.Context;
+
+/**
+ * This exception class and subclasses of it can be used to handle user failures. They will bubble up and their
+ * message printed to the user, see {@link fredboat.util.TextUtils#handleException(Throwable, Context)}, as well as
+ * be instrumented, so that we maybe one day may gain more insight into what users do wrong the most and improve our UX.
+ */
 public class MessagingException extends RuntimeException {
+
+    private static final long serialVersionUID = -2992610682018012753L;
 
     public MessagingException(String str) {
         super(str);
@@ -34,4 +43,16 @@ public class MessagingException extends RuntimeException {
     public MessagingException(String str, Throwable cause) {
         super(str, cause);
     }
+
+    /**
+     * We override the filling of the stacktrace with a NOOP to further emphasize that MessagingException only exist
+     * to bubble up and instrument user errors.
+     * <p>
+     * Code source: https://www.atlassian.com/blog/archives/if_you_use_exceptions_for_path_control_dont_fill_in_the_stac
+     */
+    //todo check all callers of this and make sure we really arent losing any valuable stacks before fully enabling this optimization
+//    @Override
+//    public synchronized Throwable fillInStackTrace() {
+//        return this;
+//    }
 }

@@ -26,8 +26,8 @@
 package fredboat.commandmeta;
 
 import fredboat.commandmeta.abs.Command;
+import fredboat.definitions.Module;
 import fredboat.messaging.internal.Context;
-import fredboat.util.Emojis;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -122,46 +122,16 @@ public class CommandRegistry {
         return registry.get(name);
     }
 
-    //a locked module cannot be enabled/disabled
-    public enum Module {
-
-        //@formatter:off                               locked
-        //                                    enabledByDef
-        ADMIN ("moduleAdmin",      Emojis.KEY,    true, true),
-        INFO  ("moduleInfo",       Emojis.INFO,   true, true),
-        CONFIG("moduleConfig",     Emojis.GEAR,   true, true),
-        MUSIC ("moduleMusic",      Emojis.MUSIC,  true, true),
-        MOD   ("moduleModeration", Emojis.HAMMER, true, false),
-        UTIL  ("moduleUtility",    Emojis.TOOLS,  true, false),
-        FUN   ("moduleFun",        Emojis.DIE,    true, false),
-        ;
-        //@formatter:on
-
-        @Nonnull
-        public final String translationKey;
-        @Nonnull
-        public final String emoji;
-        public final boolean enabledByDefault;
-        public final boolean lockedModule;
-
-        Module(@Nonnull String translationKey, @Nonnull String emoji, boolean enabledByDefault, boolean lockedModule) {
-            this.translationKey = translationKey;
-            this.emoji = emoji;
-            this.enabledByDefault = enabledByDefault;
-            this.lockedModule = lockedModule;
-        }
-
-        @Nullable
-        //attempts to identify the module from the given input. checks for the name of the enum + translated versions
-        public static Module which(@Nonnull String input, @Nonnull Context context) {
-            String lowerInput = input.toLowerCase();
-            for (Module module : Module.values()) {
-                if (lowerInput.contains(module.name().toLowerCase())
-                        || lowerInput.contains(context.i18n(module.translationKey).toLowerCase())) {
-                    return module;
-                }
+    @Nullable
+    //attempts to identify the module from the given input. checks for the name of the enum + translated versions
+    public static Module whichModule(@Nonnull String input, @Nonnull Context context) {
+        String lowerInput = input.toLowerCase();
+        for (Module module : Module.values()) {
+            if (lowerInput.contains(module.name().toLowerCase())
+                    || lowerInput.contains(context.i18n(module.translationKey).toLowerCase())) {
+                return module;
             }
-            return null;
         }
+        return null;
     }
 }

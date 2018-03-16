@@ -28,9 +28,9 @@ package fredboat.command.admin;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
-import fredboat.main.BotController;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.shared.constant.ExitCodes;
 import fredboat.util.TextUtils;
 
@@ -59,7 +59,7 @@ public class ExitCommand extends Command implements ICommandRestricted {
                     context.replyWithName(":wave:").getWithDefaultTimeout();
                 } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
                 }
-                BotController.INS.shutdown(ExitCodes.EXIT_CODE_NORMAL);
+                Launcher.getBotController().getShutdownHandler().shutdown(ExitCodes.EXIT_CODE_NORMAL);
                 return;
             } else {
                 context.reply(String.format("Your input `%s` did not fit the required code `%s`. A new code will be issued.",

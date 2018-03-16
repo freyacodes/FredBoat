@@ -37,6 +37,7 @@ import fredboat.audio.source.PlaylistImporter;
 import fredboat.audio.source.SpotifyPlaylistSourceManager;
 import fredboat.feature.metrics.Metrics;
 import fredboat.feature.togglz.FeatureFlags;
+import fredboat.jda.JdaEntityProvider;
 import fredboat.messaging.CentralMessaging;
 import fredboat.util.PlayerUtil;
 import fredboat.util.TextUtils;
@@ -64,17 +65,24 @@ public class AudioLoader implements AudioLoadResultHandler {
     private static final int QUEUE_TRACK_LIMIT = 10000;
     private static final int MAX_QUEUE_MESSAGE_DISPLAY = 3;
 
+    private final JdaEntityProvider jdaEntityProvider;
+    private final Ratelimiter ratelimiter;
     private final ITrackProvider trackProvider;
     private final AudioPlayerManager playerManager;
     private final GuildPlayer gplayer;
+    private final YoutubeAPI youtubeAPI;
     private final ConcurrentLinkedQueue<IdentifierContext> identifierQueue = new ConcurrentLinkedQueue<>();
     private IdentifierContext context = null;
     private volatile boolean isLoading = false;
 
-    public AudioLoader(ITrackProvider trackProvider, AudioPlayerManager playerManager, GuildPlayer gplayer) {
+    public AudioLoader(JdaEntityProvider jdaEntityProvider, Ratelimiter ratelimiter, ITrackProvider trackProvider,
+                       AudioPlayerManager playerManager, GuildPlayer gplayer, YoutubeAPI youtubeAPI) {
+        this.jdaEntityProvider = jdaEntityProvider;
+        this.ratelimiter = ratelimiter;
         this.trackProvider = trackProvider;
         this.playerManager = playerManager;
         this.gplayer = gplayer;
+        this.youtubeAPI = youtubeAPI;
     }
 
     public void loadAsync(IdentifierContext ic) {
@@ -124,7 +132,7 @@ public class AudioLoader implements AudioLoadResultHandler {
         else {
             boolean result = true;
             if (FeatureFlags.RATE_LIMITER.isActive()) {
-                result = Ratelimiter.getRatelimiter().isAllowed(ic, playlistInfo, playlistInfo.getTotalTracks()).a;
+                result = ratelimiter.isAllowed(ic, playlistInfo, playlistInfo.getTotalTracks()).a;
             }
 
             if (result) {
@@ -185,7 +193,7 @@ public class AudioLoader implements AudioLoadResultHandler {
 
                 at.setPosition(context.getPosition());
 
-                trackProvider.add(new AudioTrackContext(at, context.getMember()));
+                trackProvider.add(new AudioTrackContext(jdaEntityProvider, at, context.getMember()));
                 if (!gplayer.isPaused()) {
                     gplayer.play();
                 }
@@ -216,7 +224,7 @@ public class AudioLoader implements AudioLoadResultHandler {
                             .append("\n\n");
                 }
 
-                trackProvider.add(new AudioTrackContext(at, context.getMember()));
+                trackProvider.add(new AudioTrackContext(jdaEntityProvider, at, context.getMember()));
             }
 
             if (ap.getTracks().size() > MAX_QUEUE_MESSAGE_DISPLAY) {
@@ -258,7 +266,7 @@ public class AudioLoader implements AudioLoadResultHandler {
         }
         YoutubeAudioTrack yat = (YoutubeAudioTrack) at;
 
-        YoutubeVideo yv = YoutubeAPI.getVideoFromID(yat.getIdentifier(), true);
+        YoutubeVideo yv = youtubeAPI.getVideoFromID(yat.getIdentifier(), true);
         String desc = yv.getDescription();
         Matcher m = SPLIT_DESCRIPTION_PATTERN.matcher(desc);
 
@@ -307,7 +315,7 @@ public class AudioLoader implements AudioLoadResultHandler {
             AudioTrack newAt = at.makeClone();
             newAt.setPosition(startPos);
 
-            SplitAudioTrackContext atc = new SplitAudioTrackContext(newAt, ic.getMember(), startPos, endPos, pair.getRight());
+            SplitAudioTrackContext atc = new SplitAudioTrackContext(jdaEntityProvider, newAt, ic.getMember(), startPos, endPos, pair.getRight());
 
             if (i < MAX_QUEUE_MESSAGE_DISPLAY
                     && !StringUtils.isBlank(atc.getEffectiveTitle())) {

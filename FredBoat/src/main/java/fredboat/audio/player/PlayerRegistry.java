@@ -25,8 +25,14 @@
 
 package fredboat.audio.player;
 
-import net.dv8tion.jda.core.JDA;
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
+import fredboat.db.api.GuildConfigService;
+import fredboat.jda.JdaEntityProvider;
+import fredboat.util.ratelimit.Ratelimiter;
+import fredboat.util.rest.YoutubeAPI;
 import net.dv8tion.jda.core.entities.Guild;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -35,89 +41,79 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+@Component
 public class PlayerRegistry {
 
     public static final float DEFAULT_VOLUME = 1f;
 
-    private final Map<Long, GuildPlayer> REGISTRY = new ConcurrentHashMap<>();
+    private final Map<Long, GuildPlayer> registry = new ConcurrentHashMap<>();
+    private final JdaEntityProvider jdaEntityProvider;
+    private final AudioConnectionFacade audioConnectionFacade;
+    private final GuildConfigService guildConfigService;
+    private final AudioPlayerManager audioPlayerManager;
+    private final Ratelimiter ratelimiter;
+    private final YoutubeAPI youtubeAPI;
+    private final MusicTextChannelProvider musicTextChannelProvider;
 
-    //internal holder pattern
-    private static PlayerRegistry instance() {
-        return RegistryHolder.INSTANCE;
-    }
-
-    private static class RegistryHolder {
-        private static final PlayerRegistry INSTANCE = new PlayerRegistry();
-    }
-
-    public static void put(long guildId, GuildPlayer guildPlayer) {
-        instance().REGISTRY.put(guildId, guildPlayer);
+    public PlayerRegistry(MusicTextChannelProvider musicTextChannelProvider, JdaEntityProvider jdaEntityProvider,
+                          AudioConnectionFacade audioConnectionFacade, GuildConfigService guildConfigService,
+                          @Qualifier("loadAudioPlayerManager") AudioPlayerManager audioPlayerManager,
+                          Ratelimiter ratelimiter, YoutubeAPI youtubeAPI) {
+        this.musicTextChannelProvider = musicTextChannelProvider;
+        this.jdaEntityProvider = jdaEntityProvider;
+        this.audioConnectionFacade = audioConnectionFacade;
+        this.guildConfigService = guildConfigService;
+        this.audioPlayerManager = audioPlayerManager;
+        this.ratelimiter = ratelimiter;
+        this.youtubeAPI = youtubeAPI;
     }
 
     @Nonnull
-    public static GuildPlayer getOrCreate(@Nonnull Guild guild) {
-        return getOrCreate(guild.getJDA(), guild.getIdLong());
-    }
-
-    @Nonnull
-    public static GuildPlayer getOrCreate(JDA jda, long guildId) {
-        GuildPlayer player = instance().REGISTRY.get(guildId);
-        if (player == null) {
-            player = new GuildPlayer(jda.getGuildById(guildId));
-            player.setVolume(DEFAULT_VOLUME);
-            instance().REGISTRY.put(guildId, player);
-        }
-
-        // Attempt to set the player as a sending handler. Important after a shard revive
-        if (!LavalinkManager.ins.isEnabled() && jda.getGuildById(guildId) != null) {
-            jda.getGuildById(guildId).getAudioManager().setSendingHandler(player);
-        }
-
-        return player;
+    public GuildPlayer getOrCreate(@Nonnull Guild guild) {
+        return registry.computeIfAbsent(
+                guild.getIdLong(), guildId -> {
+                    GuildPlayer p = new GuildPlayer(guild, musicTextChannelProvider, jdaEntityProvider,
+                            audioConnectionFacade, audioPlayerManager, guildConfigService, ratelimiter, youtubeAPI);
+                    p.setVolume(DEFAULT_VOLUME);
+                    return p;
+                });
     }
 
     @Nullable
-    public static GuildPlayer getExisting(@Nonnull Guild guild) {
-        return getExisting(guild.getJDA(), guild.getIdLong());
+    public GuildPlayer getExisting(@Nonnull Guild guild) {
+        return getExisting(guild.getIdLong());
     }
 
     @Nullable
-    public static GuildPlayer getExisting(JDA jda, long guildId) {
-        if (instance().REGISTRY.containsKey(guildId)) {
-            return getOrCreate(jda, guildId);
-        }
-        return null;
+    public GuildPlayer getExisting(long guildId) {
+        return registry.get(guildId);
     }
 
-    public static GuildPlayer remove(long guildId) {
-        return instance().REGISTRY.remove(guildId);
-    }
-
-    public static Map<Long, GuildPlayer> getRegistry() {
-        return instance().REGISTRY;
+    public Map<Long, GuildPlayer> getRegistry() {
+        return registry;
 
     }
 
-    public static List<GuildPlayer> getPlayingPlayers() {
-        return instance().REGISTRY.values().stream()
+    public List<GuildPlayer> getPlayingPlayers() {
+        return registry.values().stream()
                 .filter(GuildPlayer::isPlaying)
                 .collect(Collectors.toList());
     }
 
-    public static void destroyPlayer(Guild g) {
-        destroyPlayer(g.getJDA(), g.getIdLong());
+    public void destroyPlayer(Guild g) {
+        destroyPlayer(g.getIdLong());
     }
 
-    public static void destroyPlayer(JDA jda, long guildId) {
-        GuildPlayer player = getExisting(jda, guildId);
+    public void destroyPlayer(long guildId) {
+        GuildPlayer player = getExisting(guildId);
         if (player != null) {
             player.destroy();
-            remove(guildId);
+            registry.remove(guildId);
         }
     }
 
-    public static long playingCount() {
-        return instance().REGISTRY.values().stream()
+    public long playingCount() {
+        return registry.values().stream()
                 .filter(GuildPlayer::isPlaying)
                 .count();
     }

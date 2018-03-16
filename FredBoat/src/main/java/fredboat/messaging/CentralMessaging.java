@@ -607,8 +607,8 @@ public class CentralMessaging {
         return result;
     }
 
-    private static void handleInsufficientPermissionsException(@Nonnull MessageChannel channel,
-                                                               @Nonnull InsufficientPermissionException e) {
+    public static void handleInsufficientPermissionsException(@Nonnull MessageChannel channel,
+                                                              @Nonnull InsufficientPermissionException e) {
         final ResourceBundle i18n;
         if (channel instanceof TextChannel) {
             i18n = I18n.get(((TextChannel) channel).getGuild());

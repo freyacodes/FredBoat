@@ -25,11 +25,11 @@
 
 package fredboat.perms;
 
-import fredboat.main.Config;
 import fredboat.commandmeta.abs.CommandContext;
-import fredboat.db.EntityIO;
 import fredboat.db.entity.main.GuildPermissions;
+import fredboat.definitions.PermissionLevel;
 import fredboat.feature.togglz.FeatureFlags;
+import fredboat.main.Launcher;
 import fredboat.util.DiscordUtil;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Member;
@@ -55,7 +55,7 @@ public class PermsUtil {
             return member.hasPermission(Permission.MESSAGE_MANAGE) ? PermissionLevel.DJ : PermissionLevel.USER;
         }
 
-        GuildPermissions gp = EntityIO.getGuildPermissions(member.getGuild());
+        GuildPermissions gp = Launcher.getBotController().getGuildPermsService().fetchGuildPermissions(member.getGuild());
 
         if (checkList(gp.getAdminList(), member)) return PermissionLevel.ADMIN;
         if (checkList(gp.getDjList(), member)) return PermissionLevel.DJ;
@@ -90,9 +90,9 @@ public class PermsUtil {
      */
     private static boolean isBotAdmin(Member member) {
         boolean botAdmin = false;
-        for (String id : Config.CONFIG.getAdminIds()) {
+        for (long id : Launcher.getBotController().getAppConfig().getAdminIds()) {
             Role r = member.getGuild().getRoleById(id);
-            if (member.getUser().getId().equals(id)
+            if (member.getUser().getIdLong() == id
                     || (r != null && member.getRoles().contains(r))) {
                 botAdmin = true;
                 break;

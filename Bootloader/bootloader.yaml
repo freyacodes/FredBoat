@@ -1,0 +1,8 @@
+---
+command:
+  - "java"
+  - "-Xmx128m"
+  - "-jar"
+  - "FredBoat.jar"
+
+jarName: "FredBoat.jar"

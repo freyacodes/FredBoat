@@ -27,11 +27,10 @@ package fredboat.command.info;
 
 import fredboat.audio.player.AudioLossCounter;
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.LavalinkManager;
-import fredboat.audio.player.PlayerRegistry;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IInfoCommand;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
 
@@ -46,21 +45,20 @@ public class AudioDebugCommand extends Command implements IInfoCommand {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        if (LavalinkManager.ins.isEnabled()) {
-            handleLavalink(context);
-        } else {
+        if (Launcher.getBotController().getAudioConnectionFacade().isLocal()) {
             handleLavaplayer(context);
+        } else {
+            handleLavalink(context);
         }
     }
 
     private void handleLavalink(CommandContext context) {
-        context.replyWithName("LavaLink is enabled! Showing LavaLink status instead.");
-        NodesCommand.handleLavalink(context);
+        context.replyWithName("Lavalink remote nodes are enabled. No local lavaplayer stats are available.");
     }
 
     private void handleLavaplayer(CommandContext context) {
         String msg = "";
-        GuildPlayer guildPlayer = PlayerRegistry.getExisting(context.guild);
+        GuildPlayer guildPlayer = Launcher.getBotController().getPlayerRegistry().getExisting(context.guild);
 
         if(guildPlayer == null) {
             msg = msg + "No GuildPlayer found.\n";

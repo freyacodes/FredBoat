@@ -26,11 +26,10 @@
 package fredboat.audio.queue;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import fredboat.main.BotController;
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.PlayerRegistry;
+import fredboat.jda.JdaEntityProvider;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.LeakSafeContext;
-import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
 
@@ -45,14 +44,14 @@ public class AudioTrackContext extends LeakSafeContext implements Comparable<Aud
     private int rand;
     private final long trackId; //used to identify this track even when the track gets cloned and the rand reranded
 
-    public AudioTrackContext(AudioTrack at, Member member) {
-        this(at, member.getGuild().getIdLong(), member.getUser().getIdLong());
+    public AudioTrackContext(JdaEntityProvider jdaEntityProvider, AudioTrack at, Member member) {
+        this(jdaEntityProvider, at, member.getGuild().getIdLong(), member.getUser().getIdLong());
     }
 
-    protected AudioTrackContext(AudioTrack at, long guildId, long userId) {
+    protected AudioTrackContext(JdaEntityProvider jdaEntityProvider, AudioTrack at, long guildId, long userId) {
         //It's ok to set a non-existing channelId, since inside the AudioTrackContext, the channel needs to be looked up
         // every time. See the getTextChannel() below for doing that.
-        super(-1, guildId, userId);
+        super(jdaEntityProvider, -1, guildId, userId);
         this.track = at;
         this.added = System.currentTimeMillis();
         this.rand = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
@@ -93,7 +92,7 @@ public class AudioTrackContext extends LeakSafeContext implements Comparable<Aud
     }
 
     public AudioTrackContext makeClone() {
-        return new AudioTrackContext(track.makeClone(), guildId, userId);
+        return new AudioTrackContext(jdaEntityProvider, track.makeClone(), guildId, userId);
     }
 
     public long getEffectiveDuration() {
@@ -101,13 +100,8 @@ public class AudioTrackContext extends LeakSafeContext implements Comparable<Aud
     }
 
     //NOTE: convenience method that returns the position of the track currently playing in the guild where this track was added
-    public long getEffectivePosition() {
-        Guild guild = BotController.INS.getShardManager().getGuildById(guildId);
-        if (guild != null) {
-            return PlayerRegistry.getOrCreate(guild).getPosition();
-        } else {
-            return getStartPosition();
-        }
+    public long getEffectivePosition(GuildPlayer guildPlayer) {
+        return guildPlayer.getPosition();
     }
 
     public String getEffectiveTitle() {
@@ -132,6 +126,7 @@ public class AudioTrackContext extends LeakSafeContext implements Comparable<Aud
 
         if (getRand() != that.getRand()) return false;
         if (!getTrack().equals(that.getTrack())) return false;
+        //noinspection SimplifiableIfStatement
         if (userId != that.userId) return false;
         return guildId == that.guildId;
     }
@@ -149,14 +144,10 @@ public class AudioTrackContext extends LeakSafeContext implements Comparable<Aud
     @Override
     @Nullable
     public TextChannel getTextChannel() {
-        Guild guild = BotController.INS.getShardManager().getGuildById(guildId);
-        if (guild != null) {
-            GuildPlayer guildPlayer = PlayerRegistry.getExisting(guild);
-            if (guildPlayer != null) {
-                return guildPlayer.getActiveTextChannel();
-            }
+        GuildPlayer guildPlayer = Launcher.getBotController().getPlayerRegistry().getExisting(guildId);
+        if (guildPlayer != null) {
+            return guildPlayer.getActiveTextChannel();
         }
-
         return null;
     }
 }

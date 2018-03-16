@@ -26,12 +26,12 @@
 package fredboat.feature.metrics.collectors;
 
 import fredboat.audio.player.PlayerRegistry;
-import fredboat.main.BotController;
-import fredboat.main.BotMetrics;
+import fredboat.feature.metrics.BotMetrics;
+import fredboat.jda.ShardProvider;
 import io.prometheus.client.Collector;
 import io.prometheus.client.CounterMetricFamily;
 import io.prometheus.client.GaugeMetricFamily;
-import net.dv8tion.jda.core.JDA;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,7 +42,19 @@ import java.util.List;
  * <p>
  * Collects various FredBoat stats for prometheus
  */
+@Component
 public class FredBoatCollector extends Collector {
+
+    private final PlayerRegistry playerRegistry;
+    private final BotMetrics botMetrics;
+    private final ShardProvider shardProvider;
+
+    public FredBoatCollector(PlayerRegistry playerRegistry, BotMetrics botMetrics, ShardProvider shardProvider) {
+        super();
+        this.playerRegistry = playerRegistry;
+        this.botMetrics = botMetrics;
+        this.shardProvider = shardProvider;
+    }
 
     @Override
     public List<MetricFamilySamples> collect() {
@@ -63,31 +75,28 @@ public class FredBoatCollector extends Collector {
         mfs.add(dockerPulls);
 
         //global stats
-        jdaEntities.addMetric(Arrays.asList("total", "User"), BotMetrics.getTotalUniqueUsersCount());
-        jdaEntities.addMetric(Arrays.asList("total", "Guild"), BotMetrics.getTotalGuildsCount());
-        jdaEntities.addMetric(Arrays.asList("total", "TextChannel"), BotMetrics.getTotalTextChannelsCount());
-        jdaEntities.addMetric(Arrays.asList("total", "VoiceChannel"), BotMetrics.getTotalVoiceChannelsCount());
-        jdaEntities.addMetric(Arrays.asList("total", "Category"), BotMetrics.getTotalCategoriesCount());
-        jdaEntities.addMetric(Arrays.asList("total", "Emote"), BotMetrics.getTotalEmotesCount());
-        jdaEntities.addMetric(Arrays.asList("total", "Role"), BotMetrics.getTotalRolesCount());
-        playersPlaying.addMetric(Arrays.asList("total", "Players"), PlayerRegistry.playingCount());
+        jdaEntities.addMetric(Arrays.asList("total", "User"), botMetrics.getTotalUniqueUsersCount());
+        jdaEntities.addMetric(Arrays.asList("total", "Guild"), botMetrics.getTotalGuildsCount());
+        jdaEntities.addMetric(Arrays.asList("total", "TextChannel"), botMetrics.getTotalTextChannelsCount());
+        jdaEntities.addMetric(Arrays.asList("total", "VoiceChannel"), botMetrics.getTotalVoiceChannelsCount());
+        jdaEntities.addMetric(Arrays.asList("total", "Category"), botMetrics.getTotalCategoriesCount());
+        jdaEntities.addMetric(Arrays.asList("total", "Emote"), botMetrics.getTotalEmotesCount());
+        jdaEntities.addMetric(Arrays.asList("total", "Role"), botMetrics.getTotalRolesCount());
+        playersPlaying.addMetric(Arrays.asList("total", "Players"), playerRegistry.playingCount());
 
         //docker stats
-        int dockerPullsBotCount = BotMetrics.getDockerPullsBot();
+        int dockerPullsBotCount = botMetrics.getDockerPullsBot();
         if (dockerPullsBotCount > 0) {
             dockerPulls.addMetric(Arrays.asList("total", "Bot"), dockerPullsBotCount);
         }
-        int dockerPullsDbCount = BotMetrics.getDockerPullsDb();
+        int dockerPullsDbCount = botMetrics.getDockerPullsDb();
         if (dockerPullsDbCount > 0) {
             dockerPulls.addMetric(Arrays.asList("total", "Db"), dockerPullsDbCount);
         }
 
 
         //per shard stats
-        if(BotController.INS.getShardManager() == null) {
-            return mfs; // This collector is invoked when we begin building the shard manager
-        }
-        for (JDA shard : BotController.INS.getShardManager().getShards()) {
+        shardProvider.streamShards().forEach(shard -> {
             String shardId = Integer.toString(shard.getShardInfo().getShardId());
             jdaEntities.addMetric(Arrays.asList(shardId, "User"), shard.getUserCache().size());
             jdaEntities.addMetric(Arrays.asList(shardId, "Guild"), shard.getGuildCache().size());
@@ -96,7 +105,7 @@ public class FredBoatCollector extends Collector {
             jdaEntities.addMetric(Arrays.asList(shardId, "Category"), shard.getCategoryCache().size());
             jdaEntities.addMetric(Arrays.asList(shardId, "Emote"), shard.getEmoteCache().size());
             jdaEntities.addMetric(Arrays.asList(shardId, "Role"), shard.getRoleCache().size());
-        }
+        });
 
         return mfs;
     }

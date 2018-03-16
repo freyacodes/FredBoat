@@ -26,12 +26,12 @@
 package fredboat.command.music.info;
 
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.audio.queue.RepeatMode;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
@@ -54,9 +54,9 @@ public class ListCommand extends Command implements IMusicCommand {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
+        GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getExisting(context.guild);
 
-        if(player.isQueueEmpty()) {
+        if (player == null || player.isQueueEmpty()) {
             context.reply(context.i18n("npNotPlaying"));
             return;
         }

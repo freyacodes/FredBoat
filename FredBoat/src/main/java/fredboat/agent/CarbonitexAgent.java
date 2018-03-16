@@ -25,26 +25,32 @@
 
 package fredboat.agent;
 
+import fredboat.config.property.Credentials;
+import fredboat.feature.metrics.BotMetrics;
+import fredboat.jda.ShardProvider;
 import fredboat.main.BotController;
-import fredboat.main.BotMetrics;
-import fredboat.main.Config;
 import fredboat.util.rest.Http;
 import net.dv8tion.jda.core.JDA;
 import okhttp3.Response;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CarbonitexAgent extends FredBoatAgent {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(CarbonitexAgent.class);
 
-    private final String key;
+    private final Credentials credentials;
+    private final BotMetrics botMetrics;
+    private final ShardProvider shardProvider;
 
-    public CarbonitexAgent(String key) {
+    public CarbonitexAgent(Credentials credentials, BotMetrics botMetrics, ShardProvider shardProvider) {
         super("carbonitex", 30, TimeUnit.MINUTES);
-        this.key = key;
+        this.credentials = credentials;
+        this.botMetrics = botMetrics;
+        this.shardProvider = shardProvider;
     }
 
     @Override
@@ -55,24 +61,28 @@ public class CarbonitexAgent extends FredBoatAgent {
     }
 
     private void sendStats() {
-        List<JDA> shards = BotController.INS.getShardManager().getShards();
-
-        for (JDA jda : shards) {
-            if (jda.getStatus() != JDA.Status.CONNECTED) {
-                log.warn("Skipping posting stats because not all shards are online!");
-                return;
+        AtomicBoolean allConnected = new AtomicBoolean(true);
+        AtomicInteger shardCounter = new AtomicInteger(0);
+        shardProvider.streamShards().forEach(shard -> {
+            shardCounter.incrementAndGet();
+            if (shard.getStatus() != JDA.Status.CONNECTED) {
+                allConnected.set(false);
             }
+        });
+        if (!allConnected.get()) {
+            log.warn("Skipping posting stats because not all shards are online!");
+            return;
         }
 
-        if (shards.size() < Config.getNumShards()) {
+        if (shardCounter.get() < credentials.getRecommendedShardCount()) {
             log.warn("Skipping posting stats because not all shards initialized!");
             return;
         }
 
-        try (Response response = Http.post("https://www.carbonitex.net/discord/data/botdata.php",
+        try (Response response = BotController.HTTP.post("https://www.carbonitex.net/discord/data/botdata.php",
                 Http.Params.of(
-                        "key", key,
-                        "servercount", Integer.toString(BotMetrics.getTotalGuildsCount())
+                        "key", credentials.getCarbonKey(),
+                        "servercount", Integer.toString(botMetrics.getTotalGuildsCount())
                 ))
                 .execute()) {
 

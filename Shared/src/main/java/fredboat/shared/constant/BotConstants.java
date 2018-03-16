@@ -43,6 +43,8 @@ public class BotConstants {
     public static final String DOCS_PERMISSIONS_URL = DOCS_URL + "/permissions";
     public static final String DOCS_DONATE_URL = DOCS_URL + "/donate";
 
+    public static final String PATREON_CAMPAIGN_URL = "https://www.patreon.com/fredboat";
+
     public static final String GITHUB_URL = "https://github.com/Frederikam/FredBoat";
 
     //These can be set using eval in case we need to change it in the future ~Fre_d

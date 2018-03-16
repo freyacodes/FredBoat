@@ -27,15 +27,15 @@ package fredboat.command.music.seeking;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
 
 import javax.annotation.Nonnull;
@@ -48,7 +48,7 @@ public class ForwardCommand extends Command implements IMusicCommand, ICommandRe
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.getExisting(context.guild);
+        GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getExisting(context.guild);
 
         if(player == null || player.isQueueEmpty()) {
             context.replyWithName(context.i18n("unpauseQueueEmpty"));

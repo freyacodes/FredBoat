@@ -85,7 +85,7 @@
             <level>INFO</level>
         </filter>
         <encoder>
-            <pattern>[%date{HH:mm:ss}] [ %-5level] [%mdc] [%logger{0}] %msg%n</pattern>
+            <pattern>[%date{HH:mm:ss}] [ %-5level] [%thread] [%mdc] [%logger{0}] %msg%n</pattern>
         </encoder>
     </appender>
 

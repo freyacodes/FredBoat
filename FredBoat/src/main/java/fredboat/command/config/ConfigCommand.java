@@ -30,11 +30,11 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IConfigCommand;
-import fredboat.db.EntityIO;
 import fredboat.db.entity.main.GuildConfig;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.perms.PermsUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.MessageBuilder;
@@ -58,7 +58,7 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
     }
 
     private void printConfig(CommandContext context) {
-        GuildConfig gc = EntityIO.getGuildConfig(context.guild);
+        GuildConfig gc = Launcher.getBotController().getGuildConfigService().fetchGuildConfig(context.guild);
 
         MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
                 .append(context.i18nFormat("configNoArgs", context.guild.getName())).append("\n")
@@ -86,10 +86,8 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
         switch (key) {
             case "track_announce":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
-                    EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper -> wrapper.findApplyAndMerge(
-                            GuildConfig.key(context.guild),
-                            gc -> gc.setTrackAnnounce(Boolean.valueOf(val))
-                    )));
+                    Launcher.getBotController().getGuildConfigService().transformGuildConfig(
+                            context.guild, gc -> gc.setTrackAnnounce(Boolean.valueOf(val)));
                     context.replyWithName("`track_announce` " + context.i18nFormat("configSetTo", val));
                 } else {
                     context.reply(context.i18nFormat("configMustBeBoolean", TextUtils.escapeAndDefuse(invoker.getEffectiveName())));
@@ -97,10 +95,8 @@ public class ConfigCommand extends Command implements IConfigCommand, ICommandRe
                 break;
             case "auto_resume":
                 if (val.equalsIgnoreCase("true") | val.equalsIgnoreCase("false")) {
-                    EntityIO.doUserFriendly(EntityIO.onMainDb(wrapper -> wrapper.findApplyAndMerge(
-                            GuildConfig.key(context.guild),
-                            guildConfig -> guildConfig.setAutoResume(Boolean.valueOf(val))
-                    )));
+                    Launcher.getBotController().getGuildConfigService().transformGuildConfig(
+                            context.guild, gc -> gc.setAutoResume(Boolean.valueOf(val)));
                     context.replyWithName("`auto_resume` " + context.i18nFormat("configSetTo", val));
                 } else {
                     context.reply(context.i18nFormat("configMustBeBoolean", TextUtils.escapeAndDefuse(invoker.getEffectiveName())));

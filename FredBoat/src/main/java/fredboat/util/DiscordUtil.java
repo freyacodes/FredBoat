@@ -29,10 +29,10 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import fredboat.commandmeta.abs.CommandContext;
+import fredboat.config.property.Credentials;
 import fredboat.feature.I18n;
 import fredboat.feature.metrics.Metrics;
 import fredboat.main.BotController;
-import fredboat.main.Config;
 import fredboat.shared.constant.BotConstants;
 import fredboat.util.rest.CacheUtil;
 import fredboat.util.rest.Http;
@@ -85,8 +85,15 @@ public class DiscordUtil {
         return top.getPosition();
     }
 
-    public static int getRecommendedShardCount(@Nonnull String token) throws IOException, JSONException {
-        Http.SimpleRequest request = Http.get(Requester.DISCORD_API_PREFIX + "gateway/bot")
+    /**
+     * Will be calculated (=fetched from Discord) exactly once
+     * access this through {@link Credentials#getRecommendedShardCount()}
+     */
+    public static final LoadingCache<String, Integer> shardCount = CacheBuilder.newBuilder()
+            .build(CacheLoader.from(DiscordUtil::getRecommendedShardCount));
+
+    private static int getRecommendedShardCount(@Nonnull String token) {
+        Http.SimpleRequest request = BotController.HTTP.get(Requester.DISCORD_API_PREFIX + "gateway/bot")
                 .auth("Bot " + token)
                 .header("User-agent", USER_AGENT);
 
@@ -97,7 +104,11 @@ public class DiscordUtil {
                 log.error("Unexpected response from discord: {} {}", response.code(), response.toString());
             }
             //noinspection ConstantConditions
-            return new JSONObject(response.body().string()).getInt("shards");
+            int shards = new JSONObject(response.body().string()).getInt("shards");
+            log.info("Discord recommends " + shards + " shard(s)");
+            return shards;
+        } catch (IOException | JSONException e) {
+            throw new RuntimeException("Something went wrong fetching the shard count from Discord", e);
         }
     }
 
@@ -121,16 +132,16 @@ public class DiscordUtil {
     //token <-> botid
     @Nonnull
     public static final LoadingCache<String, Long> BOT_ID = CacheBuilder.newBuilder()
-            .build(CacheLoader.asyncReloading(CacheLoader.from(DiscordUtil::getUserId), BotController.INS.getExecutor()));
+            .build(CacheLoader.from(DiscordUtil::getUserId));
 
 
     //uses our configured bot token to retrieve our own userid
-    public static long getBotId() {
-        return CacheUtil.getUncheckedUnwrapped(BOT_ID, Config.CONFIG.getBotToken());
+    public static long getBotId(Credentials credentials) {
+        return CacheUtil.getUncheckedUnwrapped(BOT_ID, credentials.getBotToken());
     }
 
     private static long getUserId(@Nonnull String token) {
-        Http.SimpleRequest request = Http.get(Requester.DISCORD_API_PREFIX + "/users/@me")
+        Http.SimpleRequest request = BotController.HTTP.get(Requester.DISCORD_API_PREFIX + "/users/@me")
                 .auth("Bot " + token)
                 .header("User-agent", USER_AGENT);
 
@@ -168,13 +179,18 @@ public class DiscordUtil {
      * @return true if this bot account is an "official" fredboat (music, patron, CE, etc).
      * This is useful to lock down features that we only need internally, like polling the docker hub for pull stats.
      */
-    public static boolean isOfficialBot() {
-        long botId = getBotId();
+    public static boolean isOfficialBot(Credentials credentials) {
+        long botId = getBotId(credentials);
         return botId == BotConstants.MUSIC_BOT_ID
                 || botId == BotConstants.PATRON_BOT_ID
                 || botId == BotConstants.CUTTING_EDGE_BOT_ID
                 || botId == BotConstants.BETA_BOT_ID
                 || botId == BotConstants.MAIN_BOT_ID;
+    }
+
+    //https://discordapp.com/developers/docs/topics/gateway#sharding
+    public static int getShardId(long guildId, Credentials credentials) {
+        return (int) ((guildId >> 22) % credentials.getRecommendedShardCount());
     }
 
     // ########## Moderation related helper functions

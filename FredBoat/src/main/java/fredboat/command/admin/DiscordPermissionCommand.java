@@ -28,20 +28,14 @@ package fredboat.command.admin;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
-import fredboat.main.BotController;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.Category;
-import net.dv8tion.jda.core.entities.ChannelType;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.PermissionOverride;
-import net.dv8tion.jda.core.entities.Role;
-import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -83,7 +77,7 @@ public class DiscordPermissionCommand extends Command implements ICommandRestric
         } else if (context.hasArguments()) {
             try {
                 long channelId = Long.parseUnsignedLong(context.args[0]);
-                TextChannel textChannel = BotController.INS.getShardManager().getTextChannelById(channelId);
+                TextChannel textChannel = Launcher.getBotController().getJdaEntityProvider().getTextChannelById(channelId);
                 if (textChannel == null) {
                     context.reply(String.format("No text channel with id `%s` found.", channelId));
                     return;

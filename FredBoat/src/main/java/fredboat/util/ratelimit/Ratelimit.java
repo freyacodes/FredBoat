@@ -24,13 +24,14 @@
 
 package fredboat.util.ratelimit;
 
-import fredboat.main.BotController;
 import fredboat.messaging.internal.Context;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Created by napster on 17.04.17.
@@ -41,6 +42,8 @@ import java.util.Set;
  * some calculations can be found here: https://docs.google.com/spreadsheets/d/1Afdn25AsFD-v3WQGp56rfVwO1y2d105IQk3dtfTcKwA/edit#gid=0
  */
 public class Ratelimit {
+
+    private final ExecutorService executorService;
 
     public enum Scope {USER, GUILD}
 
@@ -63,13 +66,15 @@ public class Ratelimit {
     }
 
     /**
+     * @param executorService executor to issue bans with (which may result in a database access, so they are kept off main thread)
      * @param userWhiteList whitelist of user that should never be rate limited or blacklisted by this object
      * @param scope         on which scope this rate limiter shall operate
      * @param maxRequests   how many maxRequests shall be possible in the specified time
      * @param milliseconds  time in milliseconds, in which maxRequests shall be allowed
      * @param clazz         the optional (=can be null) clazz of commands to be ratelimited by this ratelimiter
      */
-    public Ratelimit(Set<Long> userWhiteList, Scope scope, long maxRequests, long milliseconds, Class clazz) {
+    public Ratelimit(ExecutorService executorService, Set<Long> userWhiteList, Scope scope, long maxRequests, long milliseconds, Class clazz) {
+        this.executorService = executorService;
         this.limits = new Long2ObjectOpenHashMap<>();
 
         this.userWhiteList = Collections.unmodifiableSet(userWhiteList);
@@ -89,7 +94,7 @@ public class Ratelimit {
      * Caveat: This allows requests to overstep the ratelimit with single high weight requests.
      * The clearing of timestamps ensures it will take longer for them to get available again though.
      */
-    public boolean isAllowed(Context context, int weight, Blacklist blacklist) {
+    public boolean isAllowed(Context context, int weight, @Nullable Blacklist blacklist) {
         //This gets called real often, right before every command execution. Keep it light, don't do any blocking stuff,
         //ensure whatever you do in here is threadsafe, but minimize usage of synchronized as it adds overhead
         long id = context.getUser().getIdLong();
@@ -132,7 +137,7 @@ public class Ratelimit {
         //the following code has to handle that
 
         if (blacklist != null && scope == Scope.USER)
-            BotController.INS.getExecutor().submit(() -> bannerinoUserino(context, blacklist));
+            executorService.submit(() -> bannerinoUserino(context, blacklist));
         return false;
     }
 

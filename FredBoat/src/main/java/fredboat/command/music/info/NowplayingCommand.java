@@ -33,15 +33,15 @@ import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioTrack;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.PlayerRegistry;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IMusicCommand;
+import fredboat.main.BotController;
+import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
-import fredboat.util.rest.Http;
 import fredboat.util.rest.YoutubeAPI;
 import fredboat.util.rest.YoutubeVideo;
 import net.dv8tion.jda.core.EmbedBuilder;
@@ -55,37 +55,40 @@ import java.io.IOException;
 
 public class NowplayingCommand extends Command implements IMusicCommand {
 
-    public NowplayingCommand(String name, String... aliases) {
+    private final YoutubeAPI youtubeAPI;
+
+    public NowplayingCommand(YoutubeAPI youtubeAPI, String name, String... aliases) {
         super(name, aliases);
+        this.youtubeAPI = youtubeAPI;
     }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
+        GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getExisting(context.guild);
 
-        if (player.isPlaying()) {
+        if (player != null && player.isPlaying()) {
 
             AudioTrackContext atc = player.getPlayingTrack();
             AudioTrack at = atc.getTrack();
 
             EmbedBuilder builder;
             if (at instanceof YoutubeAudioTrack) {
-                builder = getYoutubeEmbed(atc, (YoutubeAudioTrack) at);
+                builder = getYoutubeEmbed(atc, player, (YoutubeAudioTrack) at);
             } else if (at instanceof SoundCloudAudioTrack) {
-                builder = getSoundcloudEmbed(atc, (SoundCloudAudioTrack) at);
+                builder = getSoundcloudEmbed(atc, player, (SoundCloudAudioTrack) at);
             } else if (at instanceof HttpAudioTrack && at.getIdentifier().contains("gensokyoradio.net")){
                 //Special handling for GR
                 builder = getGensokyoRadioEmbed(context);
             } else if (at instanceof HttpAudioTrack) {
-                builder = getHttpEmbed(atc, (HttpAudioTrack) at);
+                builder = getHttpEmbed(atc, player, (HttpAudioTrack) at);
             } else if (at instanceof BandcampAudioTrack) {
-                builder = getBandcampResponse(atc, (BandcampAudioTrack) at);
+                builder = getBandcampResponse(atc, player, (BandcampAudioTrack) at);
             } else if (at instanceof TwitchStreamAudioTrack) {
                 builder = getTwitchEmbed(atc, (TwitchStreamAudioTrack) at);
             } else if (at instanceof BeamAudioTrack) {
                 builder = getBeamEmbed(atc, (BeamAudioTrack) at);
             } else {
-                builder = getDefaultEmbed(atc, at);
+                builder = getDefaultEmbed(atc, player, at);
             }
             Member requester = atc.getMember() != null ? atc.getMember() : context.guild.getSelfMember();
             builder = CentralMessaging.addNpFooter(builder, requester);
@@ -96,10 +99,10 @@ public class NowplayingCommand extends Command implements IMusicCommand {
         }
     }
 
-    private EmbedBuilder getYoutubeEmbed(AudioTrackContext atc, YoutubeAudioTrack at) {
-        YoutubeVideo yv = YoutubeAPI.getVideoFromID(at.getIdentifier(), true);
+    private EmbedBuilder getYoutubeEmbed(AudioTrackContext atc, GuildPlayer player, YoutubeAudioTrack at) {
+        YoutubeVideo yv = youtubeAPI.getVideoFromID(at.getIdentifier(), true);
         String timeField = "["
-                + TextUtils.formatTime(atc.getEffectivePosition())
+                + TextUtils.formatTime(atc.getEffectivePosition(player))
                 + "/"
                 + TextUtils.formatTime(atc.getEffectiveDuration())
                 + "]";
@@ -126,20 +129,20 @@ public class NowplayingCommand extends Command implements IMusicCommand {
         return eb;
     }
 
-    private EmbedBuilder getSoundcloudEmbed(AudioTrackContext atc, SoundCloudAudioTrack at) {
+    private EmbedBuilder getSoundcloudEmbed(AudioTrackContext atc, GuildPlayer player, SoundCloudAudioTrack at) {
         return CentralMessaging.getClearThreadLocalEmbedBuilder()
                 .setAuthor(at.getInfo().author, null, null)
                 .setTitle(atc.getEffectiveTitle(), null)
                 .setDescription(atc.i18nFormat("npLoadedSoundcloud",
-                        TextUtils.formatTime(atc.getEffectivePosition()), TextUtils.formatTime(atc.getEffectiveDuration()))) //TODO: Gather description, thumbnail, etc
+                        TextUtils.formatTime(atc.getEffectivePosition(player)), TextUtils.formatTime(atc.getEffectiveDuration()))) //TODO: Gather description, thumbnail, etc
                 .setColor(new Color(255, 85, 0));
     }
 
-    private EmbedBuilder getBandcampResponse(AudioTrackContext atc, BandcampAudioTrack at) {
+    private EmbedBuilder getBandcampResponse(AudioTrackContext atc, GuildPlayer player, BandcampAudioTrack at) {
         String desc = at.getDuration() == Long.MAX_VALUE ?
                 "[LIVE]" :
                 "["
-                        + TextUtils.formatTime(atc.getEffectivePosition())
+                        + TextUtils.formatTime(atc.getEffectivePosition(player))
                         + "/"
                         + TextUtils.formatTime(atc.getEffectiveDuration())
                         + "]";
@@ -161,7 +164,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
 
     private EmbedBuilder getBeamEmbed(AudioTrackContext atc, BeamAudioTrack at) {
         try {
-            JSONObject json = Http.get("https://beam.pro/api/v1/channels/" + at.getInfo().author).asJson();
+            JSONObject json = BotController.HTTP.get("https://beam.pro/api/v1/channels/" + at.getInfo().author).asJson();
 
             return CentralMessaging.getClearThreadLocalEmbedBuilder()
                     .setAuthor(at.getInfo().author, "https://beam.pro/" + at.getInfo().author, json.getJSONObject("user").getString("avatarUrl"))
@@ -177,7 +180,7 @@ public class NowplayingCommand extends Command implements IMusicCommand {
 
     static EmbedBuilder getGensokyoRadioEmbed(Context context) {
         try {
-            JSONObject data = XML.toJSONObject(Http.get("https://gensokyoradio.net/xml/").asString()).getJSONObject("GENSOKYORADIODATA");
+            JSONObject data = XML.toJSONObject(BotController.HTTP.get("https://gensokyoradio.net/xml/").asString()).getJSONObject("GENSOKYORADIODATA");
 
             String rating = data.getJSONObject("MISC").getInt("TIMESRATED") == 0 ?
                     context.i18n("noneYet") :
@@ -214,11 +217,11 @@ public class NowplayingCommand extends Command implements IMusicCommand {
         }
     }
 
-    private EmbedBuilder getHttpEmbed(AudioTrackContext atc, HttpAudioTrack at) {
+    private EmbedBuilder getHttpEmbed(AudioTrackContext atc, GuildPlayer player, HttpAudioTrack at) {
         String desc = at.getDuration() == Long.MAX_VALUE ?
                 "[LIVE]" :
                 "["
-                        + TextUtils.formatTime(atc.getEffectivePosition())
+                        + TextUtils.formatTime(atc.getEffectivePosition(player))
                         + "/"
                         + TextUtils.formatTime(atc.getEffectiveDuration())
                         + "]";
@@ -229,11 +232,11 @@ public class NowplayingCommand extends Command implements IMusicCommand {
                 .setDescription(atc.i18nFormat("npLoadedFromHTTP", desc, at.getIdentifier())); //TODO: Probe data
     }
 
-    private EmbedBuilder getDefaultEmbed(AudioTrackContext atc, AudioTrack at) {
+    private EmbedBuilder getDefaultEmbed(AudioTrackContext atc, GuildPlayer player, AudioTrack at) {
         String desc = at.getDuration() == Long.MAX_VALUE ?
                 "[LIVE]" :
                 "["
-                        + TextUtils.formatTime(atc.getEffectivePosition())
+                        + TextUtils.formatTime(atc.getEffectivePosition(player))
                         + "/"
                         + TextUtils.formatTime(atc.getEffectiveDuration())
                         + "]";

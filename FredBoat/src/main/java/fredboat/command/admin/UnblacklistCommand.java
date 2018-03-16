@@ -28,10 +28,10 @@ import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
+import fredboat.definitions.PermissionLevel;
 import fredboat.feature.togglz.FeatureFlags;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
-import fredboat.util.ratelimit.Ratelimiter;
 import net.dv8tion.jda.core.entities.User;
 
 import javax.annotation.Nonnull;
@@ -67,7 +67,7 @@ public class UnblacklistCommand extends Command implements ICommandRestricted {
             return;
         }
 
-        Ratelimiter.getRatelimiter().liftLimitAndBlacklist(user.getIdLong());
+        Launcher.getBotController().getRatelimiter().liftLimitAndBlacklist(user.getIdLong());
         context.replyWithName(context.i18nFormat("unblacklisted", user.getAsMention()));
     }
 

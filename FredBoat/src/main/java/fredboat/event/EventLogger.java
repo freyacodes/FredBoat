@@ -25,8 +25,9 @@
 
 package fredboat.event;
 
-import fredboat.main.BotController;
-import fredboat.main.Config;
+import fredboat.config.property.EventLoggerConfig;
+import fredboat.jda.ShardProvider;
+import fredboat.main.ShutdownHandler;
 import fredboat.messaging.CentralMessaging;
 import fredboat.util.Emojis;
 import fredboat.util.TextUtils;
@@ -42,14 +43,15 @@ import net.dv8tion.jda.webhook.WebhookClient;
 import net.dv8tion.jda.webhook.WebhookClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import space.npstr.annotations.FieldsAreNonNullByDefault;
+import space.npstr.annotations.ParametersAreNonnullByDefault;
+import space.npstr.annotations.ReturnTypesAreNonNullByDefault;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -61,12 +63,17 @@ import java.util.concurrent.atomic.AtomicInteger;
  * used to try to not drop occasionally failed messages, since the reporting of status events is especially important
  * during ongoing connection issues. If the amount of status events is too damn high, summaries are posted.
  */
+@FieldsAreNonNullByDefault
+@ParametersAreNonnullByDefault
+@ReturnTypesAreNonNullByDefault
+@Component
 public class EventLogger extends ListenerAdapter {
 
     public static final Logger log = LoggerFactory.getLogger(EventLogger.class);
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
             runnable -> new Thread(runnable, "eventlogger"));
+    private final ShardProvider shardProvider;
     @Nullable
     private WebhookClient eventLogWebhook;
     @Nullable
@@ -80,32 +87,40 @@ public class EventLogger extends ListenerAdapter {
     private final AtomicInteger guildsJoinedEvents = new AtomicInteger(0);
     private final AtomicInteger guildsLeftEvents = new AtomicInteger(0);
 
-    public EventLogger() {
-        this(new WebhookClientBuilder(Config.CONFIG.getEventLogWebhook()).build(),
-                new WebhookClientBuilder(Config.CONFIG.getGuildStatsWebhook()).build());
-    }
 
 
     @Override
     public void onReady(ReadyEvent event) {
+        if (eventLogWebhook == null) {
+            return;
+        }
         statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(),
                 ShardStatusEvent.StatusEvent.READY, ""));
     }
 
     @Override
     public void onResume(ResumedEvent event) {
+        if (eventLogWebhook == null) {
+            return;
+        }
         statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(),
                 ShardStatusEvent.StatusEvent.RESUME, ""));
     }
 
     @Override
     public void onReconnect(ReconnectedEvent event) {
+        if (eventLogWebhook == null) {
+            return;
+        }
         statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(),
                 ShardStatusEvent.StatusEvent.RECONNECT, ""));
     }
 
     @Override
     public void onDisconnect(DisconnectEvent event) {
+        if (eventLogWebhook == null) {
+            return;
+        }
         String closeCodeStr = "close code " + (event.getCloseCode() == null ? "null" : event.getCloseCode().getCode());
         statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(),
                 ShardStatusEvent.StatusEvent.DISCONNECT, "with " + closeCodeStr));
@@ -113,6 +128,9 @@ public class EventLogger extends ListenerAdapter {
 
     @Override
     public void onShutdown(ShutdownEvent event) {
+        if (eventLogWebhook == null) {
+            return;
+        }
         String closeCodeStr = "close code " + (event.getCloseCode() == null ? "null" : event.getCloseCode().getCode());
         statusStats.add(new ShardStatusEvent(event.getJDA().getShardInfo().getShardId(),
                 ShardStatusEvent.StatusEvent.SHUTDOWN, "with " + closeCodeStr));
@@ -120,53 +138,76 @@ public class EventLogger extends ListenerAdapter {
 
     @Override
     public void onGuildJoin(GuildJoinEvent event) {
+        if (guildStatsWebhook == null) {
+            return;
+        }
         guildsJoinedEvents.incrementAndGet();
         log.info("Joined guild {} with {} users", event.getGuild(), event.getGuild().getMemberCache().size());
     }
 
     @Override
     public void onGuildLeave(GuildLeaveEvent event) {
+        if (guildStatsWebhook == null) {
+            return;
+        }
         guildsLeftEvents.incrementAndGet();
         log.info("Left guild {} with {} users", event.getGuild(), event.getGuild().getMemberCache().size());
     }
 
-    @SuppressWarnings("FieldCanBeLocal")
-    private final Runnable ON_SHUTDOWN = () -> {
-        String message;
-        if (BotController.INS.getShutdownCode() != BotController.UNKNOWN_SHUTDOWN_CODE) {
-            message = Emojis.DOOR + "Exiting with code " + BotController.INS.getShutdownCode() + ".";
-        } else {
-            message = Emojis.DOOR + "Exiting with unknown code.";
-        }
-        log.info(message);
-        Future elw = null;
-        Future gsw = null;
-        if (eventLogWebhook != null) elw = eventLogWebhook.send(message);
-        if (guildStatsWebhook != null) gsw = guildStatsWebhook.send(message);
-        try {
-            if (elw != null) elw.get();
-            if (gsw != null) gsw.get();
-        } catch (ExecutionException | InterruptedException ignored) {
-        }
-    };
+
+    private Runnable createShutdownHook(ShutdownHandler shutdownHandler) {
+        return () -> {
+            scheduler.shutdownNow();
+            String message;
+            int shutdownCode = shutdownHandler.getShutdownCode();
+            if (shutdownCode != ShutdownHandler.UNKNOWN_SHUTDOWN_CODE) {
+                message = Emojis.DOOR + "Exiting with code " + shutdownCode + ".";
+            } else {
+                message = Emojis.DOOR + "Exiting with unknown code.";
+            }
+            log.info(message);
+            Future elw = null;
+            Future gsw = null;
+            if (eventLogWebhook != null) elw = eventLogWebhook.send(message);
+            if (guildStatsWebhook != null) gsw = guildStatsWebhook.send(message);
+            try {
+                if (elw != null) elw.get(30, TimeUnit.SECONDS);
+                if (gsw != null) gsw.get(30, TimeUnit.SECONDS);
+            } catch (ExecutionException | InterruptedException | TimeoutException ignored) {
+            }
+        };
+    }
 
     //actual constructor
-    private EventLogger(@Nonnull WebhookClient eventLoggerWebhook, @Nonnull WebhookClient guildStatsWebhook) {
-        Runtime.getRuntime().addShutdownHook(new Thread(ON_SHUTDOWN, EventLogger.class.getSimpleName() + " shutdownhook"));
+    public EventLogger(EventLoggerConfig eventLoggerConfig, ShutdownHandler shutdownHandler, ShardProvider shardProvider) {
+        this.shardProvider = shardProvider;
+        Runtime.getRuntime().addShutdownHook(new Thread(createShutdownHook(shutdownHandler), EventLogger.class.getSimpleName() + " shutdownhook"));
+
+        String eventLoggerWebhookUrl = eventLoggerConfig.getEventLogWebhook();
+        WebhookClient eventLoggerWebhook = null;
+        if (!eventLoggerWebhookUrl.isEmpty()) {
+            try {
+                eventLoggerWebhook = new WebhookClientBuilder(eventLoggerWebhookUrl).build();
+            } catch (IllegalArgumentException e) {
+                log.error("Eventlogger webhook url could not be parsed: {}", eventLoggerWebhookUrl, e);
+            }
+        }
 
         //test the provided webhooks before assigning them, otherwise they will spam our logs with exceptions
         WebhookClient workingWebhook = null;
-        if (eventLoggerWebhook.getIdLong() > 0) { //id is 0 when there is no webhookid configured in the config; skip this in that case
-            try {
-                eventLoggerWebhook.send(Emojis.PENCIL + "Event logger started.")
-                        .get();
-                workingWebhook = eventLoggerWebhook; //webhook test was successful; FIXME occasionally this might fail during the start due to connection issues, while the provided values are actually valid
-            } catch (Exception e) {
-                log.error("Failed to create event log webhook. Event logs will not be available. Doublecheck your configuration values.");
+        if (eventLoggerWebhook != null) {
+            if (eventLoggerWebhook.getIdLong() > 0) { //id is 0 when there is no webhookid configured in the config; skip this in that case
+                try {
+                    eventLoggerWebhook.send(Emojis.PENCIL + "Event logger started.")
+                            .get();
+                    workingWebhook = eventLoggerWebhook; //webhook test was successful; FIXME occasionally this might fail during the start due to connection issues, while the provided values are actually valid
+                } catch (Exception e) {
+                    log.error("Failed to create event log webhook. Event logs will not be available. Doublecheck your configuration values.");
+                    eventLoggerWebhook.close();
+                }
+            } else {
                 eventLoggerWebhook.close();
             }
-        } else {
-            eventLoggerWebhook.close();
         }
         this.eventLogWebhook = workingWebhook;
 
@@ -177,25 +218,38 @@ public class EventLogger extends ListenerAdapter {
                 } catch (Exception e) {
                     log.error("Failed to send shard status summary to event log webhook", e);
                 }
-            }, 0, Math.max(Config.CONFIG.getEventLogInterval(), 1), TimeUnit.MINUTES);
+            }, 0, Math.max(eventLoggerConfig.getEventLogInterval(), 1), TimeUnit.MINUTES);
+        }
+
+
+        String guildStatsWebhookUrl = eventLoggerConfig.getGuildStatsWebhook();
+        WebhookClient guildStatsWebhook = null;
+        if (!guildStatsWebhookUrl.isEmpty()) {
+            try {
+                guildStatsWebhook = new WebhookClientBuilder(guildStatsWebhookUrl).build();
+            } catch (IllegalArgumentException e) {
+                log.error("Guildstats webhook url could not be parsed: {}", guildStatsWebhookUrl, e);
+            }
         }
 
         workingWebhook = null;
-        if (guildStatsWebhook.getIdLong() > 0) { //id is 0 when there is no webhookid configured in the config; skip this in that case
-            try {
-                guildStatsWebhook.send(Emojis.PENCIL + "Guild stats logger started.")
-                        .get();
-                workingWebhook = guildStatsWebhook; //webhook test was successful; FIXME occasionally this might fail during the start due to connection issues, while the provided values are actually valid
-            } catch (Exception e) {
-                log.error("Failed to create guild stats webhook. Guild stats will not be available. Doublecheck your configuration values.");
+        if (guildStatsWebhook != null) {
+            if (guildStatsWebhook.getIdLong() > 0) { //id is 0 when there is no webhookid configured in the config; skip this in that case
+                try {
+                    guildStatsWebhook.send(Emojis.PENCIL + "Guild stats logger started.")
+                            .get();
+                    workingWebhook = guildStatsWebhook; //webhook test was successful; FIXME occasionally this might fail during the start due to connection issues, while the provided values are actually valid
+                } catch (Exception e) {
+                    log.error("Failed to create guild stats webhook. Guild stats will not be available. Doublecheck your configuration values.");
+                    guildStatsWebhook.close();
+                }
+            } else {
                 guildStatsWebhook.close();
             }
-        } else {
-            guildStatsWebhook.close();
         }
         this.guildStatsWebhook = workingWebhook;
 
-        int interval = Math.max(Config.CONFIG.getGuildStatsInterval(), 1);
+        int interval = Math.max(eventLoggerConfig.getGuildStatsInterval(), 1);
         if (this.guildStatsWebhook != null) {
             scheduler.scheduleAtFixedRate(() -> {
                 try {
@@ -218,10 +272,9 @@ public class EventLogger extends ListenerAdapter {
                 .addField("Guilds joined", Integer.toString(guildsJoinedEvents.getAndSet(0)), true)
                 .addField("Guilds left", Integer.toString(guildsLeftEvents.getAndSet(0)), true);
 
-        List<JDA> shards = BotController.INS.getShardManager().getShards();
-
-        if (!shards.isEmpty()) {
-            JDA anyShard = shards.get(0);
+        Optional<JDA> shards = shardProvider.streamShards().findAny();
+        if (shards.isPresent()) {
+            JDA anyShard = shards.get();
             User self = anyShard.getSelfUser();
             eb.setFooter(self.getName(), self.getEffectiveAvatarUrl());
         }

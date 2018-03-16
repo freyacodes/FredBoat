@@ -28,7 +28,10 @@ package fredboat.command.info;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IInfoCommand;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
+import fredboat.shared.constant.BotConstants;
+import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.User;
 
@@ -42,10 +45,19 @@ public class InviteCommand extends Command implements IInfoCommand {
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
+
+        long botId = DiscordUtil.getBotId(Launcher.getBotController().getCredentials());
+        String invite;
+        if (botId == BotConstants.MUSIC_BOT_ID) {
+            invite = BotConstants.botInvite;
+        } else if (botId == BotConstants.PATRON_BOT_ID) {
+            invite = BotConstants.DOCS_DONATE_URL;
+        } else {
+            invite = context.guild.getJDA().asBot().getInviteUrl();
+        }
         User self = context.guild.getJDA().getSelfUser();
-        String str = "https://discordapp.com/oauth2/authorize?&client_id=" + self.getId() + "&scope=bot";
-        String send = context.i18nFormat("invite", TextUtils.escapeAndDefuse(self.getName()));
-        context.reply(send + "\n" + str);
+        String header = context.i18nFormat("invite", TextUtils.escapeAndDefuse(self.getName()));
+        context.reply(header + "\n" + invite);
     }
 
     @Nonnull

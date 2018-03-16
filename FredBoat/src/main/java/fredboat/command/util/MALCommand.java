@@ -29,10 +29,11 @@ import fredboat.command.info.HelpCommand;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.IUtilCommand;
-import fredboat.feature.metrics.OkHttpEventMetrics;
+import fredboat.feature.metrics.Metrics;
 import fredboat.main.BotController;
-import fredboat.main.Config;
+import fredboat.main.Launcher;
 import fredboat.messaging.internal.Context;
+import fredboat.metrics.OkHttpEventMetrics;
 import fredboat.util.TextUtils;
 import fredboat.util.rest.Http;
 import okhttp3.Credentials;
@@ -68,11 +69,11 @@ public class MALCommand extends Command implements IUtilCommand {
     }
 
     //MALs API is wonky af and loves to take its time to answer requests, so we are setting rather high time outs
-    private static OkHttpClient malHttpClient = new OkHttpClient.Builder()
+    private static OkHttpClient malHttpClient = Http.DEFAULT_BUILDER.newBuilder()
             .connectTimeout(120, TimeUnit.SECONDS)
             .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)
-            .eventListener(new OkHttpEventMetrics("myAnimeListApi"))
+            .eventListener(new OkHttpEventMetrics("myAnimeListApi", Metrics.httpEventCounter))
             .build();
 
     @Override
@@ -85,16 +86,17 @@ public class MALCommand extends Command implements IUtilCommand {
         String term = context.rawArgs.replace(' ', '+').trim();
         log.debug("TERM:" + term);
 
-        BotController.INS.getExecutor().submit(() -> requestAsync(term, context));
+        Launcher.getBotController().getExecutor().submit(() -> requestAsync(term, context));
     }
 
     //attempts to find an anime with the provided search term, and if that's not possible looks for a user
     private void requestAsync(String term, CommandContext context) {
-        Http.SimpleRequest request = Http.get("https://myanimelist.net/api/anime/search.xml",
+        Http.SimpleRequest request = BotController.HTTP.get("https://myanimelist.net/api/anime/search.xml",
                 Http.Params.of(
                         "q", term
                 ))
-                .auth(Credentials.basic(Config.CONFIG.getMalUser(), Config.CONFIG.getMalPassword()))
+                .auth(Credentials.basic(Launcher.getBotController().getCredentials().getMalUser(),
+                        Launcher.getBotController().getCredentials().getMalPassword()))
                 .client(malHttpClient);
 
         try {

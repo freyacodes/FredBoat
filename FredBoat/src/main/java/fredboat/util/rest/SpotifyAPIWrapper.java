@@ -25,14 +25,15 @@
 
 package fredboat.util.rest;
 
-import fredboat.main.Config;
 import fredboat.audio.queue.PlaylistInfo;
-import okhttp3.Credentials;
+import fredboat.config.property.Credentials;
+import fredboat.main.BotController;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,6 +48,7 @@ import java.util.regex.Pattern;
  *
  * When expanding this class, make sure to call refreshTokenIfNecessary() before every request
  */
+@Component
 public class SpotifyAPIWrapper {
     //https://regex101.com/r/FkknVc/1
     private static final Pattern PARAMETER_PATTERN = Pattern.compile("offset=([0-9]*)&limit=([0-9]*)$");
@@ -55,21 +57,7 @@ public class SpotifyAPIWrapper {
     private static final String URL_SPOTIFY_AUTHENTICATION_HOST = "https://accounts.spotify.com";
 
     private static final Logger log = LoggerFactory.getLogger(SpotifyAPIWrapper.class);
-
-    /**
-     * This should be the only way to grab a handle on this class.
-     * //TODO is the Singleton pattern really a good idea for production, or does FredBoat need a different design?
-     *
-     * @return the singleton of the Spotify API
-     */
-    public static SpotifyAPIWrapper getApi() {
-        return SpotifyAPIWrapperHolder.instance;
-    }
-
-    //holder class pattern
-    private static class SpotifyAPIWrapperHolder {
-        private static final SpotifyAPIWrapper instance = new SpotifyAPIWrapper();
-    }
+    private final Credentials credentials;
 
     private volatile long accessTokenExpires = 0;
     private volatile String accessToken = "";
@@ -78,7 +66,8 @@ public class SpotifyAPIWrapper {
      * Do not call this.
      * Get an instance of this class by using SpotifyAPIWrapper.getApi()
      */
-    private SpotifyAPIWrapper() {
+    public SpotifyAPIWrapper(Credentials credentials) {
+        this.credentials = credentials;
         refreshTokenIfNecessary();
     }
 
@@ -87,12 +76,15 @@ public class SpotifyAPIWrapper {
      * https://developer.spotify.com/web-api/authorization-guide/#client-credentials-flow
      */
     private void refreshAccessToken() {
+        if (credentials.getSpotifyId().isEmpty() || credentials.getSpotifySecret().isEmpty()) {
+            return; //no spotify credentials configured, dont throw unnecessary errors
+        }
         try {
-            JSONObject jsonClientCredentials = Http.post(URL_SPOTIFY_AUTHENTICATION_HOST + "/api/token",
+            JSONObject jsonClientCredentials = BotController.HTTP.post(URL_SPOTIFY_AUTHENTICATION_HOST + "/api/token",
                     Http.Params.of(
                             "grant_type", "client_credentials"
                     ))
-                    .auth(Credentials.basic(Config.CONFIG.getSpotifyId(), Config.CONFIG.getSpotifySecret()))
+                    .auth(okhttp3.Credentials.basic(credentials.getSpotifyId(), credentials.getSpotifySecret()))
                     .asJson();
 
             accessToken = jsonClientCredentials.getString("access_token");
@@ -125,7 +117,7 @@ public class SpotifyAPIWrapper {
     public PlaylistInfo getPlaylistDataBlocking(String userId, String playlistId) throws IOException, JSONException {
         refreshTokenIfNecessary();
 
-        JSONObject jsonPlaylist = Http.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId)
+        JSONObject jsonPlaylist = BotController.HTTP.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId)
                 .auth("Bearer " + accessToken)
                 .asJson();
 
@@ -171,7 +163,7 @@ public class SpotifyAPIWrapper {
             }
 
             //request a page of tracks
-            jsonPage = Http.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId + "/tracks",
+            jsonPage = BotController.HTTP.get(URL_SPOTIFY_API + "/v1/users/" + userId + "/playlists/" + playlistId + "/tracks",
                     Http.Params.of(
                             "offset", offset,
                             "limit", limit

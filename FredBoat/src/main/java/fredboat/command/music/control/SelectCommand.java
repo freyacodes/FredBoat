@@ -27,18 +27,18 @@ package fredboat.command.music.control;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import fredboat.audio.player.GuildPlayer;
-import fredboat.audio.player.PlayerRegistry;
-import fredboat.audio.player.VideoSelection;
+import fredboat.audio.player.VideoSelectionCache;
+import fredboat.audio.player.VideoSelectionCache.VideoSelection;
 import fredboat.audio.queue.AudioTrackContext;
 import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.main.BotController;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.perms.PermissionLevel;
 import fredboat.util.PlayerUtil;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
@@ -50,19 +50,21 @@ import java.util.LinkedHashSet;
 
 public class SelectCommand extends Command implements IMusicCommand, ICommandRestricted {
 
-    public SelectCommand(String name, String... aliases) {
+    private final VideoSelectionCache videoSelectionCache;
+
+    public SelectCommand(VideoSelectionCache videoSelectionCache, String name, String... aliases) {
         super(name, aliases);
+        this.videoSelectionCache = videoSelectionCache;
     }
 
     @Override
     public void onInvoke(@Nonnull CommandContext context) {
-        select(context);
+        select(context, videoSelectionCache);
     }
 
-    static void select(CommandContext context) {
+    static void select(CommandContext context, VideoSelectionCache videoSelectionCache) {
         Member invoker = context.invoker;
-        GuildPlayer player = PlayerRegistry.getOrCreate(context.guild);
-        VideoSelection selection = VideoSelection.get(invoker);
+        VideoSelection selection = videoSelectionCache.get(invoker);
         if (selection == null) {
             context.reply(context.i18n("selectSelectionNotGiven"));
             return;
@@ -104,7 +106,7 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
             } else {
                 AudioTrack[] selectedTracks = new AudioTrack[validChoices.size()];
                 StringBuilder outputMsgBuilder = new StringBuilder();
-
+                GuildPlayer player = Launcher.getBotController().getPlayerRegistry().getOrCreate(context.guild);
                 for (int i = 0; i < validChoices.size(); i++) {
                     selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
 
@@ -130,16 +132,16 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                     outputMsgBuilder.append("\n");
 
                     // if there are more selections.
-
                     if (i < validChoices.size()) {
                         outputMsgBuilder.append("\n");
                     }
 
-                    player.queue(new AudioTrackContext(selectedTracks[i], invoker));
+                    player.queue(new AudioTrackContext(Launcher.getBotController().getJdaEntityProvider(),
+                            selectedTracks[i], invoker));
                 }
 
-                VideoSelection.remove(invoker);
-                TextChannel tc = BotController.INS.getShardManager().getTextChannelById(selection.channelId);
+                videoSelectionCache.remove(invoker);
+                TextChannel tc = Launcher.getBotController().getJdaEntityProvider().getTextChannelById(selection.channelId);
                 if (tc != null) {
                     CentralMessaging.editMessage(tc, selection.outMsgId, CentralMessaging.from(outputMsgBuilder.toString()));
                 }
