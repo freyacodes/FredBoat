@@ -34,10 +34,11 @@ import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
 import fredboat.commandmeta.abs.ICommandRestricted;
 import fredboat.commandmeta.abs.IMusicCommand;
-import fredboat.definitions.PermissionLevel;
-import fredboat.main.Launcher;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
+import fredboat.util.PlayerUtil;
+import fredboat.definitions.PermissionLevel;
+import fredboat.main.Launcher;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.TextChannel;
@@ -109,13 +110,31 @@ public class SelectCommand extends Command implements IMusicCommand, ICommandRes
                 for (int i = 0; i < validChoices.size(); i++) {
                     selectedTracks[i] = selection.choices.get(validChoices.get(i) - 1);
 
-                    String msg = context.i18nFormat("selectSuccess", validChoices.get(i),
-                            TextUtils.escapeAndDefuse(selectedTracks[i].getInfo().title),
-                            TextUtils.formatTime(selectedTracks[i].getInfo().length));
+                    String playingStatusOrQueueTime = PlayerUtil.resolveStatusOrQueueMessage(player, context);
+
+                    // Print the selection string.
+                    String selectionSuccessString = context.i18nFormat(
+                            "selectSuccess",
+                            TextUtils.boldenText("\\#" + validChoices.get(i)) +
+                            " ~ " + playingStatusOrQueueTime);
+                    outputMsgBuilder.append(selectionSuccessString);
+                    outputMsgBuilder.append("\n");
+
+                    // Print the song title and length.
+                    outputMsgBuilder.append("\t\t");
+
+                    // Merge title and the length in one string.
+                    String songTitleAndMusic =
+                            TextUtils.boldenText(TextUtils.escapeAndDefuse(selectedTracks[i].getInfo().title)) + " " +
+                            "(" + TextUtils.formatTime(selectedTracks[i].getInfo().length) + ")";
+
+                    outputMsgBuilder.append(songTitleAndMusic);
+                    outputMsgBuilder.append("\n");
+
+                    // if there are more selections.
                     if (i < validChoices.size()) {
                         outputMsgBuilder.append("\n");
                     }
-                    outputMsgBuilder.append(msg);
 
                     player.queue(new AudioTrackContext(Launcher.getBotController().getJdaEntityProvider(),
                             selectedTracks[i], invoker));

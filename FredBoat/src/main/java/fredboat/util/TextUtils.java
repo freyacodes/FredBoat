@@ -375,6 +375,28 @@ public class TextUtils {
     }
 
     /**
+     * Wraps input with discord's markdown bold marker.
+     *
+     * @param input Object#toString() to be wrapped in bold. Must be non null.
+     * @return String with ** wrapped.
+     */
+    @Nonnull
+    public static <T> String boldenText(@Nonnull T input) {
+        return "**" + input + "**";
+    }
+
+    /**
+     * Wraps input with discord's markdown italic marker.
+     *
+     * @param input Object#toString() to be wrapped in italic marker. Must be non null.
+     * @return String with * wrapped.
+     */
+    @Nonnull
+    public static <T> String italicizeText(@Nonnull T input) {
+        return "*" + input + "*";
+    }
+
+    /**
      * @return the input, with escaped markdown and defused mentions and URLs
      * It is a good idea to use this on any user generated values that we reply in plain text.
      */
@@ -414,6 +436,7 @@ public class TextUtils {
             .filteredBy(CharacterPredicates.LETTERS, CharacterPredicates.DIGITS)
             .build();
 
+    @Nonnull
     public static String randomAlphaNumericString(int length) {
         if (length < 1) {
             throw new IllegalArgumentException();

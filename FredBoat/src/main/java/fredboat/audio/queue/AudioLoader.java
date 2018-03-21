@@ -38,17 +38,19 @@ import fredboat.audio.source.SpotifyPlaylistSourceManager;
 import fredboat.feature.metrics.Metrics;
 import fredboat.jda.JdaEntityProvider;
 import fredboat.messaging.CentralMessaging;
+import fredboat.util.PlayerUtil;
 import fredboat.util.TextUtils;
 import fredboat.util.ratelimit.Ratelimiter;
 import fredboat.util.rest.YoutubeAPI;
 import fredboat.util.rest.YoutubeVideo;
 import net.dv8tion.jda.core.MessageBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,6 +62,7 @@ public class AudioLoader implements AudioLoadResultHandler {
     //Matches a timestamp and the description
     private static final Pattern SPLIT_DESCRIPTION_PATTERN = Pattern.compile("(.*?)[( \\[]*((?:\\d?\\d:)?\\d?\\d:\\d\\d)[) \\]]*(.*)");
     private static final int QUEUE_TRACK_LIMIT = 10000;
+    private static final int MAX_QUEUE_MESSAGE_DISPLAY = 3;
 
     private final JdaEntityProvider jdaEntityProvider;
     private final Ratelimiter ratelimiter;
@@ -175,11 +178,8 @@ public class AudioLoader implements AudioLoadResultHandler {
             } else {
 
                 if (!context.isQuiet()) {
-                    context.reply(gplayer.isPlaying() ?
-                            context.i18nFormat("loadSingleTrack", TextUtils.escapeAndDefuse(at.getInfo().title))
-                            :
-                            context.i18nFormat("loadSingleTrackAndPlay", TextUtils.escapeAndDefuse(at.getInfo().title))
-                    );
+                    context.reply(this.buildMusicQueueMessage(at.getInfo().title, at.getInfo().length));
+
                 } else {
                     log.info("Quietly loaded " + at.getIdentifier());
                 }
@@ -201,18 +201,30 @@ public class AudioLoader implements AudioLoadResultHandler {
     public void playlistLoaded(AudioPlaylist ap) {
         Metrics.tracksLoaded.inc(ap.getTracks() == null ? 0 : ap.getTracks().size());
         try {
+            int statusMessageCount = 0;
             if(context.isSplit()){
                 context.reply(context.i18n("loadPlaySplitListFail"));
                 loadNextAsync();
                 return;
             }
 
-            List<AudioTrackContext> toAdd = new ArrayList<>();
+            StringBuilder replyMessage = new StringBuilder();
             for (AudioTrack at : ap.getTracks()) {
-                toAdd.add(new AudioTrackContext(jdaEntityProvider, at, context.getMember()));
+                if (statusMessageCount < MAX_QUEUE_MESSAGE_DISPLAY) {
+                    statusMessageCount++;
+
+                    replyMessage.append(this.buildMusicQueueMessage(at.getInfo().title, at.getInfo().length))
+                            .append("\n\n");
+                }
+
+                trackProvider.add(new AudioTrackContext(jdaEntityProvider, at, context.getMember()));
             }
-            trackProvider.addAll(toAdd);
-            context.reply(context.i18nFormat("loadListSuccess", ap.getTracks().size(), ap.getName()));
+
+            if (ap.getTracks().size() > MAX_QUEUE_MESSAGE_DISPLAY) {
+                replyMessage.append("...\n");
+                context.reply(replyMessage + context.i18nFormat("loadListSuccess", ap.getTracks().size(), ap.getName()));
+            }
+
             if (!gplayer.isPaused()) {
                 gplayer.play();
             }
@@ -269,8 +281,6 @@ public class AudioLoader implements AudioLoadResultHandler {
             } else {
                 pairs.add(new ImmutablePair<>(timestamp, title2));
             }
-
-
         }
 
         if(pairs.size() < 2) {
@@ -278,9 +288,9 @@ public class AudioLoader implements AudioLoadResultHandler {
             return;
         }
 
-        ArrayList<SplitAudioTrackContext> list = new ArrayList<>();
-
         int i = 0;
+        MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder();
+
         for(Pair<Long, String> pair : pairs){
             long startPos;
             long endPos;
@@ -300,26 +310,27 @@ public class AudioLoader implements AudioLoadResultHandler {
 
             SplitAudioTrackContext atc = new SplitAudioTrackContext(jdaEntityProvider, newAt, ic.getMember(), startPos, endPos, pair.getRight());
 
-            list.add(atc);
+            if (i < MAX_QUEUE_MESSAGE_DISPLAY
+                    && !StringUtils.isBlank(atc.getEffectiveTitle())) {
+
+                mb.append(this.buildMusicQueueMessage(atc.getEffectiveTitle(), atc.getEffectiveDuration()))
+                        .append("\n\n");
+            }
+
             gplayer.queue(atc);
 
             i++;
         }
 
-        MessageBuilder mb = CentralMessaging.getClearThreadLocalMessageBuilder()
-                .append(ic.i18n("loadFollowingTracksAdded")).append("\n");
-        for(SplitAudioTrackContext atc : list) {
-            mb.append("`[")
-                    .append(TextUtils.formatTime(atc.getEffectiveDuration()))
-                    .append("]` ")
-                    .append(TextUtils.escapeAndDefuse(atc.getEffectiveTitle()))
-                    .append("\n");
+        if (i > MAX_QUEUE_MESSAGE_DISPLAY) {
+            mb.append("...\n");
+            mb.append(context.i18nFormat("loadListSuccess", i, at.getInfo().title));
         }
 
-        //This is pretty spammy .. let's use a shorter one
-        if(mb.length() > 800){
+        // This is pretty spammy .. let's use a shorter one
+        if (mb.length() > 800) {
             mb = CentralMessaging.getClearThreadLocalMessageBuilder()
-                    .append(ic.i18nFormat("loadPlaylistTooMany", list.size()));
+                    .append(ic.i18nFormat("loadPlaylistTooMany", i));
         }
 
         context.reply(mb.build());
@@ -355,4 +366,26 @@ public class AudioLoader implements AudioLoadResultHandler {
         }
     }
 
+    /**
+     * Build queue message based on title and duration.
+     * It will use player and context object to determine if something is playing.
+     * <p>
+     *     NOTE: It will not add a new line for each string, this assume the caller will handle newline.
+     * </p>
+     *
+     * @param title Title of the music.
+     * @param duration Duration of the music.
+     * @return String object representing the message to reply for each queue.
+     */
+    private String buildMusicQueueMessage(@Nonnull String title, long duration){
+
+        String playingStatusOrQueueTime = PlayerUtil.resolveStatusOrQueueMessage(gplayer, context);
+        String songTitleAndMusic =
+                TextUtils.boldenText(TextUtils.escapeAndDefuse(title)) + " " +
+                        "(" + TextUtils.formatTime(duration) + ")";
+
+        return playingStatusOrQueueTime +
+                "\n\t" +
+                songTitleAndMusic;
+    }
 }
