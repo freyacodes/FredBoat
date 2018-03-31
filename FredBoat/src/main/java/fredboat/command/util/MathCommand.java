@@ -90,7 +90,7 @@ public class MathCommand extends Command implements IUtilCommand {
                     case "divide":
                         try {
                             output = resultStr + num1.divide(num2, MathContext.DECIMAL64).stripTrailingZeros().toPlainString();
-                        } catch(ArithmeticException ex){
+                        } catch(ArithmeticException ex) {
                             output = context.i18n("mathOperationDivisionByZeroError");
                         }
                         break;
@@ -100,11 +100,19 @@ public class MathCommand extends Command implements IUtilCommand {
                         break;
                     case "perc":
                     case "percentage":
-                        output = resultStr + num1.divide(num2, MathContext.DECIMAL64).multiply(HUNDRED).stripTrailingZeros().toPlainString() + "%";
+                        try {
+                            output = resultStr + num1.divide(num2, MathContext.DECIMAL64).multiply(HUNDRED).stripTrailingZeros().toPlainString() + "%";
+                        } catch(ArithmeticException ex) {
+                            output = context.i18n("mathOperationDivisionByZeroError");
+                        }
                         break;
                     case "mod":
                     case "modulo":
-                        output = resultStr + num1.remainder(num2, MathContext.DECIMAL64);
+                        try {
+                            output = resultStr + num1.remainder(num2, MathContext.DECIMAL64);
+                        } catch(ArithmeticException ex) {
+                            output = context.i18n("mathOperationDivisionByZeroError");
+                        }
                         break;
                     default:
                         HelpCommand.sendFormattedCommandHelp(context);
