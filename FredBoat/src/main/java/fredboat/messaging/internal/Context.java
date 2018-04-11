@@ -41,8 +41,12 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.text.MessageFormat;
+import java.util.HashSet;
+import java.util.List;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Created by napster on 10.09.17.
@@ -146,8 +150,18 @@ public abstract class Context {
         CentralMessaging.sendTyping(getTextChannel());
     }
 
+    /**
+     * Privately DM the invoker
+     */
     public void replyPrivate(@Nonnull String message, @Nullable Consumer<Message> onSuccess, @Nullable Consumer<Throwable> onFail) {
-        getMember().getUser().openPrivateChannel().queue(
+        sendPrivate(getUser(), message, onSuccess, onFail);
+    }
+
+    /**
+     * Privately DM any user
+     */
+    public void sendPrivate(@Nonnull User user, @Nonnull String message, @Nullable Consumer<Message> onSuccess, @Nullable Consumer<Throwable> onFail) {
+        user.openPrivateChannel().queue(
                 privateChannel -> {
                     Metrics.successfulRestActions.labels("openPrivateChannel").inc();
                     CentralMessaging.message(privateChannel, message)
@@ -169,6 +183,62 @@ public abstract class Context {
     @CheckReturnValue
     public boolean hasPermissions(@Nonnull TextChannel tc, Permission... permissions) {
         return getGuild().getSelfMember().hasPermission(tc, permissions);
+    }
+
+    /**
+     * @return true if we the bot have all the provided permissions, false if not. Also informs the invoker about the
+     * missing permissions for the bot, given there is a channel to reply in.
+     */
+    public boolean checkSelfPermissionsWithFeedback(@Nonnull Permission... permissions) {
+        TextChannel channel = getTextChannel();
+        if (channel == null) {
+            return false;  //no textchannel? can't have any permissions at all in a non-guild environment
+        }
+        Member self = channel.getGuild().getSelfMember();
+        if (self == null) {
+            return false;  //an overly defensive null check
+        }
+
+        Set<Permission> missingPerms = new HashSet<>();
+        for (Permission permission : permissions) {
+            if (!self.hasPermission(channel, permission)) {
+                missingPerms.add(permission);
+            }
+        }
+        if (missingPerms.isEmpty()) {
+            return true;
+        } else {
+            List<String> permissionNames = missingPerms.stream().map(Permission::getName).collect(Collectors.toList());
+            reply(i18n("permissionMissingBot") + " **" + String.join("**, **", permissionNames) + "**");
+            return false;
+        }
+    }
+
+
+    /**
+     * @return true if the invoker has all the provided permissions, false if not. Also informs the invoker about the
+     * missing permissions, given there is a channel to reply in.
+     */
+    public boolean checkInvokerPermissionsWithFeedback(@Nonnull Permission... permissions) {
+        Member invoker = getMember();
+        TextChannel channel = getTextChannel();
+        if (invoker == null || channel == null) {
+            return false; //no invoker member or textchannel? can't have any permissions at all in a non-guild environment
+        }
+
+        Set<Permission> missingPerms = new HashSet<>();
+        for (Permission permission : permissions) {
+            if (!invoker.hasPermission(channel, permission)) {
+                missingPerms.add(permission);
+            }
+        }
+        if (missingPerms.isEmpty()) {
+            return true;
+        } else {
+            List<String> permissionNames = missingPerms.stream().map(Permission::getName).collect(Collectors.toList());
+            reply(i18n("permissionMissingInvoker") + " **" + String.join("**, **", permissionNames) + "**");
+            return false;
+        }
     }
 
     /**

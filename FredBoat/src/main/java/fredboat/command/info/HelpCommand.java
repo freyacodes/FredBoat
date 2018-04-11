@@ -55,6 +55,8 @@ import java.util.concurrent.TimeUnit;
 
 public class HelpCommand extends Command implements IInfoCommand {
 
+    public static final String LINK_DISCORD_DOCS_IDS = "https://support.discordapp.com/hc/en-us/articles/206346498";
+
     //keeps track of whether a user received help lately to avoid spamming/clogging up DMs which are rather harshly ratelimited
     public static final Cache<Long, Boolean> HELP_RECEIVED_RECENTLY = CacheBuilder.newBuilder()
             .recordStats()

@@ -36,6 +36,7 @@ import fredboat.messaging.internal.Context;
 import fredboat.shared.constant.BotConstants;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.exceptions.InsufficientPermissionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -448,5 +449,25 @@ public class TextUtils {
             throw new IllegalArgumentException();
         }
         return randomStringGenerator.generate(length);
+    }
+
+    /**
+     * @return a string representation of a member like this: {0}#{1} [{2}] EffectiveName#Discrim [id]
+     */
+    public static String asString(@Nonnull Member member) {
+        return String.format("%s#%s [%d]",
+                member.getEffectiveName(),
+                member.getUser().getDiscriminator(),
+                member.getUser().getIdLong());
+    }
+
+    /**
+     * @return a string representation of a user like this: {0}#{1} [{2}] Name#Discrim [id]
+     */
+    public static String asString(@Nonnull User user) {
+        return String.format("%s#%s [%d]",
+                user.getName(),
+                user.getDiscriminator(),
+                user.getIdLong());
     }
 }

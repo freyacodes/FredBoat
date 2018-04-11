@@ -26,16 +26,15 @@
 package fredboat.util;
 
 import fredboat.commandmeta.abs.CommandContext;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.IMentionable;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Role;
+import net.dv8tion.jda.core.entities.*;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ArgumentUtil {
@@ -43,6 +42,57 @@ public class ArgumentUtil {
     public static final int FUZZY_RESULT_LIMIT = 10;
 
     private ArgumentUtil() {
+    }
+
+    /**
+     * Search a collection of users for a search term.
+     *
+     * @param users       list of users to be searched
+     * @param term        the term the user shall be searched for
+     * @param includeBots false to exclude bots from results
+     */
+    @CheckReturnValue
+    public static List<User> fuzzyUserSearch(Collection<User> users, String term, boolean includeBots) {
+        ArrayList<User> list = new ArrayList<>();
+
+        String searchTerm = term.toLowerCase();
+
+        for (User user : users) {
+            if ((user.getName().toLowerCase() + "#" + user.getDiscriminator()).contains(searchTerm)
+                    || searchTerm.contains(user.getId())) {
+
+                if (!includeBots && user.isBot()) continue;
+                list.add(user);
+            }
+        }
+
+        return list;
+    }
+
+    /**
+     * Search a list of users for exactly one match. If there are no matches / multiple ones, the context will be
+     * informed accordingly informed, so that the caller of this method has nothing to do and should return.
+     *
+     * @param users       list of users to be searched
+     * @param context     the context of this search, where output may be directed if non / multiple results are found
+     * @param term        the term the user shall be searched for
+     * @param includeBots false to exclude bots from results
+     */
+
+    @CheckReturnValue
+    public static Optional<User> checkSingleFuzzyUserSearchResult(Collection<User> users, CommandContext context, String term, boolean includeBots) {
+        List<User> found = fuzzyUserSearch(users, term, includeBots);
+        switch (found.size()) {
+            case 0:
+                context.reply(context.i18nFormat("fuzzyNothingFound", term));
+                return Optional.empty();
+            case 1:
+                return Optional.of(found.get(0));
+            default:
+                context.reply(context.i18n("fuzzyMultiple") + "\n"
+                        + formatFuzzyUserResult(found, FUZZY_RESULT_LIMIT, 1900));
+                return Optional.empty();
+        }
     }
 
     @CheckReturnValue
@@ -102,6 +152,18 @@ public class ArgumentUtil {
         }
     }
 
+    @CheckReturnValue
+    @Nonnull
+    public static String formatFuzzyMemberResult(@Nonnull List<Member> members, int maxLines, int maxLength) {
+        return formatFuzzyUserOrMemberResult(UserWithOptionalNick.fromMembers(members), maxLines, maxLength);
+    }
+
+    @CheckReturnValue
+    @Nonnull
+    public static String formatFuzzyUserResult(@Nonnull List<User> users, int maxLines, int maxLength) {
+        return formatFuzzyUserOrMemberResult(UserWithOptionalNick.fromUsers(users), maxLines, maxLength);
+    }
+
     /**
      * Format a list of members as a text block, usually a result from a fuzzy search. The list should not be empty.
      *
@@ -110,9 +172,9 @@ public class ArgumentUtil {
      */
     @CheckReturnValue
     @Nonnull
-    public static String formatFuzzyMemberResult(@Nonnull List<Member> list, int maxLines, int maxLength) {
+    public static String formatFuzzyUserOrMemberResult(@Nonnull List<UserWithOptionalNick> list, int maxLines, int maxLength) {
 
-        List<Member> toDisplay;
+        List<UserWithOptionalNick> toDisplay;
         boolean addDots = false;
         if (list.size() > maxLines) {
             addDots = true;
@@ -131,7 +193,7 @@ public class ArgumentUtil {
                 .orElse(0)
                 + 5;//for displaying discrim
         int nickPadding = toDisplay.stream()
-                .mapToInt(member -> member.getNickname() != null ? TextUtils.escapeBackticks(member.getNickname()).length() : 0)
+                .mapToInt(member -> member.getNick().map(String::length).orElse(0))
                 .max()
                 .orElse(0);
 
@@ -139,7 +201,7 @@ public class ArgumentUtil {
                 .map(member -> TextUtils.padWithSpaces(member.getUser().getId(), idPadding, true)
                         + " " + TextUtils.padWithSpaces(TextUtils.escapeBackticks(member.getUser().getName())
                         + "#" + member.getUser().getDiscriminator(), namePadding, false)
-                        + " " + TextUtils.escapeBackticks(TextUtils.padWithSpaces(member.getNickname(), nickPadding, false))
+                        + " " + TextUtils.escapeBackticks(TextUtils.padWithSpaces(member.getNick().orElse(""), nickPadding, false))
                         + "\n")
                 .collect(Collectors.toList());
 
@@ -231,4 +293,36 @@ public class ArgumentUtil {
         return sb.toString().trim();
     }
 
+    private static class UserWithOptionalNick {
+
+        public static List<UserWithOptionalNick> fromUsers(Collection<User> users) {
+            return users.stream().map(UserWithOptionalNick::new).collect(Collectors.toList());
+        }
+
+        public static List<UserWithOptionalNick> fromMembers(Collection<Member> members) {
+            return members.stream().map(UserWithOptionalNick::new).collect(Collectors.toList());
+        }
+
+        private final User user;
+        @Nullable
+        private final String nick;
+
+        public UserWithOptionalNick(User user) {
+            this.user = user;
+            this.nick = null;
+        }
+
+        public UserWithOptionalNick(Member member) {
+            this.user = member.getUser();
+            this.nick = member.getNickname();
+        }
+
+        public User getUser() {
+            return user;
+        }
+
+        public Optional<String> getNick() {
+            return Optional.ofNullable(nick);
+        }
+    }
 }

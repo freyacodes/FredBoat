@@ -24,24 +24,23 @@
 
 package fredboat.command.moderation;
 
-import fredboat.command.info.HelpCommand;
-import fredboat.commandmeta.abs.Command;
 import fredboat.commandmeta.abs.CommandContext;
-import fredboat.commandmeta.abs.IModerationCommand;
 import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.CentralMessaging;
 import fredboat.messaging.internal.Context;
-import fredboat.util.ArgumentUtil;
 import fredboat.util.DiscordUtil;
 import fredboat.util.TextUtils;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.requests.RestAction;
+import net.dv8tion.jda.core.requests.restaction.AuditableRestAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 
 /**
@@ -49,9 +48,7 @@ import java.util.function.Consumer;
  * <p>
  * Kick a user.
  */
-//Basically copy pasta of the softban command. If you change something here make sure to check the related
-// moderation commands too.
-public class KickCommand extends Command implements IModerationCommand {
+public class KickCommand extends DiscordModerationCommand<Void> {
 
     private static final Logger log = LoggerFactory.getLogger(KickCommand.class);
 
@@ -59,93 +56,110 @@ public class KickCommand extends Command implements IModerationCommand {
         super(name, aliases);
     }
 
+    @Nonnull
     @Override
-    public void onInvoke(@Nonnull CommandContext context) {
-        Guild guild = context.guild;
-        //Ensure we have a search term
-        if (!context.hasArguments()) {
-            HelpCommand.sendFormattedCommandHelp(context);
-            return;
+    protected AuditableRestAction<Void> modAction(@Nonnull ModActionInfo modActionInfo) {
+        String auditLogReason = modActionInfo.getFormattedReason();
+        Guild guild = modActionInfo.getContext().guild;
+        if (modActionInfo.getTargetMember() != null) {
+            return guild.getController().kick(modActionInfo.getTargetMember(), auditLogReason);
         }
 
-        //was there a target provided?
-        Member target = ArgumentUtil.checkSingleFuzzyMemberSearchResult(context, context.args[0]);
-        if (target == null) return;
-
-        //are we allowed to do that?
-        if (!checkKickAuthorization(context, target)) return;
-
-        //putting together a reason
-        String plainReason = DiscordUtil.getReasonForModAction(context);
-        String auditLogReason = DiscordUtil.formatReasonForAuditLog(plainReason, context.invoker);
-
-        //putting together the action
-        RestAction<Void> modAction = guild.getController().kick(target, auditLogReason);
-
-        //on success
-        String successOutput = context.i18nFormat("kickSuccess",
-                TextUtils.escapeAndDefuse(target.getUser().getName()), target.getUser().getDiscriminator(), target.getUser().getId())
-                + "\n" + plainReason;
-        Consumer<Void> onSuccess = aVoid -> {
-            Metrics.successfulRestActions.labels("kick").inc();
-            context.replyWithName(successOutput);
-        };
-
-        //on fail
-        String failOutput = context.i18nFormat("kickFail", target.getUser());
-        Consumer<Throwable> onFail = t -> {
-            CentralMessaging.getJdaRestActionFailureHandler(String.format("Failed to kick user %s in guild %s",
-                    target.getUser().getId(), guild.getId())).accept(t);
-            context.replyWithName(failOutput);
-        };
-
-        //issue the mod action
-        modAction.queue(onSuccess, onFail);
+        //we should not reach this place due to requiresMember() = true implementation
+        log.warn("Requested kick action for null member. This looks like a bug. Returning EmptyRestAction. User input:\n{}",
+                modActionInfo.getContext().msg.getContentRaw());
+        return new AuditableRestAction.EmptyRestAction<>(modActionInfo.getContext().guild.getJDA());
     }
 
-    private boolean checkKickAuthorization(CommandContext context, Member target) {
+    @Override
+    protected boolean requiresMember() {
+        return true; //can't kick non-members
+    }
+
+    @Nonnull
+    @Override
+    protected Consumer<Void> onSuccess(@Nonnull ModActionInfo modActionInfo) {
+        String successOutput = modActionInfo.getContext().i18nFormat("kickSuccess",
+                modActionInfo.getTargetUser().getAsMention() + " " + TextUtils.escapeAndDefuse(modActionInfo.targetAsString()))
+                + "\n" + TextUtils.escapeAndDefuse(modActionInfo.getPlainReason());
+        return aVoid -> {
+            Metrics.successfulRestActions.labels("kick").inc();
+            modActionInfo.getContext().replyWithName(successOutput);
+        };
+    }
+
+    @Nonnull
+    @Override
+    protected Consumer<Throwable> onFail(@Nonnull ModActionInfo modActionInfo) {
+        String escapedTargetName = TextUtils.escapeAndDefuse(modActionInfo.targetAsString());
+        return t -> {
+            CommandContext context = modActionInfo.getContext();
+            CentralMessaging.getJdaRestActionFailureHandler(String.format("Failed to kick user %s in guild %s",
+                    modActionInfo.getTargetUser(), context.guild)).accept(t);
+            context.replyWithName(context.i18nFormat("kickFail",
+                    modActionInfo.getTargetUser().getAsMention() + " " + escapedTargetName));
+        };
+    }
+
+    @Override
+    protected CompletionStage<Boolean> checkAuthorizationWithFeedback(@Nonnull ModActionInfo modActionInfo) {
+        CommandContext context = modActionInfo.getContext();
+        Member target = modActionInfo.getTargetMember();
         Member mod = context.invoker;
+
+        if (!context.checkInvokerPermissionsWithFeedback(Permission.KICK_MEMBERS)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (!context.checkSelfPermissionsWithFeedback(Permission.KICK_MEMBERS)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (target == null) {
+            return CompletableFuture.completedFuture(true);
+        }
+
+
         if (mod == target) {
             context.replyWithName(context.i18n("kickFailSelf"));
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
 
         if (target.isOwner()) {
             context.replyWithName(context.i18n("kickFailOwner"));
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
 
         if (target == target.getGuild().getSelfMember()) {
             context.replyWithName(context.i18n("kickFailMyself"));
-            return false;
-        }
-
-        if (!mod.hasPermission(Permission.KICK_MEMBERS) && !mod.isOwner()) {
-            context.replyWithName(context.i18n("kickFailUserPerms"));
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
 
         if (DiscordUtil.getHighestRolePosition(mod) <= DiscordUtil.getHighestRolePosition(target) && !mod.isOwner()) {
             context.replyWithName(context.i18nFormat("modFailUserHierarchy", TextUtils.escapeAndDefuse(target.getEffectiveName())));
-            return false;
-        }
-
-        if (!mod.getGuild().getSelfMember().hasPermission(Permission.KICK_MEMBERS)) {
-            context.replyWithName(context.i18n("modKickBotPerms"));
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
 
         if (DiscordUtil.getHighestRolePosition(mod.getGuild().getSelfMember()) <= DiscordUtil.getHighestRolePosition(target)) {
             context.replyWithName(context.i18nFormat("modFailBotHierarchy", TextUtils.escapeAndDefuse(target.getEffectiveName())));
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
 
-        return true;
+        return CompletableFuture.completedFuture(true);
+    }
+
+    @Override
+    protected Optional<String> dmForTarget(ModActionInfo modActionInfo) {
+        return Optional.of(modActionInfo.getContext().i18nFormat("modActionTargetDmKicked",
+                "**" + TextUtils.escapeMarkdown(modActionInfo.getContext().getGuild().getName()) + "**",
+                TextUtils.asString(modActionInfo.getContext().getUser()))
+                + "\n" + modActionInfo.getPlainReason()
+        );
     }
 
     @Nonnull
     @Override
     public String help(@Nonnull Context context) {
-        return "{0}{1} <user> <reason>\n#" + context.i18n("helpKickCommand");
+        return "{0}{1} <user>\n"
+                + "{0}{1} <user> <reason>\n"
+                + "#" + context.i18n("helpKickCommand");
     }
 }

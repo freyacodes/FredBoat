@@ -28,9 +28,7 @@ package fredboat.util;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import fredboat.commandmeta.abs.CommandContext;
 import fredboat.config.property.Credentials;
-import fredboat.feature.I18n;
 import fredboat.feature.metrics.Metrics;
 import fredboat.main.BotController;
 import fredboat.shared.constant.BotConstants;
@@ -49,8 +47,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.List;
 
 public class DiscordUtil {
@@ -192,25 +188,6 @@ public class DiscordUtil {
     public static int getShardId(long guildId, Credentials credentials) {
         return (int) ((guildId >> 22) % credentials.getRecommendedShardCount());
     }
-
-    // ########## Moderation related helper functions
-    public static String getReasonForModAction(CommandContext context) {
-        String r = null;
-        if (context.args.length > 1) { //ignore the first arg which contains the name/mention of the user
-            r = String.join(" ", Arrays.copyOfRange(context.args, 1, context.args.length));
-        }
-
-        return context.i18n("modReason") + ": " + (r != null ? r : "No reason provided.");
-    }
-
-    public static String formatReasonForAuditLog(String plainReason, Member invoker) {
-        String i18nAuditLogMessage = MessageFormat.format(I18n.get(invoker.getGuild()).getString("modAuditLogMessage"),
-                invoker.getEffectiveName(), invoker.getUser().getDiscriminator(), invoker.getUser().getId()) + ", ";
-        int auditLogMaxLength = 512 - i18nAuditLogMessage.length(); //512 is a hard limit by discord
-        return i18nAuditLogMessage + (plainReason.length() > auditLogMaxLength ?
-                plainReason.substring(0, auditLogMaxLength) : plainReason);
-    }
-
 
     //like JDAs ApplicationInfo but without any references to JDA objects to prevent leaks
     //use this to cache the app info
