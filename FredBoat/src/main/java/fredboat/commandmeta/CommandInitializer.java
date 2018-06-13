@@ -50,10 +50,12 @@ import fredboat.util.rest.TrackSearcher;
 import fredboat.util.rest.Weather;
 import fredboat.util.rest.YoutubeAPI;
 import io.prometheus.client.guava.cache.CacheMetricsCollector;
+import org.springframework.context.ApplicationContext;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.function.Supplier;
 
 public class CommandInitializer {
 
@@ -73,7 +75,7 @@ public class CommandInitializer {
     public static void initCommands(@Nullable CacheMetricsCollector cacheMetrics, Weather weather, TrackSearcher trackSearcher,
                                     VideoSelectionCache videoSelectionCache, SentryConfiguration sentryConfiguration,
                                     PlayerLimiter playerLimiter, YoutubeAPI youtubeAPI, Sentinel sentinel,
-                                    SentinelCountingService countingService) {
+                                    SentinelCountingService countingService, Supplier<ApplicationContext> springContext) {
 
         // Administrative Module - always on (as in, essential commands for BOT_ADMINs and BOT_OWNER)
         CommandRegistry adminModule = new CommandRegistry(Module.ADMIN);
@@ -82,7 +84,7 @@ public class CommandInitializer {
         adminModule.registerCommand(new DisableCommandsCommand("disable"));
         adminModule.registerCommand(new DiscordPermissionCommand("discordpermissions", "disperms"));
         adminModule.registerCommand(new EnableCommandsCommand("enable"));
-        adminModule.registerCommand(new EvalCommand("eval"));
+        adminModule.registerCommand(new EvalCommand(springContext::get, "eval"));
         adminModule.registerCommand(new ExitCommand("exit"));
         adminModule.registerCommand(new GetNodeCommand("getnode"));
         adminModule.registerCommand(new LeaveServerCommand("leaveserver"));

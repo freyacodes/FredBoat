@@ -29,10 +29,13 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 import org.springframework.boot.context.event.ApplicationFailedEvent
+import org.springframework.context.ApplicationContext
+import org.springframework.context.ApplicationContextAware
 import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.ComponentScan
 import java.io.IOException
 import java.util.concurrent.ExecutorService
+import java.util.function.Supplier
 
 /**
  * The class responsible for launching FredBoat
@@ -59,7 +62,9 @@ open class Launcher(
         private val invalidationAgent: GuildCacheInvalidationAgent,
         private val voiceChannelCleanupAgent: VoiceChannelCleanupAgent,
         private val carbonitexAgent: CarbonitexAgent
-) : ApplicationRunner {
+) : ApplicationRunner, ApplicationContextAware {
+
+    lateinit var springContext: ApplicationContext
 
     init {
         Launcher.botController = botController
@@ -72,7 +77,8 @@ open class Launcher(
 
         //Commands
         CommandInitializer.initCommands(cacheMetrics, weather, trackSearcher, videoSelectionCache, sentryConfiguration,
-                playerLimiter, youtubeAPI, botController.sentinel, botController.sentinelCountingService)
+                playerLimiter, youtubeAPI, botController.sentinel, botController.sentinelCountingService,
+                Supplier { this.springContext })
         log.info("Loaded commands, registry size is " + CommandRegistry.getTotalSize())
 
         if (!configProvider.appConfig.isPatronDistribution) {
@@ -177,6 +183,10 @@ open class Launcher(
         return TODO()
         //return shardProvider.streamShards()
         //        .anyMatch(shard -> shard.getStatus() != JDA.Status.CONNECTED);
+    }
+
+    override fun setApplicationContext(applicationContext: ApplicationContext) {
+        springContext = applicationContext
     }
 
     companion object {

@@ -34,6 +34,7 @@ import fredboat.messaging.internal.Context
 import fredboat.util.TextUtils
 import lavalink.client.player.LavalinkPlayer
 import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationContext
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
@@ -42,7 +43,11 @@ import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
 import javax.script.ScriptException
 
-class EvalCommand(name: String, vararg aliases: String) : Command(name, *aliases), ICommandRestricted {
+class EvalCommand(
+        private val springContext: () -> ApplicationContext,
+        name: String,
+        vararg aliases: String
+) : Command(name, *aliases), ICommandRestricted {
 
     companion object {
         private val log = LoggerFactory.getLogger(EvalCommand::class.java)
@@ -115,6 +120,7 @@ class EvalCommand(name: String, vararg aliases: String) : Command(name, *aliases
             engine.put("player", player)
             engine.put("pm", Launcher.botController.audioPlayerManager)
             engine.put("context", context)
+            engine.put("spring", springContext.invoke())
         }
 
         val service = Executors.newScheduledThreadPool(1) { r -> Thread(r, "Eval comm execution") }
