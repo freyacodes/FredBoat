@@ -15,7 +15,7 @@ For installation instructions, go to [https://fredboat.com/docs/selfhosting](htt
 [![Docker Pulls](https://img.shields.io/docker/pulls/fredboat/fredboat.svg)](https://fredboat.com/docs/selfhosting) [![Docker layers](https://images.microbadger.com/badges/image/fredboat/fredboat:dev.svg)](https://microbadger.com/images/fredboat/fredboat:dev "Get your own image badge on microbadger.com")
 
 ## Contributing
-If you are interested, you can read about contributing to this project [here](https://github.com/Frederikam/FredBoat/blob/master/CONTRIBUTING.md).
+If you are interested, you can read about contributing to this project [here](CONTRIBUTING.md).
 
 ## Code of Conduct
-The code of conduct for this project can be found [here](https://github.com/Frederikam/FredBoat/blob/master/CODE_OF_CONDUCT.md).
+The code of conduct for this project can be found [here](CODE_OF_CONDUCT.md).
