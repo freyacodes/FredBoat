@@ -41,16 +41,16 @@ public class WeatherCommand extends Command implements IUtilCommand {
         }
 
         String query = context.rawArgs;
-        String alphabeticalQuery = query.replaceAll("[^A-Za-z\\s]", "");
+        String sanitizedQuery = query.trim().replaceAll("\\s+", " ");
 
-        if (alphabeticalQuery == null || alphabeticalQuery.length() == 0) {
+        if (sanitizedQuery == null || sanitizedQuery.length() == 0) {
             HelpCommand.sendFormattedCommandHelp(context);
             return;
         }
 
         RetrievedWeather currentWeather;
         try {
-            currentWeather = weather.getCurrentWeatherByCity(alphabeticalQuery);
+            currentWeather = weather.getCurrentWeatherByCity(sanitizedQuery);
         } catch (APILimitException e) {
             context.reply(context.i18n("tryLater"));
             return;
