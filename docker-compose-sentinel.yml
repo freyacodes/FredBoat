@@ -54,6 +54,9 @@ services:
     restart: always
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
+    volumes:
+      - ./lavalink.yaml:/opt/Lavalink/application.yaml
+      - ./lavalink_logs:/opt/Lavalink/logs
 
   ################################################################################
   ##                               Sentinel
@@ -71,6 +74,8 @@ services:
       # Find the token of your bot on https://discordapp.com/developers/applications/me
       # Tutorial: https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token
       - "SENTINEL_DISCORDTOKEN=write_your_discord_bot_token_here"
+    # Need a bigger memory size or any other custom JVM args? uncomment and edit the line below accordingly
+    #entrypoint: java -Xmx512m -jar sentinel.jar
 
   ################################################################################
   ##                     Quarterdeck (Database Backend)
