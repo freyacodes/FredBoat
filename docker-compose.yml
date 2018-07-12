@@ -45,8 +45,9 @@ services:
     # FredBoat selfhosting website and/or the selfhosters channel (see top of this file for how to get to these places)
     # Once you use the dev branch, you may not be able to go back to stable without deleting your database.
     # To run on (some) arm based machines, prepend the tag with arm64v8-, for example: fredboat/quarterdeck:arm64v8-dev-v1
-    #image: fredboat/quarterdeck:stable-v1
-    image: fredboat/quarterdeck:dev-v1
+    # NOTE: Don't use the dev-v1 build unless otherwise noted as it has breaking changes with the other builds.
+    #image: fredboat/quarterdeck:dev-v1
+    image: fredboat/quarterdeck:stable-v1
     restart: always
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
