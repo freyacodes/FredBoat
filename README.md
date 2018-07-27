@@ -19,3 +19,9 @@ If you are interested, you can read about contributing to this project [here](CO
 
 ## Code of Conduct
 The code of conduct for this project can be found [here](CODE_OF_CONDUCT.md).
+
+---
+
+[![JetBrains](https://i.imgur.com/NDUSEDS.png)](https://www.jetbrains.com/)
+
+Thanks to JetBrains for sponsoring our project with free product licenses.
