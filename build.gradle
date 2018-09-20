@@ -59,7 +59,7 @@ subprojects {
         springBootVersion           = "${springBootVersion}"
         kotlinVersion               = "${kotlinVersion}"
         //discord deps
-        jdaVersion                  = '3.6.0_354'
+        jdaVersion                  = '3.8.0_425'
 
         //audio deps
         lavaplayerVersion           = '1.2.62'
