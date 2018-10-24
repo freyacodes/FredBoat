@@ -206,7 +206,7 @@ public class CommandInitializer {
         funModule.registerCommand(new RandomImageCommand("https://imgur.com/a/mnhzS", "wombat"));
         funModule.registerCommand(new RandomImageCommand("https://imgur.com/a/hfL80", "capybara"));
         funModule.registerCommand(new RandomImageCommand("https://imgur.com/a/WvjQA", "quokka"));
-        funModule.registerCommand(new RandomImageCommand("https://imgur.com/a/0Ig59", "pika"));
+        funModule.registerCommand(new RandomImageCommand("https://imgur.com/a/7ZuLyWH", "pika"));
 
         // Music Module
 
