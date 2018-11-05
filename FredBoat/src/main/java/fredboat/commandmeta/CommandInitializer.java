@@ -106,10 +106,11 @@ public class CommandInitializer {
         infoModule.registerCommand(new MusicHelpCommand(MUSICHELP_COMM_NAME, "musichelp"));
         infoModule.registerCommand(new PingCommand("ping"));
         infoModule.registerCommand(new ShardsCommand("shards"));
-        infoModule.registerCommand(new StatsCommand("stats", "uptime"));
+        infoModule.registerCommand(new StatsCommand("stats"));
         infoModule.registerCommand(new VersionCommand("version"));
         infoModule.registerCommand(new TextCommand("https://github.com/Frederikam", "github"));
         infoModule.registerCommand(new TextCommand(BotConstants.GITHUB_URL, "repo"));
+        infoModule.registerCommand(new UptimeCommand("uptime"));
 
 
         // Configurational stuff - always on
