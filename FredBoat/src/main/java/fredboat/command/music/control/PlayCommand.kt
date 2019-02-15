@@ -104,8 +104,7 @@ class PlayCommand(private val playerLimiter: PlayerLimiter, private val trackSea
 
     private suspend fun handleNoArguments(context: CommandContext, player: GuildPlayer?) {
         if (player == null || player.isQueueEmpty) {
-            context.reply(context.i18n("playQueueEmpty")
-                    .replace(";;play", context.prefix + context.command.name))
+            context.reply(context.i18nFormat("playQueueEmpty", context.prefix, context.command.name))
         } else if (player.isPlaying && !isPriority) {
             context.reply(context.i18n("playAlreadyPlaying"))
         } else if (player.humanUsersInCurrentVC.isEmpty() && context.guild.selfMember.voiceChannel != null) {
