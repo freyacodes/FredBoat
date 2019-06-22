@@ -44,6 +44,8 @@ import fredboat.command.music.seeking.RewindCommand
 import fredboat.command.music.seeking.SeekCommand
 import fredboat.command.util.*
 import fredboat.config.SentryConfiguration
+import fredboat.config.property.AppConfig
+import fredboat.db.api.GuildSettingsRepository
 import fredboat.definitions.Module
 import fredboat.definitions.PermissionLevel
 import fredboat.definitions.SearchProvider
@@ -60,10 +62,20 @@ import java.util.*
 import java.util.function.Supplier
 
 @Service
-class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, trackSearcher: TrackSearcher,
-                         videoSelectionCache: VideoSelectionCache, sentryConfiguration: SentryConfiguration,
-                         playerLimiter: PlayerLimiter, youtubeAPI: YoutubeAPI, sentinel: Sentinel,
-                         playerRegistry: PlayerRegistry, springContext: Supplier<ApplicationContext>) {
+class CommandInitializer(
+        cacheMetrics: CacheMetricsCollector,
+        weather: Weather,
+        trackSearcher: TrackSearcher,
+        videoSelectionCache: VideoSelectionCache,
+        sentryConfiguration: SentryConfiguration,
+        playerLimiter: PlayerLimiter,
+        youtubeAPI: YoutubeAPI,
+        sentinel: Sentinel,
+        playerRegistry: PlayerRegistry,
+        guildSettingsRepository: GuildSettingsRepository,
+        appConfig: AppConfig,
+        springContext: Supplier<ApplicationContext>
+) {
 
     companion object {
         /** Used for integration testing  */
@@ -127,14 +139,15 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
 
         // Configurational stuff - always on
         val configModule = CommandRegistry(Module.CONFIG)
-        configModule.registerCommand(ConfigCommand(CONFIG_COMM_NAME, "cfg"))
+        configModule.registerCommand(ConfigCommand(CONFIG_COMM_NAME, guildSettingsRepository, "cfg"))
         configModule.registerCommand(LanguageCommand(LANGUAGE_COMM_NAME, "lang"))
-        configModule.registerCommand(ModulesCommand("modules", "module", "mods"))
-        configModule.registerCommand(PrefixCommand(cacheMetrics, PREFIX_COMM_NAME, "pre"))
+        configModule.registerCommand(ModulesCommand("modules", guildSettingsRepository, "module", "mods"))
+        configModule.registerCommand(PrefixCommand(guildSettingsRepository, PREFIX_COMM_NAME, "pre"))
+        configModule.registerCommand(ConfigWebInfoCommand("webinfo", repo = guildSettingsRepository, appConfig = appConfig))
         /* Perms */
-        configModule.registerCommand(PermissionsCommand(PermissionLevel.ADMIN, "admin", "admins"))
-        configModule.registerCommand(PermissionsCommand(PermissionLevel.DJ, "dj", "djs"))
-        configModule.registerCommand(PermissionsCommand(PermissionLevel.USER, "user", "users"))
+        configModule.registerCommand(PermissionsCommand(PermissionLevel.ADMIN, guildSettingsRepository, "admin", "admins"))
+        configModule.registerCommand(PermissionsCommand(PermissionLevel.DJ, guildSettingsRepository, "dj", "djs"))
+        configModule.registerCommand(PermissionsCommand(PermissionLevel.USER, guildSettingsRepository, "user", "users"))
 
 
         // Moderation Module - Anything related to managing Discord guilds
@@ -237,6 +250,7 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
         musicModule.registerCommand(PlayCommand(playerLimiter, trackSearcher, videoSelectionCache,
                 listOf(SearchProvider.SOUNDCLOUD),
                 SOUNDCLOUD_COMM_NAME, "sc"))
+        musicModule.registerCommand(ReplayCommand("replay", "rp"))
         musicModule.registerCommand(PlayCommand(playerLimiter, trackSearcher, videoSelectionCache,
                 listOf(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD),
                 "playnext", "playtop", "pn", isPriority = true))
@@ -246,6 +260,7 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
         musicModule.registerCommand(SelectCommand(videoSelectionCache, "select",
                 *buildNumericalSelectAliases("sel")))
         musicModule.registerCommand(ShuffleCommand("shuffle", "sh", "random"))
+        musicModule.registerCommand(RoundRobbinCommand("roundrobin", "rr"))
         musicModule.registerCommand(SkipCommand(SKIP_COMM_NAME, "sk", "s"))
         musicModule.registerCommand(StopCommand("stop", "st"))
         musicModule.registerCommand(UnpauseCommand("unpause", "unp", "resume"))
@@ -262,7 +277,7 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
 
         /* Seeking */
         musicModule.registerCommand(ForwardCommand("forward", "fwd"))
-        musicModule.registerCommand(RestartCommand("restart", "replay"))
+        musicModule.registerCommand(RestartCommand("restart"))
         musicModule.registerCommand(RewindCommand("rewind", "rew"))
         musicModule.registerCommand(SeekCommand("seek"))
         initialized = true

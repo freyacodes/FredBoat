@@ -63,9 +63,6 @@ import java.util.Set;
  * request (either returns with success or throws a failure)
  * - the paste service AudioPlayerManager should not contain the paste playlist importer to avoid recursion / users
  * abusing fredboat into paste file chains
- *
- *
- * We manage the lifecycles of these Beans ourselves. See {@link fredboat.event.MusicPersistenceHandler}
  */
 @Configuration
 public class AudioPlayerManagerConfiguration {

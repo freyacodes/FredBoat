@@ -4,6 +4,7 @@ import com.fredboat.sentinel.entities.AudioQueueRequest
 import com.fredboat.sentinel.entities.AudioQueueRequestEnum.*
 import fredboat.perms.InsufficientPermissionException
 import fredboat.perms.Permission.*
+import fredboat.sentinel.Guild
 import fredboat.sentinel.VoiceChannel
 import lavalink.client.io.Link
 import org.slf4j.Logger
@@ -59,6 +60,16 @@ class SentinelLink(val lavalink: SentinelLavalink, guildId: String) : Link(laval
         queueAudioConnect(channel.id)
     }
 
+    fun getChannel(guild: Guild): VoiceChannel? {
+        val id = channel ?: return null
+        val vc = guild.getVoiceChannel(id.toLong())
+
+        if (vc != null) return vc
+
+        log.warn("Lavalink appears to be connected to vc $id, which doesn't seem to exist in $guild")
+        return null
+    }
+
     override fun onVoiceWebSocketClosed(code: Int, reason: String, byRemote: Boolean) {
         val by = if (byRemote) "Discord" else "LLS"
         log.info("{}: Lavalink voice WS closed by {}, code {}: {}", guild, by, code, reason)
@@ -75,8 +86,8 @@ class SentinelLink(val lavalink: SentinelLavalink, guildId: String) : Link(laval
                 queueAudioConnect(vc.toLong())
             } else {
                 log.warn("{}: Got WS close code $code twice within $MIN_RETRY_INTERVAL ms, disconnecting " +
-                        " to prevent bouncing and getting stuck...", guild)
-                queueAudioDisconnect()
+                        "to prevent bouncing and getting stuck...", guild)
+                disconnect()
             }
         }
     }

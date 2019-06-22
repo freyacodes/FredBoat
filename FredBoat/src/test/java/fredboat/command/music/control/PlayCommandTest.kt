@@ -72,18 +72,24 @@ internal class PlayCommandTest(
             assertReply { it.contains("Best of Demetori") && it.contains("will now play") }
             assertNotNull(players.getExisting(guild))
 
-            delayUntil { players.getOrCreate(guild).playingTrack != null }
-            assertNotNull(players.getOrCreate(guild).playingTrack)
-            assertEquals(url, players.getOrCreate(guild).playingTrack?.track?.info?.uri)
+            delayUntil { players.getOrCreate(guild).block()!!.playingTrack != null }
+            val track = players.getOrCreate(guild).block()?.playingTrack
+            assertNotNull(track)
+            assertEquals(url, track?.track?.info?.uri)
         }
 
         testCommand(";;play $url2") {
             assertRequest<AudioQueueRequest> { it.channel == Raws.musicChannel.id }
             assertReply { it.contains("BEGIERDE DES ZAUBERER") && it.contains("has been added to the queue") }
 
-            delayUntil { players.getOrCreate(guild).remainingTracks.size == 2 }
-            assertNotNull(players.getOrCreate(guild).remainingTracks[1])
-            assertEquals(url2, players.getOrCreate(guild).remainingTracks[1].track.info?.uri)
+            delayUntil { players.getOrCreate(guild).block()!!.remainingTracks.size == 2 }
+
+            val track = players.getOrCreate(guild).block()?.remainingTracks?.get(1)
+            assertNotNull(track)
+            assertEquals(url2, track?.track?.info?.uri)
+
+            // Check that the first track is still playing
+            assertEquals(url, players.getOrCreate(guild).block()?.playingTrack?.track?.info?.uri)
         }
     }
 
@@ -97,7 +103,7 @@ internal class PlayCommandTest(
         // We should unpause
         testCommand(";;play") {
             delayUntil { players.getExisting(guild)?.isPlaying == true }
-            assertFalse("Assert unpaused", players.getOrCreate(guild).isPaused)
+            assertFalse("Assert unpaused", players.awaitPlayer(guild).isPaused)
             assertReply("The player will now play.")
         }
     }

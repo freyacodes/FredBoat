@@ -26,6 +26,7 @@
 package fredboat.audio.queue
 
 import fredboat.definitions.RepeatMode
+import org.bson.types.ObjectId
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -133,7 +134,7 @@ class SimpleTrackProvider : AbstractTrackProvider() {
         }
     }
 
-    override fun removeAllById(trackIds: Collection<Long>) {
+    override fun removeAllById(trackIds: Collection<ObjectId>) {
         queue.removeIf { audioTrackContext -> trackIds.contains(audioTrackContext.trackId) }
         shouldUpdateShuffledQueue = true
     }
@@ -186,27 +187,23 @@ class SimpleTrackProvider : AbstractTrackProvider() {
         return queue.size
     }
 
+    override fun getCountByUser(userId: Long): Int {
+        return queue.count { it.userId == userId }
+    }
+
     override fun add(track: AudioTrackContext) {
         shouldUpdateShuffledQueue = true
-        queue.add(track)
+
+        if (!track.isPriority)
+            queue.add(track)
+        else
+            queue.addFirst(track)
     }
 
     override fun addAll(tracks: Collection<AudioTrackContext>) {
         shouldUpdateShuffledQueue = true
-        queue.addAll(tracks)
-    }
 
-    override fun addFirst(track: AudioTrackContext) {
-        shouldUpdateShuffledQueue = true
-        track.rand = Integer.MIN_VALUE
-        queue.addFirst(track)
-    }
-
-    override fun addAllFirst(tracks: Collection<AudioTrackContext>) {
-        shouldUpdateShuffledQueue = true
-        tracks.reversed().forEach {
-            it.rand = Integer.MIN_VALUE
-            queue.addFirst(it) }
+        if (tracks.all { it.isPriority }) queue.addAllFirst(tracks) else queue.addAll(tracks)
     }
 
     override fun clear() {
@@ -244,7 +241,7 @@ class SimpleTrackProvider : AbstractTrackProvider() {
         }
     }
 
-    override fun isUserTrackOwner(userId: Long, trackIds: Collection<Long>): Boolean {
+    override fun isUserTrackOwner(userId: Long, trackIds: Collection<ObjectId>): Boolean {
         for (atc in asListOrdered) {
             if (trackIds.contains(atc.trackId) && atc.userId != userId) {
                 return false
@@ -253,3 +250,8 @@ class SimpleTrackProvider : AbstractTrackProvider() {
         return true
     }
 }
+
+fun ConcurrentLinkedDeque<AudioTrackContext>.addAllFirst(tracks: Collection<AudioTrackContext>) {
+    tracks.reversed().forEach { addFirst(it) }
+}
+

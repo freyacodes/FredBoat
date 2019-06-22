@@ -69,11 +69,9 @@ public class MetricsController {
         }
 
         Writer writer = new StringWriter();
-        try {
+        try (writer) {
             TextFormat.write004(writer, registry.filteredMetricFamilySamples(params));
             writer.flush();
-        } finally {
-            writer.close();
         }
 
         return writer.toString();

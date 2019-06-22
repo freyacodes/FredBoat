@@ -25,6 +25,8 @@
 
 package fredboat.audio.queue
 
+import org.bson.types.ObjectId
+
 interface ITrackProvider {
 
     /**
@@ -68,6 +70,11 @@ interface ITrackProvider {
     fun size(): Int
 
     /**
+     * @return amount of tracks in the queue filtered by userId
+     */
+    fun getCountByUser(userId: Long): Int
+
+    /**
      * @param track add a track to the queue
      */
     fun add(track: AudioTrackContext)
@@ -76,20 +83,6 @@ interface ITrackProvider {
      * @param tracks add several tracks to the queue
      */
     fun addAll(tracks: Collection<AudioTrackContext>)
-
-    /**
-     * Add track to the front of the queue
-     *
-     * @param track track to be added
-     */
-    fun addFirst(track: AudioTrackContext)
-
-    /**
-     * Add a collection of tracks to the front of the queue
-     *
-     * @param tracks collection of tracks to be added
-     */
-    fun addAllFirst(tracks: Collection<AudioTrackContext>)
 
     /**
      * empty the queue
@@ -112,7 +105,7 @@ interface ITrackProvider {
     /**
      * @param trackIds tracks to be removed from the queue
      */
-    fun removeAllById(trackIds: Collection<Long>)
+    fun removeAllById(trackIds: Collection<ObjectId>)
 
     /**
      * @param index the index of the requested track in playing order
@@ -140,6 +133,6 @@ interface ITrackProvider {
     /**
      * @return false if any of the provided tracks was added by user that is not the provided userId
      */
-    fun isUserTrackOwner(userId: Long, trackIds: Collection<Long>): Boolean
+    fun isUserTrackOwner(userId: Long, trackIds: Collection<ObjectId>): Boolean
 
 }

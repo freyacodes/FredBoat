@@ -49,6 +49,7 @@ import fredboat.util.ratelimit.Ratelimiter
 import io.prometheus.client.guava.cache.CacheMetricsCollector
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.reactive.awaitSingle
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -78,12 +79,7 @@ class MessageEventHandler(
     }
 
     override fun onGuildMessage(event: MessageReceivedEvent) {
-        if (ratelimiter.isBlacklisted(event.author)) {
-            Metrics.blacklistedMessagesReceived.inc()
-            return
-        }
-
-        if (sentinel.selfUser.id == event.author) log.info(if(event.content.isBlank()) "<empty>" else event.content)
+        if (sentinel.selfUser.id == event.author) log.info(if (event.content.isBlank()) "<empty>" else event.content)
         if (event.fromBot) return
 
         //Preliminary permission filter to avoid a ton of parsing
@@ -94,6 +90,11 @@ class MessageEventHandler(
                 && !event.content.contains(CommandInitializer.HELP_COMM_NAME)) return
 
         GlobalScope.launch {
+            if (ratelimiter.isBlacklisted(event.author).awaitSingle()) {
+                Metrics.blacklistedMessagesReceived.inc()
+                return@launch
+            }
+
             val context = commandContextParser.parse(event) ?: return@launch
 
             // Renew the time to prevent invalidation
@@ -141,38 +142,36 @@ class MessageEventHandler(
     }
 
     override fun onPrivateMessage(author: User, content: String) {
-        if (ratelimiter.isBlacklisted(author.id)) {
-            Metrics.blacklistedMessagesReceived.inc()
-            return
-        }
-
         //Technically not possible anymore to receive private messages from bots but better safe than sorry
         //Also ignores our own messages since we're a bot
         if (author.isBot) {
             return
         }
 
-        //quick n dirty bot admin / owner check
-        if (appConfig.adminIds.contains(author.id) || sentinel.applicationInfo.ownerId == author.id) {
+        GlobalScope.launch {
+            if (ratelimiter.isBlacklisted(author.id).awaitSingle()) {
+                Metrics.blacklistedMessagesReceived.inc()
+                return@launch
+            }
 
-            //hack in / hardcode some commands; this is not meant to look clean
-            val lowered = content.toLowerCase()
-            if (lowered.contains("shard")) {
-                GlobalScope.launch {
+            //quick n dirty bot admin / owner check
+            if (appConfig.adminIds.contains(author.id) || sentinel.applicationInfo.ownerId == author.id) {
+
+                //hack in / hardcode some commands; this is not meant to look clean
+                val lowered = content.toLowerCase()
+                if (lowered.contains("shard")) {
                     for (message in ShardsCommand.getShardStatus(author.sentinel, content)) {
                         author.sendPrivate(message).subscribe()
                     }
-                }
-                return
-            } else if (lowered.contains("stats")) {
-                GlobalScope.launch {
+                    return@launch
+                } else if (lowered.contains("stats")) {
                     author.sendPrivate(StatsCommand.getStats(null)).subscribe()
+                    return@launch
                 }
-                return
             }
-        }
 
-        HelpCommand.sendGeneralHelp(author, content)
+            HelpCommand.sendGeneralHelp(author, content)
+        }
     }
 
     override fun onGuildMessageDelete(guildId: Long, channelId: Long, messageId: Long) {

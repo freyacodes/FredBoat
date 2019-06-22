@@ -84,4 +84,6 @@ public interface AppConfig {
     }
 
     boolean getContinuePlayback();
+
+    String getWebInfoBaseUrl();
 }

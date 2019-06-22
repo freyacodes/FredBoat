@@ -25,25 +25,47 @@
 
 package fredboat.audio.queue
 
+import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import fredboat.audio.player.GuildPlayer
+import fredboat.commandmeta.MessagingException
 import fredboat.feature.I18n
 import fredboat.main.Launcher
+import fredboat.sentinel.Guild
 import fredboat.sentinel.Member
 import fredboat.sentinel.TextChannel
+import fredboat.sentinel.User
+import org.bson.types.ObjectId
+import org.slf4j.LoggerFactory
+import java.text.MessageFormat
+import java.util.*
 import java.util.concurrent.ThreadLocalRandom
+import javax.annotation.CheckReturnValue
 
-open class AudioTrackContext(val track: AudioTrack, val member: Member, priority: Boolean = false) : Comparable<AudioTrackContext> {
-    val added: Long = System.currentTimeMillis()
-    var rand: Int = 0
+open class AudioTrackContext(
+        val track: AudioTrack,
+        val member: Member,
+        priority: Boolean = false
+) : Comparable<AudioTrackContext> {
+
+    private var i18n: ResourceBundle? = null
+
+    val trackId: ObjectId // used to identify this track even when the track gets cloned and the rand reranded
+    var rand: Int
     var isPriority: Boolean = priority
-    val trackId: Long //used to identify this track even when the track gets cloned and the rand reranded
+    val added: Long = System.currentTimeMillis()
 
-    val userId: Long
-        get() = member.id
+    val guild: Guild
+        get() = member.guild
+
+    val user: User
+        get() = member.user
 
     val guildId: Long
         get() = member.guild.id
+
+    val userId: Long
+        get() = member.id
 
     open val effectiveDuration: Long
         get() = track.duration
@@ -61,9 +83,16 @@ open class AudioTrackContext(val track: AudioTrack, val member: Member, priority
             return guildPlayer?.activeTextChannel
         }
 
+    val thumbnailUrl: String?
+        get() {
+            return if (track is YoutubeAudioTrack) {
+                "https://img.youtube.com/vi/${track.info.identifier}/mqdefault.jpg"
+            } else null
+        }
+
     init {
-        this.rand = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE)
-        this.trackId = ThreadLocalRandom.current().nextLong(java.lang.Long.MAX_VALUE)
+        this.rand = if (!priority) ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE) else Integer.MIN_VALUE
+        this.trackId = ObjectId()
     }//It's ok to set a non-existing channelId, since inside the AudioTrackContext, the channel needs to be looked up
     // every time. See the getTextChannel() below for doing that.
 
@@ -79,6 +108,55 @@ open class AudioTrackContext(val track: AudioTrack, val member: Member, priority
     //NOTE: convenience method that returns the position of the track currently playing in the guild where this track was added
     open fun getEffectivePosition(guildPlayer: GuildPlayer): Long {
         return guildPlayer.position
+    }
+
+    /**
+     * Return a single translated string.
+     *
+     * @param key Key of the i18n string.
+     * @return Formatted i18n string, or a default language string if i18n is not found.
+     */
+    @CheckReturnValue
+    fun i18n(key: String): String {
+        return if (getI18n().containsKey(key)) {
+            getI18n().getString(key)
+        } else {
+            log.warn("Missing language entry for key {} in language {}", key, I18n.getLocale(guild).code)
+            I18n.DEFAULT.props.getString(key)
+        }
+    }
+
+    /**
+     * Return a translated string with applied formatting.
+     *
+     * @param key Key of the i18n string.
+     * @param params Parameter(s) to be apply into the i18n string.
+     * @return Formatted i18n string.
+     */
+    @CheckReturnValue
+    fun i18nFormat(key: String, vararg params: Any): String {
+        if (params.isEmpty()) {
+            log.warn("Context#i18nFormat() called with empty or null params, this is likely a bug.",
+                    MessagingException("a stack trace to help find the source"))
+        }
+        return try {
+            MessageFormat.format(this.i18n(key), *params)
+        } catch (e: IllegalArgumentException) {
+            log.warn("Failed to format key '{}' for language '{}' with following parameters: {}",
+                    key, getI18n().baseBundleName, params, e)
+            //fall back to default props
+            MessageFormat.format(I18n.DEFAULT.props.getString(key), *params)
+        }
+
+    }
+
+    private fun getI18n(): ResourceBundle {
+        var result = i18n
+        if (result == null) {
+            result = I18n.get(guild)
+            i18n = result
+        }
+        return result
     }
 
     override fun compareTo(other: AudioTrackContext): Int {
@@ -103,12 +181,7 @@ open class AudioTrackContext(val track: AudioTrack, val member: Member, priority
         return result
     }
 
-    fun i18n(key: String) = I18n.get(guildId).getString(key)!!
-    fun i18nFormat(key: String, vararg values: Any): String {
-        var str = i18n(key)
-        values.forEachIndexed { i, v -> str = str.replace("{$i}", v.toString()) }
-        return str
+    companion object {
+        private val log = LoggerFactory.getLogger(AudioTrackContext::class.java)
     }
-
-
 }

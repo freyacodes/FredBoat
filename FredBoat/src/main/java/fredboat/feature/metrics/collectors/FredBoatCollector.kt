@@ -26,6 +26,7 @@
 package fredboat.feature.metrics.collectors
 
 import fredboat.audio.lavalink.SentinelLavalink
+import fredboat.db.mongo.ActivityMetricsController
 import fredboat.feature.metrics.BotMetrics
 import fredboat.sentinel.GuildCache
 import io.prometheus.client.Collector
@@ -44,7 +45,8 @@ import java.util.*
 class FredBoatCollector(
         private val botMetrics: BotMetrics,
         private val ll: SentinelLavalink,
-        private val guildCache: GuildCache
+        private val guildCache: GuildCache,
+        private val activityMetricsController: ActivityMetricsController
 ) : Collector() {
 
     private var lastEntityCountHash = 0
@@ -75,6 +77,10 @@ class FredBoatCollector(
         val guildCacheSize = GaugeMetricFamily("fredboat_guild_cache_size",
                 "Number of subscribed guilds", listOf("total"))
         mfs.add(guildCacheSize)
+
+        val listenerActivity = GaugeMetricFamily("fredboat_active_listeners",
+                "Users on a daily, weekly, or monthly basis", listOf("duration"))
+        mfs.add(listenerActivity)
 
         //global jda entity stats
         if (botMetrics.entityCounts != null && botMetrics.entityCounts?.hashCode() != lastEntityCountHash) {
@@ -111,6 +117,12 @@ class FredBoatCollector(
         }
 
         guildCacheSize.addMetric(listOf("total"), guildCache.cache.size.toDouble())
+
+        activityMetricsController.acquireStats()?.apply {
+            listenerActivity.addMetric(listOf("daily"), dau)
+            listenerActivity.addMetric(listOf("weekly"), wau)
+            listenerActivity.addMetric(listOf("monthly"), mau)
+        }
 
         return mfs
     }

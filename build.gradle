@@ -19,7 +19,7 @@ subprojects {
             //plugin versions
             gradleGitVersion        = '1.4.21'
             shadowVersion           = '2.0.3'
-            springBootVersion       = '2.0.1.RELEASE'
+            springBootVersion       = '2.0.5.RELEASE'
             propDepsVersion         = '0.0.9.RELEASE'
             kotlinVersion           = '1.3.20'
 
@@ -59,12 +59,13 @@ subprojects {
         //@formatter:off
 
         sentinelVersion             = 'd8680e86'
-        springBootVersion           = "${springBootVersion}"
-        kotlinVersion               = "${kotlinVersion}"
+        springBootVersion           = springBootVersion
+        springWebSocketVersion      = '5.0.8.RELEASE'
+        kotlinVersion               = kotlinVersion
 
         //audio deps
         lavaplayerVersion           = '1.3.9'
-        lavalinkVersion             = 'cab6c587'
+        lavalinkVersion             = '9f6c9c50'
 
         //utility deps
         jsonOrgVersion              = '20180130'
@@ -76,9 +77,10 @@ subprojects {
         fastUtilVersion             = '8.1.1'
         togglzVersion               = '2.6.0.Final'
         guavaVersion                = '24.1-jre'
+        caffeineVersion             = '2.6.2'
         bucket4jVersion             = '3.1.1'
         gsonVersion                 = '2.8.2'
-        amqpVersion                 = "2.0.4.RELEASE"
+        amqpVersion                 = "2.1.4.RELEASE"
         jacksonKotlinVersion        = "2.9.+"
 
         //logging / monitoring deps

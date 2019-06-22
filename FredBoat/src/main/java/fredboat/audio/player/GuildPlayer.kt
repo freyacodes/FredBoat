@@ -25,86 +25,69 @@
 
 package fredboat.audio.player
 
-import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
+import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
+import com.sedmelluq.discord.lavaplayer.track.TrackMarker
 import fredboat.audio.lavalink.SentinelLavalink
+import fredboat.audio.lavalink.SentinelLink
 import fredboat.audio.queue.*
+import fredboat.audio.queue.limiter.QueueLimitStatus
+import fredboat.audio.queue.limiter.QueueLimiter
+import fredboat.audio.queue.handlers.*
 import fredboat.command.music.control.VoteSkipCommand
 import fredboat.commandmeta.MessagingException
 import fredboat.commandmeta.abs.CommandContext
-import fredboat.db.api.GuildConfigService
-import fredboat.definitions.PermissionLevel
+import fredboat.db.api.GuildSettingsRepository
 import fredboat.definitions.RepeatMode
-import fredboat.feature.I18n
-import fredboat.perms.Permission
-import fredboat.perms.PermsUtil
 import fredboat.sentinel.Guild
-import fredboat.sentinel.Member
+import fredboat.sentinel.InternalGuild
 import fredboat.sentinel.TextChannel
-import fredboat.sentinel.VoiceChannel
+import fredboat.util.TextUtils
 import fredboat.util.extension.escapeAndDefuse
 import fredboat.util.ratelimit.Ratelimiter
 import fredboat.util.rest.YoutubeAPI
-import lavalink.client.io.Link.State.CONNECTED
-import org.apache.commons.lang3.tuple.ImmutablePair
-import org.apache.commons.lang3.tuple.Pair
+import fredboat.ws.emptyPlayerInfo
+import fredboat.ws.toPlayerInfo
+import lavalink.client.player.IPlayer
+import lavalink.client.player.LavalinkPlayer
+import lavalink.client.player.event.PlayerEventListenerAdapter
+import org.bson.types.ObjectId
+import org.json.JSONObject
 import org.slf4j.LoggerFactory
+import reactor.core.publisher.Mono
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.function.Consumer
-import kotlin.streams.toList
+import javax.annotation.CheckReturnValue
 
 class GuildPlayer(
         val lavalink: SentinelLavalink,
-        // TODO: GuildPlayers should be discarded when expiring the cached guild
-        // and new ones should be able to re-initiate the same settings
         var guild: Guild,
         private val musicTextChannelProvider: MusicTextChannelProvider,
         audioPlayerManager: AudioPlayerManager,
-        private val guildConfigService: GuildConfigService,
+        private val guildSettingsRepository: GuildSettingsRepository,
         ratelimiter: Ratelimiter,
         youtubeAPI: YoutubeAPI
-) : AbstractPlayer(lavalink, SimpleTrackProvider(), guild) {
+) : PlayerEventListenerAdapter() {
 
-    private val audioLoader: AudioLoader
+    val queueHandler: IQueueHandler = RepeatableQueueHandler(this)
+    private val audioLoader = AudioLoader(ratelimiter, queueHandler, audioPlayerManager, this, youtubeAPI)
+    private val queueLimiter = QueueLimiter(guildSettingsRepository)
     val guildId = guild.id
+    val player: LavalinkPlayer = lavalink.getLink(guild.id.toString()).player
+    var internalContext: AudioTrackContext? = null
+
+    private var onPlayHook: Consumer<AudioTrackContext>? = null
+    private var onErrorHook: Consumer<Throwable>? = null
+    @Volatile
+    private var lastLoadedTrack: AudioTrackContext? = null
+    val historyQueue = ConcurrentLinkedQueue<AudioTrackContext>()
 
     companion object {
         private val log = LoggerFactory.getLogger(GuildPlayer::class.java)
-
+        private const val MAX_HISTORY_SIZE = 20
     }
-
-    val trackCount: Int
-        get() {
-            var trackCount = audioTrackProvider.size()
-            if (player.playingTrack != null) trackCount++
-            return trackCount
-        }
-
-    //Live streams are considered to have a length of 0
-    val totalRemainingMusicTimeMillis: Long
-        get() {
-            var millis = audioTrackProvider.durationMillis
-
-            val currentTrack = if (player.playingTrack != null) context else null
-            if (currentTrack != null && !currentTrack.track.info.isStream) {
-                millis += Math.max(0, currentTrack.effectiveDuration - position)
-            }
-            return millis
-        }
-
-
-    val streamsCount: Long
-        get() {
-            var streams = audioTrackProvider.streamsCount().toLong()
-            val atc = if (player.playingTrack != null) context else null
-            if (atc != null && atc.track.info.isStream) streams++
-            return streams
-        }
-
-
-    val currentVoiceChannel: VoiceChannel?
-        get() = guild.selfMember.voiceChannel
 
     /**
      * @return The text channel currently used for music commands.
@@ -117,59 +100,99 @@ class GuildPlayer(
             return musicTextChannelProvider.getMusicTextChannel(guild)
         }
 
-    /**
-     * @return Users who are not bots
-     */
-    val humanUsersInCurrentVC: List<Member>
-        get() = getHumanUsersInVC(currentVoiceChannel)
-
     var repeatMode: RepeatMode
-        get() = if (audioTrackProvider is AbstractTrackProvider)
-            audioTrackProvider.repeatMode
+        get() = if (queueHandler is IRepeatableQueueHandler)
+            queueHandler.repeat
         else
             RepeatMode.OFF
-        set(repeatMode) = if (audioTrackProvider is AbstractTrackProvider) {
-            audioTrackProvider.repeatMode = repeatMode
+        set(repeatMode) = if (queueHandler is IRepeatableQueueHandler) {
+            queueHandler.repeat = repeatMode
         } else {
-            throw UnsupportedOperationException("Can't repeat " + audioTrackProvider.javaClass)
+            throw UnsupportedOperationException("Can't repeat " + queueHandler.javaClass)
+        }
+
+    var isRoundRobin : Boolean
+        get() = queueHandler is IRoundRobinQueueHandler && queueHandler.roundRobin
+        set(value) = if (queueHandler is IRoundRobinQueueHandler) {
+            queueHandler.roundRobin = value
+        } else {
+            throw UnsupportedOperationException("Can't round robin " + queueHandler.javaClass)
         }
 
     var isShuffle: Boolean
-        get() = audioTrackProvider is AbstractTrackProvider && audioTrackProvider.isShuffle
-        set(shuffle) = if (audioTrackProvider is AbstractTrackProvider) {
-            audioTrackProvider.isShuffle = shuffle
-            context?.isPriority = false
+        get() = queueHandler is IShufflableQueueHandler && queueHandler.shuffle
+        set(shuffle) = if (queueHandler is IShufflableQueueHandler) {
+            queueHandler.shuffle = shuffle
+            internalContext?.isPriority = false
         } else {
-            throw UnsupportedOperationException("Can't shuffle " + audioTrackProvider.javaClass)
+            throw UnsupportedOperationException("Can't shuffle " + queueHandler.javaClass)
         }
 
-    private val isTrackAnnounceEnabled: Boolean
-        get() {
-            var enabled = false
-            try {
-                if (guild.selfPresent) {
-                    enabled = guildConfigService.fetchGuildConfig(guild.id).isTrackAnnounce
-                }
-            } catch (ignored: Exception) {
+    private fun getTrackAnnounceStatus(): Mono<Boolean> {
+            if (guild.selfPresent) {
+                 return guildSettingsRepository.fetch(guild.id).map { it.trackAnnounce }
             }
 
-            return enabled
+            return Mono.just(false)
         }
+
+    val playingTrack: AudioTrackContext?
+        get() {
+            return if (player.playingTrack == null && internalContext == null) {
+                queueHandler.peek()
+            } else internalContext
+        }
+
+    //the unshuffled playlist
+    //Includes currently playing track, which comes first
+    val remainingTracks: List<AudioTrackContext>
+        get() {
+            log.trace("getRemainingTracks()")
+            val list = ArrayList<AudioTrackContext>()
+            val atc = playingTrack
+            if (atc != null) {
+                list.add(atc)
+            }
+
+            list.addAll(queueHandler.queue.toList())
+            return list
+        }
+
+    var volume: Float
+        get() = player.volume.toFloat() / 100
+        set(vol) {
+            player.volume = (vol * 100).toInt()
+        }
+
+    val isPlaying: Boolean
+        get() = player.playingTrack != null && !player.isPaused
+
+    val isPaused: Boolean
+        get() = player.isPaused
+
+    val position: Long
+        get() = player.trackPosition
 
     init {
         log.debug("Constructing GuildPlayer({})", guild)
         onPlayHook = Consumer { this.announceTrack(it) }
         onErrorHook = Consumer { this.handleError(it) }
-
-        audioLoader = AudioLoader(ratelimiter, audioTrackProvider, audioPlayerManager,
-                this, youtubeAPI)
+        @Suppress("LeakingThis")
+        player.addListener(this)
+        linkPostProcess()
     }
 
     private fun announceTrack(atc: AudioTrackContext) {
-        if (repeatMode != RepeatMode.SINGLE && isTrackAnnounceEnabled && !isPaused) {
-            val activeTextChannel = activeTextChannel
-            activeTextChannel?.send(atc.i18nFormat("trackAnnounce", atc.effectiveTitle.escapeAndDefuse(), atc.member.effectiveName.escapeAndDefuse()))
-                    ?.subscribe()
+        val activeTextChannel = activeTextChannel
+
+        getTrackAnnounceStatus().subscribe {
+            if (it && !isPaused && repeatMode != RepeatMode.SINGLE) {
+                activeTextChannel?.send(atc.i18nFormat(
+                        "trackAnnounce",
+                        atc.effectiveTitle.escapeAndDefuse(),
+                        atc.member.effectiveName.escapeAndDefuse()
+                ))?.subscribe()
+            }
         }
     }
 
@@ -181,73 +204,7 @@ class GuildPlayer(
         activeTextChannel?.send("Something went wrong!\n${t.message}")?.subscribe()
     }
 
-    fun joinChannel(usr: Member) {
-        val targetChannel = usr.voiceChannel
-        joinChannel(targetChannel)
-    }
-
-    fun joinChannel(targetChannel: VoiceChannel?) {
-        if (targetChannel == null) {
-            throw MessagingException(I18n.get(guild).getString("playerUserNotInChannel"))
-        }
-        if (targetChannel == currentVoiceChannel) {
-            // already connected to the channel
-            return
-        }
-
-        val guild = targetChannel.guild
-        val permissions = targetChannel.ourEffectivePermissions
-
-        if (permissions hasNot Permission.VIEW_CHANNEL) {
-            val i18n = I18n.get(guild).getString("permissionMissingBot")
-            throw MessagingException("$i18n ${Permission.VIEW_CHANNEL.uiName}")
-        }
-
-        if (permissions hasNot Permission.VOICE_CONNECT && guild.selfMember.voiceChannel != targetChannel) {
-            throw MessagingException(I18n.get(guild).getString("playerJoinConnectDenied"))
-        }
-
-        if (permissions hasNot Permission.VOICE_SPEAK) {
-            throw MessagingException(I18n.get(guild).getString("playerJoinSpeakDenied"))
-        }
-
-        if (targetChannel.userLimit > 0
-                && targetChannel.userLimit <= targetChannel.members.size
-                && permissions hasNot Permission.VOICE_MOVE_OTHERS) {
-            throw MessagingException(String.format("The channel you want me to join is full!" +
-                    " Please free up some space, or give me the permission to **%s** to bypass the limit.", //todo i18n
-                    Permission.VOICE_MOVE_OTHERS.uiName))
-        }
-
-        val link = lavalink.getLink(guild)
-
-        if (link.state == CONNECTED && currentVoiceChannel?.members?.contains(guild.selfMember) == false) {
-            log.warn("Link is ${link.state} but we are not in its channel. Assuming our session expired...")
-            link.onDisconnected()
-        }
-
-        try {
-            link.connect(targetChannel)
-            log.info("Connected to voice channel $targetChannel")
-        } catch (e: Exception) {
-            log.error("Failed to join voice channel {}", targetChannel, e)
-        }
-
-    }
-
-    fun leaveVoiceChannelRequest(commandContext: CommandContext, silent: Boolean) {
-        if (!silent) {
-            val currentVc = commandContext.guild.selfMember.voiceChannel
-            if (currentVc == null) {
-                commandContext.reply(commandContext.i18n("playerNotInChannel"))
-            } else {
-                commandContext.reply(commandContext.i18nFormat("playerLeftChannel", currentVc.name))
-            }
-        }
-        lavalink.getLink(guild).disconnect()
-    }
-
-    fun queue(identifier: String, context: CommandContext, isPriority: Boolean = false) {
+    fun queueAsync(identifier: String, context: CommandContext, isPriority: Boolean = false) {
         val ic = IdentifierContext(identifier, context.textChannel, context.member)
         ic.isPriority = isPriority
 
@@ -256,13 +213,13 @@ class GuildPlayer(
         audioLoader.loadAsync(ic)
     }
 
-    fun queue(ic: IdentifierContext) {
+    fun queueAsync(ic: IdentifierContext) {
         joinChannel(ic.member)
 
         audioLoader.loadAsync(ic)
     }
 
-    fun queue(atc: AudioTrackContext, isPriority: Boolean = false) {
+    fun queue(atc: AudioTrackContext) {
         if (!guild.selfPresent) throw IllegalStateException("Attempt to queue track in a guild we are not present in")
 
         val member = guild.getMember(atc.userId)
@@ -270,110 +227,54 @@ class GuildPlayer(
             joinChannel(member)
         }
 
-        if (isPriority) audioTrackProvider.addFirst(atc) else audioTrackProvider.add(atc)
-        play()
+        queueHandler.add(atc)
+        if (isPlaying) updateClients()
     }
 
-    //add a bunch of tracks to the track provider
-    fun loadAll(tracks: Collection<AudioTrackContext>) {
-        audioTrackProvider.addAll(tracks)
+    /** Add a bunch of tracks to the track provider */
+    fun queueAll(tracks: Collection<AudioTrackContext>) {
+        queueHandler.addAll(tracks)
     }
 
-    @Suppress("LocalVariableName")
-    fun getTracksInRange(start: Int, end: Int): List<AudioTrackContext> {
-        // Make mutable
-        var start_ = start
-        var end_ = end
+    @CheckReturnValue
+    suspend fun queueLimited(atc: AudioTrackContext): QueueLimitStatus {
+        val status = queueLimiter.isQueueLimited(atc, this)
 
-        val result = ArrayList<AudioTrackContext>()
-
-        //adjust args for whether there is a track playing or not
-
-        if (player.playingTrack != null) {
-            if (start_ <= 0) {
-                result.add(context!!)
-                end_--//shorten the requested range by 1, but still start at 0, since that's the way the trackprovider counts its tracks
-            } else {
-                //dont add the currently playing track, drop the args by one since the "first" track is currently playing
-                start_--
-                end_--
-            }
-        } else {
-            //nothing to do here, args are fine to pass on
+        // only queue if track was not limited
+        if (status.canQueue) {
+            queue(atc)
         }
 
-        result.addAll(audioTrackProvider.getTracksInRange(start_, end_))
-        return result
+        return status
     }
 
-    /** Similar to [getTracksInRange], but only gets the trackIds */
-    fun getTrackIdsInRange(start: Int, end: Int): List<Long> = getTracksInRange(start, end).stream()
-            .map { it.trackId }
-            .toList()
+    suspend fun queueLimited(tracks: List<AudioPlaylistContext>): List<QueueLimitStatus> {
+        val states = queueLimiter.isQueueLimited(tracks, this)
 
-    fun getHumanUsersInVC(vc: VoiceChannel?): List<Member> {
-        vc ?: return emptyList()
-        return vc.members.stream()
-                .filter { !it.isBot }
-                .toList()
+        queueAll(states.filter { it.canQueue }.map { it.atc })
+        return states
     }
+
 
     override fun toString(): String {
         return "[GP:$guildId]"
     }
 
     fun reshuffle() {
-        if (audioTrackProvider is AbstractTrackProvider) {
-            audioTrackProvider.reshuffle()
-            context?.isPriority = false
+        if (queueHandler is IShufflableQueueHandler) {
+            queueHandler.reshuffle()
+            internalContext?.isPriority = false
+            updateClients()
         } else {
-            throw UnsupportedOperationException("Can't reshuffle " + audioTrackProvider.javaClass)
+            throw UnsupportedOperationException("Can't reshuffle " + queueHandler.javaClass)
         }
     }
 
-    //Success, fail message
-    private suspend fun canMemberSkipTracks(member: Member, trackIds: Collection<Long>): Pair<Boolean, String> {
-        if (PermsUtil.checkPerms(PermissionLevel.DJ, member)) {
-            return ImmutablePair(true, null)
-        } else {
-            //We are not a mod
-            val userId = member.id
-
-            //if there is a currently playing track, and the track is requested to be skipped, but not owned by the
-            // requesting user, then currentTrackSkippable should be false
-            var currentTrackSkippable = true
-            val playingTrack = playingTrack
-            if (playingTrack != null
-                    && trackIds.contains(playingTrack.trackId)
-                    && playingTrack.userId != userId) {
-
-                currentTrackSkippable = false
-            }
-
-            return if (currentTrackSkippable && audioTrackProvider.isUserTrackOwner(userId, trackIds)) { //check ownership of the queued tracks
-                ImmutablePair(true, null)
-            } else {
-                ImmutablePair(false, I18n.get(guild).getString("skipDeniedTooManyTracks"))
-            }
-        }
-    }
-
-    suspend fun skipTracksForMemberPerms(context: CommandContext, trackIds: Collection<Long>, successMessage: String) {
-        val pair = canMemberSkipTracks(context.member, trackIds)
-
-        if (pair.left) {
-            context.reply(successMessage)
-            skipTracks(trackIds)
-        } else {
-            context.replyWithName(pair.right)
-        }
-    }
-
-    fun skipTracks(trackIds: Collection<Long>) {
+    fun skipTracks(trackIds: Collection<ObjectId>) {
         var skipCurrentTrack = false
 
-        val toRemove = ArrayList<Long>()
-        val playing = if (player.playingTrack != null) context else null
+        val toRemove = ArrayList<ObjectId>()
+        val playing = if (player.playingTrack != null) internalContext else null
         for (trackId in trackIds) {
             if (playing != null && trackId == playing.trackId) {
                 //Should be skipped last, in respect to PlayerEventListener
@@ -383,23 +284,197 @@ class GuildPlayer(
             }
         }
 
-        audioTrackProvider.removeAllById(toRemove)
-
+        if (toRemove.size > 0) queueHandler.removeById(toRemove)
         if (skipCurrentTrack) skip()
     }
 
-    override fun onTrackStart(player: AudioPlayer?, track: AudioTrack?) {
+    override fun onTrackStart(player: IPlayer?, track: AudioTrack?) {
         voteSkipCleanup()
         super.onTrackStart(player, track)
     }
 
-    override fun destroy() {
-        audioTrackProvider.clear()
-        super.destroy()
+    fun destroy() {
+        queueHandler.clear()
+        stop()
+        player.removeListener(this)
+        player.link.destroy()
         log.info("Player for $guildId was destroyed.")
+        lavalink.userSessionHandler.sendLazy(guildId) { emptyPlayerInfo }
     }
 
     private fun voteSkipCleanup() {
         VoteSkipCommand.guildSkipVotes.remove(guildId)
+    }
+
+    /**
+     * Invoked when subscribing to this player's guild, with an already existing guild
+     */
+    fun linkPostProcess() {
+        val iGuild = guild as InternalGuild
+        val vsu = iGuild.cachedVsu
+        val slink = player.link as SentinelLink
+        if (vsu != null) {
+            iGuild.cachedVsu = null
+            slink.onVoiceServerUpdate(JSONObject(vsu.raw), vsu.sessionId)
+            log.info("Using cached VOICE_SERVER_UPDATE for $guild")
+
+            val vc = guild.selfMember.voiceChannel
+            if (vc == null)
+                log.warn("Using cached VOICE_SERVER_UPDATE, but it doesn't appear like we are in a voice channel!")
+            else
+                slink.setChannel(vc.idString)
+        } else {
+            val vc = slink.getChannel(guild) ?: return
+            slink.connect(vc, skipIfSameChannel = false)
+        }
+        updateClients()
+    }
+
+    fun play() {
+        log.trace("play()")
+
+        if (player.isPaused) {
+            player.isPaused = false
+        }
+        if (player.playingTrack == null) {
+            logListeners()
+            loadAndPlay()
+        }
+
+    }
+
+    fun setPause(pause: Boolean) {
+        log.trace("setPause({})", pause)
+
+        if (pause) {
+            player.isPaused = true
+        } else {
+            player.isPaused = false
+            play()
+        }
+        updateClients()
+    }
+
+    fun pause() = setPause(true)
+
+    /**
+     * Clear the tracklist and stop the current track
+     */
+    fun stop() {
+        log.trace("stop()")
+
+        queueHandler.clear()
+        stopTrack()
+    }
+
+    /**
+     * Skip the current track
+     */
+    fun skip() {
+        log.trace("skip()")
+
+        queueHandler.onSkipped()
+        stopTrack()
+    }
+
+    /**
+     * Stop the current track.
+     */
+    fun stopTrack() {
+        log.trace("stopTrack()")
+
+        internalContext = null
+        player.stopTrack()
+    }
+
+    override fun onTrackEnd(player: IPlayer?, track: AudioTrack?, endReason: AudioTrackEndReason?) {
+        log.debug("onTrackEnd({} {} {}) called", track!!.info.title, endReason!!.name, endReason.mayStartNext)
+
+        if (endReason == AudioTrackEndReason.FINISHED || endReason == AudioTrackEndReason.STOPPED) {
+            updateHistoryQueue()
+            loadAndPlay()
+        } else if (endReason == AudioTrackEndReason.CLEANUP) {
+            log.info("Track " + track.identifier + " was cleaned up")
+        } else if (endReason == AudioTrackEndReason.LOAD_FAILED) {
+            if (onErrorHook != null)
+                onErrorHook!!.accept(MessagingException("Track `" + TextUtils.escapeAndDefuse(track.info.title) + "` failed to load. Skipping..."))
+            queueHandler.onSkipped()
+            loadAndPlay()
+        } else {
+            log.warn("Track " + track.identifier + " ended with unexpected reason: " + endReason)
+        }
+    }
+
+    //request the next track from the track provider and start playing it
+    private fun loadAndPlay() {
+        log.trace("loadAndPlay()")
+
+        val atc = queueHandler.take()
+        lastLoadedTrack = atc
+        atc?.let { playTrack(it) }
+        updateClients()
+    }
+
+    private fun updateHistoryQueue() {
+        val lastTrack = lastLoadedTrack
+        if (lastTrack == null) {
+            log.warn("No lastLoadedTrack in $this after track end")
+            return
+        }
+        if (historyQueue.size == MAX_HISTORY_SIZE) {
+            historyQueue.poll()
+        }
+        historyQueue.add(lastTrack)
+    }
+
+    /**
+     * Plays the provided track.
+     *
+     * Silently playing a track will not trigger the onPlayHook (which announces the track usually)
+     */
+    private fun playTrack(trackContext: AudioTrackContext, silent: Boolean = false) {
+        log.trace("playTrack({})", trackContext.effectiveTitle)
+
+        internalContext = trackContext
+        player.playTrack(trackContext.track)
+        trackContext.track.position = trackContext.startPosition
+
+        if (trackContext is SplitAudioTrackContext) {
+            //Ensure we don't step over our bounds
+            log.info("Start: ${trackContext.startPosition} End: ${trackContext.startPosition + trackContext.effectiveDuration}")
+
+            trackContext.track.setMarker(
+                    TrackMarker(trackContext.startPosition + trackContext.effectiveDuration,
+                            TrackEndMarkerHandler(this, trackContext)))
+        }
+
+        if (!silent && onPlayHook != null) onPlayHook!!.accept(trackContext)
+    }
+
+    override fun onTrackException(player: IPlayer?, track: AudioTrack, exception: Exception?) {
+        log.error("Lavaplayer encountered an exception while playing {}",
+                track.identifier, exception)
+    }
+
+    override fun onTrackStuck(player: IPlayer?, track: AudioTrack, thresholdMs: Long) {
+        log.error("Lavaplayer got stuck while playing {}",
+                track.identifier)
+    }
+
+    fun seekTo(position: Long) {
+        if (internalContext!!.track.isSeekable) {
+            player.seekTo(position)
+            updateClients()
+        } else {
+            throw MessagingException(internalContext!!.i18n("seekDeniedLiveTrack"))
+        }
+    }
+
+    private fun logListeners() {
+        humanUsersInCurrentVC.forEach { lavalink.activityMetrics.logListener(it) }
+    }
+
+    private fun updateClients() {
+        lavalink.userSessionHandler.sendLazy(guildId) { toPlayerInfo() }
     }
 }

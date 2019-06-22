@@ -23,7 +23,6 @@ class RabbitConsumer(
         guildHandler: GuildEventHandler,
         audioHandler: AudioEventHandler,
         messageHandler: MessageEventHandler,
-        musicPersistenceHandler: MusicPersistenceHandler,
         shardReviveHandler: ShardLifecycleHandler
 ) {
 
@@ -36,7 +35,6 @@ class RabbitConsumer(
             guildHandler,
             audioHandler,
             messageHandler,
-            musicPersistenceHandler,
             shardReviveHandler
     )
 

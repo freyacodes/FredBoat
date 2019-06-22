@@ -31,7 +31,7 @@ class SeekingTests(private val players: PlayerRegistry) : IntegrationTest(), Ret
     fun beforeEach() {
         joinChannel()
         players.destroyPlayer(cachedGuild)
-        player = players.getOrCreate(cachedGuild)
+        player = players.getOrCreate(cachedGuild).block()!!
         cachedGuild.queue(PlayCommandTest.url)
         delayUntil { player.playingTrack != null }
         assertNotNull(player.playingTrack)

@@ -25,6 +25,8 @@
 
 package fredboat.command.music.control
 
+import fredboat.audio.player.humanUsersInCurrentVC
+import fredboat.audio.player.isQueueEmpty
 import fredboat.commandmeta.abs.Command
 import fredboat.commandmeta.abs.CommandContext
 import fredboat.commandmeta.abs.ICommandRestricted

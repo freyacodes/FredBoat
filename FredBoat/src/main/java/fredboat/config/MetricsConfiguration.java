@@ -24,7 +24,6 @@
 
 package fredboat.config;
 
-import io.prometheus.client.guava.cache.CacheMetricsCollector;
 import io.prometheus.client.logback.InstrumentedAppender;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,8 +36,13 @@ public class MetricsConfiguration {
 
     //guava cache metrics
     @Bean
-    public CacheMetricsCollector cacheMetrics() {
-        return new CacheMetricsCollector().register();
+    public io.prometheus.client.guava.cache.CacheMetricsCollector guavaCacheMetrics() {
+        return new io.prometheus.client.guava.cache.CacheMetricsCollector().register();
+    }
+
+    @Bean
+    public io.prometheus.client.cache.caffeine.CacheMetricsCollector caffeineCacheMetrics() {
+        return new io.prometheus.client.cache.caffeine.CacheMetricsCollector().register();
     }
 
     @Bean

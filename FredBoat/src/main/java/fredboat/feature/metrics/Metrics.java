@@ -110,6 +110,12 @@ public class Metrics {
             .labelNames("class") // use the simple name of the command class
             .register();
 
+    // QueueLimiter
+    public static final Counter queuePrevented = Counter.build()
+            .name("fredboat_queue_attempts_prevented")
+            .help("Total queue attempts that have been prevented")
+            .labelNames("limit")
+            .register();
 
     //music stuff
 
@@ -228,11 +234,6 @@ public class Metrics {
     // ################################################################################
     // ##                           Various
     // ################################################################################
-
-    public static final Counter databaseExceptionsCreated = Counter.build()
-            .name("fredboat_db_exceptions_created_total")
-            .help("Total database exceptions created")
-            .register();
 
     public static final Histogram guildLifespan = Histogram.build()
             .name("fredboat_guild_lifespan_seconds")

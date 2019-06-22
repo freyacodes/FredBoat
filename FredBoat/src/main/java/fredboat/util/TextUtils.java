@@ -69,7 +69,7 @@ public class TextUtils {
                     .precomputed();
 
     public static final CharMatcher SPLIT_SELECT_ALLOWED =
-            SPLIT_SELECT_SEPARATOR.or(CharMatcher.inRange('0', '9'))
+            SPLIT_SELECT_SEPARATOR.or(CharMatcher.inRange('1', '5'))
                     .precomputed();
 
     public static final Splitter COMMA_OR_WHITESPACE = Splitter.on(SPLIT_SELECT_SEPARATOR)

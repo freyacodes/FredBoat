@@ -107,7 +107,7 @@ public class HelpCommand extends JCommand implements IInfoCommand {
         if (HELP_RECEIVED_RECENTLY.getIfPresent(author.getId()) != null) return;
 
         HELP_RECEIVED_RECENTLY.put(author.getId(), true);
-        author.sendPrivate(getHelpDmMsg(I18n.DEFAULT.getProps())).subscribe();
+        author.sendPrivate(getHelpDmMsg(I18n.INSTANCE.getDEFAULT().getProps())).subscribe();
     }
 
     public static String getFormattedCommandHelp(Context context, Command command, String commandOrAlias) {

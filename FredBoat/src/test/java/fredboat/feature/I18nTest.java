@@ -34,10 +34,10 @@ public class I18nTest extends BaseTest {
 
     @Test
     public void testTranslatedStrings() {
-        I18n.start();
+        I18n.INSTANCE.start();
 
-        ResourceBundle id_ID = I18n.LANGS.get("id_ID").getProps();
-        for(String key :  I18n.DEFAULT.getProps().keySet()){
+        ResourceBundle id_ID = I18n.INSTANCE.getLANGS().get("id_ID").getProps();
+        for(String key :  I18n.INSTANCE.getDEFAULT().getProps().keySet()){
             Assertions.assertNotNull(id_ID.getString(key), () -> key + " prop missing in language files");
         }
     }

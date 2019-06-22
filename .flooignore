@@ -1,0 +1,11 @@
+extern
+node_modules
+tmp
+vendor
+.idea/workspace.xml
+.idea/misc.xml
+.idea
+
+fredboat.yml
+fredboat.yaml
+commons.yml

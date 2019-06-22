@@ -29,6 +29,9 @@ import com.fredboat.sentinel.entities.Embed
 import com.fredboat.sentinel.entities.coloredEmbed
 import com.fredboat.sentinel.entities.field
 import fredboat.audio.player.GuildPlayer
+import fredboat.audio.player.humanUsersInCurrentVC
+import fredboat.audio.player.trackCount
+import fredboat.audio.player.voiceChannel
 import fredboat.commandmeta.abs.Command
 import fredboat.commandmeta.abs.CommandContext
 import fredboat.commandmeta.abs.ICommandRestricted
@@ -41,7 +44,6 @@ import fredboat.perms.PermsUtil
 import fredboat.sentinel.Guild
 import fredboat.sentinel.getGuild
 import fredboat.util.extension.asCodeBlock
-import lavalink.client.player.LavalinkPlayer
 
 class DebugCommand(name: String, vararg aliases: String) : Command(name, *aliases), IInfoCommand, ICommandRestricted {
 
@@ -64,7 +66,7 @@ class DebugCommand(name: String, vararg aliases: String) : Command(name, *aliase
         }
 
         if (guild != null) {
-            context.reply(getDebugEmbed(Launcher.botController.playerRegistry.getOrCreate(guild)))
+            context.reply(getDebugEmbed(Launcher.botController.playerRegistry.awaitPlayer(guild)))
         } else {
             context.replyWithName(String.format("There is no guild with id `%s`.", context.args[0]))
         }
@@ -89,7 +91,7 @@ class DebugCommand(name: String, vararg aliases: String) : Command(name, *aliase
         title = "**VoiceChannel Debug**"
         body = "Current vc: null"
 
-        val vc = player.currentVoiceChannel
+        val vc = player.voiceChannel
         if (vc != null) {
             val vcUsers = player.humanUsersInCurrentVC
             val str = StringBuilder()

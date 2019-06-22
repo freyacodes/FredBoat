@@ -32,8 +32,8 @@ import fredboat.command.info.HelpCommand
 import fredboat.commandmeta.abs.Command
 import fredboat.commandmeta.abs.CommandContext
 import fredboat.commandmeta.abs.IConfigCommand
+import fredboat.db.api.GuildSettingsRepository
 import fredboat.definitions.PermissionLevel
-import fredboat.main.Launcher
 import fredboat.messaging.internal.Context
 import fredboat.perms.Permission
 import fredboat.perms.PermsUtil
@@ -50,6 +50,7 @@ import java.util.*
 
 class PermissionsCommand(
         private val permissionLevel: PermissionLevel,
+        private val repo: GuildSettingsRepository,
         name: String,
         vararg aliases: String
 ) : Command(name, *aliases), IConfigCommand {
@@ -99,29 +100,32 @@ class PermissionsCommand(
         val selected = ArgumentUtil.checkSingleFuzzySearchResult(search, context, term) ?: return
         val discordPerms = invoker.getPermissions(channel = null).awaitFirst()
 
-        Launcher.botController.guildPermsService.transformGuildPerms(context.guild) { gp ->
-            if (!gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
-                context.replyWithName(context.i18nFormat("permsNotAdded", "`" + mentionableToName(selected) + "`", "`$permissionLevel`"))
-                return@transformGuildPerms gp
-            }
+        val settings = repo.fetch(context.guild.id).awaitSingle()
+        val gp = settings.permissions
 
-            val newList = gp.getFromEnum(permissionLevel).toMutableList()
-            newList.remove(mentionableToId(selected))
-
-            if (permissionLevel == PermissionLevel.ADMIN
-                    && PermissionLevel.BOT_ADMIN.level > permissionLevel.level
-                    && discordPerms hasNot Permission.ADMINISTRATOR
-                    && !PermsUtil.checkList(newList, invoker)) {
-                context.replyWithName(context.i18n("permsFailSelfDemotion"))
-                return@transformGuildPerms gp
-            }
-
-            context.replyWithName(context.i18nFormat("permsRemoved", mentionableToName(selected), permissionLevel))
-            gp.setFromEnum(permissionLevel, newList)
+        if (!gp.getForEnum(permissionLevel).contains(mentionableToId(selected))) {
+            context.replyWithName(context.i18nFormat("permsNotAdded", "`" + mentionableToName(selected) + "`", "`$permissionLevel`"))
+            return
         }
+
+        val newList = gp.getForEnum(permissionLevel).toMutableList()
+        newList.remove(mentionableToId(selected))
+
+        if (permissionLevel == PermissionLevel.ADMIN
+                && permissionLevel < PermissionLevel.BOT_ADMIN
+                && discordPerms hasNot Permission.ADMINISTRATOR
+                && !PermsUtil.checkList(newList, invoker)) {
+            context.replyWithName(context.i18n("permsFailSelfDemotion"))
+            return
+        }
+
+        context.replyWithName(context.i18nFormat("permsRemoved", mentionableToName(selected), permissionLevel))
+
+        gp.setForEnum(permissionLevel, newList)
+        repo.update(settings).subscribe()
     }
 
-    fun add(context: CommandContext) {
+    suspend fun add(context: CommandContext) {
         val guild = context.guild
         //remove the first argument aka add / remove etc to get a nice search term
         val term = context.rawArgs.replaceFirst(context.args[0].toRegex(), "").trim { it <= ' ' }
@@ -132,29 +136,28 @@ class PermissionsCommand(
 
         val selected = ArgumentUtil.checkSingleFuzzySearchResult(list, context, term) ?: return
 
-        Launcher.botController.guildPermsService.transformGuildPerms(context.guild) { gp ->
-            if (gp.getFromEnum(permissionLevel).contains(mentionableToId(selected))) {
-                context.replyWithName(context.i18nFormat("permsAlreadyAdded",
-                        "`" + TextUtils.escapeMarkdown(mentionableToName(selected)) + "`",
-                        "`$permissionLevel`"))
-                return@transformGuildPerms gp
-            }
-
-            val newList = ArrayList<String>(gp.getFromEnum(permissionLevel))
-            newList.add(mentionableToId(selected))
-
-            context.replyWithName(context.i18nFormat("permsAdded",
-                    TextUtils.escapeMarkdown(mentionableToName(selected)), permissionLevel))
-            gp.setFromEnum(permissionLevel, newList)
+        val settings = repo.fetch(context.guild.id).awaitSingle()
+        val gp = settings.permissions
+        if (gp.getForEnum(permissionLevel).contains(mentionableToId(selected))) {
+            context.replyWithName(context.i18nFormat("permsAlreadyAdded", "`" + TextUtils.escapeMarkdown(mentionableToName(selected)) + "`", "`$permissionLevel`"))
+            return
         }
+
+        val newList = gp.getForEnum(permissionLevel).toMutableList()
+        newList.add(mentionableToId(selected))
+
+        context.replyWithName(context.i18nFormat("permsAdded", TextUtils.escapeMarkdown(mentionableToName(selected)), permissionLevel))
+
+        gp.setForEnum(permissionLevel, newList)
+        repo.update(settings).subscribe()
     }
 
     suspend fun list(context: CommandContext) {
         val guild = context.guild
         val invoker = context.member
-        val gp = Launcher.botController.guildPermsService.fetchGuildPermissions(guild)
+        val settings = repo.fetch(context.guild.id).awaitSingle()
 
-        val mentionables = idsToMentionables(guild, gp.getFromEnum(permissionLevel))
+        val mentionables = idsToMentionables(guild, settings.permissions.getForEnum(permissionLevel))
 
         var roleMentions = ""
         var memberMentions = ""
@@ -203,9 +206,9 @@ class PermissionsCommand(
         context.reply(embed)
     }
 
-    private fun mentionableToId(mentionable: IMentionable): String {
+    private fun mentionableToId(mentionable: IMentionable): Long {
         return if (mentionable is SentinelEntity) {
-            mentionable.id.toString()
+            mentionable.id
         } else {
             throw IllegalArgumentException()
         }
@@ -219,10 +222,8 @@ class PermissionsCommand(
         }
     }
 
-    private fun idsToMentionables(guild: Guild, list: List<String>): List<IMentionable> =
-            list.flatMap<String, IMentionable> { idStr ->
-                if (idStr == "") return@flatMap emptyList()
-                val id = idStr.toLong()
+    private fun idsToMentionables(guild: Guild, list: List<Long>): List<IMentionable> =
+            list.flatMap<Long, IMentionable> { id ->
                 guild.getRole(id)?.apply {
                     return@flatMap listOf(this)
                 }

@@ -6,7 +6,6 @@
 # common.yml         - Contains essential configuration for FredBoat and Sentinel
 # fredboat.yml       - FredBoat config
 # lavalink.yml       - Lavalink config
-# quarterdeck.yml    - Quarterdeck config
 #
 
 ################################################################################
@@ -25,105 +24,53 @@ version: '3' # This is not the FredBoat version, do not touch this line.
 services:
 
   ################################################################################
-  ##                               Database
-  ################################################################################
-  db:
-    image: fredboat/postgres:latest
-    #image: fredboat/postgres:arm64v8   #for (some) arm based machines
-    #build: ./FredBoat/docker/database/ #useful alternative for developers
-    restart: always
-    labels:
-    - "com.centurylinklabs.watchtower.enable=true"
-
-    # WINDOWS ONLY: if you are running under windows you need to comment out the following two lines:
-    volumes:
-    - ./postgres-data:/var/lib/postgresql/data
-
-    # WINDOWS ONLY: if you are running under windows and want to take manual backups of the database
-    # via a docker volume, uncomment the following two lines and read the snippet at the bottom of this file
-    #volumes:
-    #- postgres-data-volume:/var/lib/postgresql/data
-
-  ################################################################################
-  ##                               RabbitMQ
+  ##                                   RabbitMQ
   ################################################################################
   rabbitmq:
     image: rabbitmq:3-management
     restart: always
     ports:
-    - 127.0.0.1:5672:5672   # The broker
-    - 127.0.0.1:15672:15672 # Web UI
+      - 127.0.0.1:5672:5672   # The broker
+      - 127.0.0.1:15672:15672 # Web UI
     labels:
-    - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
 
   ################################################################################
-  ##                               Lavalink
+  ##                                   Lavalink
   ################################################################################
   lavalink:
     image: fredboat/lavalink:master
     restart: always
     labels:
-    - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
-    - 127.0.01:2333:2333
+      - 127.0.01:2333:2333
     volumes:
-    - ./lavalink.yml:/opt/Lavalink/application.yaml
-    - ./lavalink_logs:/opt/Lavalink/logs
+      - ./lavalink.yml:/opt/Lavalink/application.yaml
+      - ./lavalink_logs:/opt/Lavalink/logs
     # Need a bigger memory size or any other custom JVM args? Edit the line below accordingly
     entrypoint: java -Xmx128m -jar Lavalink.jar
 
   ################################################################################
-  ##                               Sentinel
+  ##                                   Sentinel
   ################################################################################
   sentinel:
     image: fredboat/sentinel:dev
     restart: on-failure:3
     depends_on:
-    - rabbitmq
+      - rabbitmq
     labels:
-    - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
     volumes:
-    - ./sentinel_logs:/opt/sentinel/logs
-    - ./common.yml:/opt/sentinel/common.yml
+      - ./sentinel_logs:/opt/sentinel/logs
+      - ./common.yml:/opt/sentinel/common.yml
     environment:
-    - "SPRING_RABBITMQ_ADDRESSES=amqp://guest:guest@rabbitmq"
+      - "SPRING_RABBITMQ_ADDRESSES=amqp://guest:guest@rabbitmq"
     # Need a bigger memory size or any other custom JVM args? Uncomment and edit the line below accordingly
     #entrypoint: java -Xmx512m -jar sentinel.jar
 
   ################################################################################
-  ##                     Quarterdeck (Database Backend)
-  ################################################################################
-  quarterdeck:
-    # versions (example: v2) receive continous non-breaking (best effort) updates via watchtower. switching between versions
-    # (example: going from v2 to v3) usually requires manual migration. what exactly is needed is published on the
-    # FredBoat selfhosting website and/or the selfhosters channel (see top of this file for how to get to these places)
-    # Once you use the dev branch, you may not be able to go back to stable without deleting your database.
-    # To run on (some) arm based machines, prepend the tag with arm64v8-, for example: fredboat/quarterdeck:arm64v8-dev-v1
-    # NOTE: Don't use the dev-v1 build unless otherwise noted as it has breaking changes with the other builds.
-    #image: fredboat/quarterdeck:dev-v1
-    image: fredboat/quarterdeck:stable-v1
-    restart: always
-    labels:
-    - "com.centurylinklabs.watchtower.enable=true"
-    depends_on:
-    - db
-    ports:
-    - 127.0.01:4269:4269
-    volumes:
-    - ./quarterdeck.yml:/opt/Quarterdeck/quarterdeck.yaml
-    - ./quarterdeck_logs:/opt/Quarterdeck/logs
-
-    # Need a bigger memory size or any other custom JVM args? Edit the list below accordingly
-    entrypoint:
-    - java
-    - -Xmx128m
-    - -jar
-    - Quarterdeck.jar
-    - >
-      --spring.application.json={"security": {"admins": [{"name": "docker", "pass": "docker"}]}}
-
-  ################################################################################
-  ##                               FredBoat
+  ##                                   FredBoat
   ################################################################################
   bot:
     # for choosing between stable or dev, read the paragraph above in the Quarterdeck section
@@ -136,7 +83,7 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
     depends_on:
-      - quarterdeck
+      - mongo
       - sentinel
       - lavalink
     ports:
@@ -158,9 +105,26 @@ services:
     # Need a bigger memory size or any other custom JVM args? uncomment and edit the line below accordingly
     #entrypoint: java -Xmx256m -jar FredBoat.jar
 
+  ################################################################################
+  ##                                   MongoDB
+  ################################################################################
+  mongo:
+    image: mongo:latest
+    ports:
+      - 127.0.0.1:27017:27017
+    restart: always
+
+    # WINDOWS ONLY: if you are running under windows you need to comment out the following two lines:
+    volumes:
+      - ./mongo:/data/db"
+
+    # WINDOWS ONLY: if you are running under windows and want to take manual backups of the database
+    # via a docker volume, uncomment the following two lines and read the snippet at the bottom of this file
+    #volumes:
+    #- mongo-data-volume:/data/db
 
   ################################################################################
-  ##                         Automatic updates
+  ##                              Automatic updates
   ################################################################################
   # if you want automatic updates, uncomment the watchtower lines below
   # watchtower is not yet officially available for arm64v8. See https://github.com/v2tec/watchtower/pull/178 for progress
@@ -177,16 +141,16 @@ services:
 
 
   ################################################################################
-  ##                         Windows stuff
+  ##                                Windows stuff
   ################################################################################
 
-# WINDOWS ONLY: If you are running on Windows and want to be able to backup the postgres data volume, run
+# WINDOWS ONLY: If you are running on Windows and want to be able to backup the MongoDB data volume, run
 #
-#   docker volume create --name postgres-data-volume -d local
+#   docker volume create --name mongo-data-volume -d local
 #
 # and uncomment the following lines:
 # See also the WINDOWS ONLY hints in the database section
 
 #volumes:
-#  postgres-data-volume:
+#  mongo-data-volume:
 #    external: true

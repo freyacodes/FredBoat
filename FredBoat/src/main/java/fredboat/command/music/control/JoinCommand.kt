@@ -25,6 +25,7 @@
 
 package fredboat.command.music.control
 
+import fredboat.audio.player.joinChannel
 import fredboat.commandmeta.abs.Command
 import fredboat.commandmeta.abs.CommandContext
 import fredboat.commandmeta.abs.ICommandRestricted
@@ -39,7 +40,7 @@ class JoinCommand(name: String, vararg aliases: String) : Command(name, *aliases
         get() = PermissionLevel.USER
 
     override suspend fun invoke(context: CommandContext) {
-        val player = Launcher.botController.playerRegistry.getOrCreate(context.guild)
+        val player = Launcher.botController.playerRegistry.awaitPlayer(context.guild)
 
         val vc = context.member.voiceChannel
         try {

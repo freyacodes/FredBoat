@@ -1,24 +1,35 @@
 package fredboat.testutil.util
 
-import fredboat.db.api.GuildPermsService
-import fredboat.db.transfer.GuildPermissions
-import fredboat.sentinel.Guild
+import fredboat.db.api.GuildSettingsRepository
+import fredboat.db.transfer.GuildSettings
 import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Service
-import java.util.function.Function
+import reactor.core.publisher.Mono
 
 @Service
 @Primary
-class MockGuildPermsService : GuildPermsService {
+class MockGuildPermsService : GuildSettingsRepository {
 
-    final val default: (guild: Guild) -> GuildPermissions = { guild ->
-        GuildPermissions().apply { id = guild.id.toString() }
+    override fun default(id: Long): GuildSettings {
+        return GuildSettings(id)
     }
+
+    final val default: (guild: Long) -> GuildSettings = { GuildSettings(it) }
     var factory = default
 
-    override fun fetchGuildPermissions(guild: Guild) = factory(guild)
+    override fun fetch(id: Long): Mono<GuildSettings> {
+        return Mono.just(factory(id))
+    }
 
-    override fun transformGuildPerms(guild: Guild, transformation: Function<GuildPermissions, GuildPermissions>)
-    = transformation.apply(factory(guild))
+    override fun update(mono: Mono<GuildSettings>): Mono<GuildSettings> {
+        return mono.flatMap { Mono.just(factory(it.id)) }
+    }
 
+    override fun update(target: GuildSettings): Mono<GuildSettings> {
+        return Mono.just(target)
+    }
+
+    override fun remove(id: Long): Mono<Void> {
+        return Mono.empty()
+    }
 }

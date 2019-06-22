@@ -33,22 +33,21 @@ import fredboat.commandmeta.CommandRegistry
 import fredboat.commandmeta.abs.Command
 import fredboat.commandmeta.abs.CommandContext
 import fredboat.commandmeta.abs.IConfigCommand
-import fredboat.db.transfer.GuildModules
+import fredboat.db.api.GuildSettingsRepository
 import fredboat.definitions.Module
 import fredboat.definitions.PermissionLevel
-import fredboat.main.Launcher
 import fredboat.messaging.internal.Context
 import fredboat.perms.PermsUtil
 import fredboat.util.AsciiArtConstant.MAGICAL_LENNY
 import fredboat.util.Emojis
-import java.util.function.Function
+import kotlinx.coroutines.reactive.awaitSingle
 
 /**
  * Created by napster on 09.11.17.
  *
  * Turn modules on and off
  */
-class ModulesCommand(name: String, vararg aliases: String) : Command(name, *aliases), IConfigCommand {
+class ModulesCommand(name: String, private val repo: GuildSettingsRepository, vararg aliases: String) : Command(name, *aliases), IConfigCommand {
 
     companion object {
         private const val ENABLE = "enable"
@@ -88,27 +87,25 @@ class ModulesCommand(name: String, vararg aliases: String) : Command(name, *alia
             return
         }
 
-        val transform: Function<GuildModules, GuildModules>
-        val output: String
-        if (enable) {
-            transform = Function { gm -> gm.enableModule(module) }
-            output = (context.i18nFormat("moduleEnable", "**${context.i18n(module.translationKey)}**")
-                    + "\n" + context.i18nFormat("moduleShowCommands",
-                    "`" + context.prefix + CommandInitializer.COMMANDS_COMM_NAME
-                            + " " + context.i18n(module.translationKey) + "`"))
-        } else {
-            transform = Function { gm -> gm.disableModule(module) }
-            output = context.i18nFormat("moduleDisable", "**${context.i18n(module.translationKey)}**")
-        }
+        repo.fetch(context.guild.id).doOnSuccess {
+            it.get(module).enabled = enable
 
-        Launcher.botController.guildModulesService.transformGuildModules(context.guild, transform)
-        context.reply(output)//if the transaction right above this line fails, it won't be reached, which is intended
+            if (enable) {
+                context.reply((context.i18nFormat("moduleEnable", "**${context.i18n(module.translationKey)}**")
+                        + "\n" + context.i18nFormat("moduleShowCommands",
+                        "`" + context.prefix + CommandInitializer.COMMANDS_COMM_NAME
+                                + " " + context.i18n(module.translationKey) + "`")))
+            } else {
+                context.reply(context.i18nFormat("moduleDisable", "**${context.i18n(module.translationKey)}**"))
+            }
+
+        }.let { repo.update(it) }.subscribe()
     }
 
     private suspend fun displayModuleStatus(context: CommandContext) {
-        val gm = Launcher.botController.guildModulesService.fetchGuildModules(context.guild)
+        val settings = repo.fetch(context.guild.id).awaitSingle()
         val moduleStatusFormatter = { module: Module ->
-            val goodOrBad = if (gm.isModuleEnabled(module, module.isEnabledByDefault)) Emojis.OK else Emojis.BAD
+            val goodOrBad = if (settings.get(module).enabled) Emojis.OK else Emojis.BAD
             goodOrBad + module.emoji + " " + context.i18n(module.translationKey)
         }
         var moduleStatus = ""

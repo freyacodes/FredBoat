@@ -5,6 +5,11 @@ services:
     ports:
       - 127.0.0.1:5432:5432
 
+  mongo:
+    image: mongo:latest
+    ports:
+      - 127.0.0.1:27017:27017
+
   quarterdeck:
     image: fredboat/quarterdeck:dev-v1
     depends_on:

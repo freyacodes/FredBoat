@@ -55,7 +55,7 @@ class SelectCommand(private val videoSelectionCache: VideoSelectionCache, name: 
     }
 
     companion object {
-        internal fun select(context: CommandContext, videoSelectionCache: VideoSelectionCache) {
+        internal suspend fun select(context: CommandContext, videoSelectionCache: VideoSelectionCache) {
             val invoker = context.member
             val selection = videoSelectionCache[invoker]
             if (selection == null) {
@@ -103,7 +103,7 @@ class SelectCommand(private val videoSelectionCache: VideoSelectionCache, name: 
                     }
                     val selectedTracks = arrayOfNulls<AudioTrack>(validChoices.size)
                     val outputMsgBuilder = StringBuilder()
-                    val player = Launcher.botController.playerRegistry.getOrCreate(context.guild)
+                    val player = Launcher.botController.playerRegistry.awaitPlayer(context.guild)
                     for (i in validChoices.indices) {
                         selectedTracks[i] = selection.choices[validChoices[i] - 1]
 
@@ -115,7 +115,8 @@ class SelectCommand(private val videoSelectionCache: VideoSelectionCache, name: 
                         }
                         outputMsgBuilder.append(msg)
 
-                        player.queue(AudioTrackContext(selectedTracks[i]!!, invoker, selection.isPriority), selection.isPriority)
+                        player.queueLimited(AudioTrackContext(selectedTracks[i]!!, invoker, selection.isPriority))
+                        player.play()
                     }
 
                     videoSelectionCache.remove(invoker)

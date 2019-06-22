@@ -34,6 +34,7 @@ import fredboat.sentinel.Message
 import fredboat.sentinel.RawUser
 import fredboat.sentinel.getGuildMono
 import kotlinx.coroutines.reactive.awaitFirstOrNull
+import kotlinx.coroutines.reactive.awaitSingle
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
@@ -72,7 +73,7 @@ class CommandContextParser(
             input = mentionMatcher.group(3).trim { it <= ' ' }
             isMention = true
         } else {
-            val prefix = PrefixCommand.giefPrefix(event.guild)
+            val prefix = PrefixCommand.getPrefix(event.guild).awaitSingle()
             val defaultPrefix = appConfig.prefix
             if (content.startsWith(prefix)) {
                 input = content.substring(prefix.length)

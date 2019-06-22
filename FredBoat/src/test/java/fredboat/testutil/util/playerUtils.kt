@@ -22,7 +22,7 @@ fun Guild.queue(
         identifier: String,
         member: Member = getMember(Raws.owner.id)!!
 ): GuildPlayer {
-    val player = Launcher.botController.playerRegistry.getOrCreate(this)
+    val player = Launcher.botController.playerRegistry.getOrCreate(this).block()!!
     val track = loadedTracks.getOrPut(identifier) {
         val loader = TestAudioLoader()
         Launcher.botController.playerRegistry.audioPlayerManager.loadItem(identifier, loader)
@@ -36,6 +36,7 @@ fun Guild.queue(
     }
 
     player.queue(AudioTrackContext(track, member))
+    player.play()
     return player
 }
 

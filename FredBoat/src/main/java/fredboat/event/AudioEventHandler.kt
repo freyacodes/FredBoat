@@ -3,8 +3,11 @@ package fredboat.event
 import com.fredboat.sentinel.entities.VoiceServerUpdate
 import fredboat.audio.lavalink.SentinelLavalink
 import fredboat.audio.player.PlayerRegistry
+import fredboat.audio.player.getHumanUsersInVC
+import fredboat.audio.player.humanUsersInCurrentVC
+import fredboat.audio.player.voiceChannel
 import fredboat.config.property.AppConfig
-import fredboat.db.api.GuildConfigService
+import fredboat.db.api.GuildSettingsRepository
 import fredboat.feature.I18n
 import fredboat.sentinel.Member
 import fredboat.sentinel.VoiceChannel
@@ -15,13 +18,18 @@ class AudioEventHandler(
         private val appConfig: AppConfig,
         private val playerRegistry: PlayerRegistry,
         private val lavalink: SentinelLavalink,
-        private val guildConfigService: GuildConfigService
+        private val guildSettingsRepository: GuildSettingsRepository
 ) : SentinelEventHandler() {
 
     override fun onVoiceJoin(channel: VoiceChannel, member: Member) {
         checkForAutoResume(channel, member)
-        if (!member.isUs) return
-        getLink(channel).setChannel(channel.id.toString())
+
+        if (member.isUs) {
+            getLink(channel).setChannel(channel.id.toString())
+        } else if (member.guild.guildPlayer?.isPlaying == true &&
+                member.guild.guildPlayer?.voiceChannel == member.voiceChannel) {
+            lavalink.activityMetrics.logListener(member)
+        }
     }
 
     override fun onVoiceLeave(channel: VoiceChannel, member: Member) {
@@ -48,12 +56,12 @@ class AudioEventHandler(
         val player = playerRegistry.getExisting(channelLeft.guild.id) ?: return
 
         //are we in the channel that someone left from?
-        val currentVc = player.currentVoiceChannel
+        val currentVc = player.voiceChannel
         if (currentVc != null && currentVc.id != channelLeft.id) {
             return
         }
 
-        if (player.getHumanUsersInVC(currentVc).isEmpty() && !player.isPaused) {
+        if (currentVc.getHumanUsersInVC().isEmpty() && !player.isPaused) {
             player.pause()
             player.activeTextChannel?.send(I18n.get(channelLeft.guild).getString("eventUsersLeftVC"))?.subscribe()
         }
@@ -70,10 +78,13 @@ class AudioEventHandler(
         if (player.isPaused
                 && player.playingTrack != null
                 && joinedChannel.members.contains(guild.selfMember)
-                && player.humanUsersInCurrentVC.isNotEmpty()
-                && guildConfigService.fetchGuildConfig(guild.id).isAutoResume) {
-            player.setPause(false)
-            player.activeTextChannel?.send(I18n.get(guild).getString("eventAutoResumed"))?.subscribe()
+                && player.humanUsersInCurrentVC.isNotEmpty()) {
+            guildSettingsRepository.fetch(guild.id).subscribe {
+                if (it.autoResume) {
+                    player.setPause(false)
+                    player.activeTextChannel?.send(I18n.get(guild).getString("eventAutoResumed"))?.subscribe()
+                }
+            }
         }
     }
 

@@ -3,18 +3,23 @@ package fredboat.agent
 import com.fredboat.sentinel.entities.GuildUnsubscribeRequest
 import fredboat.audio.lavalink.SentinelLavalink
 import fredboat.audio.player.PlayerRegistry
+import fredboat.db.mongo.PlayerRepository
+import fredboat.db.mongo.convertAndSave
 import fredboat.sentinel.GuildCache
 import fredboat.sentinel.InternalGuild
 import lavalink.client.io.Link
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Controller
+import reactor.core.publisher.Mono
+import java.time.Duration
 import java.util.concurrent.TimeUnit
 
 @Controller
 class GuildCacheInvalidationAgent(
         val guildCache: GuildCache,
         private val playerRegistry: PlayerRegistry,
+        private val playerRepository: PlayerRepository,
         private val lavalink: SentinelLavalink
 ) : FredBoatAgent("cache-invalidator", 5, TimeUnit.MINUTES) {
 
@@ -59,14 +64,19 @@ class GuildCacheInvalidationAgent(
     }
 
     fun invalidateGuild(guild: InternalGuild) {
-        try {
-            playerRegistry.destroyPlayer(guild)
-            lavalink.getExistingLink(guild)?.destroy()
-        } catch (e: Exception) {
-            log.error("Got exception when invaliding GuildPlayer and Link for {}", guild)
+        val mono = playerRegistry.getExisting(guild)?.let {
+            playerRepository.convertAndSave(it).timeout(Duration.ofSeconds(60))
+        } ?: Mono.empty()
+        mono.subscribe {
+            try {
+                playerRegistry.destroyPlayer(guild)
+                lavalink.getExistingLink(guild)?.destroy()
+            } catch (e: Exception) {
+                log.error("Got exception when invaliding GuildPlayer and Link for {}", guild)
+            }
+            guild.sentinel.sendAndForget(guild.routingKey, GuildUnsubscribeRequest(guild.id))
+            guildCache.cache.remove(guild.id)
         }
-        guild.sentinel.sendAndForget(guild.routingKey, GuildUnsubscribeRequest(guild.id))
-        guildCache.cache.remove(guild.id)
     }
 
 }

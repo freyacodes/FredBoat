@@ -68,6 +68,9 @@ spring:
   output:
     ansi:
       enabled: detect             # for developers: setting this to "always" will force colored logs in your console
+  data:
+    mongodb:
+      # uri:                      # URI connection for the mongodb server. Uncomment only if mongodb server is not on localhost with default settings
 
 
 audio-sources:
@@ -86,25 +89,13 @@ audio-sources:
 ###                 Essential credentials
 ################################################################
 
-backend:
-  quarterdeck:
-    # Host address of your quarterdeck backend, including port unless you are using a reverse proxy.
-    # Example: https://such.example.com:4269/
-    # No need set the host when running Quarterdeck in Docker.
-    host: ""
-    # Credentials used to authenticate to with Quarterdeck.
-    # By default Quarterdeck uses docker:docker when using our docker-compose files
-    user: "docker"
-    pass: "docker"
-
-
 credentials:
   # Used by the ;;split and ;;np commands. Must be hooked up to the Youtube Data API.
   # You can add additional keys in case you are running a big bot
   # How to get the key: https://developers.google.com/youtube/registering_an_application
-  # Add your google API key between the quotation marks
-  googleApiKeys:
-    - "PutYourGoogleAPIKeyHere"
+  # Add your google API key between the quotation marks and uncomment the two lines below
+  #googleApiKeys:
+  #  - "PutYourGoogleAPIKeyHere"
 
   # The preferred way of setting the token is described in ./common.yml
   #discordBotToken: ""

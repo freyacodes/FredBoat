@@ -32,12 +32,13 @@ import fredboat.command.util.WeatherCommand;
 import fredboat.commandmeta.CommandInitializer;
 import fredboat.commandmeta.abs.JCommand;
 import fredboat.config.property.AppConfig;
-import fredboat.db.api.BlacklistService;
+import fredboat.db.api.BlacklistRepository;
 import fredboat.feature.metrics.Metrics;
 import fredboat.messaging.internal.Context;
 import fredboat.util.TextUtils;
 import io.prometheus.client.guava.cache.CacheMetricsCollector;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -63,18 +64,19 @@ public class Ratelimiter {
     @Nullable
     private final Blacklist autoBlacklist;
 
-    public Ratelimiter(AppConfig appConfig, ExecutorService executor, BlacklistService blacklistService,
+    public Ratelimiter(AppConfig appConfig, ExecutorService executor, BlacklistRepository repository,
                        CacheMetricsCollector cacheMetrics) {
         Set<Long> whitelist = ConcurrentHashMap.newKeySet();
 
         //only works for those admins who are added with their userId and not through a roleId
+        //TODO: Add ownerIds (needs merge with dev)
         whitelist.addAll(appConfig.getAdminIds());
 
         //Create all the rate limiters we want
         ratelimits = new ArrayList<>();
 
         if (appConfig.useAutoBlacklist()) {
-            autoBlacklist = new Blacklist(blacklistService, whitelist, RATE_LIMIT_HITS_BEFORE_BLACKLIST);
+            autoBlacklist = new Blacklist(repository, whitelist, RATE_LIMIT_HITS_BEFORE_BLACKLIST);
         } else {
             autoBlacklist = null;
         }
@@ -140,8 +142,8 @@ public class Ratelimiter {
      * @param id Id of the object whose blacklist status is to be checked, for example a userId or a guildId
      * @return true if the id is blacklisted, false if it's not
      */
-    public boolean isBlacklisted(long id) {
-        return autoBlacklist != null && autoBlacklist.isBlacklisted(id);
+    public Mono<Boolean> isBlacklisted(long id) {
+        return (autoBlacklist != null) ? autoBlacklist.isBlacklisted(id) : Mono.just(false);
     }
 
     /**
@@ -152,6 +154,7 @@ public class Ratelimiter {
             ratelimit.liftLimit(id);
         }
         if (autoBlacklist != null)
+
             autoBlacklist.liftBlacklist(id);
     }
 }

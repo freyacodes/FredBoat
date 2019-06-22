@@ -26,11 +26,11 @@
 package fredboat.audio.queue
 
 import com.sedmelluq.discord.lavaplayer.track.TrackMarkerHandler
-import fredboat.audio.player.AbstractPlayer
+import fredboat.audio.player.GuildPlayer
 import org.slf4j.LoggerFactory
 
 class TrackEndMarkerHandler(
-        private val player: AbstractPlayer,
+        private val player: GuildPlayer,
         private val track: AudioTrackContext
 ) : TrackMarkerHandler {
 

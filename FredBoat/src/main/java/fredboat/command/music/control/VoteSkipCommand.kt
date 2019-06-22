@@ -3,6 +3,8 @@ package fredboat.command.music.control
 import com.fredboat.sentinel.entities.coloredEmbed
 import com.fredboat.sentinel.entities.field
 import fredboat.audio.player.GuildPlayer
+import fredboat.audio.player.humanUsersInCurrentVC
+import fredboat.audio.player.isQueueEmpty
 import fredboat.command.info.HelpCommand
 import fredboat.commandmeta.abs.Command
 import fredboat.commandmeta.abs.CommandContext

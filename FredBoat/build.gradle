@@ -49,10 +49,13 @@ dependencies {
     }
 
     compile group: 'org.springframework.boot', name: 'spring-boot-starter-webflux', version: springBootVersion
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-data-mongodb-reactive', version: springBootVersion
+    compile group: 'org.springframework', name: 'spring-websocket', version: springWebSocketVersion
     compile group: 'it.unimi.dsi', name: 'fastutil', version: fastUtilVersion
     compile group: 'com.google.code.gson', name: 'gson', version: gsonVersion
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
-    compile group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-reactor', version: '1.0.1'
+    compile group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-reactor', version: '1.1.1'
+    compile group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-jdk8', version: '1.1.1'
     compile group: 'org.springframework.amqp', name: 'spring-rabbit', version: amqpVersion
     compile group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonKotlinVersion
 
@@ -72,6 +75,7 @@ dependencies {
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4', version: dockerComposeRuleVersion
     testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion
     testCompile group: 'org.postgresql', name: 'postgresql', version: postgresJdbcVersion
+    testCompile 'io.projectreactor:reactor-test:3.1.6.RELEASE'
     optional group: 'org.springframework.boot', name: 'spring-boot-configuration-processor', version: springBootVersion
 
     /* Explicitly set these, instead of getting outdated transitive ones */

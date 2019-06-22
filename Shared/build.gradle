@@ -46,12 +46,16 @@ dependencies {
     compile group: 'com.squareup.okhttp3', name: 'okhttp', version: okhttpVersion
 
     compile group: 'com.google.guava', name: 'guava', version: guavaVersion
+    compile group: 'com.github.ben-manes.caffeine', name: 'caffeine', version: caffeineVersion
+    compile group: 'com.github.ben-manes.caffeine', name: 'guava', version: caffeineVersion
+
 
     compile group: 'io.prometheus', name: 'simpleclient', version: prometheusClientVersion
     compile group: 'io.prometheus', name: 'simpleclient_hotspot', version: prometheusClientVersion
     compile group: 'io.prometheus', name: 'simpleclient_logback', version: prometheusClientVersion
     compile group: 'io.prometheus', name: 'simpleclient_hibernate', version: prometheusClientVersion
     compile group: 'io.prometheus', name: 'simpleclient_guava', version: prometheusClientVersion
+    compile group: 'io.prometheus', name: 'simpleclient_caffeine', version: prometheusClientVersion
     compile group: 'io.prometheus', name: 'simpleclient_servlet', version: prometheusClientVersion
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
 }

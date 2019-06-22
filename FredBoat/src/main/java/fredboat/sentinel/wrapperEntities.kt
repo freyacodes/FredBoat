@@ -110,19 +110,34 @@ abstract class Guild(raw: RawGuild) : SentinelEntity {
 /** Has public members we want to hide */
 class InternalGuild(raw: RawGuild) : Guild(raw) {
 
-    init {
-        update(raw)
-        // Any old GuildPlayer needs to be aware of the new guild object
-        val player: GuildPlayer? = getBotController().playerRegistry.getExisting(this)
-        if (player != null) player.guild = this
-    }
-
-
     /** Last time we really needed this [Guild].
      *  If this value becomes too old, the [Guild] may be invalidated.
      *  Refreshed on command invocation
      */
     var lastUsed: Long = System.currentTimeMillis()
+
+    /**
+     * Sentinel caches voice server updates, so that we may restart without renewing it.
+     * This property may store the voice server update that Sentinel has at the time of subscribing/updating.
+     */
+    var cachedVsu: VoiceServerUpdate? = null
+
+    init {
+        update(raw)
+        cachedVsu = raw.voiceServerUpdate // Must only be set on subscribing, unless setting to null
+        try {
+            // Any old GuildPlayer needs to be aware of the new guild object
+            val player: GuildPlayer? = getBotController().playerRegistry.getExisting(this)
+            if (player != null) {
+                player.guild = this
+                player.linkPostProcess()
+            }
+        } catch (e: Exception) {
+            log.error("Failed to update GuildPlayer after subscribe", e)
+        }
+
+        if (raw.voiceServerUpdate != null) log.info("Received cached VSU for $this")
+    }
 
     fun update(raw: RawGuild) {
         if (id != raw.id) throw AmqpRejectAndDontRequeueException("Attempt to update $id with the data of ${raw.id}")
@@ -137,6 +152,7 @@ class InternalGuild(raw: RawGuild) : Guild(raw) {
 
         val rawOwner = raw.owner
         _owner = if (rawOwner != null) members[rawOwner] else null
+
     }
 
     fun handleMemberAdd(member: RawMember) {

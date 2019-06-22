@@ -23,8 +23,8 @@ import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.support.AbstractApplicationContext
+import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories
 import java.io.IOException
 import java.util.concurrent.ExecutorService
 import java.util.function.Supplier
@@ -32,12 +32,14 @@ import java.util.function.Supplier
 /**
  * The class responsible for launching FredBoat
  */
-@SpringBootApplication(exclude = [ // Excluded because we manage these already
-    DataSourceAutoConfiguration::class,
-    DataSourceTransactionManagerAutoConfiguration::class,
-    HibernateJpaAutoConfiguration::class,
-    FlywayAutoConfiguration::class])
-@ComponentScan(basePackages = ["fredboat"])
+@SpringBootApplication(scanBasePackages = ["fredboat"],
+        exclude = [ // Excluded because we manage these already
+            DataSourceAutoConfiguration::class,
+            DataSourceTransactionManagerAutoConfiguration::class,
+            HibernateJpaAutoConfiguration::class,
+            FlywayAutoConfiguration::class]
+)
+@EnableReactiveMongoRepositories("fredboat.db.mongo")
 class Launcher(
         botController: BotController,
         private val configProvider: ConfigPropertiesProvider,
@@ -67,7 +69,7 @@ class Launcher(
         }
 
         //Check imgur creds
-        executor.submit{ this.hasValidImgurCredentials() }
+        executor.submit { this.hasValidImgurCredentials() }
 
         FredBoatAgent.start(statsAgent)
         FredBoatAgent.start(invalidationAgent)

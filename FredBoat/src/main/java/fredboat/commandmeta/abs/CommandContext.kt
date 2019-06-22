@@ -29,6 +29,7 @@ import fredboat.definitions.Module
 import fredboat.main.Launcher
 import fredboat.messaging.internal.Context
 import fredboat.sentinel.*
+import kotlinx.coroutines.reactive.awaitFirst
 
 /**
  * Convenience container for values associated with an issued command
@@ -66,7 +67,9 @@ class CommandContext(
         }
 
     val enabledModules: Collection<Module>
-        get() = Launcher.botController.guildModulesService.fetchGuildModules(this.guild).enabledModules
+        get() = Launcher.botController.guildSettingsRepository.fetch(guild.id).block()!!
+                .modules.filter { it.enabled }
+                .map { it.module }
 
     override val user: User
         get() = member.user

@@ -51,6 +51,8 @@ import java.awt.Color
 
 class NowplayingCommand(private val youtubeAPI: YoutubeAPI, name: String, vararg aliases: String) : Command(name, *aliases), IMusicCommand {
 
+    private val hasYtKeys get() = Launcher.botController.credentials.googleKeys.isNotEmpty()
+
     override suspend fun invoke(context: CommandContext) {
         val player = Launcher.botController.playerRegistry.getExisting(context.guild)
 
@@ -63,7 +65,7 @@ class NowplayingCommand(private val youtubeAPI: YoutubeAPI, name: String, vararg
         val at = atc!!.track
 
         val embed = when {
-            at is YoutubeAudioTrack && !FeatureFlags.DISABLE_NOWPLAYING_WITH_YTAPI.isActive ->
+            at is YoutubeAudioTrack && hasYtKeys && !FeatureFlags.DISABLE_NOWPLAYING_WITH_YTAPI.isActive ->
                 getYoutubeEmbed(atc, player, at)
             at is SoundCloudAudioTrack -> getSoundcloudEmbed(atc, player, at)
             at is BandcampAudioTrack -> getBandcampResponse(atc, player, at)
@@ -74,7 +76,7 @@ class NowplayingCommand(private val youtubeAPI: YoutubeAPI, name: String, vararg
             else -> getDefaultEmbed(atc, player, at)
         }
         if (embed.footer == null) embed.footer {
-            text = "Requested by ${atc.member.effectiveName}#${atc.member.discrim}" // TODO i18n
+            text = context.i18nFormat("npRequestedBy", atc.member.effectiveName)
             iconUrl = atc.member.info.awaitSingle().iconUrl
         }
 

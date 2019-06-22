@@ -84,7 +84,7 @@ class VoiceChannelCleanupAgent(
                     } else if (vc != null && isBeingUsed(vc)) {
                         vcLastUsed[vcId] = System.currentTimeMillis()
                     } else {
-                        // Not being used! But there are users in te VC. Check if we've been here for a while.
+                        // Not being used! But there are users in the VC. Check if we've been here for a while.
 
                         vcId?.let {
                             if (!vcLastUsed.containsKey(vcId)) {

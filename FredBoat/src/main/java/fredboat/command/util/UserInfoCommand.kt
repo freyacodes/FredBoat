@@ -73,7 +73,7 @@ class UserInfoCommand(name: String, vararg aliases: String) : Command(name, *ali
             field(context.i18n("userinfoNick"), TextUtils.escapeMarkdown(target.effectiveName), true)
             field(context.i18n("userinfoJoinDate"), joinTimestamp, true)
             field(context.i18n("userinfoCreationTime"), target.user.creationTime.format(dtf), true)
-            field(context.i18n("userinfoBlacklisted"), Launcher.botController.ratelimiter.isBlacklisted(target.user.id).toString(), true)
+            field(context.i18n("userinfoBlacklisted"), Launcher.botController.ratelimiter.isBlacklisted(target.user.id).awaitSingle().toString(), true)
             field("Permission Level", PermsUtil.getPerms(target).label, true) //todo i18n
         })
     }
