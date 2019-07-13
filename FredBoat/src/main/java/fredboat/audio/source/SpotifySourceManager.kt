@@ -56,13 +56,13 @@ import java.util.regex.Pattern
  *
  * @author napster
  */
-class SpotifyPlaylistSourceManager(private val trackSearcher: TrackSearcher, private val spotifyAPIWrapper: SpotifyAPIWrapper) : AudioSourceManager, PlaylistImporter {
+class SpotifySourceManager(private val trackSearcher: TrackSearcher, private val spotifyAPIWrapper: SpotifyAPIWrapper) : AudioSourceManager, PlaylistImporter {
 
      companion object {
 
         var CACHE_DURATION = TimeUnit.DAYS.toMillis(30)// 1 month;
 
-        private val log = LoggerFactory.getLogger(SpotifyPlaylistSourceManager::class.java)
+        private val log = LoggerFactory.getLogger(SpotifySourceManager::class.java)
 
         //https://regex101.com/r/AEWyxi/3
         private val PLAYLIST_PATTERN = Pattern.compile("https?://.*\\.spotify\\.com(.*)/playlist/([^?/\\s]*)")

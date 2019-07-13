@@ -37,7 +37,7 @@ import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
 import fredboat.audio.source.HttpSourceManager;
 import fredboat.audio.source.PlaylistImportSourceManager;
-import fredboat.audio.source.SpotifyPlaylistSourceManager;
+import fredboat.audio.source.SpotifySourceManager;
 import fredboat.config.property.AppConfig;
 import fredboat.config.property.AudioSourcesConfig;
 import fredboat.util.rest.SpotifyAPIWrapper;
@@ -130,7 +130,7 @@ public class AudioPlayerManagerConfiguration {
                                                                           TwitchStreamAudioSourceManager twitchStreamAudioSourceManager,
                                                                           VimeoAudioSourceManager vimeoAudioSourceManager,
                                                                           BeamAudioSourceManager beamAudioSourceManager,
-                                                                          SpotifyPlaylistSourceManager spotifyPlaylistSourceManager,
+                                                                          SpotifySourceManager SpotifySourceManager,
                                                                           LocalAudioSourceManager localAudioSourceManager,
                                                                           HttpSourceManager httpSourceManager) {
         ArrayList<AudioSourceManager> audioSourceManagers = new ArrayList<>();
@@ -154,7 +154,7 @@ public class AudioPlayerManagerConfiguration {
             audioSourceManagers.add(beamAudioSourceManager);
         }
         if (audioSourcesConfig.isSpotifyEnabled()) {
-            audioSourceManagers.add(spotifyPlaylistSourceManager);
+            audioSourceManagers.add(SpotifySourceManager);
         }
         if (audioSourcesConfig.isLocalEnabled()) {
             audioSourceManagers.add(localAudioSourceManager);
@@ -240,9 +240,9 @@ public class AudioPlayerManagerConfiguration {
 
     @Bean(destroyMethod = "")
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    public SpotifyPlaylistSourceManager spotifyPlaylistSourceManager(TrackSearcher trackSearcher,
+    public SpotifySourceManager SpotifySourceManager(TrackSearcher trackSearcher,
                                                                      SpotifyAPIWrapper spotifyAPIWrapper) {
-        return new SpotifyPlaylistSourceManager(trackSearcher, spotifyAPIWrapper);
+        return new SpotifySourceManager(trackSearcher, spotifyAPIWrapper);
     }
 
     @Bean(destroyMethod = "")

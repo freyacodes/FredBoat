@@ -34,7 +34,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import fredboat.audio.player.GuildPlayer
 import fredboat.audio.source.PlaylistImportSourceManager
 import fredboat.audio.source.PlaylistImporter
-import fredboat.audio.source.SpotifyPlaylistSourceManager
+import fredboat.audio.source.SpotifySourceManager
 import fredboat.feature.metrics.Metrics
 import fredboat.util.TextUtils
 import fredboat.util.extension.escapeAndDefuse
@@ -135,7 +135,7 @@ class AudioLoader(private val ratelimiter: Ratelimiter, internal val trackProvid
     private fun getSlowLoadingPlaylistData(identifier: String): PlaylistInfo? {
 
         var playlistInfo: PlaylistInfo? = null
-        var pi: PlaylistImporter? = playerManager.source(SpotifyPlaylistSourceManager::class.java)
+        var pi: PlaylistImporter? = playerManager.source(SpotifySourceManager::class.java)
         if (pi != null) {
             playlistInfo = pi.getPlaylistDataBlocking(identifier)
         }
