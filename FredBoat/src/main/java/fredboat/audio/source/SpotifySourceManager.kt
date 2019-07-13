@@ -66,12 +66,18 @@ class SpotifySourceManager(private val trackSearcher: TrackSearcher, private val
 
         //https://regex101.com/r/AEWyxi/3
         private val PLAYLIST_PATTERN = Pattern.compile("https?://.*\\.spotify\\.com(.*)/playlist/([^?/\\s]*)")
+        private val ALBUM_PATTERN = Pattern.compile("https?://.*\\.spotify\\.com(.*)/album/([^?/\\s]*)")
 
         //Take care when deciding on upping the core pool size: The threads may hog database connections when loading an uncached playlist.
         // Upping the threads will also fire search requests more aggressively against Youtube which is probably better avoided.
         var loader = Executors.newScheduledThreadPool(1)
 
         private val searchProviders = Arrays.asList(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD)
+
+        enum class LinkType {
+            Album,
+            Playlist,
+        }
     }
 
     override fun getSourceName(): String {
