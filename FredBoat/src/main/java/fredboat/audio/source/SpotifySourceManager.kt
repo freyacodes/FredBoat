@@ -213,9 +213,14 @@ class SpotifySourceManager(private val trackSearcher: TrackSearcher, private val
 
         val data = parse(identifier) ?: return null
         val spotifyListId = data[0]
+        val listType = data[1]
 
         try {
-            return spotifyAPIWrapper.getPlaylistDataBlocking(spotifyListId)
+            when (listType) {
+                "Playlist" -> return spotifyAPIWrapper.getPlaylistDataBlocking(spotifyListId)
+                "Album" -> return spotifyAPIWrapper.getAlbumDataBlocking(spotifyListId)
+                else -> throw IllegalStateException("Bruh 3")
+            }
         } catch (e: Exception) {
             log.warn("Could not retrieve playlist $spotifyListId", e)
             throw FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e)
