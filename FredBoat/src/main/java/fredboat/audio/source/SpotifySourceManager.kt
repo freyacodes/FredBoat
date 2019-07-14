@@ -74,11 +74,8 @@ class SpotifySourceManager(private val trackSearcher: TrackSearcher, private val
 
         private val searchProviders = Arrays.asList(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD)
 
-        enum class LinkType {
-            Album,
-            Playlist,
+        val LinkType = listOf("Album", "Playlist")
         }
-    }
 
     override fun getSourceName(): String {
         return "spotify_playlist_import"
