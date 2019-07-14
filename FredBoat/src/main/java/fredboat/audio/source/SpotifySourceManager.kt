@@ -113,13 +113,17 @@ class SpotifySourceManager(private val trackSearcher: TrackSearcher, private val
         val trackListSearchTerms: List<String>
 
         try {
-            trackListSearchTerms = spotifyAPIWrapper.getPlaylistTracksSearchTermsBlocking(spotifyListId)
+            when (listType) {
+                "Playlist" -> trackListSearchTerms = spotifyAPIWrapper.getPlaylistTracksSearchTermsBlocking(spotifyListId)
+                "Album" -> trackListSearchTerms = spotifyAPIWrapper.getAlbumTracksSearchTermsBlocking(spotifyListId)
+                else -> throw IllegalStateException("Bruh 2")
+            }
         } catch (e: Exception) {
-            log.warn("Could not retrieve tracks for playlist $spotifyListId", e)
-            throw FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e)
+            log.warn("Could not retrieve track(s) for list $spotifyListId", e)
+            throw FriendlyException("Couldn't load spotify track(s). Either Spotify is down or the item does not exist.", FriendlyException.Severity.COMMON, e)
         }
 
-        log.info("Retrieved playlist data for $playlistName from Spotify, loading up $tracksTotal tracks")
+        log.info("Retrieved playlist data for $listName from Spotify, loading up $tracksTotal tracks")
 
         //build a task list
         val taskList = ArrayList<CompletableFuture<AudioTrack>>()
