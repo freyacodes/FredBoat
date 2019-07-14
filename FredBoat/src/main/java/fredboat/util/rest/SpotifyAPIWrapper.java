@@ -228,7 +228,7 @@ public class SpotifyAPIWrapper {
         //get page, then collect its tracks
         do {
             String offset = "0";
-            String limit = "100";
+            String limit = "50"; //Limit for album tracks cannot be greater than 50
 
             //this determines offset and limit on the 2nd+ pass of the do loop
             if (jsonPage != null) {
@@ -262,7 +262,7 @@ public class SpotifyAPIWrapper {
 
             jsonTracks.forEach((jsonPlaylistTrack) -> {
                 try {
-                    JSONObject track = ((JSONObject) jsonPlaylistTrack).getJSONObject("track");
+                    JSONObject track = ((JSONObject) jsonPlaylistTrack);
                     final StringBuilder trackNameAndArtists = new StringBuilder();
                     trackNameAndArtists.append(track.getString("name"));
 
