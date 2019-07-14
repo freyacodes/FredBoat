@@ -99,7 +99,7 @@ class SpotifySourceManager(private val trackSearcher: TrackSearcher, private val
                     plData = spotifyAPIWrapper.getAlbumDataBlocking(spotifyListId)
                     listName = plData.name
                 }
-                else -> throw IllegalStateException("Bruh")
+                else -> throw IllegalStateException("Invalid link type: " + listType)
             }
         } catch (e: Exception) {
             log.warn("Could not retrieve playlist $spotifyListId", e)
@@ -116,7 +116,7 @@ class SpotifySourceManager(private val trackSearcher: TrackSearcher, private val
             when (listType) {
                 "Playlist" -> trackListSearchTerms = spotifyAPIWrapper.getPlaylistTracksSearchTermsBlocking(spotifyListId)
                 "Album" -> trackListSearchTerms = spotifyAPIWrapper.getAlbumTracksSearchTermsBlocking(spotifyListId)
-                else -> throw IllegalStateException("Bruh 2")
+                else -> throw IllegalStateException("Invalid link type: " + listType)
             }
         } catch (e: Exception) {
             log.warn("Could not retrieve track(s) for list $spotifyListId", e)
@@ -234,7 +234,7 @@ class SpotifySourceManager(private val trackSearcher: TrackSearcher, private val
             when (listType) {
                 "Playlist" -> return spotifyAPIWrapper.getPlaylistDataBlocking(spotifyListId)
                 "Album" -> return spotifyAPIWrapper.getAlbumDataBlocking(spotifyListId)
-                else -> throw IllegalStateException("Bruh 3")
+                else -> throw IllegalStateException("Invalid link type: " + listType)
             }
         } catch (e: Exception) {
             log.warn("Could not retrieve playlist $spotifyListId", e)
