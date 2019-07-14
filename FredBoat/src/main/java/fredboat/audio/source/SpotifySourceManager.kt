@@ -187,16 +187,25 @@ class SpotifySourceManager(private val trackSearcher: TrackSearcher, private val
      * @return null or a string array containing playlistId at [0] of the requested playlist
      */
     private fun parse(identifier: String): Array<String?>? {
-        val result = arrayOfNulls<String>(1)
-        val m = PLAYLIST_PATTERN.matcher(identifier)
+        val result = arrayOfNulls<String>(2)
+        val playlist = PLAYLIST_PATTERN.matcher(identifier)
+        val album = ALBUM_PATTERN.matcher(identifier)
 
-        if (!m.find()) {
-            return null
+        when {
+            album.find() -> {
+                result[0] = album.group(2)
+                result[1] = LinkType[0]
+            }
+
+            playlist.find() -> {
+                result[0] = playlist.group(2)
+                result[1] = LinkType[1]
         }
 
-        result[0] = m.group(2)
+            else -> return null
+        }
 
-        log.debug("matched spotify playlist link. listId: " + result[0])
+        log.debug("matched spotify link. listId: " + result[0] + " type: " + result[1])
         return result
     }
 
