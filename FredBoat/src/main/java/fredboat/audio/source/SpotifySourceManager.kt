@@ -148,7 +148,7 @@ class SpotifySourceManager(private val trackSearcher: TrackSearcher, private val
             }
 
         }
-        return BasicAudioPlaylist(playlistName, trackList, null, true)
+        return BasicAudioPlaylist(listName, trackList, null, true)
     }
 
     /**
