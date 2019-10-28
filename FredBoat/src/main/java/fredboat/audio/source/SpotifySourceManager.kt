@@ -56,23 +56,26 @@ import java.util.regex.Pattern
  *
  * @author napster
  */
-class SpotifyPlaylistSourceManager(private val trackSearcher: TrackSearcher, private val spotifyAPIWrapper: SpotifyAPIWrapper) : AudioSourceManager, PlaylistImporter {
+class SpotifySourceManager(private val trackSearcher: TrackSearcher, private val spotifyAPIWrapper: SpotifyAPIWrapper) : AudioSourceManager, PlaylistImporter {
 
      companion object {
 
         var CACHE_DURATION = TimeUnit.DAYS.toMillis(30)// 1 month;
 
-        private val log = LoggerFactory.getLogger(SpotifyPlaylistSourceManager::class.java)
+        private val log = LoggerFactory.getLogger(SpotifySourceManager::class.java)
 
         //https://regex101.com/r/AEWyxi/3
         private val PLAYLIST_PATTERN = Pattern.compile("https?://.*\\.spotify\\.com(.*)/playlist/([^?/\\s]*)")
+        private val ALBUM_PATTERN = Pattern.compile("https?://.*\\.spotify\\.com(.*)/album/([^?/\\s]*)")
 
         //Take care when deciding on upping the core pool size: The threads may hog database connections when loading an uncached playlist.
         // Upping the threads will also fire search requests more aggressively against Youtube which is probably better avoided.
         var loader = Executors.newScheduledThreadPool(1)
 
         private val searchProviders = Arrays.asList(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD)
-    }
+
+        val LinkType = listOf("Album", "Playlist")
+        }
 
     override fun getSourceName(): String {
         return "spotify_playlist_import"
@@ -82,30 +85,45 @@ class SpotifyPlaylistSourceManager(private val trackSearcher: TrackSearcher, pri
 
         val data = parse(ar.identifier) ?: return null
         val spotifyListId = data[0]
+        val listType = data[1]
 
         val plData: PlaylistInfo
+        var listName: String?
         try {
+            when (listType) {
+                "Playlist" -> {
             plData = spotifyAPIWrapper.getPlaylistDataBlocking(spotifyListId)
+                     listName = plData.name
+                }
+                "Album" -> {
+                    plData = spotifyAPIWrapper.getAlbumDataBlocking(spotifyListId)
+                    listName = plData.name
+                }
+                else -> throw IllegalStateException("Invalid link type: " + listType)
+            }
         } catch (e: Exception) {
             log.warn("Could not retrieve playlist $spotifyListId", e)
             throw FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e)
         }
 
-        var playlistName: String? = plData.name
-        if (playlistName == null || "" == playlistName) playlistName = "Spotify Playlist"
+        if (listName == null || "" == listName) listName = "Spotify List"
         val tracksTotal = plData.totalTracks
 
         val trackList = ArrayList<AudioTrack>()
         val trackListSearchTerms: List<String>
 
         try {
-            trackListSearchTerms = spotifyAPIWrapper.getPlaylistTracksSearchTermsBlocking(spotifyListId)
+            when (listType) {
+                "Playlist" -> trackListSearchTerms = spotifyAPIWrapper.getPlaylistTracksSearchTermsBlocking(spotifyListId)
+                "Album" -> trackListSearchTerms = spotifyAPIWrapper.getAlbumTracksSearchTermsBlocking(spotifyListId)
+                else -> throw IllegalStateException("Invalid link type: " + listType)
+            }
         } catch (e: Exception) {
-            log.warn("Could not retrieve tracks for playlist $spotifyListId", e)
-            throw FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e)
+            log.warn("Could not retrieve track(s) for list $spotifyListId", e)
+            throw FriendlyException("Couldn't load spotify track(s). Either Spotify is down or the item does not exist.", FriendlyException.Severity.COMMON, e)
         }
 
-        log.info("Retrieved playlist data for $playlistName from Spotify, loading up $tracksTotal tracks")
+        log.info("Retrieved playlist data for $listName from Spotify, loading up $tracksTotal tracks")
 
         //build a task list
         val taskList = ArrayList<CompletableFuture<AudioTrack>>()
@@ -130,7 +148,7 @@ class SpotifyPlaylistSourceManager(private val trackSearcher: TrackSearcher, pri
             }
 
         }
-        return BasicAudioPlaylist(playlistName, trackList, null, true)
+        return BasicAudioPlaylist(listName, trackList, null, true)
     }
 
     /**
@@ -184,16 +202,25 @@ class SpotifyPlaylistSourceManager(private val trackSearcher: TrackSearcher, pri
      * @return null or a string array containing playlistId at [0] of the requested playlist
      */
     private fun parse(identifier: String): Array<String?>? {
-        val result = arrayOfNulls<String>(1)
-        val m = PLAYLIST_PATTERN.matcher(identifier)
+        val result = arrayOfNulls<String>(2)
+        val playlist = PLAYLIST_PATTERN.matcher(identifier)
+        val album = ALBUM_PATTERN.matcher(identifier)
 
-        if (!m.find()) {
-            return null
+        when {
+            album.find() -> {
+                result[0] = album.group(2)
+                result[1] = LinkType[0]
+            }
+
+            playlist.find() -> {
+                result[0] = playlist.group(2)
+                result[1] = LinkType[1]
         }
 
-        result[0] = m.group(2)
+            else -> return null
+        }
 
-        log.debug("matched spotify playlist link. listId: " + result[0])
+        log.debug("matched spotify link. listId: " + result[0] + " type: " + result[1])
         return result
     }
 
@@ -201,9 +228,14 @@ class SpotifyPlaylistSourceManager(private val trackSearcher: TrackSearcher, pri
 
         val data = parse(identifier) ?: return null
         val spotifyListId = data[0]
+        val listType = data[1]
 
         try {
-            return spotifyAPIWrapper.getPlaylistDataBlocking(spotifyListId)
+            when (listType) {
+                "Playlist" -> return spotifyAPIWrapper.getPlaylistDataBlocking(spotifyListId)
+                "Album" -> return spotifyAPIWrapper.getAlbumDataBlocking(spotifyListId)
+                else -> throw IllegalStateException("Invalid link type: " + listType)
+            }
         } catch (e: Exception) {
             log.warn("Could not retrieve playlist $spotifyListId", e)
             throw FriendlyException("Couldn't load playlist. Either Spotify is down or the playlist does not exist.", FriendlyException.Severity.COMMON, e)

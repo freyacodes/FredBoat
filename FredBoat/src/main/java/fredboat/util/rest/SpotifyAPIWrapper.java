@@ -127,6 +127,27 @@ public class SpotifyAPIWrapper {
         return new PlaylistInfo(tracks, name, PlaylistInfo.Source.SPOTIFY);
     }
 
+
+    /**
+     * Returns some data on a spotify playlist, currently it's name and tracks total.
+     *
+     * @param albumId Spotify album identifier
+     * @return an array containing information about the requested spotify album
+     */
+    public PlaylistInfo getAlbumDataBlocking(String albumId) throws IOException, JSONException {
+        refreshTokenIfNecessary();
+
+        JSONObject jsonAlbum = BotController.Companion.getHTTP().get(URL_SPOTIFY_API + "/v1/albums/" + albumId)
+                .auth("Bearer " + accessToken)
+                .asJson();
+
+        // https://developer.spotify.com/web-api/object-model/#playlist-object-full
+        String name = jsonAlbum.getString("name");
+        int tracks = jsonAlbum.getJSONObject("tracks").getInt("total");
+
+        return new PlaylistInfo(tracks, name, PlaylistInfo.Source.SPOTIFY);
+    }
+
     /**
      * @param playlistId Spotify playlist identifier
      * @return a string for each track on the requested playlist, containing track and artist names
@@ -176,6 +197,72 @@ public class SpotifyAPIWrapper {
             jsonTracks.forEach((jsonPlaylistTrack) -> {
                 try {
                     JSONObject track = ((JSONObject) jsonPlaylistTrack).getJSONObject("track");
+                    final StringBuilder trackNameAndArtists = new StringBuilder();
+                    trackNameAndArtists.append(track.getString("name"));
+
+                    track.getJSONArray("artists").forEach((jsonArtist) -> trackNameAndArtists.append(" ")
+                            .append(((JSONObject) jsonArtist).getString("name")));
+
+                    list.add(trackNameAndArtists.toString());
+                } catch (Exception e) {
+                    log.warn("Could not create track from json, skipping", e);
+                }
+            });
+
+        } while (jsonPage.has("next") && jsonPage.get("next") != null);
+
+        return list;
+    }
+
+    /**
+     * @param albumId Spotify album identifier
+     * @return a string for each track on the requested album, containing track and artist names
+     */
+    public List<String> getAlbumTracksSearchTermsBlocking(String albumId) throws IOException, JSONException {
+        refreshTokenIfNecessary();
+
+        //strings on this list will contain name of the track + names of the artists
+        List<String> list = new ArrayList<>();
+
+        JSONObject jsonPage = null;
+        //get page, then collect its tracks
+        do {
+            String offset = "0";
+            String limit = "50"; //Limit for album tracks cannot be greater than 50
+
+            //this determines offset and limit on the 2nd+ pass of the do loop
+            if (jsonPage != null) {
+                String nextPageUrl;
+                if (!jsonPage.has("next") || jsonPage.get("next") == JSONObject.NULL) break;
+                nextPageUrl = jsonPage.getString("next");
+
+                final Matcher m = PARAMETER_PATTERN.matcher(nextPageUrl);
+
+                if (!m.find()) {
+                    log.debug("Did not find parameter pattern in next page URL provided by Spotify");
+                    break;
+                }
+                //We are trusting Spotify to get their shit together and provide us sane values for these
+                offset = m.group(1);
+                limit = m.group(2);
+            }
+
+            //request a page of tracks
+            jsonPage = BotController.Companion.getHTTP().get(URL_SPOTIFY_API + "/v1/albums/" + albumId + "/tracks",
+                    Http.Params.of(
+                            "offset", offset,
+                            "limit", limit
+                    ))
+                    .auth("Bearer " + accessToken)
+                    .asJson();
+
+            //add tracks to our result list
+            // https://developer.spotify.com/web-api/object-model/#paging-object
+            JSONArray jsonTracks = jsonPage.getJSONArray("items");
+
+            jsonTracks.forEach((jsonPlaylistTrack) -> {
+                try {
+                    JSONObject track = ((JSONObject) jsonPlaylistTrack);
                     final StringBuilder trackNameAndArtists = new StringBuilder();
                     trackNameAndArtists.append(track.getString("name"));
 
