@@ -25,7 +25,9 @@
 package fredboat.commandmeta
 
 import com.fredboat.sentinel.entities.MessageReceivedEvent
+import fredboat.command.`fun`.TextCommand
 import fredboat.command.config.PrefixCommand
+import fredboat.command.info.NotRecognizedCommand
 import fredboat.commandmeta.abs.CommandContext
 import fredboat.config.idString
 import fredboat.config.property.AppConfig
@@ -111,15 +113,23 @@ class CommandContextParser(
         val commandTrigger = args[0]
 
         val command = CommandRegistry.findCommand(commandTrigger.toLowerCase())
+        val guild = getGuildMono(event.guild, textChannelInvoked = event.channel).retry(1).awaitFirstOrNull()
+                ?: throw RuntimeException("Guild ${event.guild} doesn't seem to exist")
+        val channel = guild.getTextChannel(event.channel) ?: throw RuntimeException("Channel was sent in null channel")
+        val member = guild.getMember(event.author) ?: throw RuntimeException("Unknown message author")
         if (command == null) {
-            log.info("Unknown command:\t{}", commandTrigger)
-            return null
+            val commandBis = NotRecognizedCommand("Command not recognized", "not in")
+            return CommandContext(
+                    guild,
+                    channel,
+                    member,
+                    Message(guild, event),
+                    isMention,
+                    commandTrigger,
+                    Arrays.copyOfRange(args, 1, args.size), //exclude args[0] that contains the command trigger
+                    input.replaceFirst(commandTrigger.toRegex(), "").trim { it <= ' ' },
+                    commandBis)
         } else {
-            val guild = getGuildMono(event.guild, textChannelInvoked = event.channel).retry(1).awaitFirstOrNull()
-                    ?: throw RuntimeException("Guild ${event.guild} doesn't seem to exist")
-            val channel = guild.getTextChannel(event.channel) ?: throw RuntimeException("Channel was sent in null channel")
-            val member = guild.getMember(event.author) ?: throw RuntimeException("Unknown message author")
-
             return CommandContext(
                     guild,
                     channel,

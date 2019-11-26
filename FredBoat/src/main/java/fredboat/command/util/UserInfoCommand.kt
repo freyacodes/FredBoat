@@ -37,6 +37,7 @@ import fredboat.sentinel.Member
 import fredboat.util.ArgumentUtil
 import fredboat.util.TextUtils
 import kotlinx.coroutines.reactive.awaitSingle
+import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -48,7 +49,12 @@ import java.time.format.DateTimeFormatter
  */
 class UserInfoCommand(name: String, vararg aliases: String) : Command(name, *aliases), IUtilCommand {
 
+    companion object {
+        private val log = LoggerFactory.getLogger(CommandContext::class.java)
+    }
+
     override suspend fun invoke(context: CommandContext) {
+        log.info("Receive command", context)
         val target: Member? = if (!context.hasArguments()) {
             context.member
         } else {
