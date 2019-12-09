@@ -30,6 +30,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import fredboat.audio.lavalink.SentinelLavalink
 import fredboat.audio.queue.*
+import fredboat.command.music.control.VoteShuffleCommand
 import fredboat.command.music.control.VoteSkipCommand
 import fredboat.commandmeta.MessagingException
 import fredboat.commandmeta.abs.CommandContext
