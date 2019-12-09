@@ -217,7 +217,7 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
         funModule.registerCommand(RollCommand("https://imgur.com/a/lrEwS", "roll"))
         funModule.registerCommand(RandomImageCommand("https://imgur.com/a/mnhzS", "wombat"))
         funModule.registerCommand(RandomImageCommand("https://imgur.com/a/hfL80", "capybara"))
-        funModule.registerCommand(RandomImageCommand("https://imgur.com/a/WvjQA", "quokka"))
+        funModule.registerCommand(RandomImageCommand("https://imgur.com/a/WvplayerLimiterjQA", "quokka"))
         funModule.registerCommand(RandomImageCommand("https://imgur.com/a/BL2MW", "otter"))
 
         // Music Module
@@ -240,6 +240,7 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
         musicModule.registerCommand(PlayCommand(playerLimiter, trackSearcher, videoSelectionCache,
                 listOf(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD),
                 "playnext", "playtop", "pn", isPriority = true))
+        musicModule.registerCommand(PlayListCommand(listOf(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD), trackSearcher, "playlist", "pl"))
         musicModule.registerCommand(PlaySplitCommand(playerLimiter, "split"))
         musicModule.registerCommand(RepeatCommand("repeat", "rep", "loop"))
         musicModule.registerCommand(ReshuffleCommand("reshuffle", "resh"))
