@@ -173,6 +173,7 @@ class AudioPlayerManagerConfiguration {
         if (audioSourcesConfig.isLocalEnabled) {
             audioSourceManagers.add(localAudioSourceManager)
         }
+        audioSourceManagers.add(httpAudioSourceManager)
         if (audioSourcesConfig.isHttpEnabled) {
             //add new source managers above the HttpAudio one, because it will either eat your request or throw an exception
             //so you will never reach a source manager below it
