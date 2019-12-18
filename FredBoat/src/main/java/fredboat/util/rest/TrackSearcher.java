@@ -26,6 +26,7 @@
 package fredboat.util.rest;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayerLifecycleManager;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
@@ -56,7 +57,8 @@ import java.util.concurrent.TimeoutException;
 @Component
 public class TrackSearcher {
 
-    public static final int MAX_RESULTS = 5;
+    public static final int MAX_RESULTS = 50;
+    public static final int DEFAULT_MAX_RESULTS = 5;
     public static final long DEFAULT_CACHE_MAX_AGE = TimeUnit.HOURS.toMillis(48);
     public static final String PUNCTUATION_REGEX = "[.,/#!$%^&*;:{}=\\-_`~()\"\']";
     private static final int DEFAULT_TIMEOUT = 3000;
@@ -87,17 +89,29 @@ public class TrackSearcher {
         return searchForTracks(query, DEFAULT_CACHE_MAX_AGE, DEFAULT_TIMEOUT, providers);
     }
 
+    public AudioPlaylist searchForTracks(String query, List<SearchProvider> providers, int nb_results) throws SearchingException {
+        return searchForTracks(query, DEFAULT_CACHE_MAX_AGE, DEFAULT_TIMEOUT, providers, nb_results);
+    }
+
+    public AudioPlaylist searchForTracks(String query, long cacheMaxAge, int timeoutMillis, List<SearchProvider> providers)
+            throws SearchingException {
+        return searchForTracks(query, cacheMaxAge, timeoutMillis, providers, DEFAULT_MAX_RESULTS);
+    }
+
+
     /**
      * @param query         The search term
      * @param cacheMaxAge   Age of acceptable results from cache.
      * @param timeoutMillis How long to wait for each lavaplayer search to answer
      * @param providers     Providers that shall be used for the search. They will be used in the order they are provided, the
      *                      result of the first successful one will be returned
+     * @param nbResults     Number of results asked
      * @return The result of the search, or an empty list.
      * @throws SearchingException If none of the search providers could give us a result, and there was at least one SearchingException thrown by them
      */
-    public AudioPlaylist searchForTracks(String query, long cacheMaxAge, int timeoutMillis, List<SearchProvider> providers)
+    public AudioPlaylist searchForTracks(String query, long cacheMaxAge, int timeoutMillis, List<SearchProvider> providers, int nbResults)
             throws SearchingException {
+        nbResults = Math.min(nbResults, MAX_RESULTS);
         Metrics.searchRequests.inc();
 
         List<SearchProvider> provs = new ArrayList<>();
@@ -148,7 +162,7 @@ public class TrackSearcher {
             if (provider == SearchProvider.YOUTUBE
                     && (appConfig.isPatronDistribution() || appConfig.isDevDistribution())) {
                 try {
-                    AudioPlaylist youtubeApiResult = youtubeAPI.search(query, MAX_RESULTS, audioPlayerManager.source(YoutubeAudioSourceManager.class));
+                    AudioPlaylist youtubeApiResult = youtubeAPI.search(query, nbResults, audioPlayerManager.source(YoutubeAudioSourceManager.class));
                     if (!youtubeApiResult.getTracks().isEmpty()) {
                         log.debug("Loaded search result {} {} from Youtube API", provider, query);
                         // got a search result? cache and return it

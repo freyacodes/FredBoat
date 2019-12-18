@@ -66,7 +66,7 @@ class PlayAllCommand(private val playerLimiter: PlayerLimiter, private val track
             return
         }
 
-        var url = StringUtils.strip(context.args[0], "<>")
+        val url = StringUtils.strip(context.args[0], "<>")
         //Search youtube for videos and play them directly
         if (!url.startsWith("http") && !url.startsWith(FILE_PREFIX)) {
             searchAndPlayForVideos(context)
@@ -75,14 +75,28 @@ class PlayAllCommand(private val playerLimiter: PlayerLimiter, private val track
     }
 
     private fun searchAndPlayForVideos(context: CommandContext) {
+        //Find the number of tracks asked
+        var nbResults= TrackSearcher.DEFAULT_MAX_RESULTS
+        var rawArgs = context.rawArgs
+
+        if (context.args[0].matches("[0-9]+".toRegex())){
+            nbResults = context.args[0].toInt()
+            rawArgs = rawArgs.dropWhile { it.isDigit() || it.isWhitespace()}
+        }
+
+        if (rawArgs.isEmpty()){
+            context.reply(context.i18n("playAllSearchNotGiven"))
+            return
+        }
+
         //Now remove all punctuation
-        val query = context.rawArgs.replace(TrackSearcher.PUNCTUATION_REGEX.toRegex(), "")
+        val query = rawArgs.replace(TrackSearcher.PUNCTUATION_REGEX.toRegex(), "")
 
         context.replyMono(context.i18n("playSearching").replace("{q}", query))
                 .subscribe{ outMsg ->
             val list: AudioPlaylist?
             try {
-                list = trackSearcher.searchForTracks(query, searchProviders)
+                list = trackSearcher.searchForTracks(query, searchProviders, nbResults)
             } catch (e: TrackSearcher.SearchingException) {
                 context.reply(context.i18n("playYoutubeSearchError"))
                 log.error("YouTube search exception", e)
@@ -96,8 +110,7 @@ class PlayAllCommand(private val playerLimiter: PlayerLimiter, private val track
                 ).subscribe()
 
             } else {
-                //Get at most 5 tracks
-                val selectable = list.tracks.subList(0, Math.min(TrackSearcher.MAX_RESULTS, list.tracks.size))
+                val selectable = list.tracks.subList(0, nbResults.coerceAtMost(list.tracks.size))
 
                 val oldSelection = videoSelectionCache.remove(context.member)
                 oldSelection?.deleteMessage()
@@ -108,7 +121,7 @@ class PlayAllCommand(private val playerLimiter: PlayerLimiter, private val track
                 val player = Launcher.botController.playerRegistry.getOrCreate(context.guild)
                 val invoker = context.member
                 val selection = videoSelectionCache[invoker]
-                val selectedTracks = arrayOfNulls<AudioTrack>(TrackSearcher.MAX_RESULTS)
+                val selectedTracks = arrayOfNulls<AudioTrack>(nbResults.coerceAtMost(list.tracks.size))
                 val outputMsgBuilder = StringBuilder()
 
                 if (selection == null) {
@@ -118,14 +131,14 @@ class PlayAllCommand(private val playerLimiter: PlayerLimiter, private val track
                     ).subscribe()
                 } else {
 
-                    for (i in 0 until TrackSearcher.MAX_RESULTS) {
+                    for (i in 0 until nbResults.coerceAtMost(list.tracks.size)) {
                         selectedTracks[i] = selection.choices[i]
 
                         val msg = context.i18nFormat("selectSuccess", (i + 1),
                                 TextUtils.escapeAndDefuse(selectedTracks[i]!!.info.title),
                                 TextUtils.formatTime(selectedTracks[i]!!.info.length))
 
-                        if (i < TrackSearcher.MAX_RESULTS) {
+                        if (i < nbResults.coerceAtMost(list.tracks.size)) {
                             outputMsgBuilder.append("\n")
                         }
                         outputMsgBuilder.append(msg)
@@ -144,7 +157,7 @@ class PlayAllCommand(private val playerLimiter: PlayerLimiter, private val track
     }
 
     override fun help(context: Context): String {
-        val usage = "{0}{1} <search-term>\n#"
+        val usage = "{0}{1} [number of tracks] <search-term>\n#"
         return usage + context.i18nFormat(if (!isPriority) "helpPlayAllCommand" else "helpPlayAllTopCommand", BotConstants.DOCS_URL)
     }
 
