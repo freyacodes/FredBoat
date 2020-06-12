@@ -79,6 +79,7 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
         const val SOUNDCLOUD_COMM_NAME = "soundcloud"
         const val PREFIX_COMM_NAME = "prefix"
         const val PLAY_COMM_NAME = "play"
+        const val PLAYALL_COMM_NAME = "playall"
         const val CONFIG_COMM_NAME = "config"
         const val LANGUAGE_COMM_NAME = "language"
     }
@@ -240,6 +241,12 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
         musicModule.registerCommand(PlayCommand(playerLimiter, trackSearcher, videoSelectionCache,
                 listOf(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD),
                 "playnext", "playtop", "pn", isPriority = true))
+        musicModule.registerCommand(PlayAllCommand(playerLimiter, trackSearcher, videoSelectionCache,
+                Arrays.asList(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD),
+                PLAYALL_COMM_NAME, "pa"))
+        musicModule.registerCommand(PlayAllCommand(playerLimiter, trackSearcher, videoSelectionCache,
+                Arrays.asList(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD),
+                "playalltop", "patop", isPriority = true))
         musicModule.registerCommand(PlaySplitCommand(playerLimiter, "split"))
         musicModule.registerCommand(RepeatCommand("repeat", "rep", "loop"))
         musicModule.registerCommand(ReshuffleCommand("reshuffle", "resh"))
