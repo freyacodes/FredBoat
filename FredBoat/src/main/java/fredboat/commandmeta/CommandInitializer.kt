@@ -238,11 +238,14 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
                 listOf(SearchProvider.SOUNDCLOUD),
                 SOUNDCLOUD_COMM_NAME, "sc"))
         musicModule.registerCommand(PlayCommand(playerLimiter, trackSearcher, videoSelectionCache,
+                listOf(SearchProvider.SOUNDCLOUD),
+                SOUNDCLOUD_COMM_NAME, "scf", skipSearch = true))
+        musicModule.registerCommand(PlayCommand(playerLimiter, trackSearcher, videoSelectionCache,
                 listOf(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD),
                 "playnext", "playtop", "pn", isPriority = true))
         musicModule.registerCommand(PlayCommand(playerLimiter, trackSearcher, videoSelectionCache,
-                Arrays.asList(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD),
-                PLAY_COMM_NAME, "playfirst", "pf", "lucky", skipSearch = true))
+                listOf(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD),
+                "playfirst", "pf", "lucky", skipSearch = true))
         musicModule.registerCommand(PlaySplitCommand(playerLimiter, "split"))
         musicModule.registerCommand(RepeatCommand("repeat", "rep", "loop"))
         musicModule.registerCommand(ReshuffleCommand("reshuffle", "resh"))
