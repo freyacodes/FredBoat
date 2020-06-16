@@ -239,7 +239,7 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
                 SOUNDCLOUD_COMM_NAME, "sc"))
         musicModule.registerCommand(PlayCommand(playerLimiter, trackSearcher, videoSelectionCache,
                 listOf(SearchProvider.SOUNDCLOUD),
-                SOUNDCLOUD_COMM_NAME, "scf", skipSearch = true))
+                "scf", skipSearch = true))
         musicModule.registerCommand(PlayCommand(playerLimiter, trackSearcher, videoSelectionCache,
                 listOf(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD),
                 "playnext", "playtop", "pn", isPriority = true))
