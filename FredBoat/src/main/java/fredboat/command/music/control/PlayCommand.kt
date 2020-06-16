@@ -200,7 +200,6 @@ class PlayCommand(private val playerLimiter: PlayerLimiter, private val trackSea
 
     override fun help(context: Context): String {
         val usage = "{0}{1} <url> OR {0}{1} <search-term>\n#"
-        // return usage + context.i18nFormat(if (!isPriority) "helpPlayCommand" else "helpPlayNextCommand", BotConstants.DOCS_URL)
         return usage + context.i18nFormat(
             if (isPriority) {
                 "helpPlayNextCommand"
