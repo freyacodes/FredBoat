@@ -148,6 +148,8 @@ class PlayCommand(private val playerLimiter: PlayerLimiter, private val trackSea
                 ).subscribe()
 
             } else if (skipSearch) {
+
+                //Pick the first song from the search.
                 val track = list.tracks.first()
 
                 val player = Launcher.botController.playerRegistry.getOrCreate(context.guild)
@@ -155,7 +157,8 @@ class PlayCommand(private val playerLimiter: PlayerLimiter, private val trackSea
                 val invoker = context.member
 
                 val outputMsgBuilder = StringBuilder()
-
+                
+                //Tell the user that song #1 was picked
                 val msg = context.i18nFormat("selectSuccess", "1",
                     TextUtils.escapeAndDefuse(track!!.info.title),
                     TextUtils.formatTime(track.info.length))
