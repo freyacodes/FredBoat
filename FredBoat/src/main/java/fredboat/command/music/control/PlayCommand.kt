@@ -45,10 +45,11 @@ import fredboat.util.localMessageBuilder
 import fredboat.util.rest.TrackSearcher
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
+import fredboat.audio.queue.AudioTrackContext
 
 class PlayCommand(private val playerLimiter: PlayerLimiter, private val trackSearcher: TrackSearcher,
                   private val videoSelectionCache: VideoSelectionCache, private val searchProviders: List<SearchProvider>,
-                  name: String, vararg aliases: String, private val isPriority: Boolean = false
+                  name: String, vararg aliases: String, private val isPriority: Boolean = false, private val skipSearch: Boolean = false
 ) : Command(name, *aliases), IMusicCommand, ICommandRestricted {
 
     override val minimumPerms: PermissionLevel
@@ -146,6 +147,25 @@ class PlayCommand(private val playerLimiter: PlayerLimiter, private val trackSea
                         context.i18n("playSearchNoResults").replace("{q}", query)
                 ).subscribe()
 
+            } else if (skipSearch) {
+                val track = list.tracks.first()
+
+                val player = Launcher.botController.playerRegistry.getOrCreate(context.guild)
+
+                val invoker = context.member
+
+                val outputMsgBuilder = StringBuilder()
+
+                val msg = context.i18nFormat("selectSuccess", "1",
+                    TextUtils.escapeAndDefuse(track!!.info.title),
+                    TextUtils.formatTime(track.info.length))
+
+                outputMsgBuilder.append(msg)
+                
+                outMsg.edit(context.textChannel, outputMsgBuilder.toString()).subscribe()
+
+                player.queue(AudioTrackContext(track, invoker, false), false)
+
             } else {
                 //Get at most 5 tracks
                 val selectable = list.tracks.subList(0, Math.min(TrackSearcher.MAX_RESULTS, list.tracks.size))
@@ -177,7 +197,17 @@ class PlayCommand(private val playerLimiter: PlayerLimiter, private val trackSea
 
     override fun help(context: Context): String {
         val usage = "{0}{1} <url> OR {0}{1} <search-term>\n#"
-        return usage + context.i18nFormat(if (!isPriority) "helpPlayCommand" else "helpPlayNextCommand", BotConstants.DOCS_URL)
+        // return usage + context.i18nFormat(if (!isPriority) "helpPlayCommand" else "helpPlayNextCommand", BotConstants.DOCS_URL)
+        return usage + context.i18nFormat(
+            if (isPriority) {
+                "helpPlayNextCommand"
+            } else if (skipSearch) {
+                "helpPlayFirstCommand"
+            } else {
+                "helpPlayCommand"
+            },
+            BotConstants.DOCS_URL            
+        )
     }
 
     companion object {
