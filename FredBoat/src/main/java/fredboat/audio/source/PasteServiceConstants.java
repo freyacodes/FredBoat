@@ -45,7 +45,6 @@ public class PasteServiceConstants {
 
     static final String EXPORT_COMMENTS = "###.*";
 
-
     static final Map<String, String> PASTE_SERVICE_URLS;
 
     static {
