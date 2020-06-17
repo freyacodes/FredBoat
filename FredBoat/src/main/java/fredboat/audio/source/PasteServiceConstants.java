@@ -43,6 +43,9 @@ public class PasteServiceConstants {
     static final Pattern PASTEBIN_PATTERN = Pattern
             .compile("^(?:(?:https?://)?(?:www\\.)?)?pastebin\\.com/(?:raw/)?(\\w+)(?:\\..+)?$");
 
+    static final String EXPORT_COMMENTS = "###.*";
+
+
     static final Map<String, String> PASTE_SERVICE_URLS;
 
     static {

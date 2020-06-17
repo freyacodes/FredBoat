@@ -52,10 +52,13 @@ public class ExportCommand extends JCommand implements IMusicCommand {
             throw new MessagingException(context.i18n("exportEmpty"));
         }
 
-        String out = player.getRemainingTracks().stream()
-                .map(atc -> atc.getTrack().getInfo().uri)
+        String hint = "### " + context.i18n("exportPlaylistHint").replaceAll("\n", "\n### ");
+        String list = player.getRemainingTracks().stream()
+                .map(atc -> atc.getTrack().getInfo().uri + " ### " + atc.getTrack().getInfo().title)
                 .collect(Collectors.joining("\n"));
 
+        String out = hint + "\n" + list;
+        
         TextUtils.postToPasteService(out)
                 .thenApply(pasteUrl -> {
                     if (pasteUrl.isPresent()) {
