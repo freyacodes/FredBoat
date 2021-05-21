@@ -228,6 +228,8 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
         musicModule.registerCommand(JoinCommand("join", "summon", "jn", "j"))
         musicModule.registerCommand(LeaveCommand("leave", "lv"))
         musicModule.registerCommand(PauseCommand("pause", "pa", "ps"))
+        musicModule.registerCommand(WebradioCommand(playerLimiter, trackSearcher, videoSelectionCache,
+                "webradio", "webr"))
         musicModule.registerCommand(PlayCommand(playerLimiter, trackSearcher, videoSelectionCache,
                 Arrays.asList(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD),
                 PLAY_COMM_NAME, "p"))
