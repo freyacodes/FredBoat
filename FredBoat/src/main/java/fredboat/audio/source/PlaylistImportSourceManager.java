@@ -161,6 +161,8 @@ public class PlaylistImportSourceManager implements AudioSourceManager, Playlist
                     "Couldn't load playlist. Either " + serviceName + " is down or the playlist does not exist.",
                     FriendlyException.Severity.FAULT, ex);
         }
+        
+        response = response.replaceAll(PasteServiceConstants.EXPORT_COMMENTS, "");
 
         String[] unfiltered = response.split("\\s");
         ArrayList<String> filtered = new ArrayList<>();
