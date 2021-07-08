@@ -35,6 +35,7 @@ public class GuildConfig implements TransferObject<String> {
     private String guildId = "";
     private boolean trackAnnounce = false;
     private boolean autoResume = false;
+    private boolean clearOnEmpty = true;
     private String lang = "en_US";
 
     @Override
@@ -62,6 +63,15 @@ public class GuildConfig implements TransferObject<String> {
 
     public GuildConfig setAutoResume(boolean autoplay) {
         this.autoResume = autoplay;
+        return this;
+    }
+
+    public boolean isClearOnEmpty() {
+        return clearOnEmpty;
+    }
+
+    public GuildConfig setClearOnEmpty(boolean clearOnEmpty) {
+        this.clearOnEmpty = clearOnEmpty;
         return this;
     }
 

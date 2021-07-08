@@ -58,6 +58,7 @@ class ConfigCommand(name: String, vararg aliases: String) : Command(name, *alias
                 .append(context.i18nFormat("configNoArgs", context.guild.name)).append("\n")
                 .append("track_announce = ${gc.isTrackAnnounce}\n")
                 .append("auto_resume = ${gc.isAutoResume}\n")
+                .append("clear_on_empty = ${gc.isClearOnEmpty}\n")
                 .append("```") //opening ``` is part of the configNoArgs language string
 
         context.reply(mb.build())
@@ -93,6 +94,13 @@ class ConfigCommand(name: String, vararg aliases: String) : Command(name, *alias
                 context.replyWithName("`auto_resume` " + context.i18nFormat("configSetTo", `val`))
             } else {
                 context.reply(context.i18nFormat("configMustBeBoolean", invoker.effectiveName.escapeAndDefuse()))
+            }
+        } else if (key == "clear_on_empty") {
+            if (`val`.equals("true", ignoreCase = true) or `val`.equals("false", ignoreCase = true)) {
+                Launcher.botController.guildConfigService.transformGuildConfig(context.guild.id) {
+                    gc -> gc.setClearOnEmpty(java.lang.Boolean.parseBoolean(`val`))
+                }
+                context.replyWithName("`clear_on_empty`" + context.i18nFormat("configSetTo", `val`))
             }
         } else context.reply(context.i18nFormat("configUnknownKey", invoker.effectiveName.escapeAndDefuse()))
     }
